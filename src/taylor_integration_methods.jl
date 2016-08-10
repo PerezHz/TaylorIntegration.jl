@@ -241,3 +241,50 @@ function taylor_one_step_v2!{T<:Number}(f, timestep_method,
     return new_state
 
 end
+
+
+
+doc"""`taylor_integrator_v2!{T<:Number}(f, timestep_method, initial_state::Array{T,1},
+    abs_tol::T, order::Int, t_max::T, datalog::Array{Array{T,1},1})`
+
+This is a general-purpose Taylor integrator for the explicit 1st-order initial
+value problem defined by ẋ=`f`(x) and initial condition `initial_state` (a `T` type array).
+Returns final state up to time `t_max`, storing the system history into `datalog`. The Taylor expansion order
+is specified by `order`, and `abs_tol` is the absolute tolerance. Time-step
+control must be provided by the user via the `timestep_method` argument.
+
+The main difference between this method and `taylor_integrator!` is that internally,
+`ad!` uses a `Taylor1{T}` version of the state vector, instead of a
+`T` version of the state vector.
+
+NOTE: this integrator assumes that the independent variable is included as the
+first component of the `initial_state` array, and its evolution ṫ=1 must be included
+in the equations of motion as well.
+"""
+function taylor_integrator_v2!{T<:Number}(f, timestep_method, initial_state::Array{T,1},
+    abs_tol::T, order::Int, t_max::T, datalog::Array{Array{T,1},1})
+
+    state = initial_state
+    stateT = Array{Taylor1{T},1}(length(state))
+
+    for i::Int in eachindex(datalog)
+        push!(datalog[i], initial_state[i])
+    end
+
+    while state[1]::T<t_max
+
+        for i::Int in eachindex(state)
+            stateT[i] = Taylor1( state[i], order )
+        end
+
+        state = taylor_one_step_v2!(f, timestep_method, stateT, abs_tol, order)::Array{T,1}
+
+        for i::Int in eachindex(datalog)
+            push!(datalog[i], state[i])
+        end
+
+    end
+
+    return state
+
+end
