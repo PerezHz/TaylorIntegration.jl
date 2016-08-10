@@ -1,6 +1,6 @@
-# Celestial.jl
+# TaylorIntegration.jl
 
-ODE integration using Taylor method
+ODE numerical integration using Taylor method
 
 #### Introduction
 
