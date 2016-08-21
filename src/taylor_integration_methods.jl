@@ -15,12 +15,12 @@ function differentiate!{T<:Number}(f, x::Array{Taylor1{T},1}, order::Int, params
         im1=i-1
         x_i = Array{Taylor1{T},1}(length(x))
         for j::Int in eachindex(x)
-            x_i[j] = Taylor1( x[j].coeffs[1:i], im1 )
+            @inbounds x_i[j] = Taylor1( x[j].coeffs[1:i], im1 )
         end
         #println("x_i=", x_i)
         F = f(x_i    , params)
         for j::Int in eachindex(x)
-            x[j].coeffs[ip1]=F[j].coeffs[i]/i
+            @inbounds x[j].coeffs[ip1]=F[j].coeffs[i]/i
         end
     end
 end
@@ -35,7 +35,7 @@ function stepsize{T<:Number}(x::Taylor1{T}, epsilon::T)
     h = Inf::T
     for k::Int in [ord-1, ord]
         kinv = 1.0/k
-        aux = abs( x.coeffs[k+1] )::T
+        @inbounds aux = abs( x.coeffs[k+1] )::T
         h = min(h, (epsilon/aux)^kinv)
     end
     return h
@@ -49,7 +49,7 @@ an array of TaylorSeries.Taylor1, given a prescribed absolute tolerance `epsilon
 function stepsizeall{T<:Number}(q::Array{Taylor1{T},1}, epsilon::T)
     hh = Inf::T
     for i::Int in eachindex(q) # 2:length(q) # eachindex(q)
-        h1 = stepsize( q[i], epsilon )::T
+        @inbounds h1 = stepsize( q[i], epsilon )::T
         hh = min( hh, h1 )
     end
     return hh
@@ -63,14 +63,14 @@ Returns the evaluations as an array. Note this function assumes that the first
 component of the state vector is the independent variable."""
 function propagate{T<:Number}(n::Int, my_delta_t::T, jets::Array{Taylor1{T},1})
 
-    sum0 = Array{ typeof(jets[1].coeffs[1]) }( length(jets) )
+    @inbounds sum0 = Array{ eltype(jets[1].coeffs) }( length(jets) )
 
     #sum0[1]=jets[1].coeffs[1]+my_delta_t
 
     for i::Int in eachindex(jets) # 2:length(jets)
-        sum0[i] = jets[i].coeffs[n+1]
+        @inbounds sum0[i] = jets[i].coeffs[n+1]
         for k in n+1:-1:2
-            sum0[i] = jets[i].coeffs[k-1]+sum0[i]*my_delta_t
+            @inbounds sum0[i] = jets[i].coeffs[k-1]+sum0[i]*my_delta_t
         end #for k, Horner sum
     end #for i, jets
 
@@ -89,11 +89,11 @@ function iterate!{T<:Number}(f, timestep_method, elaptime::Ref{T}, state::Array{
 
     stateT = Array{Taylor1{T},1}(length(state))
     for i::Int in eachindex(state)
-        stateT[i] = Taylor1( state[i], order )
+        @inbounds stateT[i] = Taylor1( state[i], order )
     end
     differentiate!(f, stateT, order, params)
     step = timestep_method(stateT, abs_tol)::T
-    elaptime.x += step
+    elaptime[] += step
     new_state = propagate(order, step, stateT)::Array{T,1}
 
     return new_state
@@ -121,8 +121,8 @@ function integrate!{T<:Number}(f, timestep_method, initial_state::Array{T,1},
 
     initial_stateT = Array{Taylor1{T},1}(length(initial_state))
     for i::Int in eachindex(initial_state)
-        initial_stateT[i] = Taylor1( initial_state[i], order )
-    end
+        @inbounds initial_stateT[i] = Taylor1( initial_state[i], order )
+    end #for
 
     @assert length( f(initial_stateT, params) ) == length( initial_state ) "`length(f(initial_stateT, params))` must be equal to `length(initial_state)`"
 
@@ -133,24 +133,24 @@ function integrate!{T<:Number}(f, timestep_method, initial_state::Array{T,1},
     push!(datalog[1], t0)
 
     for i::Int in 2:length(datalog)
-        push!(datalog[i], state[i-1])
-    end
+        @inbounds push!(datalog[i], state[i-1])
+    end #for
 
     while datalog[1][end]<t_max
 
         state = iterate!(f, timestep_method, elapsed_time, state, abs_tol, order, params)#::Array{T,1}
 
-        push!( datalog[1], t0+elapsed_time.x )
+        @inbounds push!( datalog[1], t0+elapsed_time.x )
 
         for i::Int in 2:length(datalog)
-            push!(datalog[i], state[i-1])
-        end
+            @inbounds push!(datalog[i], state[i-1])
+        end #for
 
-    end
+    end #while
 
     return state
 
-end
+end #integrate!
 
 doc"""`integrate_k!{T<:Number}(f, timestep_method, initial_state::Array{T,1}, abs_tol::T, order::Int, t_max::T, datalog::Array{Array{T,1},1}, k_max::Int, params...)`
 
@@ -172,7 +172,7 @@ function integrate_k!{T<:Number}(f, timestep_method, initial_state::Array{T,1},
 
     initial_stateT = Array{Taylor1{T},1}(length(initial_state))
     for i::Int in eachindex(initial_state)
-        initial_stateT[i] = Taylor1( initial_state[i], order )
+        @inbounds initial_stateT[i] = Taylor1( initial_state[i], order )
     end
 
     @assert length( f(initial_stateT, params) ) == length( initial_state ) "`length(f(initial_stateT, params))` must be equal to `length(initial_state)`"#" minus one"
@@ -181,10 +181,10 @@ function integrate_k!{T<:Number}(f, timestep_method, initial_state::Array{T,1},
 
     elapsed_time = Ref(zero(T)) #this `Base.RefValue{T}` variable stores elapsed time, so that we can change its .x field inside `iterate!`
 
-    push!(datalog[1], t0)
+    @inbounds push!(datalog[1], t0)
 
     for i::Int in 2:length(datalog)
-        push!(datalog[i], state[i-1])
+        @inbounds push!(datalog[i], state[i-1])
     end
 
     k=0
@@ -193,10 +193,10 @@ function integrate_k!{T<:Number}(f, timestep_method, initial_state::Array{T,1},
 
         state = iterate!(f, timestep_method, elapsed_time, state, abs_tol, order, params)#::Array{T,1}
 
-        push!( datalog[1], t0+elapsed_time.x )
+        @inbounds push!( datalog[1], t0+elapsed_time.x )
 
         for i::Int in 2:length(datalog)
-            push!(datalog[i], state[i-1])
+            @inbounds push!(datalog[i], state[i-1])
         end
 
         k+=1
