@@ -155,71 +155,51 @@ function taylorstep!{T<:Number}(t0::T, x0::Array{T,1}, order::Int, abs_tol::T, f
     return nothing
 end
 
-
 doc"""
-    taylorinteg!{T<:Number}(initial_state, abs_tol, order, t_max, datalog, params, f)
+    taylorinteg(x0, t0, tmax, order, abs_tol, f[, maxsteps::Int=500])
 
 This is a general-purpose Taylor integrator for the explicit ODE
-$\dot{x}=f(x)$ with initial condition specified by `initial_state::Array{T,1}`.
-Returns final state up to time `t_max`, storing the system history into `datalog`. The Taylor expansion order
-is specified by `order`, and `abs_tol` is the absolute tolerance. Time-step
-control must be provided by the user via the `timestep_method` argument.
+$\dot{x}=f(x)$ with initial condition specified by `x0` at time `t0`.
+It returns a vector with the values of time (independent variable),
+and a vector (of of type `typeof(x0)`) with the computed values of
+the dependent variables. The integration stops when time
+is larger than `tmax`, or the number of saved steps is larger
+than `maxsteps`.
 
-NOTE: this integrator assumes that the independent variable is included as the
-first component of the `initial_state` array, and its evolution ṫ=1 must be included
-in the equations of motion as well.
+The integrator uses polynomial expansions on the independent variable
+of order `order` and the parameter `abs_tol` serves to define the
+time step using the last two Taylor coefficients of the expansions.
 """
 function taylorinteg{T<:Number}(x0::T, t0::T, t_max::T,
-        order::Int, abs_tol::T, f, maxsteps=500)
+        order::Int, abs_tol::T, f, maxsteps::Int=500)
 
-    datalog = Array{T,2}()
-    t = t0
+    tv = [t0]
+    xv = [x0]
     nsteps = 0
-    # push!(datalog, t0, x0)
     while (t0 < t_max) && (nsteps < maxsteps)
-        dt = taylorstep!(x0, order, abs_tol, f)
-        t += dt
-        # push!(datalog, t0, x0)
+        taylorstep!(t0, x0, order, abs_tol, f)
+        # t += dt
+        push!(tv, t0)
+        push!(xv, x0)
         nsteps += 1
     end
 
-    return state
+    return tv, xv
 end
 
-function taylorinteg{T<:Number}(initial_state::Array{T,1},
-    abs_tol::T, order::Int, t0::T, t_max::T,
-    datalog::Array{Array{T,1},1}, f)
+function taylorinteg{T<:Number}(x0::Array{T,1}, t0::T, t_max::T,
+    order::Int, abs_tol::T, f, maxsteps::Int=500)
 
-    @assert length(initial_state) == length(datalog)-1 "`length(initial_state)` must be equal to `length(datalog)` minus one"
+    tv = [t0]
+    xv = Array{typeof(x0),1}()
+    push!(xv, x0)
 
-    initial_stateT = Array{Taylor1{T},1}(length(initial_state))
-    for i in eachindex(initial_state)
-        @inbounds initial_stateT[i] = Taylor1( initial_state[i], order )
-    end #for
+    while (t0 < t_max) && (nsteps < maxsteps)
+        taylorstep!(t0, x0, order, abs_tol, f)
+        push!(tv, t0)
+        push!(xv, x0)
+        nsteps += 1
+    end
 
-    @assert length( f(initial_stateT) ) == length( initial_state ) "`length(f(initial_stateT, params))` must be equal to `length(initial_state)`"
-
-    state = initial_state #`state` stores the current system state
-
-    elapsed_time = Ref(zero(T)) #this `Base.RefValue{T}` variable stores elapsed time, so that we can change its .x field inside `taylorstep!`
-
-    push!(datalog[1], t0)
-
-    for i in 2:length(datalog)
-        push!(datalog[i], state[i-1])
-    end #for
-
-    while datalog[1][end]<t_max
-
-        state = taylorstep!(state, elapsed_time, state, abs_tol, order, f)
-
-        @inbounds push!( datalog[1], t0+elapsed_time.x )
-
-        for i in 2:length(datalog)
-            @inbounds push!(datalog[i], state[i-1])
-        end #for
-
-    end #while
-
-    return state
+    return tv, xv
 end
