@@ -1,5 +1,7 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
+
+# jetcoeffs!
 doc"""
     jetcoeffs!(f, t, x)
 
@@ -20,14 +22,14 @@ function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Taylor1{T})
         ordnext = ord+1
 
         # Set `xaux`, auxiliary Taylor1 variable to order `ord`
-        xaux = Taylor1( x.coeffs[1:ord] )
+        @inbounds xaux = Taylor1( x.coeffs[1:ord] )
 
         # Equations of motion
         # TODO! define a macro to optimize the eqsdiff
-        F = eqsdiff(t0, xaux)
+        xdot = eqsdiff(t0, xaux)
 
         # Recursion relation
-        @inbounds x.coeffs[ordnext] = F.coeffs[ord]/ord
+        @inbounds x.coeffs[ordnext] = xdot.coeffs[ord]/ord
     end
     nothing
 end
@@ -45,17 +47,18 @@ function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Vector{Taylor1{T}})
 
         # Equations of motion
         # TODO! define a macro to optimize the eqsdiff
-        F = eqsdiff(t0, xaux)
+        xdot = eqsdiff(t0, xaux)
 
         # Recursion relations
         @inbounds for j in eachindex(x)
-            x[j].coeffs[ordnext] = F[j].coeffs[ord]/ord
+            x[j].coeffs[ordnext] = xdot[j].coeffs[ord]/ord
         end
     end
     nothing
 end
 
 
+# stepsize
 doc"""
     stepsize(x, epsilon)
 
@@ -65,10 +68,13 @@ prescribed absolute tolerance `epsilon`.
 function stepsize{T<:Number}(x::Taylor1{T}, epsilon::T)
     ord = x.order
     h = T(Inf)
-    for k in [ord-1, ord]
-        kinv = one(T)/k
+    for k in (ord-1, ord)
         @inbounds aux = abs( x.coeffs[k+1] )
-        h = min(h, (epsilon/aux)^kinv)
+        aux == zero(T) && continue
+        aux = epsilon / aux
+        kinv = one(T)/k
+        aux = aux^kinv
+        h = min(h, aux)
     end
     return h
 end
@@ -89,6 +95,7 @@ function stepsize{T<:Number}(q::Array{Taylor1{T},1}, epsilon::T)
 end
 
 
+# evaluate and evaluate!
 doc"""
     evaluate(x, δt)
 
@@ -96,7 +103,7 @@ Evaluates each element of `x::Array{Taylor1{T},1}`, representing
 the dependent variables of an ODE, at *time* δt.
 """
 function evaluate{T<:Number}(x::Array{Taylor1{T},1}, δt::T)
-    xnew = Array{T,1}( length(x) )
+    xnew = Array{T}( length(x) )
     evaluate!(x, δt, xnew)
     return xnew
 end
@@ -117,14 +124,15 @@ function evaluate!{T<:Number}(x::Array{Taylor1{T},1}, δt::T, x0::Array{T,1})
 end
 
 
+# taylorstep and taylorstep!
 doc"""
     taylorstep(f, t0, x0, abs_tol, order)
 
 Compute one-step Taylor integration for the ODE $\dot{x}=dx/dt=f(t, x)$
-with initial condition $x(t_0)=x0$, returning `x0` and
-the step-size of the integration carried out.
+with initial condition $x(t_0)=x0$, returning the
+time-step of the integration carried out and the updated value of `x0`.
 
-Here, `x0` is the initial (and updated) dependent variable, `order`
+Here, `x0` is the initial (and returned) dependent variable, `order`
 is the degree used for the `Taylor1` polynomials during the integration
 and `abs_tol` is the absolute tolerance used to determine the time step
 of the integration.
@@ -144,8 +152,8 @@ doc"""
     taylorstep!(f, t0, x0, abs_tol, order)
 
 Compute one-step Taylor integration for the ODE $\dot{x}=dx/dt=f(t, x)$
-with initial conditions $x(t_0)=x0$, a vector of type T, updating `x0`
-and returning the step-size of the integration carried out.
+with initial conditions $x(t_0)=x0$, a vector of type T, returning the
+step-size of the integration; `x0` is updated.
 
 Here, `x0` is the initial (and updated) dependent variables, `order`
 is the degree used for the `Taylor1` polynomials during the integration
@@ -154,7 +162,7 @@ of the integration.
 """
 function taylorstep!{T<:Number}(f, t0::T, x0::Array{T,1}, order::Int, abs_tol::T)
     # Inizialize the vector of Taylor1 expansions
-    xT = Array{Taylor1{T},1}(length(x0))
+    xT = Array{Taylor1{T}}(length(x0))
     for i in eachindex(x0)
         @inbounds xT[i] = Taylor1( x0[i], order )
     end
@@ -166,9 +174,70 @@ function taylorstep!{T<:Number}(f, t0::T, x0::Array{T,1}, order::Int, abs_tol::T
     return δt
 end
 
+doc"""
+    taylorstep(f, t0, t1, x0, abs_tol, order)
+
+Compute one-step Taylor integration for the ODE $\dot{x}=dx/dt=f(t, x)$
+with initial conditions $x(t_0)=x0$, returning the
+time-step of the integration carried out and the updated value of `x0`.
+
+Here, `x0` is the initial (and returned) dependent variables, `order`
+is the degree used for the `Taylor1` polynomials during the integration
+and `abs_tol` is the absolute tolerance used to determine the time step
+of the integration. If the time step is larger than `t1-t0`, that difference
+is used as the time step.
+"""
+function taylorstep{T<:Number}(f, t0::T, t1::T, x0::T, order::Int, abs_tol::T)
+    @assert t1 > t0
+    # Inizialize the Taylor1 expansions
+    xT = Taylor1( x0, order )
+    # Compute the Taylor coefficients
+    jetcoeffs!(f, t0, xT)
+    # Compute the step-size of the integration using `abs_tol`
+    δt = stepsize(xT, abs_tol)
+    if δt ≥ t1-t0
+        δt = t1-t0
+    end
+    x0 = evaluate(xT, δt)
+    return δt, x0
+end
 
 doc"""
-    taylorinteg(x0, t0, tmax, order, abs_tol, f[, maxsteps::Int=500])
+    taylorstep!(f, t0, t1, x0, abs_tol, order)
+
+Compute one-step Taylor integration for the ODE $\dot{x}=dx/dt=f(t, x)$
+with initial conditions $x(t_0)=x0$, a vector of type T, returning the
+step-size of the integration carried out and updating `x0`.
+
+Here, `x0` is the initial (and updated) dependent variables, `order`
+is the degree used for the `Taylor1` polynomials during the integration
+and `abs_tol` is the absolute tolerance used to determine the time step
+of the integration. If the time step is larger than `t1-t0`, that difference
+is used as the time step.
+"""
+function taylorstep!{T<:Number}(f, t0::T, t1::T, x0::Array{T,1},
+        order::Int, abs_tol::T)
+    @assert t1 > t0
+    # Inizialize the vector of Taylor1 expansions
+    xT = Array{Taylor1{T}}(length(x0))
+    for i in eachindex(x0)
+        @inbounds xT[i] = Taylor1( x0[i], order )
+    end
+    # Compute the Taylor coefficients
+    jetcoeffs!(f, t0, xT)
+    # Compute the step-size of the integration using `abs_tol`
+    δt = stepsize(xT, abs_tol)
+    if δt ≥ t1-t0
+        δt = t1-t0
+    end
+    evaluate!(xT, δt, x0)
+    return δt
+end
+
+
+# taylorinteg
+doc"""
+    taylorinteg(f, x0, t0, tmax, order, abs_tol; keyword... )
 
 This is a general-purpose Taylor integrator for the explicit ODE
 $\dot{x}=f(x)$ with initial condition specified by `x0` at time `t0`.
@@ -181,37 +250,128 @@ than `maxsteps`.
 The integrator uses polynomial expansions on the independent variable
 of order `order` and the parameter `abs_tol` serves to define the
 time step using the last two Taylor coefficients of the expansions.
+
+The current keyword arguments is `maxsteps=500`.
 """
 function taylorinteg{T<:Number}(f, x0::T, t0::T, t_max::T,
-        order::Int, abs_tol::T, maxsteps::Int=500)
-
+        order::Int, abs_tol::T; maxsteps::Int=500)
     tv = [t0]
     xv = [x0]
     nsteps = 0
-    while (t0 < t_max) && (nsteps < maxsteps)
+    while t0 < t_max
         δt, x0 = taylorstep(f, t0, x0, order, abs_tol)
         t0 += δt
         push!(tv, t0)
         push!(xv, x0)
         nsteps += 1
+        if nsteps ≥ maxsteps
+            warn("""
+            Maximum number of integration steps reached; exiting.
+            """)
+            break
+        end
     end
 
     return tv, xv
 end
 
-function taylorinteg{T<:Number}(f, x0::Array{T,1}, t0::T, t_max::T,
-        order::Int, abs_tol::T, maxsteps::Int=500)
+function taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, t_max::T,
+        order::Int, abs_tol::T; maxsteps::Int=500)
 
+    x0 = copy(q0)
     tv = [t0]
-    xv = Array{typeof(x0),1}()
-    push!(xv, x0)
+    xv = Array{typeof(x0)}(0)
+    push!(xv, copy(x0))
     nsteps = 0
-    while (t0 < t_max) && (nsteps < maxsteps)
+    while t0 < t_max
         δt = taylorstep!(f, t0, x0, order, abs_tol)
         t0 += δt
         push!(tv, t0)
-        push!(xv, x0)
+        push!(xv, copy(x0))
         nsteps += 1
+        if nsteps ≥ maxsteps
+            warn("""
+            Maximum number of integration steps reached; exiting.
+            """)
+            break
+        end
+    end
+
+    return tv, xv
+end
+
+# Integrate and return results evaluated at given time
+function taylorinteg{T<:Number}(f, x0::T, trange::Range{T},
+        order::Int, abs_tol::T; maxsteps::Int=500)
+    nn = length(trange)
+    tv = [trange[1]]
+    xv = [x0]
+
+    iter = 1
+    while iter < nn
+        t0, t1 = trange[iter], trange[iter+1]
+        nsteps = 0
+        while nsteps < maxsteps
+            xold = x0
+            δt, x0 = taylorstep(f, t0, x0, order, abs_tol)
+            if t0+δt ≥ t1
+                x0 = xold
+                δt, x0 = taylorstep(f, t0, t1, x0, order, abs_tol)
+                t0 = t1
+                break
+            end
+            t0 += δt
+            nsteps += 1
+        end
+        iter += 1
+        push!(tv, t0)
+        push!(xv, copy(x0))
+        if nsteps ≥ maxsteps && t0 != t1
+            warn("""
+            Maximum number of integration steps reached; exiting.
+            """)
+            break
+        end
+    end
+
+    return tv, xv
+end
+
+function taylorinteg{T<:Number}(f, q0::Array{T,1}, trange::Range{T},
+        order::Int, abs_tol::T; maxsteps::Int=500)
+
+    nn = length(trange)
+    x0 = copy(q0)
+    tv = Array{T,1}(0)
+    xv = Array{typeof(x0),1}(0)
+    push!(tv, trange[1])
+    push!(xv, copy(x0))
+
+    iter = 1
+    while iter < nn
+        t0, t1 = trange[iter], trange[iter+1]
+        nsteps = 0
+        while nsteps < maxsteps
+            xold = copy(x0)
+            δt = taylorstep!(f, t0, x0, order, abs_tol)
+            if t0+δt ≥ t1
+                x0 = xold
+                δt = taylorstep!(f, t0, t1, x0, order, abs_tol)
+                t0 = t1
+                break
+            end
+            t0 += δt
+            nsteps += 1
+        end
+        iter += 1
+        push!(tv, t0)
+        push!(xv, copy(x0))
+        if nsteps ≥ maxsteps && t0 != t1
+            warn("""
+            Maximum number of integration steps reached; exiting.
+            """)
+            break
+        end
     end
 
     return tv, xv
