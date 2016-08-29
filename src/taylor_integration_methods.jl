@@ -126,7 +126,7 @@ end
 
 # taylorstep and taylorstep!
 doc"""
-    taylorstep(f, t0, x0, abs_tol, order)
+    taylorstep(f, t0, x0, order, abs_tol)
 
 Compute one-step Taylor integration for the ODE $\dot{x}=dx/dt=f(t, x)$
 with initial condition $x(t_0)=x0$, returning the
@@ -149,7 +149,7 @@ function taylorstep{T<:Number}(f, t0::T, x0::T, order::Int, abs_tol::T)
 end
 
 doc"""
-    taylorstep!(f, t0, x0, abs_tol, order)
+    taylorstep!(f, t0, x0, order, abs_tol)
 
 Compute one-step Taylor integration for the ODE $\dot{x}=dx/dt=f(t, x)$
 with initial conditions $x(t_0)=x0$, a vector of type T, returning the
@@ -175,7 +175,7 @@ function taylorstep!{T<:Number}(f, t0::T, x0::Array{T,1}, order::Int, abs_tol::T
 end
 
 doc"""
-    taylorstep(f, t0, t1, x0, abs_tol, order)
+    taylorstep(f, t0, t1, x0, order, abs_tol)
 
 Compute one-step Taylor integration for the ODE $\dot{x}=dx/dt=f(t, x)$
 with initial conditions $x(t_0)=x0$, returning the
@@ -203,7 +203,7 @@ function taylorstep{T<:Number}(f, t0::T, t1::T, x0::T, order::Int, abs_tol::T)
 end
 
 doc"""
-    taylorstep!(f, t0, t1, x0, abs_tol, order)
+    taylorstep!(f, t0, t1, x0, order, abs_tol)
 
 Compute one-step Taylor integration for the ODE $\dot{x}=dx/dt=f(t, x)$
 with initial conditions $x(t_0)=x0$, a vector of type T, returning the
