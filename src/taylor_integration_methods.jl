@@ -240,9 +240,9 @@ doc"""
     taylorinteg(f, x0, t0, tmax, order, abs_tol; keyword... )
 
 This is a general-purpose Taylor integrator for the explicit ODE
-$\dot{x}=f(x)$ with initial condition specified by `x0` at time `t0`.
+$\dot{x}=f(t, x)$ with initial condition specified by `x0` at time `t0`.
 It returns a vector with the values of time (independent variable),
-and a vector (of of type `typeof(x0)`) with the computed values of
+and a vector (of type `typeof(x0)`) with the computed values of
 the dependent variables. The integration stops when time
 is larger than `tmax`, or the number of saved steps is larger
 than `maxsteps`.
