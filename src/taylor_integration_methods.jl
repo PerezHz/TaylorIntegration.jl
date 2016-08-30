@@ -303,9 +303,11 @@ end
 # Integrate and return results evaluated at given time
 function taylorinteg{T<:Number}(f, x0::T, trange::Range{T},
         order::Int, abs_tol::T; maxsteps::Int=500)
+
     nn = length(trange)
-    tv = [trange[1]]
-    xv = [x0]
+    xv = Array{T,1}(nn)
+    fill!(xv, T(NaN))
+    xv[1] = x0
 
     iter = 1
     while iter < nn
@@ -323,29 +325,31 @@ function taylorinteg{T<:Number}(f, x0::T, trange::Range{T},
             t0 += δt
             nsteps += 1
         end
-        iter += 1
-        push!(tv, t0)
-        push!(xv, copy(x0))
         if nsteps ≥ maxsteps && t0 != t1
             warn("""
             Maximum number of integration steps reached; exiting.
             """)
             break
         end
+        iter += 1
+        xv[iter] = x0
     end
 
-    return tv, xv
+    return xv
 end
 
 function taylorinteg{T<:Number}(f, q0::Array{T,1}, trange::Range{T},
         order::Int, abs_tol::T; maxsteps::Int=500)
 
     nn = length(trange)
+    x0 = similar(q0)
+    fill!(x0,T(NaN))
+    xv = Array{typeof(q0),1}(nn)
+    for iter in eachindex(xv)
+        xv[iter] = x0
+    end
     x0 = copy(q0)
-    tv = Array{T,1}(0)
-    xv = Array{typeof(x0),1}(0)
-    push!(tv, trange[1])
-    push!(xv, copy(x0))
+    xv[1] = copy(q0)
 
     iter = 1
     while iter < nn
@@ -363,16 +367,15 @@ function taylorinteg{T<:Number}(f, q0::Array{T,1}, trange::Range{T},
             t0 += δt
             nsteps += 1
         end
-        iter += 1
-        push!(tv, t0)
-        push!(xv, copy(x0))
         if nsteps ≥ maxsteps && t0 != t1
             warn("""
             Maximum number of integration steps reached; exiting.
             """)
             break
         end
+        iter += 1
+        xv[iter] = copy(x0)
     end
 
-    return tv, xv
+    return xv
 end
