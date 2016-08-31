@@ -24,12 +24,13 @@ facts("Tests: dot{x}=x^2, x(0) = 1") do
     @fact xv[1] --> x0
     @fact tv[end] < 1.0 --> true
 
-    trange = 0.0:1/8:0.5
-    tv, xv = taylorinteg(eqs_mov, x0, trange, _order, _abs_tol)
-    @fact length(tv) --> 5
+    trange = 0.0:1/8:1.0
+    xv = taylorinteg(eqs_mov, x0, trange, _order, _abs_tol)
+    @fact length(xv) --> length(trange)
+    @fact typeof(xv) --> Array{typeof(x0),1}
     @fact xv[1] --> x0
-    @fact tv[end] --> 0.5
-    @fact abs(xv[end] - 2.0) ≤ eps(1.0) --> true
+    @fact isnan(xv[end]) --> true
+    @fact abs(xv[5] - 2.0) ≤ eps(2.0) --> true
 end
 
 facts("Tests: dot{x}=x.^2, x(0) = [3.0,1.0]") do
@@ -51,14 +52,15 @@ facts("Tests: dot{x}=x.^2, x(0) = [3.0,1.0]") do
     @fact tv[end] < 1/3 --> true
 
     trange = 0.0:1/8:1.0
-    tv, xv = taylorinteg(eqs_mov, q0, trange, _order, _abs_tol)
+    xv = taylorinteg(eqs_mov, q0, trange, _order, _abs_tol)
     @fact q0 --> [3.0, 1.0]
-    @fact length(xv) --> 4
+    @fact length(xv) --> length(trange)
     @fact typeof(xv) --> Array{typeof(q0),1}
     @fact xv[1] --> [3.0, 1.0]
-    @fact tv[2] --> trange[2]
-    @fact tv[4] < 1/3 --> true
+    @fact (isnan(xv[4][1]) && isnan(xv[4][2])) --> true
+    @fact (isnan(xv[end][1]) && isnan(xv[end][2])) --> true
     @fact abs(xv[3][2] - 4/3) ≤ eps(4/3) --> true
+    @fact abs(xv[2][1] - 4.8) ≤ eps(4.8) --> true
 end
 
 exitstatus()
