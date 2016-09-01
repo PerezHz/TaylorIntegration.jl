@@ -94,6 +94,88 @@ function stepsize{T<:Number}(q::Array{Taylor1{T},1}, epsilon::T)
     return h
 end
 
+doc"""
+    stepsize(x, rel_tol, abs_tol)
+
+Returns a time-step for a `x::Taylor1{T}` using a
+prescribed absolute tolerance `epsilon`.
+"""
+function stepsize{T<:Number}(x::Taylor1{T}, rel_tol::T, abs_tol::T)
+    ord = x.order
+    h = T(Inf)
+    x0infnorm = abs( x.coeffs[1] )
+    if rel_tol*x0infnorm <= abs_tol
+        for k in (ord-1, ord)
+            @inbounds aux = abs( x.coeffs[k+1] )
+            aux == zero(T) && continue
+            aux = one(T) / aux
+            kinv = one(T)/k
+            aux = aux^kinv
+            h = min(h, aux)
+        end
+    else
+        for k in (ord-1, ord)
+            @inbounds aux = abs( x.coeffs[k+1] )
+            aux == zero(T) && continue
+            aux = x0infnorm / aux
+            kinv = one(T)/k
+            aux = aux^kinv
+            h = min(h, aux)
+        end
+    end
+    expsq = exp(one(T))^2
+    safety = exp( -one(T)/(ord-one(T)) )/expsq
+    return h*safety
+end
+
+doc"""
+    stepsize(q, rel_tol, abs_tol)
+
+Returns the minimum time-step for `q::Array{Taylor1{T},1}`,
+using a prescribed absolute tolerance `epsilon`.
+"""
+function stepsize{T<:Number}(q::Array{Taylor1{T},1}, rel_tol::T, abs_tol::T)
+    ord = q[1].order
+    h = T(Inf)
+    qcoeffs0 = Array{T}(length(q))
+    for i in eachindex(q)
+        @inbounds qcoeffs0[i] = q[i].coeffs[1]
+    end
+    qcoeffs0infnorm = norm(qcoeffs0, Inf)
+    if rel_tol*qcoeffs0infnorm <= abs_tol
+        for k in (ord-1, ord)
+            qcoeffskp1 = Array{T}(length(q))
+            for i in eachindex(q)
+                @inbounds qcoeffskp1[i] = q[i].coeffs[k+1]
+            end
+            aux = norm(qcoeffskp1, Inf)
+            aux == zero(T) && continue
+            aux = one(T) / aux
+            kinv = one(T)/k
+            aux = aux^kinv
+            h = min(h, aux)
+        end
+    else
+        for k in (ord-1, ord)
+            qcoeffskp1 = Array{T}(length(q))
+            for i in eachindex(q)
+                @inbounds qcoeffskp1[i] = q[i].coeffs[k+1]
+            end
+            aux = norm(qcoeffskp1, Inf)
+            aux == zero(T) && continue
+            aux = qcoeffs0infnorm / aux
+            kinv = one(T)/k
+            aux = aux^kinv
+            h = min(h, aux)
+        end
+    end
+    expsq = exp(one(T))^2
+    exparg = 10( ord-one(T) )
+    exparg = -7/exparg
+    safety = exp( exparg )/expsq
+    return h*safety
+end
+
 
 # evaluate and evaluate!
 doc"""
@@ -138,7 +220,7 @@ and `abs_tol` is the absolute tolerance used to determine the time step
 of the integration.
 """
 function taylorstep{T<:Number}(f, t0::T, x0::T, order::Int, abs_tol::T)
-    # Inizialize the Taylor1 expansions
+    # Initialize the Taylor1 expansions
     xT = Taylor1( x0, order )
     # Compute the Taylor coefficients
     jetcoeffs!(f, t0, xT)
@@ -161,7 +243,7 @@ and `abs_tol` is the absolute tolerance used to determine the time step
 of the integration.
 """
 function taylorstep!{T<:Number}(f, t0::T, x0::Array{T,1}, order::Int, abs_tol::T)
-    # Inizialize the vector of Taylor1 expansions
+    # Initialize the vector of Taylor1 expansions
     xT = Array{Taylor1{T}}(length(x0))
     for i in eachindex(x0)
         @inbounds xT[i] = Taylor1( x0[i], order )
@@ -189,7 +271,7 @@ is used as the time step.
 """
 function taylorstep{T<:Number}(f, t0::T, t1::T, x0::T, order::Int, abs_tol::T)
     @assert t1 > t0
-    # Inizialize the Taylor1 expansions
+    # Initialize the Taylor1 expansions
     xT = Taylor1( x0, order )
     # Compute the Taylor coefficients
     jetcoeffs!(f, t0, xT)
@@ -218,7 +300,7 @@ is used as the time step.
 function taylorstep!{T<:Number}(f, t0::T, t1::T, x0::Array{T,1},
         order::Int, abs_tol::T)
     @assert t1 > t0
-    # Inizialize the vector of Taylor1 expansions
+    # Initialize the vector of Taylor1 expansions
     xT = Array{Taylor1{T}}(length(x0))
     for i in eachindex(x0)
         @inbounds xT[i] = Taylor1( x0[i], order )
@@ -230,6 +312,71 @@ function taylorstep!{T<:Number}(f, t0::T, t1::T, x0::Array{T,1},
     if δt ≥ t1-t0
         δt = t1-t0
     end
+    evaluate!(xT, δt, x0)
+    return δt
+end
+
+doc"""
+    taylorstep(f, t0, x0, rel_tol, abs_tol)
+
+Compute one-step Taylor integration for the ODE $\dot{x}=dx/dt=f(t, x)$
+with initial condition $x(t_0)=x0$, returning the
+time-step of the integration carried out and the updated value of `x0`.
+
+Here, `x0` is the initial (and returned) dependent variable and `rel_tol`
+and `abs_tol` are, respectively, the relative and absolute tolerance used to
+determine the order and time step of the integration.
+"""
+function taylorstep{T<:Number}(f, t0::T, x0::T, rel_tol::T, abs_tol::T)
+    # Compute the infinity-norm (ie., absolute value) of x0
+    x0infnorm = abs(x0)
+    # Compute the optimal order of Taylor expansion
+    if rel_tol*x0infnorm <= abs_tol
+        order = ceil( Int, one(T)-log(abs_tol)/2 )
+    else
+        order = ceil( Int, one(T)-log(rel_tol)/2 )
+    end
+    # Initialize the Taylor1 expansions
+    xT = Taylor1( x0, order )
+    # Compute the Taylor coefficients
+    jetcoeffs!(f, t0, xT)
+    # Compute the step-size of the integration using `abs_tol`
+    δt = stepsize(xT, rel_tol, abs_tol)
+    x0 = evaluate(xT, δt)
+    return δt, x0
+end
+
+doc"""
+    taylorstep!(f, t0, x0, rel_tol, abs_tol)
+
+Compute one-step Taylor integration for the ODE $\dot{x}=dx/dt=f(t, x)$
+with initial conditions $x(t_0)=x0$, a vector of type T, returning the
+step-size of the integration; `x0` is updated.
+
+Here, `x0` is the initial (and updated) dependent variables, `order`
+is the degree used for the `Taylor1` polynomials during the integration
+and `abs_tol` is the absolute tolerance used to determine the time step
+of the integration.
+"""
+function taylorstep!{T<:Number}(f, t0::T, x0::Array{T,1}, rel_tol::T, abs_tol::T)
+    # Compute the infinity-norm (ie., absolute value) of x0
+    x0infnorm = norm(x0, Inf)
+    # Compute the optimal order of Taylor expansion
+    if rel_tol*x0infnorm <= abs_tol
+        order = ceil( Int, one(T)-log(abs_tol)/2 )
+    else
+        order = ceil( Int, one(T)-log(rel_tol)/2 )
+    end
+    # println("order=", order)
+    # Initialize the vector of Taylor1 expansions
+    xT = Array{Taylor1{T}}(length(x0))
+    for i in eachindex(x0)
+        @inbounds xT[i] = Taylor1( x0[i], order )
+    end
+    # Compute the Taylor coefficients
+    jetcoeffs!(f, t0, xT)
+    # Compute the step-size of the integration using `abs_tol`
+    δt = stepsize(xT, rel_tol, abs_tol)
     evaluate!(xT, δt, x0)
     return δt
 end
@@ -378,4 +525,51 @@ function taylorinteg{T<:Number}(f, q0::Array{T,1}, trange::Range{T},
     end
 
     return xv
+end
+
+function taylorinteg{T<:Number}(f, x0::T, t0::T, t_max::T,
+        rel_tol::T, abs_tol::T; maxsteps::Int=500)
+    tv = [t0]
+    xv = [x0]
+    nsteps = 0
+    while t0 < t_max
+        δt, x0 = taylorstep(f, t0, x0, rel_tol, abs_tol)
+        t0 += δt
+        push!(tv, t0)
+        push!(xv, x0)
+        nsteps += 1
+        if nsteps ≥ maxsteps
+            warn("""
+            Maximum number of integration steps reached; exiting.
+            """)
+            break
+        end
+    end
+
+    return tv, xv
+end
+
+function taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, t_max::T,
+        rel_tol::T, abs_tol::T; maxsteps::Int=500)
+
+    x0 = copy(q0)
+    tv = [t0]
+    xv = Array{typeof(x0)}(0)
+    push!(xv, copy(x0))
+    nsteps = 0
+    while t0 < t_max
+        δt = taylorstep!(f, t0, x0, rel_tol, abs_tol)
+        t0 += δt
+        push!(tv, t0)
+        push!(xv, copy(x0))
+        nsteps += 1
+        if nsteps ≥ maxsteps
+            warn("""
+            Maximum number of integration steps reached; exiting.
+            """)
+            break
+        end
+    end
+
+    return tv, xv
 end
