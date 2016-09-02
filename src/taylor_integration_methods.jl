@@ -251,20 +251,28 @@ The integrator uses polynomial expansions on the independent variable
 of order `order` and the parameter `abs_tol` serves to define the
 time step using the last two Taylor coefficients of the expansions.
 
-The current keyword arguments is `maxsteps=500`.
+The current keyword argument is `maxsteps=500`.
 """
 function taylorinteg{T<:Number}(f, x0::T, t0::T, t_max::T,
         order::Int, abs_tol::T; maxsteps::Int=500)
-    tv = [t0]
-    xv = [x0]
-    nsteps = 0
+
+    # Allocation
+    tv = Array{T}(maxsteps+1)
+    xv = Array{T}(maxsteps+1)
+
+    # Initial conditions
+    nsteps = 1
+    @inbounds tv[1] = t0
+    @inbounds xv[1] = x0
+
+    # Integration
     while t0 < t_max
         δt, x0 = taylorstep(f, t0, x0, order, abs_tol)
         t0 += δt
-        push!(tv, t0)
-        push!(xv, x0)
         nsteps += 1
-        if nsteps ≥ maxsteps
+        @inbounds tv[nsteps] = t0
+        @inbounds xv[nsteps] = x0
+        if nsteps > maxsteps
             warn("""
             Maximum number of integration steps reached; exiting.
             """)
@@ -278,18 +286,27 @@ end
 function taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, t_max::T,
         order::Int, abs_tol::T; maxsteps::Int=500)
 
+    # Allocation
+    tv = Array{T}(maxsteps+1)
+    xv = Array{typeof(q0)}(maxsteps+1)
+    @inbounds for ind in eachindex(xv)
+        xv[ind] = similar(q0)
+    end
+
+    # Initial conditions
+    @inbounds tv[1] = t0
+    @inbounds xv[1] = q0
     x0 = copy(q0)
-    tv = [t0]
-    xv = Array{typeof(x0)}(0)
-    push!(xv, copy(x0))
-    nsteps = 0
+
+    # Integration
+    nsteps = 1
     while t0 < t_max
         δt = taylorstep!(f, t0, x0, order, abs_tol)
         t0 += δt
-        push!(tv, t0)
-        push!(xv, copy(x0))
         nsteps += 1
-        if nsteps ≥ maxsteps
+        @inbounds tv[nsteps] = t0
+        @inbounds xv[nsteps][1:end] = x0[1:end]
+        if nsteps > maxsteps
             warn("""
             Maximum number of integration steps reached; exiting.
             """)
@@ -304,11 +321,15 @@ end
 function taylorinteg{T<:Number}(f, x0::T, trange::Range{T},
         order::Int, abs_tol::T; maxsteps::Int=500)
 
+    # Allocation
     nn = length(trange)
     xv = Array{T,1}(nn)
     fill!(xv, T(NaN))
-    xv[1] = x0
 
+    # Initial conditions
+    @inbounds xv[1] = x0
+
+    # Integration
     iter = 1
     while iter < nn
         t0, t1 = trange[iter], trange[iter+1]
@@ -332,31 +353,36 @@ function taylorinteg{T<:Number}(f, x0::T, trange::Range{T},
             break
         end
         iter += 1
-        xv[iter] = x0
+        @inbounds xv[iter] = x0
     end
-
     return xv
 end
 
 function taylorinteg{T<:Number}(f, q0::Array{T,1}, trange::Range{T},
         order::Int, abs_tol::T; maxsteps::Int=500)
 
+    # Allocation
     nn = length(trange)
-    x0 = similar(q0)
-    fill!(x0,T(NaN))
-    xv = Array{typeof(q0),1}(nn)
-    for iter in eachindex(xv)
-        xv[iter] = x0
+    x0 = similar(q0, T, length(q0))
+    fill!(x0, T(NaN))
+    xv = Vector{Vector{T}}(nn)
+    @inbounds for ind in eachindex(xv)
+        xv[ind] = similar(x0)
+        xv[ind][:] = x0[:]
     end
-    x0 = copy(q0)
-    xv[1] = copy(q0)
 
+    # Initial conditions
+    @inbounds x0[1:end] = q0[1:end]
+    @inbounds xv[1][1:end] = q0[1:end]
+
+    # Integration
     iter = 1
     while iter < nn
         t0, t1 = trange[iter], trange[iter+1]
         nsteps = 0
         while nsteps < maxsteps
             xold = copy(x0)
+            # @inbounds xold[1:end] = x0[1:end]
             δt = taylorstep!(f, t0, x0, order, abs_tol)
             if t0+δt ≥ t1
                 x0 = xold
@@ -374,7 +400,7 @@ function taylorinteg{T<:Number}(f, q0::Array{T,1}, trange::Range{T},
             break
         end
         iter += 1
-        xv[iter] = copy(x0)
+        @inbounds xv[iter][1:end] = x0[1:end]
     end
 
     return xv
