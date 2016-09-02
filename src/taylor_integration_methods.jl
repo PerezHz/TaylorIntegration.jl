@@ -288,14 +288,12 @@ function taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, t_max::T,
 
     # Allocation
     tv = Array{T}(maxsteps+1)
-    xv = Array{typeof(q0)}(maxsteps+1)
-    @inbounds for ind in eachindex(xv)
-        xv[ind] = similar(q0)
-    end
+    dof = length(q0)
+    xv = Array{eltype(q0)}(dof, maxsteps+1)
 
     # Initial conditions
     @inbounds tv[1] = t0
-    @inbounds xv[1] = q0
+    @inbounds xv[:,1] = q0[:]
     x0 = copy(q0)
 
     # Integration
@@ -305,7 +303,7 @@ function taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, t_max::T,
         t0 += δt
         nsteps += 1
         @inbounds tv[nsteps] = t0
-        @inbounds xv[nsteps][1:end] = x0[1:end]
+        @inbounds xv[:,nsteps] = x0[:]
         if nsteps > maxsteps
             warn("""
             Maximum number of integration steps reached; exiting.
@@ -314,7 +312,7 @@ function taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, t_max::T,
         end
     end
 
-    return tv, xv
+    return tv, xv'
 end
 
 # Integrate and return results evaluated at given time
@@ -355,6 +353,7 @@ function taylorinteg{T<:Number}(f, x0::T, trange::Range{T},
         iter += 1
         @inbounds xv[iter] = x0
     end
+
     return xv
 end
 
@@ -363,17 +362,17 @@ function taylorinteg{T<:Number}(f, q0::Array{T,1}, trange::Range{T},
 
     # Allocation
     nn = length(trange)
-    x0 = similar(q0, T, length(q0))
+    dof = length(q0)
+    x0 = similar(q0, T, dof)
     fill!(x0, T(NaN))
-    xv = Vector{Vector{T}}(nn)
-    @inbounds for ind in eachindex(xv)
-        xv[ind] = similar(x0)
-        xv[ind][:] = x0[:]
+    xv = Array{eltype(q0)}(dof, nn)
+    @inbounds for ind in 1:nn
+        xv[:,ind] = x0[:]
     end
 
     # Initial conditions
-    @inbounds x0[1:end] = q0[1:end]
-    @inbounds xv[1][1:end] = q0[1:end]
+    @inbounds x0[:] = q0[:]
+    @inbounds xv[:,1] = q0[:]
 
     # Integration
     iter = 1
@@ -382,7 +381,6 @@ function taylorinteg{T<:Number}(f, q0::Array{T,1}, trange::Range{T},
         nsteps = 0
         while nsteps < maxsteps
             xold = copy(x0)
-            # @inbounds xold[1:end] = x0[1:end]
             δt = taylorstep!(f, t0, x0, order, abs_tol)
             if t0+δt ≥ t1
                 x0 = xold
@@ -400,8 +398,8 @@ function taylorinteg{T<:Number}(f, q0::Array{T,1}, trange::Range{T},
             break
         end
         iter += 1
-        @inbounds xv[iter][1:end] = x0[1:end]
+        @inbounds xv[:,iter] = x0[:]
     end
 
-    return xv
+    return xv'
 end

@@ -1,10 +1,9 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
-# using TaylorSeries
 include("../src/TaylorIntegration.jl")
 using TaylorIntegration
 using FactCheck
-FactCheck.setstyle(:compact)
+# FactCheck.setstyle(:compact)
 
 const _order = 28
 const _abs_tol = 1.0E-20
@@ -48,20 +47,27 @@ facts("Tests: dot{x}=x.^2, x(0) = [3.0,1.0]") do
 
     tv, xv = taylorinteg(eqs_mov, q0, 0.0, 0.5, _order, _abs_tol)
     @fact length(tv) --> 501
-    @fact xv[1] --> q0
+    if VERSION < v"0.5-"
+        @fact xv[1,:] --> q0'
+    else
+        @fact xv[1,:] --> q0
+    end
     @fact tv[end] < 1/3 --> true
 
     trange = 0.0:1/8:1.0
     xv = taylorinteg(eqs_mov, q0, trange, _order, _abs_tol)
-    @fact size(xv) --> (9,)
+    @fact size(xv) --> (9,2)
     @fact q0 --> [3.0, 1.0]
-    @fact length(xv) --> length(trange)
-    @fact typeof(xv) --> Array{typeof(q0),1}
-    @fact xv[1] --> [3.0, 1.0]
-    @fact (isnan(xv[4][1]) && isnan(xv[4][2])) --> true
-    @fact (isnan(xv[end][1]) && isnan(xv[end][2])) --> true
-    @fact abs(xv[3][2] - 4/3) ≤ eps(4/3) --> true
-    @fact abs(xv[2][1] - 4.8) ≤ eps(4.8) --> true
+    @fact typeof(xv) --> Array{eltype(q0),2}
+    if VERSION < v"0.5-"
+        @fact xv[1,1:end] --> q0'
+    else
+        @fact xv[1,1:end] --> q0
+    end
+    @fact (isnan(xv[4,1]) && isnan(xv[4,2])) --> true
+    @fact (isnan(xv[end,1]) && isnan(xv[end,2])) --> true
+    @fact abs(xv[3,2] - 4/3) ≤ eps(4/3) --> true
+    @fact abs(xv[2,1] - 4.8) ≤ eps(4.8) --> true
 end
 
 exitstatus()
