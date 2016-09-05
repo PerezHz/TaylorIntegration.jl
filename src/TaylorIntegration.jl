@@ -1,19 +1,14 @@
+# This file is part of the TaylorIntegration.jl package; MIT licensed
+
 module TaylorIntegration
 
 using TaylorSeries
+using MacroTools
 
-export  #taylor_integrator,
-        integrate!,
-        integrate_k!,
-        iterate!,
-        propagate,
-        stepsize, stepsizeall,
-        differentiate!
-
-        # taylor_integrator_v2!,
-        # taylor_one_step_v2!,
-        # taylor_integrator_log
-
+export  taylorinteg,
+        taylorstep!,
+        stepsize,
+        jetcoeffs!
 
 include("taylor_integration_methods.jl")
 
