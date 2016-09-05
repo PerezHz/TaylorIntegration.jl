@@ -95,35 +95,6 @@ function stepsize{T<:Number}(q::Array{Taylor1{T},1}, epsilon::T)
 end
 
 
-# evaluate and evaluate!
-doc"""
-    evaluate(x, δt)
-
-Evaluates each element of `x::Array{Taylor1{T},1}`, representing
-the dependent variables of an ODE, at *time* δt.
-"""
-function evaluate{T<:Number}(x::Array{Taylor1{T},1}, δt::T)
-    xnew = Array{T}( length(x) )
-    evaluate!(x, δt, xnew)
-    return xnew
-end
-
-doc"""
-    evaluate!(x, δt, x0)
-
-Evaluates each element of `x::Array{Taylor1{T},1}`, representing
-the Taylor expansion for the dependent variables of an ODE at
-*time* δt; it updates the vector `x0` with the computed values.
-"""
-function evaluate!{T<:Number}(x::Array{Taylor1{T},1}, δt::T, x0::Array{T,1})
-    @assert length(x) == length(x0)
-    @inbounds for i in eachindex(x)
-        x0[i] = evaluate( x[i], δt )
-    end
-    nothing
-end
-
-
 # taylorstep and taylorstep!
 doc"""
     taylorstep(f, t0, x0, order, abs_tol)
@@ -138,7 +109,7 @@ and `abs_tol` is the absolute tolerance used to determine the time step
 of the integration.
 """
 function taylorstep{T<:Number}(f, t0::T, x0::T, order::Int, abs_tol::T)
-    # Inizialize the Taylor1 expansions
+    # Initialize the Taylor1 expansions
     xT = Taylor1( x0, order )
     # Compute the Taylor coefficients
     jetcoeffs!(f, t0, xT)
@@ -161,7 +132,7 @@ and `abs_tol` is the absolute tolerance used to determine the time step
 of the integration.
 """
 function taylorstep!{T<:Number}(f, t0::T, x0::Array{T,1}, order::Int, abs_tol::T)
-    # Inizialize the vector of Taylor1 expansions
+    # Initialize the vector of Taylor1 expansions
     xT = Array{Taylor1{T}}(length(x0))
     for i in eachindex(x0)
         @inbounds xT[i] = Taylor1( x0[i], order )
@@ -189,7 +160,7 @@ is used as the time step.
 """
 function taylorstep{T<:Number}(f, t0::T, t1::T, x0::T, order::Int, abs_tol::T)
     @assert t1 > t0
-    # Inizialize the Taylor1 expansions
+    # Initialize the Taylor1 expansions
     xT = Taylor1( x0, order )
     # Compute the Taylor coefficients
     jetcoeffs!(f, t0, xT)
@@ -218,7 +189,7 @@ is used as the time step.
 function taylorstep!{T<:Number}(f, t0::T, t1::T, x0::Array{T,1},
         order::Int, abs_tol::T)
     @assert t1 > t0
-    # Inizialize the vector of Taylor1 expansions
+    # Initialize the vector of Taylor1 expansions
     xT = Array{Taylor1{T}}(length(x0))
     for i in eachindex(x0)
         @inbounds xT[i] = Taylor1( x0[i], order )

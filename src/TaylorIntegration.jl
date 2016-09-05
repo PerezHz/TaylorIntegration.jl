@@ -3,12 +3,10 @@
 module TaylorIntegration
 
 using TaylorSeries
-
-import TaylorSeries: evaluate
+using MacroTools
 
 export  taylorinteg,
         taylorstep!,
-        evaluate,
         stepsize,
         jetcoeffs!
 

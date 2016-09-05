@@ -43,7 +43,6 @@ facts("Tests: dot{x}=x.^2, x(0) = [3.0,1.0]") do
     @fact q0T[2].coeffs[end] --> 1.0
     δt = (_abs_tol/q0T[1].coeffs[end-1])^inv(_order-1)
     @fact stepsize(q0T, _abs_tol) --> δt
-    @fact evaluate(q0T, δt)[1] - 3.0/(1.0-3.0*δt) < eps(1.0) --> true
 
     tv, xv = taylorinteg(eqs_mov, q0, 0.0, 0.5, _order, _abs_tol)
     @fact length(tv) --> 501
