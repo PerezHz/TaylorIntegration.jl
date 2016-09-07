@@ -4,7 +4,7 @@ ODE integration using Taylor's method in [Julia](http://julialang.org).
 
 #### Authors
 
-- Jorge A. Pérez Hernández,
+- [Jorge A. Pérez](http://github.com/PerezHz/),
 Instituto de Ciencias Físicas, Universidad Nacional Autónoma de México (UNAM)
 - [Luis Benet](http://www.cicc.unam.mx/~benet/),
 Instituto de Ciencias Físicas, Universidad Nacional Autónoma de México (UNAM)

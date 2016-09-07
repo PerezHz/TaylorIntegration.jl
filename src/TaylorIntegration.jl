@@ -5,11 +5,8 @@ module TaylorIntegration
 using TaylorSeries
 using MacroTools
 
-export  taylorinteg,
-        taylorstep!,
-        stepsize,
-        jetcoeffs!
+export  taylorinteg
 
-include("taylor_integration_methods.jl")
+include("integration_methods.jl")
 
 end #module
