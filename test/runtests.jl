@@ -13,10 +13,10 @@ facts("Tests: dot{x}=x^2, x(0) = 1") do
     t0 = 0.0
     x0 = 1.0
     x0T = TaylorSeries.Taylor1(x0, _order)
-    jetcoeffs!(eqs_mov, t0, x0T)
+    TaylorIntegration.jetcoeffs!(eqs_mov, t0, x0T)
     @fact x0T.coeffs[end] --> 1.0
     δt = _abs_tol^inv(_order-1)
-    @fact stepsize(x0T, _abs_tol) --> δt
+    @fact TaylorIntegration.stepsize(x0T, _abs_tol) --> δt
 
     tv, xv = taylorinteg(eqs_mov, x0, 0.0, 1.0, _order, _abs_tol)
     @fact length(tv) --> 501
@@ -38,11 +38,11 @@ facts("Tests: dot{x}=x.^2, x(0) = [3.0,1.0]") do
     t0 = 0.0
     q0 = [3.0, 1.0]
     q0T = [TaylorSeries.Taylor1(q0[1], _order), TaylorSeries.Taylor1(q0[2], _order)]
-    jetcoeffs!(eqs_mov, t0, q0T)
+    TaylorIntegration.jetcoeffs!(eqs_mov, t0, q0T)
     @fact q0T[1].coeffs[end] --> 3.0^(_order+1)
     @fact q0T[2].coeffs[end] --> 1.0
     δt = (_abs_tol/q0T[1].coeffs[end-1])^inv(_order-1)
-    @fact stepsize(q0T, _abs_tol) --> δt
+    @fact TaylorIntegration.stepsize(q0T, _abs_tol) --> δt
 
     tv, xv = taylorinteg(eqs_mov, q0, 0.0, 0.5, _order, _abs_tol)
     @fact length(tv) --> 501
