@@ -5,6 +5,8 @@ module TaylorIntegration
 using TaylorSeries
 #using MacroTools
 
+import Compat.view
+
 export  taylorinteg
 
 include("integration_methods.jl")

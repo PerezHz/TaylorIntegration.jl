@@ -252,7 +252,7 @@ function taylorinteg{T<:Number}(f, x0::T, t0::T, t_max::T,
     end
 
     #return tv, xv
-    return sub(tv,1:nsteps), sub(xv,1:nsteps)
+    return view(tv,1:nsteps), view(xv,1:nsteps)
 end
 
 function taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, t_max::T,
@@ -285,7 +285,7 @@ function taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, t_max::T,
     end
 
     #return tv, xv'
-    return sub(tv,1:nsteps), sub(xv',1:nsteps,:)
+    return view(tv,1:nsteps), view(xv',1:nsteps,:)
 end
 
 # Integrate and return results evaluated at given time
