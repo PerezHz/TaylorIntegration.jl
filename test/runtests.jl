@@ -36,6 +36,7 @@ end
 facts("Tests: dot{x}=x^2, x(0) = 3; nsteps <= maxsteps") do
     eqs_mov(t, x) = x^2
     t0 = 0.0
+    tmax = 0.3
     x0 = 3.0
     x0T = TaylorSeries.Taylor1(x0, _order)
     TaylorIntegration.jetcoeffs!(eqs_mov, t0, x0T)
@@ -43,21 +44,25 @@ facts("Tests: dot{x}=x^2, x(0) = 3; nsteps <= maxsteps") do
     δt = (_abs_tol/x0T.coeffs[end-1])^inv(_order-1)
     @fact TaylorIntegration.stepsize(x0T, _abs_tol) --> δt
 
-    tv, xv = taylorinteg(eqs_mov, x0, 0.0, 0.3, _order, _abs_tol)
+    tv, xv = taylorinteg(eqs_mov, x0, 0.0, tmax, _order, _abs_tol)
     @fact length(tv) < 501 --> true
     @fact length(xv) < 501 --> true
     @fact length(tv) --> 14
     @fact length(xv) --> 14
     @fact xv[1] --> x0
     @fact tv[end] < 1/3 --> true
+    @fact tv[end] --> tmax
 
-    tv, xv = taylorinteg(eqs_mov, x0, 0.0, 0.33, _order, _abs_tol)
+    tmax = 0.33
+
+    tv, xv = taylorinteg(eqs_mov, x0, 0.0, tmax, _order, _abs_tol)
     @fact length(tv) < 501 --> true
     @fact length(xv) < 501 --> true
     @fact length(tv) --> 28
     @fact length(xv) --> 28
     @fact xv[1] --> x0
     @fact tv[end] < 1/3 --> true
+    @fact tv[end] --> tmax
 end
 
 facts("Tests: dot{x}=x.^2, x(0) = [3.0,1.0]") do

@@ -238,7 +238,17 @@ function taylorinteg{T<:Number}(f, x0::T, t0::T, t_max::T,
 
     # Integration
     while t0 < t_max
+        xold = x0
         δt, x0 = taylorstep(f, t0, x0, order, abs_tol)
+        if t0+δt ≥ t_max
+            x0 = xold
+            δt, x0 = taylorstep(f, t0, t_max, x0, order, abs_tol)
+            t0 = t_max
+            nsteps += 1
+            @inbounds tv[nsteps] = t0
+            @inbounds xv[nsteps] = x0
+            break
+        end
         t0 += δt
         nsteps += 1
         @inbounds tv[nsteps] = t0
@@ -271,7 +281,17 @@ function taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, t_max::T,
     # Integration
     nsteps = 1
     while t0 < t_max
+        xold = x0
         δt = taylorstep!(f, t0, x0, order, abs_tol)
+        if t0+δt ≥ t_max
+            x0 = xold
+            δt = taylorstep!(f, t0, t_max, x0, order, abs_tol)
+            t0 = t_max
+            nsteps += 1
+            @inbounds tv[nsteps] = t0
+            @inbounds xv[:,nsteps] = x0[:]
+            break
+        end
         t0 += δt
         nsteps += 1
         @inbounds tv[nsteps] = t0
