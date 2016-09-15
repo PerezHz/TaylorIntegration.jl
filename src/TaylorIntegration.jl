@@ -2,8 +2,10 @@
 
 module TaylorIntegration
 
-using TaylorSeries
 using MacroTools
+using TaylorSeries
+
+import Compat.view
 
 export  taylorinteg
 
