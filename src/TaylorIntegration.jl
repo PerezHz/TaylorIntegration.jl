@@ -2,7 +2,6 @@
 
 module TaylorIntegration
 
-using MacroTools
 using TaylorSeries
 
 import Compat.view
