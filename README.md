@@ -13,14 +13,6 @@ Instituto de Ciencias Físicas, Universidad Nacional Autónoma de México (UNAM)
 
 Comments, suggestions, and improvements are welcome and appreciated.
 
-#### Installation
-
-Currently, `TaylorIntegration` can be installed using:
-
-```julia
-Pkg.clone(https://github.com/PerezHz/TaylorIntegration.jl.git)
-```
-
 #### Examples
 
 + [dot{x}=x^2](https://github.com/lbenet/TaylorIntegration.jl/blob/master/examples/x-dot-equals-x-squared.ipynb)
