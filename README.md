@@ -1,5 +1,7 @@
 # TaylorIntegration.jl
 
+[![Build Status](https://travis-ci.org/PerezHz/TaylorIntegration.jl.svg?branch=jp%2Fexamples-update)](https://travis-ci.org/PerezHz/TaylorIntegration.jl)
+
 ODE integration using Taylor's method in [Julia](http://julialang.org).
 
 #### Authors
