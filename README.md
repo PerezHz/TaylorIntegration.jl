@@ -1,6 +1,7 @@
 # TaylorIntegration.jl
 
-[![Build Status](https://travis-ci.org/PerezHz/TaylorIntegration.jl.svg?branch=jp%2Fexamples-update)](https://travis-ci.org/PerezHz/TaylorIntegration.jl) [![Build status](https://ci.appveyor.com/api/projects/status/21kovkl598vbbt85/branch/jp/examples-update?svg=true)](https://ci.appveyor.com/project/PerezHz/taylorintegration-jl/branch/jp/examples-update) [![Coverage Status](https://coveralls.io/repos/github/PerezHz/TaylorIntegration.jl/badge.svg?branch=jp%2Fexamples-update)](https://coveralls.io/github/PerezHz/TaylorIntegration.jl?branch=jp%2Fexamples-update)
+[![Build Status](https://travis-ci.org/PerezHz/TaylorIntegration.jl.svg?branch=jp%2Fexamples-update)](https://travis-ci.org/PerezHz/TaylorIntegration.jl) [![Build status](https://ci.appveyor.com/api/projects/status/21kovkl598vbbt85/branch/jp/examples-update?svg=true)](https://ci.appveyor.com/project/PerezHz/taylorintegration-jl/branch/jp/examples-update) [![Coverage Status](https://coveralls.io/repos/github/PerezHz/TaylorIntegration.jl/badge.svg?branch=jp%2Fexamples-update)](https://coveralls.io/github/PerezHz/TaylorIntegration.jl?branch=jp%2Fexamples-update) [![codecov](https://codecov.io/gh/PerezHz/TaylorIntegration.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/PerezHz/TaylorIntegration.jl)
+
 
 
 ODE integration using Taylor's method in [Julia](http://julialang.org).
