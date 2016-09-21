@@ -15,8 +15,8 @@ Comments, suggestions, and improvements are welcome and appreciated.
 
 #### Examples
 
-+ [x'==x^2](https://github.com/lbenet/TaylorIntegration.jl/blob/master/examples/x-dot-equals-x-squared.ipynb)
-+ [Kepler problem](https://github.com/lbenet/TaylorIntegration.jl/blob/master/examples/Kepler-problem.ipynb)
++ [x'=x^2](http://nbviewer.jupyter.org/github/PerezHz/TaylorIntegration.jl/blob/master/examples/x-dot-equals-x-squared.ipynb)
++ [Kepler problem](http://nbviewer.jupyter.org/github/PerezHz/TaylorIntegration.jl/blob/master/examples/Kepler-problem.ipynb)
 
 #### License
 
