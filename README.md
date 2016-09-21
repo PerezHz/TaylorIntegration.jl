@@ -1,5 +1,9 @@
 # TaylorIntegration.jl
 
+[![Build Status](https://travis-ci.org/PerezHz/TaylorIntegration.jl.svg?branch=master)](https://travis-ci.org/PerezHz/TaylorIntegration.jl) [![Build status](https://ci.appveyor.com/api/projects/status/21kovkl598vbbt85/branch/master?svg=true)](https://ci.appveyor.com/project/PerezHz/taylorintegration-jl/branch/master) [![Coverage Status](https://coveralls.io/repos/github/PerezHz/TaylorIntegration.jl/badge.svg?branch=master)](https://coveralls.io/github/PerezHz/TaylorIntegration.jl?branch=master) [![codecov](https://codecov.io/gh/PerezHz/TaylorIntegration.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/PerezHz/TaylorIntegration.jl)
+
+
+
 ODE integration using Taylor's method in [Julia](http://julialang.org).
 
 #### Authors
@@ -9,10 +13,12 @@ Instituto de Ciencias Físicas, Universidad Nacional Autónoma de México (UNAM)
 - [Luis Benet](http://www.cicc.unam.mx/~benet/),
 Instituto de Ciencias Físicas, Universidad Nacional Autónoma de México (UNAM)
 
+Comments, suggestions, and improvements are welcome and appreciated.
+
 #### Examples
 
-+ [dot{x}=x^2](https://github.com/lbenet/TaylorIntegration.jl/blob/master/examples/x-dot-equals-x-squared.ipynb)
-+ [Kepler problem](https://github.com/lbenet/TaylorIntegration.jl/blob/master/examples/Kepler-problem.ipynb)
++ [x'=x^2](http://nbviewer.jupyter.org/github/PerezHz/TaylorIntegration.jl/blob/master/examples/x-dot-equals-x-squared.ipynb)
++ [Kepler problem](http://nbviewer.jupyter.org/github/PerezHz/TaylorIntegration.jl/blob/master/examples/Kepler-problem.ipynb)
 
 #### License
 
