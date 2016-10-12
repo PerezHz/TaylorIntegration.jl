@@ -214,25 +214,35 @@ This is a general-purpose Taylor integrator for the explicit ODE
 $\dot{x}=f(t,x)$ with initial condition specified by `x0` at time `t0`.
 It returns a vector with the values of time (independent variable),
 and a vector (of type `typeof(x0)`) with the computed values of
-the dependent variables. The integration stops when time
-is larger than `tmax`, or the number of saved steps is larger
+the dependent variable(s). The integration stops when time
+is larger than `tmax` (in which case the last returned values are
+`t_max`, `x(t_max)`), or else when the number of saved steps is larger
 than `maxsteps`.
 
 The integrator uses polynomial expansions on the independent variable
-of order `order` and the parameter `abstol` serves to define the
+of order `order`; the parameter `abstol` serves to define the
 time step using the last two Taylor coefficients of the expansions.
 
 The current keyword argument is `maxsteps=500`.
+
+Example:
+
+`using TaylorIntegration`
+
+`f(t, x) = x^2`
+
+`tv, xv = taylorinteg(f, 3, 0.0, 0.3, 25, 1.0e-20, maxsteps=100 )`
+
+---
 """
 function taylorinteg{S<:Number, T<:Number, U<:Number, V<:Number}(f, x0::S,
     t0::T, tmax::U, order::Int, abstol::V; maxsteps::Int=500)
 
     #in order to handle mixed input types, promote types before anything else:
-    x0, t0, tmax, abstol = promote(x0, t0, tmax, abstol)
-    #make sure everything was promoted correctly:
-    @assert typeof(x0) == typeof(t0)
+    promoted_vars = promote(x0, t0, tmax, abstol)
+    x0, t0, tmax, abstol = promoted_vars
     #W is the common, promoted type
-    W=typeof(x0)
+    W=eltype(promoted_vars)
 
     # Allocation
     tv = Array{W}(maxsteps+1)
@@ -276,11 +286,10 @@ function taylorinteg{S<:Number, T<:Number, U<:Number, V<:Number}(f,
     q0::Array{S,1}, t0::T, tmax::U, order::Int, abstol::V; maxsteps::Int=500)
 
     #promote to common type before everything else:
-    elq0, t0, tmax, abstol = promote(q0[1], t0, tmax, abstol)
-    #making sure everything was promoted correctly:
-    @assert typeof(elq0) == typeof(t0)
+    promoted_vars = promote(q0[1], t0, tmax, abstol)
+    elq0, t0, tmax, abstol = promoted_vars
     #W is the common type:
-    W = typeof(elq0)
+    W = eltype(promoted_vars)
     #convert the elements of q0 to the common type W:
     q0 = map(x->convert(W, x), q0)
 
@@ -324,6 +333,35 @@ function taylorinteg{S<:Number, T<:Number, U<:Number, V<:Number}(f,
 end
 
 # Integrate and return results evaluated at given time
+doc"""
+    taylorinteg(f, x0, t0, trange, order, abstol; keyword... )
+
+This is a general-purpose Taylor integrator for the explicit ODE
+$\dot{x}=f(t,x)$ with initial condition specified by `x0` at time `t0`.
+It returns a vector with the values of time (independent variable),
+and a vector (of type `typeof(x0)`) with the computed values of
+the dependent variable(s), evaluated only at the times given by
+`trange`. The integration stops when time
+is larger than `tmax` (in which case the last returned values are
+`t_max`, `x(t_max)`), or else when the number of saved steps is larger
+than `maxsteps`.
+
+The integrator uses polynomial expansions on the independent variable
+of order `order`; the parameter `abstol` serves to define the
+time step using the last two Taylor coefficients of the expansions.
+
+The current keyword argument is `maxsteps=500`.
+
+Example:
+
+`using TaylorIntegration`
+
+`f(t, x) = x^2`
+
+`trange = 0.0:1/10:0.3`
+
+`xv = taylorinteg(f, 3.0, trange, 25, 1.0e-20, maxsteps=100 )`
+"""
 function taylorinteg{T<:Number}(f, x0::T, trange::Range{T},
         order::Int, abstol::T; maxsteps::Int=500)
 

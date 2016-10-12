@@ -189,7 +189,7 @@ facts("Test integration using ValidatedNumerics: dot{x}=x^2") do
     t0 = 0
     tmax = @interval 0.333333
     abstol = 1e-10
-    order=25
+    order = 25
     @fact tmax < 1/3 --> true
     f(t, x) = x.^2
     tT, xT = taylorinteg(f, x0, t0, 0.001, order, abstol, maxsteps=500); #warmup lap
