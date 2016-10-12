@@ -320,7 +320,7 @@ function taylorinteg{S<:Number, T<:Number, U<:Number, V<:Number}(f,
         end
     end
 
-    return view(tv,1:nsteps), view(xv,:,1:nsteps)' #first do view, then transpose (otherwise it crashes)
+    return view(tv,1:nsteps), view(xv,:,1:nsteps)' #for xv, first do view, then transpose (otherwise it crashes)
 end
 
 # Integrate and return results evaluated at given time
