@@ -227,8 +227,11 @@ The current keyword argument is `maxsteps=500`.
 function taylorinteg{S<:Number, T<:Number, U<:Number, V<:Number}(f, x0::S,
     t0::T, tmax::U, order::Int, abstol::V; maxsteps::Int=500)
 
+    #in order to handle mixed input types, promote types before anything else:
     x0, t0, tmax, abstol = promote(x0, t0, tmax, abstol)
+    #make sure everything was promoted correctly:
     @assert typeof(x0) == typeof(t0)
+    #W is the common, promoted type
     W=typeof(x0)
 
     # Allocation
@@ -269,13 +272,20 @@ function taylorinteg{S<:Number, T<:Number, U<:Number, V<:Number}(f, x0::S,
     return view(tv,1:nsteps), view(xv,1:nsteps)
 end
 
-function taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
-        order::Int, abstol::T; maxsteps::Int=500)
+function taylorinteg{S<:Number, T<:Number, U<:Number, V<:Number}(f,
+    q0::Array{S,1}, t0::T, tmax::U, order::Int, abstol::V; maxsteps::Int=500)
+
+    #promote to common type before everything else:
+    elq0, t0, tmax, abstol = promote(q0[1], t0, tmax, abstol)
+    #making sure everything was promoted correctly:
+    @assert typeof(elq0) == typeof(t0)
+    #W is the common type:
+    W = typeof(elq0)
 
     # Allocation
-    tv = Array{T}(maxsteps+1)
+    tv = Array{W}(maxsteps+1)
     dof = length(q0)
-    xv = Array{eltype(q0)}(dof, maxsteps+1)
+    xv = Array{W}(dof, maxsteps+1)
 
     # Initial conditions
     @inbounds tv[1] = t0
@@ -308,8 +318,7 @@ function taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
         end
     end
 
-    #return tv, xv'
-    return view(tv,1:nsteps), view(xv',1:nsteps,:)
+    return view(tv,1:nsteps), view(xv,:,1:nsteps)' #first do view, then transpose (otherwise it crashes)
 end
 
 # Integrate and return results evaluated at given time
