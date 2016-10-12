@@ -281,7 +281,7 @@ function taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, t_max::T,
     # Integration
     nsteps = 1
     while t0 < t_max
-        xold = x0
+        xold = copy(x0)
         δt = taylorstep!(f, t0, x0, order, abs_tol)
         if t0+δt ≥ t_max
             x0 = xold
