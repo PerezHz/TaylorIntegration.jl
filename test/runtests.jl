@@ -2,6 +2,7 @@
 
 include("../src/TaylorIntegration.jl")
 using TaylorIntegration
+using ValidatedNumerics
 using FactCheck
 # FactCheck.setstyle(:compact)
 
@@ -180,6 +181,51 @@ facts("Test non-autonomous ODE: dot{x}=cos(t)") do
     @fact tT[end] == xT[end,1] --> true
     @fact abs(sin(tmax)-xT[end,2]) < 1e-14 --> true
 
+end
+
+facts("Test integration using ValidatedNumerics: dot{x}=x^2") do
+    #A one-dimensional validated integration:
+    x0 = @interval 3
+    t0 = 0
+    tmax = @interval 0.333333
+    abstol = 1e-10
+    order=25
+    @fact tmax < 1/3 --> true
+    f(t, x) = x.^2
+    tT, xT = taylorinteg(f, x0, t0, 0.001, order, abstol, maxsteps=500); #warmup lap
+    tT, xT = taylorinteg(f, x0, t0, tmax, order, abstol, maxsteps=500);
+    @fact tT[end]<1/3 --> true
+    exactsol(t, x0) = x0./(1.0-x0.*t)
+    @fact exactsol(tT[end], xT[1]) ∈ xT[end] --> true
+
+    #A multi-dimensional validated integration:
+    q02 = @interval 3 # the initial condition as an interval
+    x02 = [q02, q02] # the initial condition as an array of intervals
+    t02 = 0 # the initial time
+    tmax2 = 0.333333 # the final time
+    abstol2 = 1e-20 # the absolute (local) tolerance
+    order2 = 25 # the order of the Taylor expansion
+    tT2, xT2 = taylorinteg(f, x02, t02, 0.001, order2, abstol2, maxsteps=500); #warmup lap
+    tT2, xT2 = taylorinteg(f, x02, t02, tmax2, order2, abstol2, maxsteps=500);
+    @fact exactsol(tT2[end], xT2[1,1]) ∈ xT2[end,1] --> true
+    @fact exactsol(tT2[end], xT2[1,2]) ∈ xT2[end,2] --> true
+end
+
+facts("Test integration using ValidatedNumerics with BigFloats: dot{x}=x^2") do
+    q0 = @interval 3 # the initial condition as a interval: Interval{Float64}
+    x0 = [q0, q0] # the initial condition as an array of intervals: Array{Interval{Float64}}
+    t0 = 0 # the initial time: Int64
+    tmax = BigFloat(0.333) # the final time: BigFloat
+    abstol = 1e-80 # the absolute (local) tolerance: Float64
+    order = 90 # the order of the Taylor expansion: Int64
+    f(t, x) = x.^2
+    exactsol(t, x0) = x0./(1.0-x0.*t)
+    @fact tmax < 1/3 --> true
+    tT, xT = taylorinteg(f, x0, t0, BigFloat(0.001), order, abstol, maxsteps=500); #warmup lap
+    tT, xT = taylorinteg(f, x0, t0, tmax, order, abstol, maxsteps=500);
+    @fact tT[end] < 1/3 --> true
+    @fact exactsol(tT[end], xT[1,1]) ∈ xT[end,1] --> true
+    @fact exactsol(tT[end], xT[1,2]) ∈ xT[end,2] --> true
 end
 
 exitstatus()
