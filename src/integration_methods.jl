@@ -281,6 +281,8 @@ function taylorinteg{S<:Number, T<:Number, U<:Number, V<:Number}(f,
     @assert typeof(elq0) == typeof(t0)
     #W is the common type:
     W = typeof(elq0)
+    #convert the elements of q0 to the common type W:
+    q0 = map(x->convert(W, x), q0)
 
     # Allocation
     tv = Array{W}(maxsteps+1)
