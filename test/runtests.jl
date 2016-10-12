@@ -34,7 +34,8 @@ facts("Tests: dot{x}=x^2, x(0) = 1") do
 end
 
 facts("Tests: dot{x}=x^2, x(0) = 3; nsteps <= maxsteps") do
-    eqs_mov(t, x) = x.^2
+    eqs_mov(t, x) = x.^2 #the ODE (i.e., the equations of motion)
+    exactsol(t, x0) = x0/(1.0-x0*t) #the analytical solution
     t0 = 0.0
     tmax = 0.3
     x0 = 3.0
@@ -53,6 +54,7 @@ facts("Tests: dot{x}=x^2, x(0) = 3; nsteps <= maxsteps") do
     @fact xv[1] --> x0
     @fact tv[end] < 1/3 --> true
     @fact tv[end] --> tmax
+    @fact abs(xv[end]-exactsol(tv[end], xv[1])) < 2e-14 --> true
 
     tv, xv = taylorinteg(eqs_mov, q0, 0.0, tmax, _order, _abs_tol)
     @fact length(tv) < 501 --> true
@@ -68,6 +70,9 @@ facts("Tests: dot{x}=x^2, x(0) = 3; nsteps <= maxsteps") do
     end
     @fact tv[end] < 1/3 --> true
     @fact tv[end] --> tmax
+    @fact xv[end,1] --> xv[end,2]
+    @fact abs(xv[end,1]-exactsol(tv[end], xv[1,1])) < 2e-14 --> true
+    @fact abs(xv[end,2]-exactsol(tv[end], xv[1,2])) < 2e-14 --> true
 
     tmax = 0.33
 
@@ -79,6 +84,7 @@ facts("Tests: dot{x}=x^2, x(0) = 3; nsteps <= maxsteps") do
     @fact xv[1] --> x0
     @fact tv[end] < 1/3 --> true
     @fact tv[end] --> tmax
+    @fact abs(xv[end]-exactsol(tv[end], xv[1])) < 5e-12 --> true
 
     tv, xv = taylorinteg(eqs_mov, q0, 0.0, tmax, _order, _abs_tol)
     @fact length(tv) < 501 --> true
@@ -94,6 +100,9 @@ facts("Tests: dot{x}=x^2, x(0) = 3; nsteps <= maxsteps") do
     end
     @fact tv[end] < 1/3 --> true
     @fact tv[end] --> tmax
+    @fact xv[end,1] --> xv[end,2]
+    @fact abs(xv[end,1]-exactsol(tv[end], xv[1,1])) < 5e-12 --> true
+    @fact abs(xv[end,2]-exactsol(tv[end], xv[1,2])) < 5e-12 --> true
 end
 
 facts("Tests: dot{x}=x.^2, x(0) = [3.0,1.0]") do
