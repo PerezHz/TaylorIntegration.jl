@@ -142,4 +142,44 @@ facts("Tests: dot{x}=x.^2, x(0) = [3.0,1.0]") do
     @fact abs(xv[2,1] - 4.8) ≤ eps(4.8) --> true
 end
 
+facts("Test non-autonomous ODE: dot{x}=cos(t)") do
+    f(t, x) = [one(x[1]), cos(x[1])]
+    t0 = 0.0
+    tmax = 10.25*(2pi)
+    abstol = 1e-20
+    order = 25
+    x0 = [t0, 0.0] #initial conditions such that x(t)=sin(t)
+    tT, xT = taylorinteg(f, x0, t0, tmax, order, abstol)
+    @fact length(tT) < 501 --> true
+    @fact length(xT[:,1]) < 501 --> true
+    @fact length(xT[:,2]) < 501 --> true
+    if VERSION < v"0.5-"
+        @fact xT[1,1:end] --> x0'
+    else
+        @fact xT[1,1:end] --> x0
+    end
+    @fact tT[1] == t0 --> true
+    @fact xT[1,1] == x0[1] --> true
+    @fact xT[1,2] == x0[2] --> true
+    @fact tT[end] == xT[end,1] --> true
+    @fact abs(sin(tmax)-xT[end,2]) < 1e-14 --> true
+
+    tmax = 15*(2pi)
+    tT, xT = taylorinteg(f, x0, t0, tmax, order, abstol)
+    @fact length(tT) < 501 --> true
+    @fact length(xT[:,1]) < 501 --> true
+    @fact length(xT[:,2]) < 501 --> true
+    if VERSION < v"0.5-"
+        @fact xT[1,1:end] --> x0'
+    else
+        @fact xT[1,1:end] --> x0
+    end
+    @fact tT[1] == t0 --> true
+    @fact xT[1,1] == x0[1] --> true
+    @fact xT[1,2] == x0[2] --> true
+    @fact tT[end] == xT[end,1] --> true
+    @fact abs(sin(tmax)-xT[end,2]) < 1e-14 --> true
+
+end
+
 exitstatus()
