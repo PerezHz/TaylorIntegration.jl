@@ -212,7 +212,7 @@ facts("Test integration using ValidatedNumerics: dot{x}=x^2") do
 end
 
 facts("Test integration using ValidatedNumerics with BigFloats: dot{x}=x^2") do
-    q0 = @interval 3 # the initial condition as a interval: Interval{Float64}
+    q0 = @interval 3 # the initial condition as an interval: Interval{Float64}
     x0 = [q0, q0] # the initial condition as an array of intervals: Array{Interval{Float64}}
     t0 = 0 # the initial time: Int64
     tmax = BigFloat(0.333) # the final time: BigFloat
