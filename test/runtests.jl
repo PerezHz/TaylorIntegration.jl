@@ -226,6 +226,23 @@ facts("Test integration using ValidatedNumerics with BigFloats: dot{x}=x^2") do
     @fact tT[end] < 1/3 --> true
     @fact exactsol(tT[end], xT[1,1]) ∈ xT[end,1] --> true
     @fact exactsol(tT[end], xT[1,2]) ∈ xT[end,2] --> true
+
+    #non-autonomous version of dot{x}=x^2, and test use of const
+    const t0NA = t0
+    const x0NA = [t0NA, q0] # the initial condition as an array of intervals: Array{Interval{Float64}}
+
+    const tmaxNA = BigFloat(0.333333) # the final time: BigFloat
+    const abstolNA = 1e-80 # the absolute (local) tolerance: Float64
+
+    const orderNA = 90 # the order of the Taylor expansion: Int64
+
+    g(t, x) = [one(x[1]), x[2]^2]
+    tTNA, xTNA = taylorinteg(g, x0NA, t0NA, tmaxNA, orderNA, abstolNA, maxsteps=500);
+    @fact tTNA[end] < 1/3 --> true
+    @fact xTNA[end,1] < 1/3 --> true
+    @fact tTNA[1] == xTNA[1,1] --> true
+    @fact exactsol(tTNA[end], xTNA[1,2]) ∈ xTNA[end,2] --> true #if we use xTNA[end,1] instead of tTNA[end] it fails!
+    @fact radius(xT[end,2]) < 1e-50 --> true
 end
 
 exitstatus()

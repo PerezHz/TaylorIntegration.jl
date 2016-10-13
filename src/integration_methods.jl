@@ -361,6 +361,8 @@ Example:
 `trange = 0.0:1/10:0.3`
 
 `xv = taylorinteg(f, 3.0, trange, 25, 1.0e-20, maxsteps=100 )`
+
+---
 """
 function taylorinteg{T<:Number}(f, x0::T, trange::Range{T},
         order::Int, abstol::T; maxsteps::Int=500)
