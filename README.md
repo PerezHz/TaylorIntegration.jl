@@ -23,6 +23,8 @@ Comments, suggestions, and improvements are welcome and appreciated.
 
 + [x'=x^2](http://nbviewer.jupyter.org/github/PerezHz/TaylorIntegration.jl/blob/master/examples/x-dot-equals-x-squared.ipynb)
 + [Kepler problem](http://nbviewer.jupyter.org/github/PerezHz/TaylorIntegration.jl/blob/master/examples/Kepler-problem.ipynb)
++ [Evaluating definite integrals](http://nbviewer.jupyter.org/github/PerezHz/TaylorIntegration\
+.jl/blob/master/examples/Evaluating-definite-integrals.ipynb)
 
 #### License
 
