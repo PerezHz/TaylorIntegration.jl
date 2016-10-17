@@ -236,17 +236,21 @@ Example:
 ---
 """
 function taylorinteg{S<:Number, T<:Number, U<:Number, V<:Number}(f, x0::S,
-    t0::T, tmax::U, order::Int, abstol::V; maxsteps::Int=500)
+        t0::T, tmax::U, order::Int, abstol::V; maxsteps::Int=500)
 
-    #in order to handle mixed input types, promote types before anything else:
-    promoted_vars = promote(x0, t0, tmax, abstol)
-    x0, t0, tmax, abstol = promoted_vars
-    #W is the common, promoted type
-    W=eltype(promoted_vars)
+    #in order to handle mixed input types, we promote types before integrating:
+    x0, t0, tmax, abstol = promote(x0, t0, tmax, abstol)
+
+    taylorinteg(f, x0, t0, tmax, order, abstol, maxsteps=maxsteps)
+
+end
+
+function taylorinteg{T<:Number}(f, x0::T, t0::T, tmax::T, order::Int,
+        abstol::T; maxsteps::Int=500)
 
     # Allocation
-    tv = Array{W}(maxsteps+1)
-    xv = Array{W}(maxsteps+1)
+    tv = Array{T}(maxsteps+1)
+    xv = Array{T}(maxsteps+1)
 
     # Initial conditions
     nsteps = 1
@@ -283,9 +287,9 @@ function taylorinteg{S<:Number, T<:Number, U<:Number, V<:Number}(f, x0::S,
 end
 
 function taylorinteg{S<:Number, T<:Number, U<:Number, V<:Number}(f,
-    q0::Array{S,1}, t0::T, tmax::U, order::Int, abstol::V; maxsteps::Int=500)
+        q0::Array{S,1}, t0::T, tmax::U, order::Int, abstol::V; maxsteps::Int=500)
 
-    #promote to common type before everything else:
+    #promote to common type before integrating:
     promoted_vars = promote(q0[1], t0, tmax, abstol)
     elq0, t0, tmax, abstol = promoted_vars
     #W is the common type:
@@ -293,10 +297,17 @@ function taylorinteg{S<:Number, T<:Number, U<:Number, V<:Number}(f,
     #convert the elements of q0 to the common type W:
     q0 = map(x->convert(W, x), q0)
 
+    taylorinteg(f, q0, t0, tmax, order, abstol, maxsteps=maxsteps)
+
+end
+
+function taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
+        order::Int, abstol::T; maxsteps::Int=500)
+
     # Allocation
-    tv = Array{W}(maxsteps+1)
+    tv = Array{T}(maxsteps+1)
     dof = length(q0)
-    xv = Array{W}(dof, maxsteps+1)
+    xv = Array{T}(dof, maxsteps+1)
 
     # Initial conditions
     @inbounds tv[1] = t0
