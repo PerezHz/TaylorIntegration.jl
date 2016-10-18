@@ -290,12 +290,9 @@ function taylorinteg{S<:Number, T<:Number, U<:Number, V<:Number}(f,
         q0::Array{S,1}, t0::T, tmax::U, order::Int, abstol::V; maxsteps::Int=500)
 
     #promote to common type before integrating:
-    promoted_vars = promote(q0[1], t0, tmax, abstol)
-    elq0, t0, tmax, abstol = promoted_vars
-    #W is the common type:
-    W = eltype(promoted_vars)
-    #convert the elements of q0 to the common type W:
-    q0 = map(x->convert(W, x), q0)
+    elq0, t0, tmax, abstol = promote(q0[1], t0, tmax, abstol)
+    #convert the elements of q0 to the common type:
+    q0 = map(x->convert(typeof(elq0), x), q0)
 
     taylorinteg(f, q0, t0, tmax, order, abstol, maxsteps=maxsteps)
 
