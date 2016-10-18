@@ -292,9 +292,9 @@ function taylorinteg{S<:Number, T<:Number, U<:Number, V<:Number}(f,
     #promote to common type before integrating:
     elq0, t0, tmax, abstol = promote(q0[1], t0, tmax, abstol)
     #convert the elements of q0 to the common, promoted type:
-    q0 = convert(Array{typeof(elq0)}, q0)
+    q0_ = convert(Array{typeof(elq0)}, q0)
 
-    taylorinteg(f, q0, t0, tmax, order, abstol, maxsteps=maxsteps)
+    taylorinteg(f, q0_, t0, tmax, order, abstol, maxsteps=maxsteps)
 
 end
 

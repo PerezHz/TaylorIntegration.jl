@@ -214,6 +214,7 @@ end
 facts("Test integration using ValidatedNumerics with BigFloats: dot{x}=x^2") do
     q0 = @interval 3 # the initial condition as an interval: Interval{Float64}
     x0 = [q0, q0] # the initial condition as an array of intervals: Array{Interval{Float64}}
+    type_x0_before = typeof(x0)
     t0 = 0 # the initial time: Int64
     tmax = BigFloat(0.333) # the final time: BigFloat
     abstol = 1e-80 # the absolute (local) tolerance: Float64
@@ -226,6 +227,7 @@ facts("Test integration using ValidatedNumerics with BigFloats: dot{x}=x^2") do
     @fact tT[end] < 1/3 --> true
     @fact exactsol(tT[end], xT[1,1]) ∈ xT[end,1] --> true
     @fact exactsol(tT[end], xT[1,2]) ∈ xT[end,2] --> true
+    @fact typeof(x0) == type_x0_before --> true
 
     #non-autonomous version of dot{x}=x^2, and test use of const
     const t0NA = t0
