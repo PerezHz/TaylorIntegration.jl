@@ -229,7 +229,7 @@ Example:
 
 `using TaylorIntegration`
 
-`f(t, x) = x^2`
+` f(t, x) = x^2`
 
 `tv, xv = taylorinteg(f, 3, 0.0, 0.3, 25, 1.0e-20, maxsteps=100 )`
 
@@ -364,7 +364,7 @@ Example:
 
 `using TaylorIntegration`
 
-`f(t, x) = x^2`
+` f(t, x) = x^2`
 
 `trange = 0.0:1/10:0.3`
 
