@@ -8,6 +8,6 @@ import Compat.view
 
 export  taylorinteg
 
-include("integration_methods.jl")
+include("explicitode.jl")
 
 end #module
