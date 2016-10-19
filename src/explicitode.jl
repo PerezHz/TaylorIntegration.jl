@@ -239,7 +239,7 @@ function taylorinteg{S<:Number, T<:Number, U<:Number, V<:Number}(f, x0::S,
         t0::T, tmax::U, order::Int, abstol::V; maxsteps::Int=500)
 
     #in order to handle mixed input types, we promote types before integrating:
-    x0, t0, tmax, abstol = promote(x0, t0, tmax, abstol)
+    x0, t0, tmax, abstol, afloat = promote(x0, t0, tmax, abstol, one(Float64))
 
     taylorinteg(f, x0, t0, tmax, order, abstol, maxsteps=maxsteps)
 
@@ -290,7 +290,7 @@ function taylorinteg{S<:Number, T<:Number, U<:Number, V<:Number}(f,
         q0::Array{S,1}, t0::T, tmax::U, order::Int, abstol::V; maxsteps::Int=500)
 
     #promote to common type before integrating:
-    elq0, t0, tmax, abstol = promote(q0[1], t0, tmax, abstol)
+    elq0, t0, tmax, abstol, afloat = promote(q0[1], t0, tmax, abstol, one(Float64))
     #convert the elements of q0 to the common, promoted type:
     q0_ = convert(Array{typeof(elq0)}, q0)
 
