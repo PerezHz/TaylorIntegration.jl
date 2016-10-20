@@ -124,8 +124,58 @@ function taylorinteg{T<:Number}(f, q0::Array{TaylorN{T},1}, t0::T, tmax::T,
     return view(tv,1:nsteps), view(xv,:,1:nsteps)' #for xv, first do view, then transpose (otherwise it crashes)
 end
 
+function taylorinteg{T<:Number}(f, q0::Array{TaylorN{T},1}, trange::Range{T},
+        order::Int, abstol::T; maxsteps::Int=500)
+
+    # Allocation
+    nn = length(trange)
+    dof = length(q0)
+    x0 = similar(q0, TaylorN{T}, dof)
+    fill!(x0, TaylorN{T}(NaN))
+    xv = Array{eltype(q0)}(dof, nn)
+    @inbounds for ind in 1:nn
+        xv[:,ind] = x0[:]
+    end
+
+    # Initial conditions
+    @inbounds x0[:] = q0[:]
+    @inbounds xv[:,1] = q0[:]
+
+    # Integration
+    iter = 1
+    while iter < nn
+        t0, t1 = trange[iter], trange[iter+1]
+        nsteps = 0
+        while nsteps < maxsteps
+            xold = copy(x0)
+            δt = taylorstep!(f, t0, x0, order, abstol)
+            if t0+δt ≥ t1
+                x0 = xold
+                δt = taylorstep!(f, t0, t1, x0, order, abstol)
+                t0 = t1
+                break
+            end
+            t0 += δt
+            nsteps += 1
+        end
+        if nsteps ≥ maxsteps && t0 != t1
+            warn("""
+            Maximum number of integration steps reached; exiting.
+            """)
+            break
+        end
+        iter += 1
+        @inbounds xv[:,iter] = x0[:]
+    end
+
+    return xv'
+end
+
 import TaylorSeries.evaluate!
 
+# The code for the function below is another method for the function
+# evaluate! which is included in the TaylorSeries.jl package,
+# created by Luis Benet and David Sanders, under MIT license.
 function evaluate!{T<:Number}(x::Array{Taylor1{TaylorN{T}},1}, δt::T, x0::Array{TaylorN{T},1})
     @assert length(x) == length(x0)
     @inbounds for i in eachindex(x)
