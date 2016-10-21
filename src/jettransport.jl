@@ -1,5 +1,23 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
+function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Taylor1{TaylorN{T}})
+    order = x.order
+    for ord in 1:order
+        ordnext = ord+1
+
+        # Set `xaux`, auxiliary Taylor1 variable to order `ord`
+        @inbounds xaux = Taylor1( x.coeffs[1:ord] )
+
+        # Equations of motion
+        # TODO! define a macro to optimize the eqsdiff
+        xdot = eqsdiff(t0, xaux)
+
+        # Recursion relation
+        @inbounds x.coeffs[ordnext] = xdot.coeffs[ord]/ord
+    end
+    nothing
+end
+
 function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Vector{Taylor1{TaylorN{T}}})
     order = x[1].order
     xaux = similar(x)
@@ -49,6 +67,17 @@ function stepsize{T<:Number}(q::Array{Taylor1{TaylorN{T}},1}, epsilon::T)
     return h
 end
 
+function taylorstep{T<:Number}(f, t0::T, x0::TaylorN{T}, order::Int, abstol::T)
+    # Initialize the Taylor1 expansions
+    xT = Taylor1( x0, order )
+    # Compute the Taylor coefficients
+    jetcoeffs!(f, t0, xT)
+    # Compute the step-size of the integration using `abstol`
+    δt = stepsize(xT, abstol)
+    x0 = evaluate(xT, δt)
+    return δt, x0
+end
+
 function taylorstep!{T<:Number}(f, t0::T, x0::Array{TaylorN{T},1}, order::Int, abstol::T)
     # Initialize the vector of Taylor1 expansions
     xT = Array{Taylor1{TaylorN{T}}}(length(x0))
@@ -61,6 +90,21 @@ function taylorstep!{T<:Number}(f, t0::T, x0::Array{TaylorN{T},1}, order::Int, a
     δt = stepsize(xT, abstol)
     evaluate!(xT, δt, x0)
     return δt
+end
+
+function taylorstep{T<:Number}(f, t0::T, t1::T, x0::TaylorN{T}, order::Int, abstol::T)
+    @assert t1 > t0
+    # Initialize the Taylor1 expansions
+    xT = Taylor1( x0, order )
+    # Compute the Taylor coefficients
+    jetcoeffs!(f, t0, xT)
+    # Compute the step-size of the integration using `abstol`
+    δt = stepsize(xT, abstol)
+    if δt ≥ t1-t0
+        δt = t1-t0
+    end
+    x0 = evaluate(xT, δt)
+    return δt, x0
 end
 
 function taylorstep!{T<:Number}(f, t0::T, t1::T, x0::Array{TaylorN{T},1},
@@ -80,6 +124,47 @@ function taylorstep!{T<:Number}(f, t0::T, t1::T, x0::Array{TaylorN{T},1},
     end
     evaluate!(xT, δt, x0)
     return δt
+end
+
+function taylorinteg{T<:Number}(f, x0::TaylorN{T}, t0::T, tmax::T, order::Int,
+        abstol::T; maxsteps::Int=500)
+
+    # Allocation
+    tv = Array{T}(maxsteps+1)
+    xv = Array{TaylorN{T}}(maxsteps+1)
+
+    # Initial conditions
+    nsteps = 1
+    @inbounds tv[1] = t0
+    @inbounds xv[1] = x0
+
+    # Integration
+    while t0 < tmax
+        xold = x0
+        δt, x0 = taylorstep(f, t0, x0, order, abstol)
+        if t0+δt ≥ tmax
+            x0 = xold
+            δt, x0 = taylorstep(f, t0, tmax, x0, order, abstol)
+            t0 = tmax
+            nsteps += 1
+            @inbounds tv[nsteps] = t0
+            @inbounds xv[nsteps] = x0
+            break
+        end
+        t0 += δt
+        nsteps += 1
+        @inbounds tv[nsteps] = t0
+        @inbounds xv[nsteps] = x0
+        if nsteps > maxsteps
+            warn("""
+            Maximum number of integration steps reached; exiting.
+            """)
+            break
+        end
+    end
+
+    #return tv, xv
+    return view(tv,1:nsteps), view(xv,1:nsteps)
 end
 
 function taylorinteg{T<:Number}(f, q0::Array{TaylorN{T},1}, t0::T, tmax::T,

@@ -8,7 +8,7 @@ import Compat.view
 
 export  taylorinteg
 
-include("explicitode.jl")
 include("jettransport.jl")
+include("explicitode.jl")
 
 end #module
