@@ -269,6 +269,35 @@ function evaluate!{T<:Number}(x::Array{Taylor1{TaylorN{T}},1}, δt::T, x0::Array
     nothing
 end
 
+import TaylorSeries.+, TaylorSeries.-
+
+for f in (:+, :-)
+    @eval begin
+        function ($f){T<:Number}(a::TaylorN{Taylor1{T}}, b::Taylor1{T})
+            # @inbounds aux = ($f)(a.coeffs[1], b)
+            @inbounds aux = ($f)(a.coeffs[1].coeffs[1], b)
+            S = Taylor1{T}
+            coeffs = Array(HomogeneousPolynomial{S},length(a.coeffs))
+            @simd for i in eachindex(coeffs)
+                @inbounds coeffs[i] = a.coeffs[i]
+            end
+            @inbounds coeffs[1] = aux
+            return TaylorN{S}(coeffs, a.order)
+        end
+        function ($f){T<:Number}(b::Taylor1{T}, a::TaylorN{Taylor1{T}})
+            @inbounds aux = ($f)(b, a.coeffs[1].coeffs[1])
+            S = Taylor1{T}
+            coeffs = Array(HomogeneousPolynomial{S},length(a.coeffs))
+            @simd for i in eachindex(coeffs)
+                @inbounds coeffs[i] = ($f)(a.coeffs[i])
+            end
+            @inbounds coeffs[1] = aux
+            return TaylorN{S}(coeffs, a.order)
+        end
+    end
+end
+
+
 # The `lastnonzero` method below was adapted
 # from the `firstnonzero` method of TaylorSeries.jl,
 # Copyright (c) 2014-2016: Luis Benet and David P. Sanders, under MIT license.
