@@ -258,9 +258,9 @@ end
 
 import TaylorSeries.evaluate!
 
-# The code for the function below is another method for the function
-# evaluate! which is included in the TaylorSeries.jl package,
-# created by Luis Benet and David Sanders, under MIT license.
+# The `evaluate!` method below was adapted
+# from TaylorSeries.jl/src/TaylorN.jl,
+# Copyright (c) 2014-2016: Luis Benet and David P. Sanders, under MIT license.
 function evaluate!{T<:Number}(x::Array{Taylor1{TaylorN{T}},1}, δt::T, x0::Array{TaylorN{T},1})
     @assert length(x) == length(x0)
     @inbounds for i in eachindex(x)
@@ -269,6 +269,9 @@ function evaluate!{T<:Number}(x::Array{Taylor1{TaylorN{T}},1}, δt::T, x0::Array
     nothing
 end
 
+# The `lastnonzero` method below was adapted
+# from the `firstnonzero` method of TaylorSeries.jl,
+# Copyright (c) 2014-2016: Luis Benet and David P. Sanders, under MIT license.
 
 ## Auxiliary function ##
 #
