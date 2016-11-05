@@ -136,7 +136,7 @@ function liap_jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Vector{Taylor1{T}})
 end
 
 
-function liap_taylorstep!{T<:Number}(f, t0::T, tmax::T, x0::Array{T,1},
+function liap_taylorstep!{T<:Number}(f, t0::T, t1::T, x0::Array{T,1},
         order::Int, abstol::T)
     # Initialize the vector of Taylor1 expansions
     xT = Array{Taylor1{T}}(length(x0))
@@ -149,7 +149,7 @@ function liap_taylorstep!{T<:Number}(f, t0::T, tmax::T, x0::Array{T,1},
 
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(xT, abstol)
-    δt = min(δt, tmax-t0)
+    δt = min(δt, t1-t0)
 
     # Update x0
     evaluate!(xT, δt, x0)
