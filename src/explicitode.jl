@@ -227,13 +227,15 @@ The current keyword argument is `maxsteps=500`.
 
 Example:
 
-`using TaylorIntegration`
+```julia
+    using TaylorIntegration
 
-` f(t, x) = x^2`
+    f(t, x) = x^2
 
-`tv, xv = taylorinteg(f, 3, 0.0, 0.3, 25, 1.0e-20, maxsteps=100 )`
-
+    tv, xv = taylorinteg(f, 3, 0.0, 0.3, 25, 1.0e-20, maxsteps=100 )
+```
 ---
+
 """
 function taylorinteg{S<:Number, T<:Number, U<:Number, V<:Number}(f, x0::S,
         t0::T, tmax::U, order::Int, abstol::V; maxsteps::Int=500)
@@ -242,7 +244,6 @@ function taylorinteg{S<:Number, T<:Number, U<:Number, V<:Number}(f, x0::S,
     x0, t0, tmax, abstol, afloat = promote(x0, t0, tmax, abstol, one(Float64))
 
     taylorinteg(f, x0, t0, tmax, order, abstol, maxsteps=maxsteps)
-
 end
 
 function taylorinteg{T<:Number}(f, x0::T, t0::T, tmax::T, order::Int,
@@ -295,7 +296,6 @@ function taylorinteg{S<:Number, T<:Number, U<:Number, V<:Number}(f,
     q0_ = convert(Array{typeof(elq0)}, q0)
 
     taylorinteg(f, q0_, t0, tmax, order, abstol, maxsteps=maxsteps)
-
 end
 
 function taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
@@ -362,15 +362,14 @@ The current keyword argument is `maxsteps=500`.
 
 Example:
 
-`using TaylorIntegration`
-
-` f(t, x) = x^2`
-
-`trange = 0.0:1/10:0.3`
-
-`xv = taylorinteg(f, 3.0, trange, 25, 1.0e-20, maxsteps=100 )`
-
+```julia
+    using TaylorIntegration
+    f(t, x) = x^2
+    trange = 0.0:1/10:0.3
+    xv = taylorinteg(f, 3.0, trange, 25, 1.0e-20, maxsteps=100 )
+```
 ---
+
 """
 function taylorinteg{T<:Number}(f, x0::T, trange::Range{T},
         order::Int, abstol::T; maxsteps::Int=500)
