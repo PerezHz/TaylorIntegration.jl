@@ -1,23 +1,37 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
 """
-    stabilitymatrix{T<:Number, S<:Number}(eqsdiff, t0::T, x::Array{S,1})
+    stabilitymatrix!{T<:Number, S<:Number}(eqsdiff, t0::T, x::Array{T,1},
+        jjac::Array{T,2})
+    stabilitymatrix!{T<:Number, S<:Number}(eqsdiff, t0::T, x::Array{Taylor1{T},1},
+        jjac::Array{Taylor1{T},2})
 
-Returns the stability matrix (linearized equations of motion)
+Updates the matrix `jjac` (linearized equations of motion)
 computed from the equations of motion (`eqsdiff`), at time `t0`
 at `x0`.
 """
-function stabilitymatrix{T<:Number}(eqsdiff, t0::T, x::Array{T,1})
-    # _params_old = TaylorSeries._params_TaylorN_
-    _δv = set_variables(T, "δ", order=2, numvars=length(x))
-    jjac = jacobian( eqsdiff(t0, x+_δv) )
-    # TaylorSeries._params_TaylorN_.order = _params_old.order
-    # TaylorSeries._params_TaylorN_.variable_names = _params_old.variable_names
-    return jjac
+function stabilitymatrix!{T<:Number}(eqsdiff, t0::T, x::Array{T,1},
+        jjac::Array{T,2})
+    δx = Array{TaylorN{T}}( length(x) )
+    @inbounds for ind in eachindex(x)
+        δx[ind] = x[ind] + TaylorN(T,ind,order=1)
+    end
+    jjac[:] = jacobian( eqsdiff(t0, δx) )
+    nothing
+end
+function stabilitymatrix!{T<:Number}(eqsdiff, t0::T, x::Array{Taylor1{T},1},
+        jjac::Array{Taylor1{T},2})
+    δx = Array{TaylorN{Taylor1{T}}}( length(x) )
+    @inbounds for ind in eachindex(x)
+        δx[ind] = convert(TaylorN{Taylor1{T}}, x[ind]) +
+            TaylorN(Taylor1{T},ind,order=1)
+    end
+    jjac[:] = jacobian( eqsdiff(t0, δx) )
+    nothing
 end
 
 
-# Slightly modified (loops unrolled) from:
+# Modified from `cgs` and `mgs`, obtained from:
 # http://nbviewer.jupyter.org/url/math.mit.edu/~stevenj/18.335/Gram-Schmidt.ipynb
 # Classical Gram–Schmidt (Trefethen algorithm 7.1), implemented in the simplest way
 # (We could make it faster by unrolling loops to avoid temporaries arrays etc.)
@@ -27,12 +41,14 @@ function classicalGS(A)
     R = zeros(eltype(A),n,n)
     aⱼ = Array{eltype(A)}(m)
     qᵢ = similar(aⱼ)
+    vⱼ = similar(aⱼ)
     for j = 1:n
         # aⱼ = A[:,j]
         @inbounds for ind = 1:m
             aⱼ[ind] = A[ind,j]
+            vⱼ[ind] = aⱼ[ind]
         end
-        vⱼ = copy(aⱼ) # use copy so that modifying vⱼ doesn't change aⱼ
+        # vⱼ = copy(aⱼ) # use copy so that modifying vⱼ doesn't change aⱼ
         for i = 1:j-1
             # qᵢ = Q[:,i]
             @inbounds for ind = 1:m
@@ -59,12 +75,14 @@ function modifiedGS(A)
     R = zeros(eltype(A),n,n)
     aⱼ = Array{eltype(A)}(m)
     qᵢ = similar(aⱼ)
+    # vⱼ = similar(aⱼ)
     for j = 1:n
         # aⱼ = A[:,j]
         @inbounds for ind = 1:m
             aⱼ[ind] = A[ind,j]
+            # vⱼ[ind] = aⱼ[ind]
         end
-        vⱼ = copy(aⱼ)
+        vⱼ = copy(aⱼ) # use copy so that modifying vⱼ doesn't change aⱼ
         for i = 1:j-1
             # qᵢ = Q[:,i]
             @inbounds for ind = 1:m
@@ -94,15 +112,8 @@ function liap_jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Vector{Taylor1{T}})
     # Dimensions of phase-space: dof
     nx = length(x)
     dof = round(Int, (-1+sqrt(1+4*nx))/2)
-    v = Array{T}(dof)
-    for ind in eachindex(v)
-        v[ind] = x[ind].coeffs[1]
-    end
+    jjac = Array{Taylor1{T}}(dof,dof)
 
-    # Stability matrix (constant coefficients)
-    jjac = stabilitymatrix(eqsdiff, t0, v)
-
-    # Integration
     for ord in 1:order
         ordnext = ord+1
 
@@ -113,7 +124,8 @@ function liap_jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Vector{Taylor1{T}})
 
         # Equations of motion
         @inbounds xdot[1:dof] = eqsdiff(t0, xaux[1:dof])
-        @inbounds xdot[dof+1:nx] = jjac * reshape( xaux[dof+1:end], (dof,dof) )
+        stabilitymatrix!( eqsdiff, t0, xaux[1:dof], jjac )
+        @inbounds xdot[dof+1:nx] = jjac * reshape( xaux[dof+1:nx], (dof,dof) )
 
         # Recursion relations
         @inbounds for j in eachindex(x)
@@ -153,6 +165,10 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
     xv = Array{T}(dof, maxsteps+1)
     λ = similar(xv)
     λtsum = similar(q0)
+    jt = Array{T}(dof,dof)
+
+    # NOTE: This changes GLOBALLY internal parameters of TaylorN
+    global _δv = set_variables("δ", order=1, numvars=dof)
 
     # Initial conditions
     @inbounds tv[1] = t0
@@ -169,9 +185,10 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
     nsteps = 1
     while t0 < tmax
         δt = liap_taylorstep!(f, t0, tmax, x0, order, abstol)
-        jt = reshape(x0[dof+1:end], (dof,dof))
-        QH, RH = modifiedGS(jt)
-        # QH, RH = qr(jt)
+        @inbounds for ind in eachindex(jt)
+            jt[ind] = x0[dof+ind]
+        end
+        QH, RH = modifiedGS( jt )
         t0 += δt
         tspan = t0-t00
         nsteps += 1
