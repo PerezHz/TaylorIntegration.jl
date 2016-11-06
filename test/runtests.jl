@@ -2,7 +2,6 @@
 
 include("../src/TaylorIntegration.jl")
 using TaylorIntegration
-using ValidatedNumerics
 using FactCheck
 # FactCheck.setstyle(:compact)
 
