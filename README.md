@@ -28,9 +28,6 @@ Comments, suggestions, and improvements are welcome and appreciated.
 + [Damped, driven linear oscillator](http://nbviewer.jupyter.org/github/PerezHz/Ta\
 ylorIntegration\
 .jl/blob/master/examples/Damped-driven-linear-oscillator.ipynb)
-+ [Validated Taylor integration example](http://nbviewer.jupyter.org/github/PerezHz/Ta\
-ylorIntegration\
-.jl/blob/master/examples/Validated-Taylor-integration-example.ipynb)
 
 #### License
 
