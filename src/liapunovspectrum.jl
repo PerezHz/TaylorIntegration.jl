@@ -29,6 +29,17 @@ function stabilitymatrix!{T<:Number}(eqsdiff, t0::T, x::Array{Taylor1{T},1},
     jjac[:] = jacobian( eqsdiff(t0, δx) )
     nothing
 end
+# function stabilitymatrix!{T<:Number}(eqsdiff, t0::T, x::Array{Taylor1{T},1},
+#         jjac::Array{Taylor1{T},2})
+#     δx = Array{Taylor1{TaylorN{T}}}( length(x) )
+#     @inbounds for ind in eachindex(x)
+#         δv = TaylorN(Taylor1{T},ind,order=1)
+#         # δx[ind] = x[ind] + convert(Taylor1{TaylorN{T}},δv)
+#         δx[ind] = x[ind] + δv
+#     end
+#     jjac[:] = jacobian( eqsdiff(t0, δx) )
+#     nothing
+# end
 
 
 # Modified from `cgs` and `mgs`, obtained from:
@@ -165,7 +176,7 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
     xv = Array{T}(dof, maxsteps+1)
     λ = similar(xv)
     λtsum = similar(q0)
-    jt = Array{T}(dof,dof)
+    jt = eye(T, dof)
 
     # NOTE: This changes GLOBALLY internal parameters of TaylorN
     global _δv = set_variables("δ", order=1, numvars=dof)
@@ -177,7 +188,7 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
         λ[ind,1] = zero(T)
         λtsum[ind] = zero(T)
     end
-    x0 = vcat(q0, reshape(eye(T, dof), dof*dof))
+    x0 = vcat(q0, reshape(jt, dof*dof))
     nx0 = dof*(dof+1)
     t00 = t0
 
