@@ -6,9 +6,12 @@ using TaylorSeries
 
 import Compat.view
 
-export  taylorinteg
+export  taylorinteg, liap_taylorinteg
 
 include("explicitode.jl")
+
 include("jettransport.jl")
+
+include("liapunovspectrum.jl")
 
 end #module
