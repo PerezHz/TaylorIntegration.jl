@@ -203,7 +203,7 @@ function taylorstep!{T<:Real}(f, t0::T, t1::T, x0::Array{Complex{T},1},
         order::Int, abstol::T)
     @assert t1 > t0
     # Initialize the vector of Taylor1 expansions
-    xT = Array{Taylor1{T}}(length(x0))
+    xT = Array{Taylor1{Complex{T}}}(length(x0))
     for i in eachindex(x0)
         @inbounds xT[i] = Taylor1( x0[i], order )
     end
@@ -342,7 +342,7 @@ function taylorinteg{T<:Real}(f, q0::Array{Complex{T},1}, t0::T, tmax::T,
     # Allocation
     tv = Array{T}(maxsteps+1)
     dof = length(q0)
-    xv = Array{T}(dof, maxsteps+1)
+    xv = Array{Complex{T}}(dof, maxsteps+1)
 
     # Initial conditions
     @inbounds tv[1] = t0
