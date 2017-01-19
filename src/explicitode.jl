@@ -336,6 +336,39 @@ function taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
     return view(tv,1:nsteps), view(xv,:,1:nsteps)' #for xv, first do view, then transpose (otherwise it crashes)
 end
 
+function taylorinteg{T<:Real}(f, q0::Array{Complex{T},1}, t0::T, tmax::T,
+        order::Int, abstol::T; maxsteps::Int=500)
+
+    # Allocation
+    tv = Array{T}(maxsteps+1)
+    dof = length(q0)
+    xv = Array{T}(dof, maxsteps+1)
+
+    # Initial conditions
+    @inbounds tv[1] = t0
+    @inbounds xv[:,1] = q0[:]
+    x0 = copy(q0)
+
+    # Integration
+    nsteps = 1
+    while t0 < tmax
+        xold = copy(x0)
+        δt = taylorstep!(f, t0, tmax, x0, order, abstol)
+        t0 += δt
+        nsteps += 1
+        @inbounds tv[nsteps] = t0
+        @inbounds xv[:,nsteps] = x0[:]
+        if nsteps > maxsteps
+            warn("""
+            Maximum number of integration steps reached; exiting.
+            """)
+            break
+        end
+    end
+
+    return view(tv,1:nsteps), view(xv,:,1:nsteps)' #for xv, first do view, then transpose (otherwise it crashes)
+end
+
 # Integrate and return results evaluated at given time
 doc"""
     taylorinteg(f, x0, t0, trange, order, abstol; keyword... )
