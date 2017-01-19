@@ -57,6 +57,28 @@ function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Vector{Taylor1{T}})
     nothing
 end
 
+function jetcoeffs!{T<:Real}(eqsdiff, t0::T, x::Vector{Taylor1{Complex{T}}})
+    order = x[1].order
+    xaux = similar(x)
+    for ord in 1:order
+        ordnext = ord+1
+
+        # Set `xaux`, auxiliary vector of Taylor1 to order `ord`
+        @inbounds for j in eachindex(x)
+            xaux[j] = Taylor1( x[j].coeffs[1:ord] )
+        end
+
+        # Equations of motion
+        # TODO! define a macro to optimize the eqsdiff
+        xdot = eqsdiff(t0, xaux)
+
+        # Recursion relations
+        @inbounds for j in eachindex(x)
+            x[j].coeffs[ordnext] = xdot[j].coeffs[ord]/ord
+        end
+    end
+    nothing
+end
 
 # stepsize
 doc"""
@@ -78,6 +100,19 @@ function stepsize{T<:Number}(x::Taylor1{T}, epsilon::T)
     end
     return h
 end
+function stepsize{T<:Real}(x::Taylor1{Complex{T}}, epsilon::T)
+    ord = x.order
+    h = T(Inf)
+    for k in (ord-1, ord)
+        @inbounds aux = abs( x.coeffs[k+1] )
+        aux == zero(T) && continue
+        aux = epsilon / aux
+        kinv = one(T)/k
+        aux = aux^kinv
+        h = min(h, aux)
+    end
+    return h
+end
 
 doc"""
     stepsize(q, epsilon)
@@ -86,6 +121,14 @@ Returns the minimum time-step for `q::Array{Taylor1{T},1}`,
 using a prescribed absolute tolerance `epsilon`.
 """
 function stepsize{T<:Number}(q::Array{Taylor1{T},1}, epsilon::T)
+    h = T(Inf)
+    for i in eachindex(q)
+        @inbounds hi = stepsize( q[i], epsilon )
+        h = min( h, hi )
+    end
+    return h
+end
+function stepsize{T<:Real}(q::Array{Taylor1{Complex{T}},1}, epsilon::T)
     h = T(Inf)
     for i in eachindex(q)
         @inbounds hi = stepsize( q[i], epsilon )
@@ -138,6 +181,25 @@ of the integration. If the time step is larger than `t1-t0`, that difference
 is used as the time step.
 """
 function taylorstep!{T<:Number}(f, t0::T, t1::T, x0::Array{T,1},
+        order::Int, abstol::T)
+    @assert t1 > t0
+    # Initialize the vector of Taylor1 expansions
+    xT = Array{Taylor1{T}}(length(x0))
+    for i in eachindex(x0)
+        @inbounds xT[i] = Taylor1( x0[i], order )
+    end
+
+    # Compute the Taylor coefficients
+    jetcoeffs!(f, t0, xT)
+
+    # Compute the step-size of the integration using `abstol`
+    δt = stepsize(xT, abstol)
+    δt = min(δt, t1-t0)
+
+    evaluate!(xT, δt, x0)
+    return δt
+end
+function taylorstep!{T<:Real}(f, t0::T, t1::T, x0::Array{Complex{T},1},
         order::Int, abstol::T)
     @assert t1 > t0
     # Initialize the vector of Taylor1 expansions
