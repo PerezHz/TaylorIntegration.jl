@@ -477,3 +477,45 @@ function taylorinteg{T<:Number}(f, q0::Array{T,1}, trange::Range{T},
 
     return xv'
 end
+
+function taylorinteg{T<:Real}(f, q0::Array{Complex{T},1}, trange::Range{T},
+        order::Int, abstol::T; maxsteps::Int=500)
+
+    # Allocation
+    nn = length(trange)
+    dof = length(q0)
+    x0 = similar(q0, T, dof)
+    fill!(x0, T(NaN))
+    xv = Array{eltype(q0)}(dof, nn)
+    @inbounds for ind in 1:nn
+        xv[:,ind] = x0[:]
+    end
+
+    # Initial conditions
+    @inbounds x0[:] = q0[:]
+    @inbounds xv[:,1] = q0[:]
+
+    # Integration
+    iter = 1
+    while iter < nn
+        t0, t1 = trange[iter], trange[iter+1]
+        nsteps = 0
+        while nsteps < maxsteps
+            xold = copy(x0)
+            δt = taylorstep!(f, t0, t1, x0, order, abstol)
+            t0 += δt
+            t0 ≥ t1 && break
+            nsteps += 1
+        end
+        if nsteps ≥ maxsteps && t0 != t1
+            warn("""
+            Maximum number of integration steps reached; exiting.
+            """)
+            break
+        end
+        iter += 1
+        @inbounds xv[:,iter] = x0[:]
+    end
+
+    return xv'
+end
