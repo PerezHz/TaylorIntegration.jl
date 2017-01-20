@@ -484,7 +484,7 @@ function taylorinteg{T<:Real}(f, q0::Array{Complex{T},1}, trange::Range{T},
     # Allocation
     nn = length(trange)
     dof = length(q0)
-    x0 = similar(q0, T, dof)
+    x0 = similar(q0, Complex{T}, dof)
     fill!(x0, T(NaN))
     xv = Array{eltype(q0)}(dof, nn)
     @inbounds for ind in 1:nn
