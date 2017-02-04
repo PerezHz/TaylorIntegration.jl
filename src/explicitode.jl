@@ -57,6 +57,24 @@ function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Vector{Taylor1{T}})
     nothing
 end
 
+function jetcoeffs!{T<:Real}(eqsdiff, t0::T, x::Taylor1{Complex{T}})
+    order = x.order
+    for ord in 1:order
+        ordnext = ord+1
+
+        # Set `xaux`, auxiliary Taylor1 variable to order `ord`
+        @inbounds xaux = Taylor1( x.coeffs[1:ord] )
+
+        # Equations of motion
+        # TODO! define a macro to optimize the eqsdiff
+        xdot = eqsdiff(t0, xaux)
+
+        # Recursion relation
+        @inbounds x.coeffs[ordnext] = xdot.coeffs[ord]/ord
+    end
+    nothing
+end
+
 function jetcoeffs!{T<:Real}(eqsdiff, t0::T, x::Vector{Taylor1{Complex{T}}})
     order = x[1].order
     xaux = similar(x)
@@ -79,6 +97,7 @@ function jetcoeffs!{T<:Real}(eqsdiff, t0::T, x::Vector{Taylor1{Complex{T}}})
     end
     nothing
 end
+
 
 # stepsize
 doc"""
@@ -167,6 +186,23 @@ function taylorstep{T<:Number}(f, t0::T, t1::T, x0::T, order::Int, abstol::T)
     return δt, x0
 end
 
+function taylorstep{T<:Real}(f, t0::T, t1::T, x0::Complex{T}, order::Int, abstol::T)
+    @assert t1 > t0
+    # Initialize the Taylor1 expansions
+    xT = Taylor1( x0, order )
+
+    # Compute the Taylor coefficients
+    jetcoeffs!(f, t0, xT)
+
+    # Compute the step-size of the integration using `abstol`
+    δt = stepsize(xT, abstol)
+    δt = min(δt, t1-t0)
+
+    x0 = evaluate(xT, δt)
+    return δt, x0
+end
+
+
 doc"""
     taylorstep!(f, t0, t1, x0, order, abstol)
 
@@ -199,6 +235,7 @@ function taylorstep!{T<:Number}(f, t0::T, t1::T, x0::Array{T,1},
     evaluate!(xT, δt, x0)
     return δt
 end
+
 function taylorstep!{T<:Real}(f, t0::T, t1::T, x0::Array{Complex{T},1},
         order::Int, abstol::T)
     @assert t1 > t0
@@ -336,6 +373,39 @@ function taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
     return view(tv,1:nsteps), view(xv,:,1:nsteps)' #for xv, first do view, then transpose (otherwise it crashes)
 end
 
+function taylorinteg{T<:Number}(f, x0::Complex{T}, t0::T, tmax::T, order::Int,
+        abstol::T; maxsteps::Int=500)
+
+    # Allocation
+    tv = Array{T}(maxsteps+1)
+    xv = Array{Complex{T}}(maxsteps+1)
+
+    # Initial conditions
+    nsteps = 1
+    @inbounds tv[1] = t0
+    @inbounds xv[1] = x0
+
+    # Integration
+    while t0 < tmax
+        xold = x0
+        δt, x0 = taylorstep(f, t0, tmax, x0, order, abstol)
+        t0 += δt
+        nsteps += 1
+        @inbounds tv[nsteps] = t0
+        @inbounds xv[nsteps] = x0
+        if nsteps > maxsteps
+            warn("""
+            Maximum number of integration steps reached; exiting.
+            """)
+            break
+        end
+    end
+
+    #return tv, xv
+    return view(tv,1:nsteps), view(xv,1:nsteps)
+end
+
+
 function taylorinteg{T<:Real}(f, q0::Array{Complex{T},1}, t0::T, tmax::T,
         order::Int, abstol::T; maxsteps::Int=500)
 
@@ -368,6 +438,7 @@ function taylorinteg{T<:Real}(f, q0::Array{Complex{T},1}, t0::T, tmax::T,
 
     return view(tv,1:nsteps), view(xv,:,1:nsteps)' #for xv, first do view, then transpose (otherwise it crashes)
 end
+
 
 # Integrate and return results evaluated at given time
 doc"""
@@ -476,6 +547,42 @@ function taylorinteg{T<:Number}(f, q0::Array{T,1}, trange::Range{T},
     end
 
     return xv'
+end
+
+function taylorinteg{T<:Number}(f, x0::Complex{T}, trange::Range{T},
+        order::Int, abstol::T; maxsteps::Int=500)
+
+    # Allocation
+    nn = length(trange)
+    xv = Array{Complex{T},1}(nn)
+    fill!(xv, T(NaN))
+
+    # Initial conditions
+    @inbounds xv[1] = x0
+
+    # Integration
+    iter = 1
+    while iter < nn
+        t0, t1 = trange[iter], trange[iter+1]
+        nsteps = 0
+        while nsteps < maxsteps
+            xold = x0
+            δt, x0 = taylorstep(f, t0, t1, x0, order, abstol)
+            t0 += δt
+            t0 ≥ t1 && break
+            nsteps += 1
+        end
+        if nsteps ≥ maxsteps && t0 != t1
+            warn("""
+            Maximum number of integration steps reached; exiting.
+            """)
+            break
+        end
+        iter += 1
+        @inbounds xv[iter] = x0
+    end
+
+    return xv
 end
 
 function taylorinteg{T<:Real}(f, q0::Array{Complex{T},1}, trange::Range{T},
