@@ -179,6 +179,46 @@ facts("Test non-autonomous ODE: dot{x}=cos(t)") do
     @fact xT[1,2] == x0[2] --> true
     @fact tT[end] == xT[end,1] --> true
     @fact abs(sin(tmax)-xT[end,2]) < 1e-14 --> true
+end
+
+facts("Test integration of ODE with complex dependent variables") do
+    z0 = complex(0.0, 1.0)
+    tr = 0.0:pi/8:2pi
+
+    eqs1(t,z) = -z
+    zsol1 = taylorinteg(eqs1, z0, tr, 28, 1.0e-20)
+    @fact zsol1[1] == z0 --> true
+    @fact isapprox( zsol1[2]  , z0*exp(-tr[2]) ) --> true
+    @fact isapprox( zsol1[6], z0*exp(-tr[6]) ) --> true
+    @fact isapprox( zsol1[end], z0*exp(-tr[end]) ) --> true
+    tt, zsol1 = taylorinteg(eqs1, z0, 0.0, 2pi, 28, 1.0e-20)
+    @fact zsol1[1] == z0 --> true
+    @fact isapprox( zsol1[2]  , z0*exp(-tt[2]) ) --> true
+    @fact isapprox( zsol1[end], z0*exp(-tt[end]) ) --> true
+
+    eqs2(t,z) = im*z
+    zsol2 = taylorinteg(eqs2, z0, tr, 28, 1.0e-20)
+    @fact zsol2[1] == z0 --> true
+    @fact isapprox( zsol2[3], z0*exp( complex(0.0, tr[3])) ) --> true
+    @fact isapprox( zsol2[5], z0*exp( complex(0.0, tr[5])) ) --> true
+    tt, zsol2 = taylorinteg(eqs2, z0, 0.0, 2pi, 28, 1.0e-20)
+    @fact zsol2[1] == z0 --> true
+    @fact isapprox( zsol2[2], z0*exp( complex(0.0, tt[2])) ) --> true
+    @fact isapprox( zsol2[end], z0*exp( complex(0.0, tt[end])) ) --> true
+
+    eqs3(t,z) = [ eqs1(t,z[1]), eqs2(t,z[2]) ]
+    zsol3 = taylorinteg(eqs3, [z0, z0], tr, 28, 1.0e-20)
+    @fact isapprox( zsol3[4,1], z0*exp(-tr[4]) ) --> true
+    @fact isapprox( zsol3[7,1], z0*exp(-tr[7]) ) --> true
+    @fact isapprox( zsol3[4,2], z0*exp( complex(0.0, tr[4])) ) --> true
+    @fact isapprox( zsol3[7,2], z0*exp( complex(0.0, tr[7])) ) --> true
+    tt, zsol3 = taylorinteg(eqs3, [z0,z0], 0.0, 2pi, 28, 1.0e-20)
+    @fact zsol3[1,1] == z0 --> true
+    @fact zsol3[1,2] == z0 --> true
+    @fact isapprox( zsol3[2,1], z0*exp( -tt[2]) ) --> true
+    @fact isapprox( zsol3[end,1], z0*exp( -tt[end]) ) --> true
+    @fact isapprox( zsol3[2,2], z0*exp( complex(0.0, tt[2])) ) --> true
+    @fact isapprox( zsol3[end,2], z0*exp( complex(0.0, tt[end])) ) --> true
 
 end
 

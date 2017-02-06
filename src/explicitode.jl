@@ -373,7 +373,7 @@ function taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
     return view(tv,1:nsteps), view(xv,:,1:nsteps)' #for xv, first do view, then transpose (otherwise it crashes)
 end
 
-function taylorinteg{T<:Number}(f, x0::Complex{T}, t0::T, tmax::T, order::Int,
+function taylorinteg{T<:Real}(f, x0::Complex{T}, t0::T, tmax::T, order::Int,
         abstol::T; maxsteps::Int=500)
 
     # Allocation
@@ -436,7 +436,7 @@ function taylorinteg{T<:Real}(f, q0::Array{Complex{T},1}, t0::T, tmax::T,
         end
     end
 
-    return view(tv,1:nsteps), view(xv,:,1:nsteps)' #for xv, first do view, then transpose (otherwise it crashes)
+    return view(tv,1:nsteps), view(transpose(xv),1:nsteps,:) #for xv, first do view, then transpose (otherwise it crashes)
 end
 
 
@@ -549,7 +549,7 @@ function taylorinteg{T<:Number}(f, q0::Array{T,1}, trange::Range{T},
     return xv'
 end
 
-function taylorinteg{T<:Number}(f, x0::Complex{T}, trange::Range{T},
+function taylorinteg{T<:Real}(f, x0::Complex{T}, trange::Range{T},
         order::Int, abstol::T; maxsteps::Int=500)
 
     # Allocation
@@ -624,5 +624,5 @@ function taylorinteg{T<:Real}(f, q0::Array{Complex{T},1}, trange::Range{T},
         @inbounds xv[:,iter] = x0[:]
     end
 
-    return xv'
+    return transpose(xv)
 end
