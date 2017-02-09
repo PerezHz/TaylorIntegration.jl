@@ -476,7 +476,7 @@ function taylorinteg{T<:Number}(f, x0::T, trange::Range{T},
 
     # Allocation
     nn = length(trange)
-    xv = Array{T,1}(nn)
+    xv = Array{T}(nn)
     fill!(xv, T(NaN))
 
     # Initial conditions
@@ -554,7 +554,7 @@ function taylorinteg{T<:Real}(f, x0::Complex{T}, trange::Range{T},
 
     # Allocation
     nn = length(trange)
-    xv = Array{Complex{T},1}(nn)
+    xv = Array{Complex{T}}(nn)
     fill!(xv, T(NaN))
 
     # Initial conditions
