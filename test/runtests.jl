@@ -63,6 +63,7 @@ facts("Tests: dot{x}=x^2, x(0) = 3; nsteps <= maxsteps") do
     @fact length(tv) --> 14
     @fact length(xv[:,1]) --> 14
     @fact length(xv[:,2]) --> 14
+    @fact xv[1,1:end] --> q0
     @fact tv[end] < 1/3 --> true
     @fact tv[end] --> tmax
     @fact xv[end,1] --> xv[end,2]
@@ -88,6 +89,7 @@ facts("Tests: dot{x}=x^2, x(0) = 3; nsteps <= maxsteps") do
     @fact length(tv) --> 28
     @fact length(xv[:,1]) --> 28
     @fact length(xv[:,2]) --> 28
+    @fact xv[1,1:end] --> q0
     @fact tv[end] < 1/3 --> true
     @fact tv[end] --> tmax
     @fact xv[end,1] --> xv[end,2]
@@ -109,6 +111,7 @@ facts("Tests: dot{x}=x.^2, x(0) = [3.0,1.0]") do
 
     tv, xv = taylorinteg(eqs_mov, q0, 0.0, 0.5, _order, _abs_tol)
     @fact length(tv) --> 501
+    @fact xv[1,:] --> q0
     @fact tv[end] < 1/3 --> true
 
     trange = 0.0:1/8:1.0
@@ -116,6 +119,7 @@ facts("Tests: dot{x}=x.^2, x(0) = [3.0,1.0]") do
     @fact size(xv) --> (9,2)
     @fact q0 --> [3.0, 1.0]
     @fact typeof(xv) --> Array{eltype(q0),2}
+    @fact xv[1,1:end] --> q0
     @fact (isnan(xv[4,1]) && isnan(xv[4,2])) --> true
     @fact (isnan(xv[end,1]) && isnan(xv[end,2])) --> true
     @fact abs(xv[3,2] - 4/3) ≤ eps(4/3) --> true
@@ -133,6 +137,7 @@ facts("Test non-autonomous ODE: dot{x}=cos(t)") do
     @fact length(tT) < 501 --> true
     @fact length(xT[:,1]) < 501 --> true
     @fact length(xT[:,2]) < 501 --> true
+    @fact xT[1,1:end] --> x0
     @fact tT[1] == t0 --> true
     @fact xT[1,1] == x0[1] --> true
     @fact xT[1,2] == x0[2] --> true
@@ -144,6 +149,7 @@ facts("Test non-autonomous ODE: dot{x}=cos(t)") do
     @fact length(tT) < 501 --> true
     @fact length(xT[:,1]) < 501 --> true
     @fact length(xT[:,2]) < 501 --> true
+    @fact xT[1,1:end] --> x0
     @fact tT[1] == t0 --> true
     @fact xT[1,1] == x0[1] --> true
     @fact xT[1,2] == x0[2] --> true
