@@ -63,11 +63,7 @@ facts("Tests: dot{x}=x^2, x(0) = 3; nsteps <= maxsteps") do
     @fact length(tv) --> 14
     @fact length(xv[:,1]) --> 14
     @fact length(xv[:,2]) --> 14
-    if VERSION < v"0.5-"
-        @fact xv[1,1:end] --> q0'
-    else
-        @fact xv[1,1:end] --> q0
-    end
+    @fact xv[1,1:end] --> q0
     @fact tv[end] < 1/3 --> true
     @fact tv[end] --> tmax
     @fact xv[end,1] --> xv[end,2]
@@ -93,11 +89,7 @@ facts("Tests: dot{x}=x^2, x(0) = 3; nsteps <= maxsteps") do
     @fact length(tv) --> 28
     @fact length(xv[:,1]) --> 28
     @fact length(xv[:,2]) --> 28
-    if VERSION < v"0.5-"
-        @fact xv[1,1:end] --> q0'
-    else
-        @fact xv[1,1:end] --> q0
-    end
+    @fact xv[1,1:end] --> q0
     @fact tv[end] < 1/3 --> true
     @fact tv[end] --> tmax
     @fact xv[end,1] --> xv[end,2]
@@ -119,11 +111,7 @@ facts("Tests: dot{x}=x.^2, x(0) = [3.0,1.0]") do
 
     tv, xv = taylorinteg(eqs_mov, q0, 0.0, 0.5, _order, _abs_tol)
     @fact length(tv) --> 501
-    if VERSION < v"0.5-"
-        @fact xv[1,:] --> q0'
-    else
-        @fact xv[1,:] --> q0
-    end
+    @fact xv[1,:] --> q0
     @fact tv[end] < 1/3 --> true
 
     trange = 0.0:1/8:1.0
@@ -131,11 +119,7 @@ facts("Tests: dot{x}=x.^2, x(0) = [3.0,1.0]") do
     @fact size(xv) --> (9,2)
     @fact q0 --> [3.0, 1.0]
     @fact typeof(xv) --> Array{eltype(q0),2}
-    if VERSION < v"0.5-"
-        @fact xv[1,1:end] --> q0'
-    else
-        @fact xv[1,1:end] --> q0
-    end
+    @fact xv[1,1:end] --> q0
     @fact (isnan(xv[4,1]) && isnan(xv[4,2])) --> true
     @fact (isnan(xv[end,1]) && isnan(xv[end,2])) --> true
     @fact abs(xv[3,2] - 4/3) ≤ eps(4/3) --> true
@@ -153,11 +137,7 @@ facts("Test non-autonomous ODE: dot{x}=cos(t)") do
     @fact length(tT) < 501 --> true
     @fact length(xT[:,1]) < 501 --> true
     @fact length(xT[:,2]) < 501 --> true
-    if VERSION < v"0.5-"
-        @fact xT[1,1:end] --> x0'
-    else
-        @fact xT[1,1:end] --> x0
-    end
+    @fact xT[1,1:end] --> x0
     @fact tT[1] == t0 --> true
     @fact xT[1,1] == x0[1] --> true
     @fact xT[1,2] == x0[2] --> true
@@ -169,16 +149,52 @@ facts("Test non-autonomous ODE: dot{x}=cos(t)") do
     @fact length(tT) < 501 --> true
     @fact length(xT[:,1]) < 501 --> true
     @fact length(xT[:,2]) < 501 --> true
-    if VERSION < v"0.5-"
-        @fact xT[1,1:end] --> x0'
-    else
-        @fact xT[1,1:end] --> x0
-    end
+    @fact xT[1,1:end] --> x0
     @fact tT[1] == t0 --> true
     @fact xT[1,1] == x0[1] --> true
     @fact xT[1,2] == x0[2] --> true
     @fact tT[end] == xT[end,1] --> true
     @fact abs(sin(tmax)-xT[end,2]) < 1e-14 --> true
+end
+
+facts("Test integration of ODE with complex dependent variables") do
+    z0 = complex(0.0, 1.0)
+    tr = 0.0:pi/8:2pi
+
+    eqs1(t,z) = -z
+    zsol1 = taylorinteg(eqs1, z0, tr, 28, 1.0e-20)
+    @fact zsol1[1] == z0 --> true
+    @fact isapprox( zsol1[2]  , z0*exp(-tr[2]) ) --> true
+    @fact isapprox( zsol1[6], z0*exp(-tr[6]) ) --> true
+    @fact isapprox( zsol1[end], z0*exp(-tr[end]) ) --> true
+    tt, zsol1 = taylorinteg(eqs1, z0, 0.0, 2pi, 28, 1.0e-20)
+    @fact zsol1[1] == z0 --> true
+    @fact isapprox( zsol1[2]  , z0*exp(-tt[2]) ) --> true
+    @fact isapprox( zsol1[end], z0*exp(-tt[end]) ) --> true
+
+    eqs2(t,z) = im*z
+    zsol2 = taylorinteg(eqs2, z0, tr, 28, 1.0e-20)
+    @fact zsol2[1] == z0 --> true
+    @fact isapprox( zsol2[3], z0*exp( complex(0.0, tr[3])) ) --> true
+    @fact isapprox( zsol2[5], z0*exp( complex(0.0, tr[5])) ) --> true
+    tt, zsol2 = taylorinteg(eqs2, z0, 0.0, 2pi, 28, 1.0e-20)
+    @fact zsol2[1] == z0 --> true
+    @fact isapprox( zsol2[2], z0*exp( complex(0.0, tt[2])) ) --> true
+    @fact isapprox( zsol2[end], z0*exp( complex(0.0, tt[end])) ) --> true
+
+    eqs3(t,z) = [ eqs1(t,z[1]), eqs2(t,z[2]) ]
+    zsol3 = taylorinteg(eqs3, [z0, z0], tr, 28, 1.0e-20)
+    @fact isapprox( zsol3[4,1], z0*exp(-tr[4]) ) --> true
+    @fact isapprox( zsol3[7,1], z0*exp(-tr[7]) ) --> true
+    @fact isapprox( zsol3[4,2], z0*exp( complex(0.0, tr[4])) ) --> true
+    @fact isapprox( zsol3[7,2], z0*exp( complex(0.0, tr[7])) ) --> true
+    tt, zsol3 = taylorinteg(eqs3, [z0,z0], 0.0, 2pi, 28, 1.0e-20)
+    @fact zsol3[1,1] == z0 --> true
+    @fact zsol3[1,2] == z0 --> true
+    @fact isapprox( zsol3[2,1], z0*exp( -tt[2]) ) --> true
+    @fact isapprox( zsol3[end,1], z0*exp( -tt[end]) ) --> true
+    @fact isapprox( zsol3[2,2], z0*exp( complex(0.0, tt[2])) ) --> true
+    @fact isapprox( zsol3[end,2], z0*exp( complex(0.0, tt[end])) ) --> true
 
 end
 

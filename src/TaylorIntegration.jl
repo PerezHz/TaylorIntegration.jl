@@ -4,8 +4,6 @@ module TaylorIntegration
 
 using TaylorSeries
 
-import Compat.view
-
 export  taylorinteg, liap_taylorinteg
 
 include("explicitode.jl")

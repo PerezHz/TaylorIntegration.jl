@@ -349,7 +349,7 @@ function taylorinteg{T<:Number}(f, x0::TaylorN{T}, trange::Range{T},
 
     # Allocation
     nn = length(trange)
-    xv = Array{TaylorN{T},1}(nn)
+    xv = Array{TaylorN{T}}(nn)
     fill!(xv, TaylorN{T}(NaN))
 
     # Initial conditions
