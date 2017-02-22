@@ -29,17 +29,6 @@ function stabilitymatrix!{T<:Number}(eqsdiff, t0::T, x::Array{Taylor1{T},1},
     jjac[:] = jacobian( eqsdiff(t0, δx) )
     nothing
 end
-# function stabilitymatrix!{T<:Number}(eqsdiff, t0::T, x::Array{Taylor1{T},1},
-#         jjac::Array{Taylor1{T},2})
-#     δx = Array{Taylor1{TaylorN{T}}}( length(x) )
-#     @inbounds for ind in eachindex(x)
-#         δv = TaylorN(Taylor1{T},ind,order=1)
-#         # δx[ind] = x[ind] + convert(Taylor1{TaylorN{T}},δv)
-#         δx[ind] = x[ind] + δv
-#     end
-#     jjac[:] = jacobian( eqsdiff(t0, δx) )
-#     nothing
-# end
 
 
 # Modified from `cgs` and `mgs`, obtained from:
@@ -147,13 +136,13 @@ function liap_jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Vector{Taylor1{T}})
 end
 
 
-function liap_taylorstep!{T<:Number}(f, t0::T, t1::T, x0::Array{T,1},
+function liap_taylorstep!{T<:Number}(f, xT::Vector{Taylor1{T}}, t0::T, t1::T, x0::Array{T,1},
         order::Int, abstol::T)
-    # Initialize the vector of Taylor1 expansions
-    xT = Array{Taylor1{T}}(length(x0))
-    for i in eachindex(x0)
-        @inbounds xT[i] = Taylor1( x0[i], order )
-    end
+    # # Initialize the vector of Taylor1 expansions
+    # xT = Array{Taylor1{T}}(length(x0))
+    # for i in eachindex(x0)
+    #     @inbounds xT[i] = Taylor1( x0[i], order )
+    # end
 
     # Compute the Taylor coefficients
     liap_jetcoeffs!(f, t0, xT)
@@ -192,10 +181,16 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
     nx0 = dof*(dof+1)
     t00 = t0
 
+    # Initialize the vector of Taylor1 expansions
+    xT = Array{Taylor1{T}}(length(x0))
+    for i in eachindex(x0)
+        @inbounds xT[i] = Taylor1( x0[i], order )
+    end
+
     # Integration
     nsteps = 1
     while t0 < tmax
-        δt = liap_taylorstep!(f, t0, tmax, x0, order, abstol)
+        δt = liap_taylorstep!(f, xT, t0, tmax, x0, order, abstol)
         @inbounds for ind in eachindex(jt)
             jt[ind] = x0[dof+ind]
         end
@@ -212,6 +207,9 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
         @inbounds for ind in eachindex(QH)
             x0[dof+ind] = QH[ind]
         end
+        for i in eachindex(x0)
+            @inbounds xT[i] = Taylor1( x0[i], order )
+        end
         if nsteps > maxsteps
             warn("""
             Maximum number of integration steps reached; exiting.
@@ -222,60 +220,3 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
 
     return view(tv,1:nsteps), view(xv,:,1:nsteps)', view(λ,:,1:nsteps)'
 end
-
-# function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, trange::Range{T},
-#         order::Int, abstol::T; maxsteps::Int=500)
-#
-#     # Allocation
-#     nn = length(trange)
-#     dof = length(q0)
-#     xv = Array{T}(dof, nn)
-#     λ = Array{T}(dof, maxsteps+1)
-#     DH = Array{T}(dof)
-#     fill!(xv, T(NaN))
-#     fill!(λ, T(NaN))
-#
-#     # Initial conditions
-#     @inbounds xv[:,1] = q0[:]
-#     @inbounds λ[:,1] = reshape(eye(T), dof*dof)
-#     x0 = vcat(q0, λ[:,1])
-#     t00 = copy(t0)
-#
-#     # Integration
-#     iter = 1
-#     while iter < nn
-#         t0, t1 = trange[iter], trange[iter+1]
-#         nsteps = 0
-#         while nsteps < maxsteps
-#             xold = copy(x0)
-#             δt = taylorstep!(f, t0, x0, order, abstol)
-#             jt = reshape(x0[dof+1:nx0], (dof,dof))
-#             VH, DH, WHt = svd(jt)
-#             x0[dof+1:nx0] = VH[:]
-#             if t0+δt ≥ t1
-#                 x0 = xold
-#                 δt = taylorstep!(f, t0, t1, x0, order, abstol)
-#                 jt = reshape(x0[dof+1:nx0], (dof,dof))
-#                 VH, DH, WHt = svd(jt)
-#                 x0[dof+1:nx0] = VH[:]
-#                 t0 = t1
-#                 break
-#             end
-#             t0 += δt
-#             nsteps += 1
-#         end
-#         if nsteps ≥ maxsteps && t0 != t1
-#             warn("""
-#             Maximum number of integration steps reached; exiting.
-#             """)
-#             break
-#         end
-#         iter += 1
-#         @inbounds for ind in 1:dof
-#             xv[ind,nsteps] = x0[ind]
-#             λ[ind,nsteps] = ((t0-δt-t00)*λ[ind,nsteps-1] + log(DH[ind]))/(t0-t00)
-#         end
-#     end
-#
-#     return view(xv,:,1:nsteps)', view(λ,:,1:nsteps)'
-# end
