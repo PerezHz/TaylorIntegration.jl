@@ -302,10 +302,8 @@ function taylorinteg{T<:Number}(f, x0::T, t0::T, tmax::T, order::Int,
 
     # Integration
     while t0 < tmax
-        # xold = x0
-        # δt, x0 = taylorstep(f, t0, tmax, x0, order, abstol)
         δt, x0 = taylorstep!(f, xT, t0, tmax, x0, order, abstol)
-        xT = Taylor1( x0, order )
+        xT.coeffs[1] = x0
         t0 += δt
         nsteps += 1
         @inbounds tv[nsteps] = t0
@@ -355,11 +353,9 @@ function taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
     # Integration
     nsteps = 1
     while t0 < tmax
-        # xold = copy(x0)
-        # δt = taylorstep!(f, t0, tmax, x0, order, abstol)
         δt = taylorstep!(f, xT, t0, tmax, x0, order, abstol)
         for i in eachindex(x0)
-            @inbounds xT[i] = Taylor1( x0[i], order )
+            @inbounds xT[i].coeffs[1] = x0[i]
         end
         t0 += δt
         nsteps += 1
@@ -373,7 +369,7 @@ function taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
         end
     end
 
-    return view(tv,1:nsteps), view(xv,:,1:nsteps)' #for xv, first do view, then transpose (otherwise it crashes)
+    return view(tv,1:nsteps), view(transpose(xv),1:nsteps,:)
 end
 
 function taylorinteg{T<:Real}(f, x0::Complex{T}, t0::T, tmax::T, order::Int,
@@ -393,10 +389,8 @@ function taylorinteg{T<:Real}(f, x0::Complex{T}, t0::T, tmax::T, order::Int,
 
     # Integration
     while t0 < tmax
-        # xold = x0
-        # δt, x0 = taylorstep(f, t0, tmax, x0, order, abstol)
         δt, x0 = taylorstep!(f, xT, t0, tmax, x0, order, abstol)
-        xT = Taylor1( x0, order)
+        xT.coeffs[1] = x0
         t0 += δt
         nsteps += 1
         @inbounds tv[nsteps] = t0
@@ -436,11 +430,9 @@ function taylorinteg{T<:Real}(f, q0::Array{Complex{T},1}, t0::T, tmax::T,
     # Integration
     nsteps = 1
     while t0 < tmax
-        # xold = copy(x0)
-        # δt = taylorstep!(f, t0, tmax, x0, order, abstol)
         δt = taylorstep!(f, xT, t0, tmax, x0, order, abstol)
         for i in eachindex(x0)
-            @inbounds xT[i] = Taylor1( x0[i], order )
+            @inbounds xT[i].coeffs[1] = x0[i]
         end
         t0 += δt
         nsteps += 1
@@ -454,7 +446,7 @@ function taylorinteg{T<:Real}(f, q0::Array{Complex{T},1}, t0::T, tmax::T,
         end
     end
 
-    return view(tv,1:nsteps), view(transpose(xv),1:nsteps,:) #for xv, first do view, then transpose (otherwise it crashes)
+    return view(tv,1:nsteps), view(transpose(xv),1:nsteps,:)
 end
 
 
@@ -509,10 +501,8 @@ function taylorinteg{T<:Number}(f, x0::T, trange::Range{T},
         t0, t1 = trange[iter], trange[iter+1]
         nsteps = 0
         while nsteps < maxsteps
-            # xold = x0
-            # δt, x0 = taylorstep(f, t0, t1, x0, order, abstol)
             δt, x0 = taylorstep!(f, xT, t0, t1, x0, order, abstol)
-            xT = Taylor1( x0, order )
+            xT.coeffs[1] = x0
             t0 += δt
             t0 ≥ t1 && break
             nsteps += 1
@@ -559,11 +549,9 @@ function taylorinteg{T<:Number}(f, q0::Array{T,1}, trange::Range{T},
         t0, t1 = trange[iter], trange[iter+1]
         nsteps = 0
         while nsteps < maxsteps
-            # xold = copy(x0)
-            # δt = taylorstep!(f, t0, t1, x0, order, abstol)
             δt = taylorstep!(f, xT, t0, t1, x0, order, abstol)
             for i in eachindex(x0)
-                @inbounds xT[i] = Taylor1( x0[i], order )
+                @inbounds xT[i].coeffs[1] = x0[i]
             end
             t0 += δt
             t0 ≥ t1 && break
@@ -579,7 +567,7 @@ function taylorinteg{T<:Number}(f, q0::Array{T,1}, trange::Range{T},
         @inbounds xv[:,iter] = x0[:]
     end
 
-    return xv'
+    return transpose(xv)
 end
 
 function taylorinteg{T<:Real}(f, x0::Complex{T}, trange::Range{T},
@@ -602,10 +590,8 @@ function taylorinteg{T<:Real}(f, x0::Complex{T}, trange::Range{T},
         t0, t1 = trange[iter], trange[iter+1]
         nsteps = 0
         while nsteps < maxsteps
-            # xold = x0
-            # δt, x0 = taylorstep(f, t0, t1, x0, order, abstol)
             δt, x0 = taylorstep!(f, xT, t0, t1, x0, order, abstol)
-            xT = Taylor1( x0, order )
+            xT.coeffs[1] = x0
             t0 += δt
             t0 ≥ t1 && break
             nsteps += 1
@@ -652,11 +638,9 @@ function taylorinteg{T<:Real}(f, q0::Array{Complex{T},1}, trange::Range{T},
         t0, t1 = trange[iter], trange[iter+1]
         nsteps = 0
         while nsteps < maxsteps
-            # xold = copy(x0)
-            # δt = taylorstep!(f, t0, t1, x0, order, abstol)
             δt = taylorstep!(f, xT, t0, t1, x0, order, abstol)
             for i in eachindex(x0)
-                @inbounds xT[i] = Taylor1( x0[i], order )
+                @inbounds xT[i].coeffs[1] = x0[i]
             end
             t0 += δt
             t0 ≥ t1 && break
