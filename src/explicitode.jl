@@ -8,11 +8,10 @@ doc"""
 Returns an updated `x` using the recursion relation of the
 derivatives from the ODE $\dot{x}=dx/dt=f(t,x)$.
 
-`f` is the function defining the RHS of the ODE, `x` is a `Taylor1{T}`
-or a vector of that type, containing the Taylor expansion
-of the dependent variables of the ODE and `t` is the independent
-variable.
-Initially, `x` contains only the 0-th order Taylor coefficients of
+`f` is the function defining the RHS of the ODE, `x` is a `Taylor1{T}`,
+containing the Taylor expansion of the dependent variable of the ODE and
+`t` is the independent variable.
+Initially, `x` contains only the 0-th order Taylor coefficient of
 the current system state (the initial conditions), and `jetcoeffs!`
 computes recursively the high-order derivates back into `x`.
 """
@@ -34,6 +33,21 @@ function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Taylor1{T})
     nothing
 end
 
+doc"""
+    jetcoeffs!(f!, t, x, xdot, xaux)
+
+Returns an updated `x` using the recursion relation of the
+derivatives from the ODE $\dot{x}=dx/dt=f(t,x)$.
+
+`f!` is the function defining the RHS of the ODE, `x` is a vector of `Taylor1{T}`,
+containing the Taylor expansion of the dependent variables of the ODE and
+`t` is the independent variable. `xdot` stores an in-place evaluation of
+the equations of motion, whereas `xaux` is an auxiliary variable which helps
+with optimization.
+Initially, `x` contains only the 0-th order Taylor coefficients of
+the current system state (the initial conditions), and `jetcoeffs!`
+computes recursively the high-order derivates back into `x`.
+"""
 function jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}},
         xdot::Vector{Taylor1{T}}, xaux::Vector{Taylor1{T}})
     order = x[1].order
@@ -202,17 +216,18 @@ end
 
 
 doc"""
-    taylorstep!(f, xT, t0, t1, x0, order, abstol)
+    taylorstep!(f!, xT, xdotT, xaux, t0, t1, x0, order, abstol)
 
-Compute one-step Taylor integration for the ODE $\dot{x}=dx/dt=f(t, x)$
+Compute one-step Taylor integration for the ODE $\dot{x}=dx/dt=f!(t, x)$
 with initial conditions $x(t_0)=x0$, a vector of type T, returning the
 step-size of the integration carried out and updating `x0`.
 
-Here, `x0` is the initial (and updated) dependent variables, `order`
-is the degree used for the `Taylor1` polynomials during the integration
-and `abstol` is the absolute tolerance used to determine the time step
-of the integration. If the time step is larger than `t1-t0`, that difference
-is used as the time step.
+Here, `x0` is the initial (and updated) dependent variables; `order`
+is the degree used for the `Taylor1` polynomials during the integration; `xdot`
+represents an in-place evaluation of the equations of motion; `xaux` is an
+auxiliary variable which helps with optimization; `abstol` is the absolute
+tolerance used to determine the time step of the integration. If the time step is
+larger than `t1-t0`, that difference is used as the time step.
 """
 function taylorstep!{T<:Number}(f!, xT::Vector{Taylor1{T}}, xdotT::Vector{Taylor1{T}},
         xaux::Vector{Taylor1{T}}, t0::T, t1::T, x0::Array{T,1}, order::Int, abstol::T)
@@ -264,7 +279,7 @@ time step using the last two Taylor coefficients of the expansions.
 
 The current keyword argument is `maxsteps=500`.
 
-Example:
+Example (1-dim case):
 
 ```julia
     using TaylorIntegration
@@ -272,6 +287,20 @@ Example:
     f(t, x) = x^2
 
     tv, xv = taylorinteg(f, 3, 0.0, 0.3, 25, 1.0e-20, maxsteps=100 )
+```
+
+Example (multi-dim case):
+
+```julia
+    using TaylorIntegration
+
+    function f!(t, x, dx)
+        for i in eachindex(x)
+            dx[i] = x[i]^2
+        end
+    end
+
+    tv, xv = taylorinteg(f, [3.0,3.0], 0.0, 0.3, 25, 1.0e-20, maxsteps=100 )
 ```
 ---
 
@@ -474,13 +503,28 @@ time step using the last two Taylor coefficients of the expansions.
 
 The current keyword argument is `maxsteps=500`.
 
-Example:
+Example (1-dim case):
 
 ```julia
     using TaylorIntegration
+
     f(t, x) = x^2
-    trange = 0.0:1/10:0.3
+
     xv = taylorinteg(f, 3.0, trange, 25, 1.0e-20, maxsteps=100 )
+```
+
+Example (multi-dim case):
+
+```julia
+    using TaylorIntegration
+
+    function f!(t, x, dx)
+        for i in eachindex(x)
+            dx[i] = x[i]^2
+        end
+    end
+
+    xv = taylorinteg(f, [3.0, 3.0], trange, 25, 1.0e-20, maxsteps=100 )
 ```
 ---
 
