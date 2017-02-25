@@ -104,10 +104,9 @@ function modifiedGS(A)
 end
 
 
-function liap_jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Vector{Taylor1{T}})
+function liap_jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}},
+        xdot::Vector{Taylor1{T}}, xaux::Vector{Taylor1{T}})
     order = x[1].order
-    xaux = similar(x)
-    xdot = similar(x)
 
     # Dimensions of phase-space: dof
     nx = length(x)
@@ -123,7 +122,7 @@ function liap_jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Vector{Taylor1{T}})
         end
 
         # Equations of motion
-        @inbounds xdot[1:dof] = eqsdiff(t0, xaux[1:dof])
+        @inbounds eqsdiff!(t0, xaux[1:dof], xdot[1:dof])
         stabilitymatrix!( eqsdiff, t0, xaux[1:dof], jjac )
         @inbounds xdot[dof+1:nx] = jjac * reshape( xaux[dof+1:nx], (dof,dof) )
 
@@ -136,16 +135,11 @@ function liap_jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Vector{Taylor1{T}})
 end
 
 
-function liap_taylorstep!{T<:Number}(f, xT::Vector{Taylor1{T}}, t0::T, t1::T, x0::Array{T,1},
-        order::Int, abstol::T)
-    # # Initialize the vector of Taylor1 expansions
-    # xT = Array{Taylor1{T}}(length(x0))
-    # for i in eachindex(x0)
-    #     @inbounds xT[i] = Taylor1( x0[i], order )
-    # end
+function liap_taylorstep!{T<:Number}(f, xT::Vector{Taylor1{T}}, xdotT::Vector{Taylor1{T}},
+        xaux::Vector{Taylor1{T}}, t0::T, t1::T, x0::Array{T,1}, order::Int, abstol::T)
 
     # Compute the Taylor coefficients
-    liap_jetcoeffs!(f, t0, xT)
+    liap_jetcoeffs!(f, t0, xT, xdotT, xaux)
 
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(xT, abstol)
@@ -183,6 +177,8 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
 
     # Initialize the vector of Taylor1 expansions
     xT = Array{Taylor1{T}}(length(x0))
+    xdotT = Array{Taylor1{T}}(length(x0))
+    xaux = Array{Taylor1{T}}(length(x0))
     for i in eachindex(x0)
         @inbounds xT[i] = Taylor1( x0[i], order )
     end
@@ -190,7 +186,7 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
     # Integration
     nsteps = 1
     while t0 < tmax
-        δt = liap_taylorstep!(f, xT, t0, tmax, x0, order, abstol)
+        δt = liap_taylorstep!(f, xT, xdotT, xaux, t0, tmax, x0, order, abstol)
         @inbounds for ind in eachindex(jt)
             jt[ind] = x0[dof+ind]
         end

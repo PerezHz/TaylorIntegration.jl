@@ -34,9 +34,9 @@ function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Taylor1{T})
     nothing
 end
 
-function jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}}, xdot::Vector{Taylor1{T}})
+function jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}},
+        xdot::Vector{Taylor1{T}}, xaux::Vector{Taylor1{T}})
     order = x[1].order
-    xaux = similar(x)
     for ord in 1:order
         ordnext = ord+1
 
@@ -75,9 +75,9 @@ function jetcoeffs!{T<:Real}(eqsdiff, t0::T, x::Taylor1{Complex{T}})
     nothing
 end
 
-function jetcoeffs!{T<:Real}(eqsdiff!, t0::T, x::Vector{Taylor1{Complex{T}}}, xdot::Vector{Taylor1{Complex{T}}})
+function jetcoeffs!{T<:Real}(eqsdiff!, t0::T, x::Vector{Taylor1{Complex{T}}},
+        xdot::Vector{Taylor1{Complex{T}}}, xaux::Vector{Taylor1{Complex{T}}})
     order = x[1].order
-    xaux = similar(x)
     for ord in 1:order
         ordnext = ord+1
 
@@ -214,12 +214,12 @@ and `abstol` is the absolute tolerance used to determine the time step
 of the integration. If the time step is larger than `t1-t0`, that difference
 is used as the time step.
 """
-function taylorstep!{T<:Number}(f!, xT::Vector{Taylor1{T}}, xdotT::Vector{Taylor1{T}}, t0::T, t1::T, x0::Array{T,1},
-        order::Int, abstol::T)
+function taylorstep!{T<:Number}(f!, xT::Vector{Taylor1{T}}, xdotT::Vector{Taylor1{T}},
+        xaux::Vector{Taylor1{T}}, t0::T, t1::T, x0::Array{T,1}, order::Int, abstol::T)
     @assert t1 > t0
 
     # Compute the Taylor coefficients
-    jetcoeffs!(f!, t0, xT, xdotT)
+    jetcoeffs!(f!, t0, xT, xdotT, xaux)
 
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(xT, abstol)
@@ -229,12 +229,12 @@ function taylorstep!{T<:Number}(f!, xT::Vector{Taylor1{T}}, xdotT::Vector{Taylor
     return δt
 end
 
-function taylorstep!{T<:Real}(f!, xT::Vector{Taylor1{Complex{T}}}, xdotT::Vector{Taylor1{Complex{T}}}, t0::T, t1::T, x0::Array{Complex{T},1},
-        order::Int, abstol::T)
+function taylorstep!{T<:Real}(f!, xT::Vector{Taylor1{Complex{T}}}, xdotT::Vector{Taylor1{Complex{T}}},
+        xaux::Vector{Taylor1{Complex{T}}}, t0::T, t1::T, x0::Array{Complex{T},1}, order::Int, abstol::T)
     @assert t1 > t0
 
     # Compute the Taylor coefficients
-    jetcoeffs!(f!, t0, xT, xdotT)
+    jetcoeffs!(f!, t0, xT, xdotT, xaux)
 
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(xT, abstol)
@@ -341,10 +341,11 @@ function taylorinteg{T<:Number}(f!, q0::Array{T,1}, t0::T, tmax::T,
 
     # Initialize the vector of Taylor1 expansions
     xT = Array{Taylor1{T}}(dof)
+    xdotT = Array{Taylor1{T}}(dof)
+    xaux = Array{Taylor1{T}}(dof)
     for i in eachindex(q0)
         @inbounds xT[i] = Taylor1( q0[i], order )
     end
-    xdotT = Array{Taylor1{T}}(dof)
 
     # Initial conditions
     @inbounds tv[1] = t0
@@ -354,7 +355,7 @@ function taylorinteg{T<:Number}(f!, q0::Array{T,1}, t0::T, tmax::T,
     # Integration
     nsteps = 1
     while t0 < tmax
-        δt = taylorstep!(f!, xT, xdotT, t0, tmax, x0, order, abstol)
+        δt = taylorstep!(f!, xT, xdotT, xaux, t0, tmax, x0, order, abstol)
         for i in eachindex(x0)
             @inbounds xT[i].coeffs[1] = x0[i]
         end
@@ -418,11 +419,12 @@ function taylorinteg{T<:Real}(f!, q0::Array{Complex{T},1}, t0::T, tmax::T,
     xv = Array{Complex{T}}(dof, maxsteps+1)
 
     # Initialize the vector of Taylor1 expansions
-    xT = Array{Taylor1{Complex{T}}}(length(q0))
+    xT = Array{Taylor1{Complex{T}}}(dof)
+    xdotT = Array{Taylor1{Complex{T}}}(dof)
+    xaux = Array{Taylor1{Complex{T}}}(dof)
     for i in eachindex(q0)
         @inbounds xT[i] = Taylor1( q0[i], order )
     end
-    xdotT = Array{Taylor1{Complex{T}}}(dof)
 
     # Initial conditions
     @inbounds tv[1] = t0
@@ -432,7 +434,7 @@ function taylorinteg{T<:Real}(f!, q0::Array{Complex{T},1}, t0::T, tmax::T,
     # Integration
     nsteps = 1
     while t0 < tmax
-        δt = taylorstep!(f!, xT, xdotT, t0, tmax, x0, order, abstol)
+        δt = taylorstep!(f!, xT, xdotT, xaux, t0, tmax, x0, order, abstol)
         for i in eachindex(x0)
             @inbounds xT[i].coeffs[1] = x0[i]
         end
@@ -536,11 +538,12 @@ function taylorinteg{T<:Number}(f!, q0::Array{T,1}, trange::Range{T},
     end
 
     # Initialize the vector of Taylor1 expansions
-    xT = Array{Taylor1{T}}(length(q0))
+    xT = Array{Taylor1{T}}(dof)
+    xdotT = Array{Taylor1{T}}(dof)
+    xaux = Array{Taylor1{T}}(dof)
     for i in eachindex(q0)
         @inbounds xT[i] = Taylor1( q0[i], order )
     end
-    xdotT = Array{Taylor1{T}}(dof)
 
     # Initial conditions
     @inbounds x0[:] = q0[:]
@@ -552,7 +555,7 @@ function taylorinteg{T<:Number}(f!, q0::Array{T,1}, trange::Range{T},
         t0, t1 = trange[iter], trange[iter+1]
         nsteps = 0
         while nsteps < maxsteps
-            δt = taylorstep!(f!, xT, xdoT, t0, t1, x0, order, abstol)
+            δt = taylorstep!(f!, xT, xdotT, xaux, t0, t1, x0, order, abstol)
             for i in eachindex(x0)
                 @inbounds xT[i].coeffs[1] = x0[i]
             end
@@ -626,11 +629,12 @@ function taylorinteg{T<:Real}(f!, q0::Array{Complex{T},1}, trange::Range{T},
     end
 
     # Initialize the vector of Taylor1 expansions
-    xT = Array{Taylor1{Complex{T}}}(length(q0))
+    xT = Array{Taylor1{Complex{T}}}(dof)
+    xdotT = Array{Taylor1{Complex{T}}}(dof)
+    xaux = Array{Taylor1{Complex{T}}}(dof)
     for i in eachindex(q0)
         @inbounds xT[i] = Taylor1( q0[i], order )
     end
-    xdotT = Array{Taylor1{Complex{T}}}(dof)
 
     # Initial conditions
     @inbounds x0[:] = q0[:]
@@ -642,7 +646,7 @@ function taylorinteg{T<:Real}(f!, q0::Array{Complex{T},1}, trange::Range{T},
         t0, t1 = trange[iter], trange[iter+1]
         nsteps = 0
         while nsteps < maxsteps
-            δt = taylorstep!(f!, xT, xdoT, t0, t1, x0, order, abstol)
+            δt = taylorstep!(f!, xT, xdotT, xaux, t0, t1, x0, order, abstol)
             for i in eachindex(x0)
                 @inbounds xT[i].coeffs[1] = x0[i]
             end
