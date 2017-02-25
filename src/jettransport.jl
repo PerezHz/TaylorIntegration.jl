@@ -62,7 +62,7 @@ function jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{TaylorN{T}}},
 
         # Equations of motion
         # TODO! define a macro to optimize the eqsdiff
-        eqsdiff(t0, xaux, xdot)
+        eqsdiff!(t0, xaux, xdot)
 
         # Recursion relations
         @inbounds for j in eachindex(x)
@@ -311,7 +311,7 @@ Example:
 
     q0 = [1.3, 0.0] #the initial conditions
 
-    q0TN = q0 + p #the initial conditions plus the initial variations
+    q0TN = q0 + p #parametrization of a small neighbourhood around the initial conditions
 
     const order = 28 #the order of the Taylor expansion wrt time
 
@@ -321,11 +321,11 @@ Example:
 
     const t0 = 0.0 #the initial time
 
-    const tmax = 6*T #the final time
+    const tmax = T #the final time
 
     const integstep = 0.125*T #the time interval between successive evaluations of the solution vector
 
-    @time xv = taylorinteg(f, q0TN, t0:integstep:tmax, order, abstol, maxsteps=100)
+    @time xv = taylorinteg(pendulum!, q0TN, t0:integstep:tmax, order, abstol, maxsteps=100);
 
     tv = t0:integstep:tmax;
 ```
