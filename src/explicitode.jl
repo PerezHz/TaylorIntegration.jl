@@ -16,7 +16,7 @@ Initially, `x` contains only the 0-th order Taylor coefficients of
 the current system state (the initial conditions), and `jetcoeffs!`
 computes recursively the high-order derivates back into `x`.
 """
-function jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Taylor1{T}, xdot::Taylor1{T})
+function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Taylor1{T})
     order = x.order
     for ord in 1:order
         ordnext = ord+1
@@ -26,7 +26,7 @@ function jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Taylor1{T}, xdot::Taylor1{T})
 
         # Equations of motion
         # TODO! define a macro to optimize the eqsdiff
-        eqsdiff!(t0, xaux, xdot)
+        xdot = eqsdiff(t0, xaux)
 
         # Recursion relation
         @inbounds x.coeffs[ordnext] = xdot.coeffs[ord]/ord
@@ -57,7 +57,7 @@ function jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}}, xdot::Vec
     nothing
 end
 
-function jetcoeffs!{T<:Real}(eqsdiff!, t0::T, x::Taylor1{Complex{T}}, xdot::Taylor1{Complex{T}})
+function jetcoeffs!{T<:Real}(eqsdiff, t0::T, x::Taylor1{Complex{T}})
     order = x.order
     for ord in 1:order
         ordnext = ord+1
@@ -67,7 +67,7 @@ function jetcoeffs!{T<:Real}(eqsdiff!, t0::T, x::Taylor1{Complex{T}}, xdot::Tayl
 
         # Equations of motion
         # TODO! define a macro to optimize the eqsdiff
-        eqsdiff!(t0, xaux, xdot)
+        xdot = eqsdiff(t0, xaux)
 
         # Recursion relation
         @inbounds x.coeffs[ordnext] = xdot.coeffs[ord]/ord
@@ -170,12 +170,12 @@ and `abstol` is the absolute tolerance used to determine the time step
 of the integration. If the time step is larger than `t1-t0`, that difference
 is used as the time step.
 """
-function taylorstep!{T<:Number}(f!, xT::Taylor1{T}, xdotT::Taylor1{T}, t0::T, t1::T, x0::T,
+function taylorstep!{T<:Number}(f, xT::Taylor1{T}, t0::T, t1::T, x0::T,
         order::Int, abstol::T)
     @assert t1 > t0
 
     # Compute the Taylor coefficients
-    jetcoeffs!(f!, t0, xT, xdotT)
+    jetcoeffs!(f, t0, xT)
 
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(xT, abstol)
@@ -185,12 +185,12 @@ function taylorstep!{T<:Number}(f!, xT::Taylor1{T}, xdotT::Taylor1{T}, t0::T, t1
     return δt, x0
 end
 
-function taylorstep!{T<:Real}(f!, xT::Taylor1{Complex{T}}, xdotT::Taylor1{Complex{T}}, t0::T, t1::T,
+function taylorstep!{T<:Real}(f, xT::Taylor1{Complex{T}}, t0::T, t1::T,
         x0::Complex{T}, order::Int, abstol::T)
     @assert t1 > t0
 
     # Compute the Taylor coefficients
-    jetcoeffs!(f!, t0, xT, xdotT)
+    jetcoeffs!(f, t0, xT)
 
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(xT, abstol)
@@ -285,7 +285,7 @@ function taylorinteg{S<:Number, T<:Number, U<:Number, V<:Number}(f, x0::S,
     taylorinteg(f, x0, t0, tmax, order, abstol, maxsteps=maxsteps)
 end
 
-function taylorinteg{T<:Number}(f!, x0::T, t0::T, tmax::T, order::Int,
+function taylorinteg{T<:Number}(f, x0::T, t0::T, tmax::T, order::Int,
         abstol::T; maxsteps::Int=500)
 
     # Allocation
@@ -294,7 +294,6 @@ function taylorinteg{T<:Number}(f!, x0::T, t0::T, tmax::T, order::Int,
 
     # Initialize the Taylor1 expansions
     xT = Taylor1( x0, order )
-    xdotT = Taylor1( Array{T}(order+1), order )
 
     # Initial conditions
     nsteps = 1
@@ -303,7 +302,7 @@ function taylorinteg{T<:Number}(f!, x0::T, t0::T, tmax::T, order::Int,
 
     # Integration
     while t0 < tmax
-        δt, x0 = taylorstep!(f!, xT, xdotT, t0, tmax, x0, order, abstol)
+        δt, x0 = taylorstep!(f, xT, t0, tmax, x0, order, abstol)
         xT.coeffs[1] = x0
         t0 += δt
         nsteps += 1
@@ -374,7 +373,7 @@ function taylorinteg{T<:Number}(f!, q0::Array{T,1}, t0::T, tmax::T,
     return view(tv,1:nsteps), view(transpose(xv),1:nsteps,:)
 end
 
-function taylorinteg{T<:Real}(f!, x0::Complex{T}, t0::T, tmax::T, order::Int,
+function taylorinteg{T<:Real}(f, x0::Complex{T}, t0::T, tmax::T, order::Int,
         abstol::T; maxsteps::Int=500)
 
     # Allocation
@@ -383,7 +382,6 @@ function taylorinteg{T<:Real}(f!, x0::Complex{T}, t0::T, tmax::T, order::Int,
 
     # Initialize the Taylor1 expansions
     xT = Taylor1( x0, order )
-    xdotT = Taylor1( Array{Complex{T}}(order+1), order )
 
     # Initial conditions
     nsteps = 1
@@ -392,7 +390,7 @@ function taylorinteg{T<:Real}(f!, x0::Complex{T}, t0::T, tmax::T, order::Int,
 
     # Integration
     while t0 < tmax
-        δt, x0 = taylorstep!(f!, xT, xdotT, t0, tmax, x0, order, abstol)
+        δt, x0 = taylorstep!(f, xT, t0, tmax, x0, order, abstol)
         xT.coeffs[1] = x0
         t0 += δt
         nsteps += 1
@@ -485,7 +483,7 @@ Example:
 ---
 
 """
-function taylorinteg{T<:Number}(f!, x0::T, trange::Range{T},
+function taylorinteg{T<:Number}(f, x0::T, trange::Range{T},
         order::Int, abstol::T; maxsteps::Int=500)
 
     # Allocation
@@ -495,7 +493,6 @@ function taylorinteg{T<:Number}(f!, x0::T, trange::Range{T},
 
     # Initialize the Taylor1 expansions
     xT = Taylor1( x0, order )
-    xdotT = Taylor1( Array{T}(order+1), order )
 
     # Initial conditions
     @inbounds xv[1] = x0
@@ -506,7 +503,7 @@ function taylorinteg{T<:Number}(f!, x0::T, trange::Range{T},
         t0, t1 = trange[iter], trange[iter+1]
         nsteps = 0
         while nsteps < maxsteps
-            δt, x0 = taylorstep!(f!, xT, xdoT, t0, t1, x0, order, abstol)
+            δt, x0 = taylorstep!(f, xT, t0, t1, x0, order, abstol)
             xT.coeffs[1] = x0
             t0 += δt
             t0 ≥ t1 && break
@@ -576,7 +573,7 @@ function taylorinteg{T<:Number}(f!, q0::Array{T,1}, trange::Range{T},
     return transpose(xv)
 end
 
-function taylorinteg{T<:Real}(f!, x0::Complex{T}, trange::Range{T},
+function taylorinteg{T<:Real}(f, x0::Complex{T}, trange::Range{T},
         order::Int, abstol::T; maxsteps::Int=500)
 
     # Allocation
@@ -586,7 +583,6 @@ function taylorinteg{T<:Real}(f!, x0::Complex{T}, trange::Range{T},
 
     # Initialize the Taylor1 expansions
     xT = Taylor1( x0, order )
-    xdotT = Taylor1( Array{Complex{T}}(order+1), order )
 
     # Initial conditions
     @inbounds xv[1] = x0
@@ -597,7 +593,7 @@ function taylorinteg{T<:Real}(f!, x0::Complex{T}, trange::Range{T},
         t0, t1 = trange[iter], trange[iter+1]
         nsteps = 0
         while nsteps < maxsteps
-            δt, x0 = taylorstep!(f!, xT, xdotT, t0, t1, x0, order, abstol)
+            δt, x0 = taylorstep!(f, xT, t0, t1, x0, order, abstol)
             xT.coeffs[1] = x0
             t0 += δt
             t0 ≥ t1 && break
