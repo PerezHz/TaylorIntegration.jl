@@ -8,11 +8,10 @@ Specialized method of `jetcoeffs!` for jet transport applications.
 Returns an updated `x` using the recursion relation of the
 derivatives from the ODE $\dot{x}=dx/dt=f(t,x)$.
 
-`f` is the function defining the RHS of the ODE, `x` is a `Taylor1{TaylorN{T}}`
-or a vector of that type, containing the Taylor expansion
-of the dependent variables of the ODE and `t` is the independent
-variable of type `T`.
-Initially, `x` contains only the 0-th order Taylor coefficients of
+`f` is the function defining the RHS of the ODE, `x` is a `Taylor1{T}`,
+containing the Taylor expansion of the dependent variable of the ODE and
+`t` is the independent variable.
+Initially, `x` contains only the 0-th order Taylor coefficient of
 the current system state (the initial conditions), and `jetcoeffs!`
 computes recursively the high-order derivates back into `x`.
 """
@@ -34,6 +33,22 @@ function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Taylor1{TaylorN{T}})
     nothing
 end
 
+doc"""
+    jetcoeffs!(f!, t, x, xdot, xaux)
+
+Specialized method of `jetcoeffs!` for jet transport applications.
+Returns an updated `x` using the recursion relation of the
+derivatives from the ODE $\dot{x}=dx/dt=f(t,x)$.
+
+`f!` is the function defining the RHS of the ODE, `x` is a vector of `Taylor1{T}`,
+containing the Taylor expansion of the dependent variables of the ODE and
+`t` is the independent variable. `xdot` stores an in-place evaluation of
+the equations of motion, whereas `xaux` is an auxiliary variable which helps
+with optimization.
+Initially, `x` contains only the 0-th order Taylor coefficients of
+the current system state (the initial conditions), and `jetcoeffs!`
+computes recursively the high-order derivates back into `x`.
+"""
 function jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{TaylorN{T}}},
         xdot::Vector{Taylor1{TaylorN{T}}}, xaux::Vector{Taylor1{TaylorN{T}}})
     order = x[1].order
@@ -134,11 +149,12 @@ Compute one-step Taylor integration for the ODE $\dot{x}=dx/dt=f(t, x)$
 with initial conditions $x(t_0)=x0$, a vector of type `TaylorN{T}`, returning the
 step-size of the integration carried out and updating `x0`.
 
-Here, `x0` is the initial (and updated) dependent variables, `order`
-is the degree used for the `Taylor1` polynomials during the integration
-and `abstol` is the absolute tolerance used to determine the time step
-of the integration. If the time step is larger than `t1-t0`, that difference
-is used as the time step.
+Here, `x0` is the initial (and updated) dependent variables; `order`
+is the degree used for the `Taylor1` polynomials during the integration; `xdot`
+represents an in-place evaluation of the equations of motion; `xaux` is an
+auxiliary variable which helps with optimization; `abstol` is the absolute
+tolerance used to determine the time step of the integration. If the time step is
+larger than `t1-t0`, that difference is used as the time step.
 """
 function taylorstep!{T<:Number}(f, xT::Vector{Taylor1{TaylorN{T}}}, xdotT::Vector{Taylor1{TaylorN{T}}},
         xaux::Vector{Taylor1{TaylorN{T}}}, t0::T, t1::T, x0::Array{TaylorN{T},1}, order::Int, abstol::T)
@@ -275,6 +291,44 @@ time step using the last two Taylor coefficients of the expansions.
 
 The current keyword argument is `maxsteps=500`.
 
+Example:
+
+```julia
+
+    using TaylorSeries, TaylorIntegration, Elliptic
+
+    function pendulum!(t, x, dx) #the simple pendulum ODE
+
+        dx[1] = x[2]
+
+        dx[2] = -sin(x[1])
+
+    end
+
+    const varorder = 8 #the order of the variational expansion
+
+    p = set_variables("ξ", numvars=2, order=varorder) #TaylorN steup
+
+    q0 = [1.3, 0.0] #the initial conditions
+
+    q0TN = q0 + p #the initial conditions plus the initial variations
+
+    const order = 28 #the order of the Taylor expansion wrt time
+
+    const abstol = 1e-20 #the absolute tolerance of the integration
+
+    const T = 4*Elliptic.K(sin(q0[1]/2)^2) #the librational period
+
+    const t0 = 0.0 #the initial time
+
+    const tmax = 6*T #the final time
+
+    const integstep = 0.125*T #the time interval between successive evaluations of the solution vector
+
+    @time xv = taylorinteg(f, q0TN, t0:integstep:tmax, order, abstol, maxsteps=100)
+
+    tv = t0:integstep:tmax;
+```
 ---
 """
 function taylorinteg{T<:Number}(f, x0::TaylorN{T}, trange::Range{T},
