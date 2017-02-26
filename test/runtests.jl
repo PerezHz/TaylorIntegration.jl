@@ -222,15 +222,15 @@ facts("Test jet transport: simple pendulum") do
         dx[2] = -sin(x[1])
     end
 
-    const varorder = 2 #the order of the variational expansion
+    varorder = 2 #the order of the variational expansion
     p = set_variables("ξ", numvars=2, order=varorder) #TaylorN steup
     q0 = [1.3, 0.0] #the initial conditions
     q0TN = q0 + p #parametrization of a small neighbourhood around the initial conditions
     # T is the librational period == 4Elliptic.K(sin(q0[1]/2)^2) # this is an explicit value that will be used until Elliptic.K works with julia 0.6
-    const T = 7.019250311844546
-    const t0 = 0.0 #the initial time
-    const tmax = T #the final time
-    const integstep = 0.25*T #the time interval between successive evaluations of the solution vector
+    T = 7.019250311844546
+    t0 = 0.0 #the initial time
+    tmax = T #the final time
+    integstep = 0.25*T #the time interval between successive evaluations of the solution vector
 
     #the time range
     tr = t0:integstep:tmax;
@@ -274,15 +274,15 @@ end
 
 facts("Test Lyapunov spectrum integrator: Lorenz system") do
 
-    const x0 = [19.0, 20.0, 50.0] #the initial condition
-    const t0 = 0.0 #the initial time
-    const tmax = t0+20.0 #final time of integration
+    x0 = [19.0, 20.0, 50.0] #the initial condition
+    t0 = 0.0 #the initial time
+    tmax = t0+20.0 #final time of integration
 
     #Lorenz system parameters
-    const σ = 16.0
-    const β = 4.0
-    const ρ = 45.92
-    const lorenztr = -(σ+one(Float64)+β) #trace of Lorenz system jacobian matrix
+    σ = 16.0
+    β = 4.0
+    ρ = 45.92
+    lorenztr = -(σ+one(Float64)+β) #trace of Lorenz system jacobian matrix
 
     #Lorenz system ODE:
     function lorenz!(t, x, dx)
