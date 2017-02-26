@@ -293,6 +293,9 @@ facts("Test Lyapunov spectrum integrator: Lorenz system") do
 
     tv, xv, λv = liap_taylorinteg(lorenz!, x0, t0, tmax, 28, _abstol; maxsteps=2000)
 
+    @fact xv[1,:] == x0 --> true
+    @fact tv[1] == t0 --> true
+
     @fact isapprox(sum(λv[1,:]), lorenztr) --> false
     @fact isapprox(sum(λv[end,:]), lorenztr) --> true
     # println("λv[end,1]=", λv[end,1])
