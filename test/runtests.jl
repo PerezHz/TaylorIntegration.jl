@@ -1,31 +1,30 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
 include("../src/TaylorIntegration.jl")
-using TaylorIntegration
-using FactCheck
+using TaylorSeries, TaylorIntegration, FactCheck, Elliptic
 # FactCheck.setstyle(:compact)
 
 const _order = 28
-const _abs_tol = 1.0E-20
+const _abstol = 1.0E-20
 
 facts("Tests: dot{x}=x^2, x(0) = 1") do
     eqs_mov(t, x) = x^2
     t0 = 0.0
     x0 = 1.0
-    x0T = TaylorSeries.Taylor1(x0, _order)
+    x0T = Taylor1(x0, _order)
     TaylorIntegration.jetcoeffs!(eqs_mov, t0, x0T)
     @fact x0T.coeffs[end] --> 1.0
-    δt = _abs_tol^inv(_order-1)
-    @fact TaylorIntegration.stepsize(x0T, _abs_tol) --> δt
+    δt = _abstol^inv(_order-1)
+    @fact TaylorIntegration.stepsize(x0T, _abstol) --> δt
 
-    tv, xv = taylorinteg(eqs_mov, x0, 0.0, 1.0, _order, _abs_tol)
+    tv, xv = taylorinteg(eqs_mov, x0, 0.0, 1.0, _order, _abstol)
     @fact length(tv) --> 501
     @fact length(xv) --> 501
     @fact xv[1] --> x0
     @fact tv[end] < 1.0 --> true
 
     trange = 0.0:1/8:1.0
-    xv = taylorinteg(eqs_mov, x0, trange, _order, _abs_tol)
+    xv = taylorinteg(eqs_mov, x0, trange, _order, _abstol)
     @fact length(xv) --> length(trange)
     @fact typeof(xv) --> Array{typeof(x0),1}
     @fact xv[1] --> x0
@@ -40,13 +39,13 @@ facts("Tests: dot{x}=x^2, x(0) = 3; nsteps <= maxsteps") do
     tmax = 0.3
     x0 = 3.0
     q0 = [3.0, 3.0]
-    x0T = TaylorSeries.Taylor1(x0, _order)
+    x0T = Taylor1(x0, _order)
     TaylorIntegration.jetcoeffs!(eqs_mov, t0, x0T)
     @fact x0T.coeffs[end] --> 3.0^(_order+1)
-    δt = (_abs_tol/x0T.coeffs[end-1])^inv(_order-1)
-    @fact TaylorIntegration.stepsize(x0T, _abs_tol) --> δt
+    δt = (_abstol/x0T.coeffs[end-1])^inv(_order-1)
+    @fact TaylorIntegration.stepsize(x0T, _abstol) --> δt
 
-    tv, xv = taylorinteg(eqs_mov, x0, 0.0, tmax, _order, _abs_tol)
+    tv, xv = taylorinteg(eqs_mov, x0, 0.0, tmax, _order, _abstol)
     @fact length(tv) < 501 --> true
     @fact length(xv) < 501 --> true
     @fact length(tv) --> 14
@@ -62,7 +61,7 @@ facts("Tests: dot{x}=x^2, x(0) = 3; nsteps <= maxsteps") do
         end
     end
 
-    tv, xv = taylorinteg(eqs_mov!, q0, 0.0, tmax, _order, _abs_tol)
+    tv, xv = taylorinteg(eqs_mov!, q0, 0.0, tmax, _order, _abstol)
     @fact length(tv) < 501 --> true
     @fact length(xv[:,1]) < 501 --> true
     @fact length(xv[:,2]) < 501 --> true
@@ -78,7 +77,7 @@ facts("Tests: dot{x}=x^2, x(0) = 3; nsteps <= maxsteps") do
 
     tmax = 0.33
 
-    tv, xv = taylorinteg(eqs_mov, x0, 0.0, tmax, _order, _abs_tol)
+    tv, xv = taylorinteg(eqs_mov, x0, 0.0, tmax, _order, _abstol)
     @fact length(tv) < 501 --> true
     @fact length(xv) < 501 --> true
     @fact length(tv) --> 28
@@ -88,7 +87,7 @@ facts("Tests: dot{x}=x^2, x(0) = 3; nsteps <= maxsteps") do
     @fact tv[end] --> tmax
     @fact abs(xv[end]-exactsol(tv[end], xv[1])) < 5e-12 --> true
 
-    tv, xv = taylorinteg(eqs_mov!, q0, 0.0, tmax, _order, _abs_tol)
+    tv, xv = taylorinteg(eqs_mov!, q0, 0.0, tmax, _order, _abstol)
     @fact length(tv) < 501 --> true
     @fact length(xv[:,1]) < 501 --> true
     @fact length(xv[:,2]) < 501 --> true
@@ -112,22 +111,22 @@ facts("Tests: dot{x}=x.^2, x(0) = [3.0,1.0]") do
     exactsol(t, x0) = x0/(1.0-x0*t)
     t0 = 0.0
     q0 = [3.0, 1.0]
-    q0T = [TaylorSeries.Taylor1(q0[1], _order), TaylorSeries.Taylor1(q0[2], _order)]
-    xdotT = Array{TaylorSeries.Taylor1{Float64}}(length(q0))
-    xaux = Array{TaylorSeries.Taylor1{Float64}}(length(q0))
+    q0T = [Taylor1(q0[1], _order), Taylor1(q0[2], _order)]
+    xdotT = Array{Taylor1{Float64}}(length(q0))
+    xaux = Array{Taylor1{Float64}}(length(q0))
     TaylorIntegration.jetcoeffs!(eqs_mov!, t0, q0T, xdotT, xaux)
     @fact q0T[1].coeffs[end] --> 3.0^(_order+1)
     @fact q0T[2].coeffs[end] --> 1.0
-    δt = (_abs_tol/q0T[1].coeffs[end-1])^inv(_order-1)
-    @fact TaylorIntegration.stepsize(q0T, _abs_tol) --> δt
+    δt = (_abstol/q0T[1].coeffs[end-1])^inv(_order-1)
+    @fact TaylorIntegration.stepsize(q0T, _abstol) --> δt
 
-    tv, xv = taylorinteg(eqs_mov!, q0, 0.0, 0.5, _order, _abs_tol)
+    tv, xv = taylorinteg(eqs_mov!, q0, 0.0, 0.5, _order, _abstol)
     @fact length(tv) --> 501
     @fact xv[1,:] --> q0
     @fact tv[end] < 1/3 --> true
 
     trange = 0.0:1/8:1.0
-    xv = taylorinteg(eqs_mov!, q0, trange, _order, _abs_tol)
+    xv = taylorinteg(eqs_mov!, q0, trange, _order, _abstol)
     @fact size(xv) --> (9,2)
     @fact q0 --> [3.0, 1.0]
     @fact typeof(xv) --> Array{eltype(q0),2}
@@ -213,6 +212,51 @@ facts("Test integration of ODE with complex dependent variables") do
     @fact isapprox( zsol3[end,1], z0*exp( -tt[end]) ) --> true
     @fact isapprox( zsol3[2,2], z0*exp( complex(0.0, tt[2])) ) --> true
     @fact isapprox( zsol3[end,2], z0*exp( complex(0.0, tt[end])) ) --> true
+
+end
+
+facts("Tests: jet transport (simple pendulum)") do
+
+    function pendulum!(t, x, dx) #the simple pendulum ODE
+        dx[1] = x[2]
+        dx[2] = -sin(x[1])
+    end
+
+    const varorder = 2 #the order of the variational expansion
+    p = set_variables("ξ", numvars=2, order=varorder) #TaylorN steup
+    q0 = [1.3, 0.0] #the initial conditions
+    q0TN = q0 + p #parametrization of a small neighbourhood around the initial conditions
+    const T = 4Elliptic.K(sin(q0[1]/2)^2) #the librational period
+    const t0 = 0.0 #the initial time
+    const tmax = T #the final time
+    const integstep = 0.25*T #the time interval between successive evaluations of the solution vector
+
+    xv = taylorinteg(pendulum!, q0, t0:integstep:tmax, _order, _abstol, maxsteps=100)
+    xvTN = taylorinteg(pendulum!, q0TN, t0:integstep:tmax, _order, _abstol, maxsteps=100)
+    tr = t0:integstep:tmax;
+
+    xvTN_0 = map( x->evaluate(x, [0.0, 0.0]), xvTN ) # the jet evaluated at the nominal solution
+
+    @fact isapprox(xvTN_0[1,:], xvTN_0[end,:]) --> true #end point must coincide with a full period
+    @fact isapprox(xv, xvTN_0) --> true #nominal solution must coincide with jet evaluated at ξ=(0,0)
+
+    # a small displacement
+    disp = 10eps()
+
+    #compare the jet solution evaluated at various variation vectors ξ, wrt to full solution, at each time evaluation point
+    srand(14908675)
+    for i in 1:10
+        # generate a random angle
+        ϕ = 2pi*rand()
+        # generate a random point on a circumference of radius disp
+        ξ = disp*[cos(ϕ), sin(ϕ)]
+        #propagate in time full solution with initial condition q0+ξ
+        xv_disp = taylorinteg(pendulum!, q0+ξ, t0:integstep:tmax, _order, _abstol, maxsteps=100)
+        #evaluate jet at q0+ξ
+        xvTN_disp = map( x->evaluate(x, ξ), xvTN )
+        #the two solutions should be approximately equal:
+        @fact isapprox( xvTN_disp, xv_disp ) --> true
+    end
 
 end
 
