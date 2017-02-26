@@ -298,17 +298,10 @@ facts("Test Lyapunov spectrum integrator: Lorenz system") do
 
     @fact isapprox(sum(λv[1,:]), lorenztr) --> false
     @fact isapprox(sum(λv[end,:]), lorenztr) --> true
-    println("λv[end,1]=", λv[end,1])
-    println("λv[end,2]=", λv[end,2])
-    println("λv[end,3]=", λv[end,3])
-    println("length(tv)=", length(tv))
-    # mytol = 1e-4
-    # @fact isapprox(λv[end,1], 1.47167018, rtol=mytol, atol=mytol) -->true
-    # @fact isapprox(λv[end,2], -0.00830737, rtol=mytol, atol=mytol) -->true
-    # @fact isapprox(λv[end,3], -22.46336281, rtol=mytol, atol=mytol) -->true
-    @fact isapprox(λv[end,1], 1.47167018) -->true
-    @fact isapprox(λv[end,2], -0.0083073718) -->true
-    @fact isapprox(λv[end,3], -22.46336281) -->true
+    mytol = 1e-4
+    @fact isapprox(λv[end,1], 1.47167, rtol=mytol, atol=mytol) -->true
+    @fact isapprox(λv[end,2], -0.00830, rtol=mytol, atol=mytol) -->true
+    @fact isapprox(λv[end,3], -22.46336, rtol=mytol, atol=mytol) -->true
 
 end
 
