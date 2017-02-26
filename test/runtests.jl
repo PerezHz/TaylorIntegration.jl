@@ -59,6 +59,7 @@ facts("Tests: dot{x}=x^2, x(0) = 3; nsteps <= maxsteps") do
         for i in eachindex(x)
             Dx[i] = x[i]^2
         end
+        nothing
     end
 
     tv, xv = taylorinteg(eqs_mov!, q0, 0.0, tmax, _order, _abstol)
@@ -107,6 +108,7 @@ facts("Tests: dot{x}=x.^2, x(0) = [3.0,1.0]") do
         for i in eachindex(x)
             Dx[i] = x[i]^2
         end
+        nothing
     end
     exactsol(t, x0) = x0/(1.0-x0*t)
     t0 = 0.0
@@ -141,6 +143,7 @@ facts("Test non-autonomous ODE: dot{x}=cos(t)") do
     function f!(t, x, Dx)
         Dx[1] = one(x[1])
         Dx[2] = cos(x[1])
+        nothing
     end
     t0 = 0//1
     tmax = 10.25*(2pi)
@@ -199,6 +202,7 @@ facts("Test integration of ODE with complex dependent variables") do
     function eqs3!(t, z, Dz)
         Dz[1] = eqs1(t,z[1])
         Dz[2] = eqs2(t,z[2])
+        nothing
     end
     zsol3 = taylorinteg(eqs3!, [z0, z0], tr, 28, 1.0e-20)
     @fact isapprox( zsol3[4,1], z0*exp(-tr[4]) ) --> true
@@ -220,6 +224,7 @@ facts("Test jet transport: simple pendulum") do
     function pendulum!(t, x, dx) #the simple pendulum ODE
         dx[1] = x[2]
         dx[2] = -sin(x[1])
+        nothing
     end
 
     varorder = 2 #the order of the variational expansion
@@ -289,6 +294,7 @@ facts("Test Lyapunov spectrum integrator: Lorenz system") do
         dx[1] = σ*(x[2]-x[1])
         dx[2] = x[1]*(ρ-x[3])-x[2]
         dx[3] = x[1]*x[2]-β*x[3]
+        nothing
     end
 
     tv, xv, λv = liap_taylorinteg(lorenz!, x0, t0, tmax, 28, _abstol; maxsteps=2000)
