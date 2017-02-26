@@ -1,7 +1,7 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
 include("../src/TaylorIntegration.jl")
-using TaylorSeries, TaylorIntegration, FactCheck, Elliptic
+using TaylorSeries, TaylorIntegration, FactCheck
 # FactCheck.setstyle(:compact)
 
 const _order = 28
@@ -215,7 +215,7 @@ facts("Test integration of ODE with complex dependent variables") do
 
 end
 
-facts("Tests: jet transport (simple pendulum)") do
+facts("Tests jet transport: simple pendulum") do
 
     function pendulum!(t, x, dx) #the simple pendulum ODE
         dx[1] = x[2]
@@ -226,7 +226,8 @@ facts("Tests: jet transport (simple pendulum)") do
     p = set_variables("ξ", numvars=2, order=varorder) #TaylorN steup
     q0 = [1.3, 0.0] #the initial conditions
     q0TN = q0 + p #parametrization of a small neighbourhood around the initial conditions
-    const T = 4Elliptic.K(sin(q0[1]/2)^2) #the librational period
+    const T = 7.019250311844546 # temporary solution, avoids the use of Elliptic.jl... == 4Elliptic.K(sin(q0[1]/2)^2) #the librational period
+    println(T)
     const t0 = 0.0 #the initial time
     const tmax = T #the final time
     const integstep = 0.25*T #the time interval between successive evaluations of the solution vector
