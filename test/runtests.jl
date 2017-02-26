@@ -226,8 +226,8 @@ facts("Tests jet transport: simple pendulum") do
     p = set_variables("ξ", numvars=2, order=varorder) #TaylorN steup
     q0 = [1.3, 0.0] #the initial conditions
     q0TN = q0 + p #parametrization of a small neighbourhood around the initial conditions
-    const T = 7.019250311844546 # temporary solution, avoids the use of Elliptic.jl... == 4Elliptic.K(sin(q0[1]/2)^2) #the librational period
-    println(T)
+    # T is the librational period == 4Elliptic.K(sin(q0[1]/2)^2) # this is an explicit value that will be used until Elliptic.K works with julia 0.6
+    const T = 7.019250311844546
     const t0 = 0.0 #the initial time
     const tmax = T #the final time
     const integstep = 0.25*T #the time interval between successive evaluations of the solution vector
@@ -242,7 +242,7 @@ facts("Tests jet transport: simple pendulum") do
     @fact isapprox(xv, xvTN_0) --> true #nominal solution must coincide with jet evaluated at ξ=(0,0)
 
     # a small displacement
-    disp = 10eps()
+    disp = 0.0001 #works even with 0.001, but we're giving it some margin
 
     #compare the jet solution evaluated at various variation vectors ξ, wrt to full solution, at each time evaluation point
     srand(14908675)
@@ -255,7 +255,7 @@ facts("Tests jet transport: simple pendulum") do
         xv_disp = taylorinteg(pendulum!, q0+ξ, t0:integstep:tmax, _order, _abstol, maxsteps=100)
         #evaluate jet at q0+ξ
         xvTN_disp = map( x->evaluate(x, ξ), xvTN )
-        #the two solutions should be approximately equal:
+        #the propagated exact solution at q0+ξ should be approximately equal to the propagated jet solution evaluated at the same point:
         @fact isapprox( xvTN_disp, xv_disp ) --> true
     end
 
