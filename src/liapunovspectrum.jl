@@ -70,12 +70,11 @@ function classicalGS(A)
     return Q, R
 end
 # Modified Gram–Schmidt (Trefethen algorithm 8.1)
-function modifiedGS(A)
+function modifiedGS!(A, Q, R, aⱼ, qᵢ)
     m,n = size(A)
-    Q = similar(A)
-    R = zeros(eltype(A),n,n)
-    aⱼ = Array{eltype(A)}(m)
-    qᵢ = similar(aⱼ)
+    R[:,:] = zeros(eltype(A),n,n)
+    # aⱼ = Array{eltype(A)}(m)
+    # qᵢ = similar(aⱼ)
     # vⱼ = similar(aⱼ)
     for j = 1:n
         # aⱼ = A[:,j]
@@ -101,7 +100,7 @@ function modifiedGS(A)
             Q[ind,j] = vⱼ[ind] / R[j,j]
         end
     end
-    return Q, R
+    #return Q, R
 end
 
 
@@ -190,6 +189,10 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
     δx = Array{TaylorN{Taylor1{T}}}(dof)
     δxdot = Array{TaylorN{Taylor1{T}}}(dof)
     jjac = Array{Taylor1{T}}(dof,dof)
+    QH = Array{T}(dof,dof)
+    RH = Array{T}(dof,dof)
+    aⱼ = Array{eltype(jt)}( size(jt) )
+    qᵢ = similar(aⱼ)
 
     # Integration
     nsteps = 1
@@ -198,7 +201,7 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
         @inbounds for ind in eachindex(jt)
             jt[ind] = x0[dof+ind]
         end
-        QH, RH = modifiedGS( jt )
+        modifiedGS!( jt, QH, RH, aⱼ, qᵢ )
         t0 += δt
         tspan = t0-t00
         nsteps += 1
