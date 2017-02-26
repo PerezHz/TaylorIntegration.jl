@@ -272,4 +272,41 @@ facts("Test jet transport: simple pendulum") do
 
 end
 
+facts("Test Lyapunov spectrum integrator: Lorenz system") do
+
+    const x0 = [19.0, 20.0, 50.0] #the initial condition
+    const t0 = 0.0 #the initial time
+    const tmax = t0+20.0 #final time of integration
+
+    #Lorenz system parameters
+    const σ = 16.0
+    const β = 4.0
+    const ρ = 45.92
+    const lorenztr = -(σ+one(Float64)+β) #trace of Lorenz system jacobian matrix
+
+    #Lorenz system ODE:
+    function lorenz!(t, x, dx)
+        dx[1] = σ*(x[2]-x[1])
+        dx[2] = x[1]*(ρ-x[3])-x[2]
+        dx[3] = x[1]*x[2]-β*x[3]
+    end
+
+    tv, xv, λv = liap_taylorinteg(lorenz!, x0, t0, tmax, 28, _abstol; maxsteps=2000)
+
+    @fact isapprox(sum(λv[1,:]), lorenztr) --> false
+    @fact isapprox(sum(λv[end,:]), lorenztr) --> true
+    println("λv[end,1]=", λv[end,1])
+    println("λv[end,2]=", λv[end,2])
+    println("λv[end,3]=", λv[end,3])
+    println("length(tv)=", length(tv))
+    # mytol = 1e-4
+    # @fact isapprox(λv[end,1], 1.47167018, rtol=mytol, atol=mytol) -->true
+    # @fact isapprox(λv[end,2], -0.00830737, rtol=mytol, atol=mytol) -->true
+    # @fact isapprox(λv[end,3], -22.46336281, rtol=mytol, atol=mytol) -->true
+    @fact isapprox(λv[end,1], 1.47167018) -->true
+    @fact isapprox(λv[end,2], -0.0083073718) -->true
+    @fact isapprox(λv[end,3], -22.46336281) -->true
+
+end
+
 exitstatus()

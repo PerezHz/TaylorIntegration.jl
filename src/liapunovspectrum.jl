@@ -10,23 +10,24 @@ Updates the matrix `jjac` (linearized equations of motion)
 computed from the equations of motion (`eqsdiff`), at time `t0`
 at `x0`.
 """
-function stabilitymatrix!{T<:Number}(eqsdiff, t0::T, x::Array{T,1},
-        jjac::Array{T,2})
-    δx = Array{TaylorN{T}}( length(x) )
+function stabilitymatrix!{T<:Number}(eqsdiff!, t0::T, x::Array{T,1},
+        δx::Array{TaylorN{T},1}, δxdot::Array{TaylorN{T},1}, jjac::Array{T,2})
     @inbounds for ind in eachindex(x)
         δx[ind] = x[ind] + TaylorN(T,ind,order=1)
     end
-    jjac[:] = jacobian( eqsdiff(t0, δx) )
+    eqsdiff!(t0, δx, δxdot)
+    jjac[:] = jacobian( δxdot )
     nothing
 end
-function stabilitymatrix!{T<:Number}(eqsdiff, t0::T, x::Array{Taylor1{T},1},
-        jjac::Array{Taylor1{T},2})
-    δx = Array{TaylorN{Taylor1{T}}}( length(x) )
+
+function stabilitymatrix!{T<:Number}(eqsdiff!, t0::T, x::Array{Taylor1{T},1},
+        δx::Array{TaylorN{Taylor1{T}},1}, δxdot::Array{TaylorN{Taylor1{T}},1}, jjac::Array{Taylor1{T},2})
     @inbounds for ind in eachindex(x)
         δx[ind] = convert(TaylorN{Taylor1{T}}, x[ind]) +
             TaylorN(Taylor1{T},ind,order=1)
     end
-    jjac[:] = jacobian( eqsdiff(t0, δx) )
+    eqsdiff!(t0, δx, δxdot)
+    jjac[:] = jacobian( δxdot )
     nothing
 end
 
@@ -105,13 +106,13 @@ end
 
 
 function liap_jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}},
-        xdot::Vector{Taylor1{T}}, xaux::Vector{Taylor1{T}})
+        xdot::Vector{Taylor1{T}}, xaux::Vector{Taylor1{T}},
+        δx::Array{TaylorN{Taylor1{T}},1}, δxdot::Array{TaylorN{Taylor1{T}},1}, jjac::Array{Taylor1{T},2})
     order = x[1].order
 
     # Dimensions of phase-space: dof
     nx = length(x)
     dof = round(Int, (-1+sqrt(1+4*nx))/2)
-    jjac = Array{Taylor1{T}}(dof,dof)
 
     for ord in 1:order
         ordnext = ord+1
@@ -122,8 +123,8 @@ function liap_jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}},
         end
 
         # Equations of motion
-        @inbounds eqsdiff!(t0, xaux[1:dof], xdot[1:dof])
-        stabilitymatrix!( eqsdiff, t0, xaux[1:dof], jjac )
+        @inbounds eqsdiff!(t0, xaux, xdot)
+        stabilitymatrix!( eqsdiff!, t0, xaux[1:dof], δx, δxdot, jjac )
         @inbounds xdot[dof+1:nx] = jjac * reshape( xaux[dof+1:nx], (dof,dof) )
 
         # Recursion relations
@@ -136,10 +137,12 @@ end
 
 
 function liap_taylorstep!{T<:Number}(f, xT::Vector{Taylor1{T}}, xdotT::Vector{Taylor1{T}},
-        xaux::Vector{Taylor1{T}}, t0::T, t1::T, x0::Array{T,1}, order::Int, abstol::T)
+        xaux::Vector{Taylor1{T}}, δx::Array{TaylorN{Taylor1{T}},1},
+        δxdot::Array{TaylorN{Taylor1{T}},1}, jjac::Array{Taylor1{T},2}, t0::T, t1::T, x0::Array{T,1},
+        order::Int, abstol::T)
 
     # Compute the Taylor coefficients
-    liap_jetcoeffs!(f, t0, xT, xdotT, xaux)
+    liap_jetcoeffs!(f, t0, xT, xdotT, xaux, δx, δxdot, jjac)
 
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(xT, abstol)
@@ -177,16 +180,21 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
 
     # Initialize the vector of Taylor1 expansions
     xT = Array{Taylor1{T}}(length(x0))
-    xdotT = Array{Taylor1{T}}(length(x0))
-    xaux = Array{Taylor1{T}}(length(x0))
     for i in eachindex(x0)
         @inbounds xT[i] = Taylor1( x0[i], order )
     end
 
+    #Allocate auxiliary arrays
+    xdotT = Array{Taylor1{T}}(length(x0))
+    xaux = Array{Taylor1{T}}(length(x0))
+    δx = Array{TaylorN{Taylor1{T}}}(dof)
+    δxdot = Array{TaylorN{Taylor1{T}}}(dof)
+    jjac = Array{Taylor1{T}}(dof,dof)
+
     # Integration
     nsteps = 1
     while t0 < tmax
-        δt = liap_taylorstep!(f, xT, xdotT, xaux, t0, tmax, x0, order, abstol)
+        δt = liap_taylorstep!(f, xT, xdotT, xaux, δx, δxdot, jjac, t0, tmax, x0, order, abstol)
         @inbounds for ind in eachindex(jt)
             jt[ind] = x0[dof+ind]
         end
@@ -214,5 +222,5 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
         end
     end
 
-    return view(tv,1:nsteps), view(xv,:,1:nsteps)', view(λ,:,1:nsteps)'
+    return view(tv,1:nsteps),  view(transpose(xv),1:nsteps,:),  view(transpose(λ),1:nsteps,:)
 end
