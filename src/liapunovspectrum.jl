@@ -36,13 +36,13 @@ end
 # http://nbviewer.jupyter.org/url/math.mit.edu/~stevenj/18.335/Gram-Schmidt.ipynb
 # Classical Gram–Schmidt (Trefethen algorithm 7.1), implemented in the simplest way
 # (We could make it faster by unrolling loops to avoid temporaries arrays etc.)
-function classicalGS(A)
+function classicalGS!(A, Q, R, aⱼ, qᵢ, vⱼ)
     m,n = size(A)
-    Q = similar(A)
-    R = zeros(eltype(A),n,n)
-    aⱼ = Array{eltype(A)}(m)
-    qᵢ = similar(aⱼ)
-    vⱼ = similar(aⱼ)
+    # Q = similar(A)
+    R[:,:] = zeros(eltype(A),n,n)
+    # aⱼ = Array{eltype(A)}(m)
+    # qᵢ = similar(aⱼ)
+    # vⱼ = similar(aⱼ)
     for j = 1:n
         # aⱼ = A[:,j]
         @inbounds for ind = 1:m
@@ -67,7 +67,7 @@ function classicalGS(A)
             Q[ind,j] = vⱼ[ind] / R[j,j]
         end
     end
-    return Q, R
+    return nothing
 end
 # Modified Gram–Schmidt (Trefethen algorithm 8.1)
 function modifiedGS!(A, Q, R, aⱼ, qᵢ)
@@ -100,7 +100,7 @@ function modifiedGS!(A, Q, R, aⱼ, qᵢ)
             Q[ind,j] = vⱼ[ind] / R[j,j]
         end
     end
-    #return Q, R
+    return nothing
 end
 
 
