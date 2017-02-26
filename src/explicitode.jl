@@ -172,7 +172,7 @@ end
 
 
 doc"""
-    taylorstep(f, xT, t0, t1, x0, order, abstol)
+    taylorstep!(f, xT, t0, t1, x0, order, abstol)
 
 Compute one-step Taylor integration for the ODE $\dot{x}=dx/dt=f(t, x)$
 with initial conditions $x(t_0)=x0$, returning the
@@ -300,7 +300,7 @@ Example (multi-dim case):
         end
     end
 
-    tv, xv = taylorinteg(f, [3.0,3.0], 0.0, 0.3, 25, 1.0e-20, maxsteps=100 )
+    tv, xv = taylorinteg(f!, [3.0,3.0], 0.0, 0.3, 25, 1.0e-20, maxsteps=100 )
 ```
 ---
 
@@ -510,7 +510,7 @@ Example (1-dim case):
 
     f(t, x) = x^2
 
-    xv = taylorinteg(f, 3.0, trange, 25, 1.0e-20, maxsteps=100 )
+    xv = taylorinteg(f, 3.0, 0.0:0.001:0.3, 25, 1.0e-20, maxsteps=100 )
 ```
 
 Example (multi-dim case):
@@ -524,7 +524,7 @@ Example (multi-dim case):
         end
     end
 
-    xv = taylorinteg(f, [3.0, 3.0], trange, 25, 1.0e-20, maxsteps=100 )
+    xv = taylorinteg(f!, [3.0, 3.0], 0.0:0.001:0.3, 25, 1.0e-20, maxsteps=100 )
 ```
 ---
 
