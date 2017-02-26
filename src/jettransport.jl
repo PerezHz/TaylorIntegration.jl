@@ -298,36 +298,23 @@ Example:
     using TaylorSeries, TaylorIntegration, Elliptic
 
     function pendulum!(t, x, dx) #the simple pendulum ODE
-
         dx[1] = x[2]
-
         dx[2] = -sin(x[1])
-
     end
 
-    const varorder = 8 #the order of the variational expansion
-
+    const varorder = 3 #the order of the variational expansion
     p = set_variables("ξ", numvars=2, order=varorder) #TaylorN steup
-
     q0 = [1.3, 0.0] #the initial conditions
-
     q0TN = q0 + p #parametrization of a small neighbourhood around the initial conditions
-
     const order = 28 #the order of the Taylor expansion wrt time
-
     const abstol = 1e-20 #the absolute tolerance of the integration
-
     const T = 4*Elliptic.K(sin(q0[1]/2)^2) #the librational period
-
     const t0 = 0.0 #the initial time
-
     const tmax = T #the final time
-
     const integstep = 0.125*T #the time interval between successive evaluations of the solution vector
 
     @time xv = taylorinteg(pendulum!, q0TN, t0:integstep:tmax, order, abstol, maxsteps=100);
-
-    tv = t0:integstep:tmax;
+    tr = t0:integstep:tmax;
 ```
 ---
 """
