@@ -11,23 +11,23 @@ computed from the equations of motion (`eqsdiff`), at time `t0`
 at `x0`.
 """
 function stabilitymatrix!{T<:Number}(eqsdiff!, t0::T, x::Array{T,1},
-        δx::Array{TaylorN{T},1}, δxdot::Array{TaylorN{T},1}, jjac::Array{T,2})
+        δx::Array{TaylorN{T},1}, δdx::Array{TaylorN{T},1}, jjac::Array{T,2})
     @inbounds for ind in eachindex(x)
         δx[ind] = x[ind] + TaylorN(T,ind,order=1)
     end
-    eqsdiff!(t0, δx, δxdot)
-    jjac[:] = jacobian( δxdot )
+    eqsdiff!(t0, δx, δdx)
+    jjac[:] = jacobian( δdx )
     nothing
 end
 
 function stabilitymatrix!{T<:Number}(eqsdiff!, t0::T, x::Array{Taylor1{T},1},
-        δx::Array{TaylorN{Taylor1{T}},1}, δxdot::Array{TaylorN{Taylor1{T}},1}, jjac::Array{Taylor1{T},2})
+        δx::Array{TaylorN{Taylor1{T}},1}, δdx::Array{TaylorN{Taylor1{T}},1}, jjac::Array{Taylor1{T},2})
     @inbounds for ind in eachindex(x)
         δx[ind] = convert(TaylorN{Taylor1{T}}, x[ind]) +
             TaylorN(Taylor1{T},ind,order=1)
     end
-    eqsdiff!(t0, δx, δxdot)
-    jjac[:] = jacobian( δxdot )
+    eqsdiff!(t0, δx, δdx)
+    jjac[:] = jacobian( δdx )
     nothing
 end
 
@@ -105,8 +105,8 @@ end
 
 
 function liap_jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}},
-        xdot::Vector{Taylor1{T}}, xaux::Vector{Taylor1{T}},
-        δx::Array{TaylorN{Taylor1{T}},1}, δxdot::Array{TaylorN{Taylor1{T}},1}, jjac::Array{Taylor1{T},2})
+        dx::Vector{Taylor1{T}}, xaux::Vector{Taylor1{T}},
+        δx::Array{TaylorN{Taylor1{T}},1}, δdx::Array{TaylorN{Taylor1{T}},1}, jjac::Array{Taylor1{T},2})
     order = x[1].order
 
     # Dimensions of phase-space: dof
@@ -122,33 +122,33 @@ function liap_jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}},
         end
 
         # Equations of motion
-        @inbounds eqsdiff!(t0, xaux, xdot)
-        stabilitymatrix!( eqsdiff!, t0, xaux[1:dof], δx, δxdot, jjac )
-        @inbounds xdot[dof+1:nx] = jjac * reshape( xaux[dof+1:nx], (dof,dof) )
+        @inbounds eqsdiff!(t0, xaux, dx)
+        stabilitymatrix!( eqsdiff!, t0, xaux[1:dof], δx, δdx, jjac )
+        @inbounds dx[dof+1:nx] = jjac * reshape( xaux[dof+1:nx], (dof,dof) )
 
         # Recursion relations
         @inbounds for j in eachindex(x)
-            x[j].coeffs[ordnext] = xdot[j].coeffs[ord]/ord
+            x[j].coeffs[ordnext] = dx[j].coeffs[ord]/ord
         end
     end
     nothing
 end
 
 
-function liap_taylorstep!{T<:Number}(f, xT::Vector{Taylor1{T}}, xdotT::Vector{Taylor1{T}},
+function liap_taylorstep!{T<:Number}(f, x::Vector{Taylor1{T}}, dx::Vector{Taylor1{T}},
         xaux::Vector{Taylor1{T}}, δx::Array{TaylorN{Taylor1{T}},1},
-        δxdot::Array{TaylorN{Taylor1{T}},1}, jjac::Array{Taylor1{T},2}, t0::T, t1::T, x0::Array{T,1},
+        δdx::Array{TaylorN{Taylor1{T}},1}, jjac::Array{Taylor1{T},2}, t0::T, t1::T, x0::Array{T,1},
         order::Int, abstol::T)
 
     # Compute the Taylor coefficients
-    liap_jetcoeffs!(f, t0, xT, xdotT, xaux, δx, δxdot, jjac)
+    liap_jetcoeffs!(f, t0, x, dx, xaux, δx, δdx, jjac)
 
     # Compute the step-size of the integration using `abstol`
-    δt = stepsize(xT, abstol)
+    δt = stepsize(x, abstol)
     δt = min(δt, t1-t0)
 
     # Update x0
-    evaluate!(xT, δt, x0)
+    evaluate!(x, δt, x0)
     return δt
 end
 
@@ -178,16 +178,16 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
     t00 = t0
 
     # Initialize the vector of Taylor1 expansions
-    xT = Array{Taylor1{T}}(length(x0))
+    x = Array{Taylor1{T}}(length(x0))
     for i in eachindex(x0)
-        @inbounds xT[i] = Taylor1( x0[i], order )
+        @inbounds x[i] = Taylor1( x0[i], order )
     end
 
     #Allocate auxiliary arrays
-    xdotT = Array{Taylor1{T}}(length(x0))
+    dx = Array{Taylor1{T}}(length(x0))
     xaux = Array{Taylor1{T}}(length(x0))
     δx = Array{TaylorN{Taylor1{T}}}(dof)
-    δxdot = Array{TaylorN{Taylor1{T}}}(dof)
+    δdx = Array{TaylorN{Taylor1{T}}}(dof)
     jjac = Array{Taylor1{T}}(dof,dof)
     QH = Array{T}(dof,dof)
     RH = Array{T}(dof,dof)
@@ -197,7 +197,7 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
     # Integration
     nsteps = 1
     while t0 < tmax
-        δt = liap_taylorstep!(f, xT, xdotT, xaux, δx, δxdot, jjac, t0, tmax, x0, order, abstol)
+        δt = liap_taylorstep!(f, x, dx, xaux, δx, δdx, jjac, t0, tmax, x0, order, abstol)
         @inbounds for ind in eachindex(jt)
             jt[ind] = x0[dof+ind]
         end
@@ -215,7 +215,7 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
             x0[dof+ind] = QH[ind]
         end
         for i in eachindex(x0)
-            @inbounds xT[i] = Taylor1( x0[i], order )
+            @inbounds x[i] = Taylor1( x0[i], order )
         end
         if nsteps > maxsteps
             warn("""

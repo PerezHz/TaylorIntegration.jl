@@ -25,16 +25,16 @@ function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Taylor1{TaylorN{T}})
 
         # Equations of motion
         # TODO! define a macro to optimize the eqsdiff
-        xdot = eqsdiff(t0, xaux)
+        dx = eqsdiff(t0, xaux)
 
         # Recursion relation
-        @inbounds x.coeffs[ordnext] = xdot.coeffs[ord]/ord
+        @inbounds x.coeffs[ordnext] = dx.coeffs[ord]/ord
     end
     nothing
 end
 
 doc"""
-    jetcoeffs!(f!, t, x, xdot, xaux)
+    jetcoeffs!(f!, t0, x, dx, xaux)
 
 Specialized method of `jetcoeffs!` for jet transport applications.
 Returns an updated `x` using the recursion relation of the
@@ -42,7 +42,7 @@ derivatives from the ODE $\dot{x}=dx/dt=f(t,x)$.
 
 `f!` is the function defining the RHS of the ODE, `x` is a vector of `Taylor1{T}`,
 containing the Taylor expansion of the dependent variables of the ODE and
-`t` is the independent variable. `xdot` stores an in-place evaluation of
+`t` is the independent variable. `dx` stores an in-place evaluation of
 the equations of motion, whereas `xaux` is an auxiliary variable which helps
 with optimization.
 Initially, `x` contains only the 0-th order Taylor coefficients of
@@ -50,7 +50,7 @@ the current system state (the initial conditions), and `jetcoeffs!`
 computes recursively the high-order derivates back into `x`.
 """
 function jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{TaylorN{T}}},
-        xdot::Vector{Taylor1{TaylorN{T}}}, xaux::Vector{Taylor1{TaylorN{T}}})
+        dx::Vector{Taylor1{TaylorN{T}}}, xaux::Vector{Taylor1{TaylorN{T}}})
     order = x[1].order
     for ord in 1:order
         ordnext = ord+1
@@ -62,11 +62,11 @@ function jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{TaylorN{T}}},
 
         # Equations of motion
         # TODO! define a macro to optimize the eqsdiff
-        eqsdiff!(t0, xaux, xdot)
+        eqsdiff!(t0, xaux, dx)
 
         # Recursion relations
         @inbounds for j in eachindex(x)
-            x[j].coeffs[ordnext] = xdot[j].coeffs[ord]/ord
+            x[j].coeffs[ordnext] = dx[j].coeffs[ord]/ord
         end
     end
     nothing
@@ -115,7 +115,7 @@ end
 
 # taylorstep and taylorstep!
 doc"""
-    taylorstep(f, t0, t1, x0, order, abstol)
+    taylorstep(f, x, t0, t1, x0, order, abstol)
 
 Specialized method of `taylorstep` for jet transport applications.
 Compute one-step Taylor integration for the ODE $\dot{x}=dx/dt=f(t, x)$
@@ -129,20 +129,20 @@ and `abstol` is the absolute tolerance used to determine the time step
 of the integration. If the time step is larger than `t1-t0`, that difference
 is used as the time step.
 """
-function taylorstep!{T<:Number}(f, xT::TaylorN{Taylor1{T}}, t0::T, t1::T,
+function taylorstep!{T<:Number}(f, x::TaylorN{Taylor1{T}}, t0::T, t1::T,
         x0::TaylorN{T}, order::Int, abstol::T)
     @assert t1 > t0
     # Compute the Taylor coefficients
-    jetcoeffs!(f, t0, xT)
+    jetcoeffs!(f, t0, x)
     # Compute the step-size of the integration using `abstol`
-    δt = stepsize(xT, abstol)
+    δt = stepsize(x, abstol)
     δt = min(δt, t1-t0)
-    x0 = evaluate(xT, δt)
+    x0 = evaluate(x, δt)
     return δt, x0
 end
 
 doc"""
-    taylorstep!(f, t0, t1, x0, order, abstol)
+    taylorstep!(f, x, dx, xaux, t0, t1, x0, order, abstol)
 
 Specialized method of `taylorstep!` for jet transport applications.
 Compute one-step Taylor integration for the ODE $\dot{x}=dx/dt=f(t, x)$
@@ -150,21 +150,21 @@ with initial conditions $x(t_0)=x0$, a vector of type `TaylorN{T}`, returning th
 step-size of the integration carried out and updating `x0`.
 
 Here, `x0` is the initial (and updated) dependent variables; `order`
-is the degree used for the `Taylor1` polynomials during the integration; `xdot`
+is the degree used for the `Taylor1` polynomials during the integration; `dx`
 represents an in-place evaluation of the equations of motion; `xaux` is an
 auxiliary variable which helps with optimization; `abstol` is the absolute
 tolerance used to determine the time step of the integration. If the time step is
 larger than `t1-t0`, that difference is used as the time step.
 """
-function taylorstep!{T<:Number}(f, xT::Vector{Taylor1{TaylorN{T}}}, xdotT::Vector{Taylor1{TaylorN{T}}},
+function taylorstep!{T<:Number}(f, x::Vector{Taylor1{TaylorN{T}}}, dx::Vector{Taylor1{TaylorN{T}}},
         xaux::Vector{Taylor1{TaylorN{T}}}, t0::T, t1::T, x0::Array{TaylorN{T},1}, order::Int, abstol::T)
     @assert t1 > t0
     # Compute the Taylor coefficients
-    jetcoeffs!(f, t0, xT, xdotT, xaux)
+    jetcoeffs!(f, t0, x, dx, xaux)
     # Compute the step-size of the integration using `abstol`
-    δt = stepsize(xT, abstol)
+    δt = stepsize(x, abstol)
     δt = min(δt, t1-t0)
-    evaluate!(xT, δt, x0)
+    evaluate!(x, δt, x0)
     return δt
 end
 
@@ -199,7 +199,7 @@ function taylorinteg{T<:Number}(f, x0::TaylorN{T}, t0::T, tmax::T, order::Int,
     xv = Array{TaylorN{T}}(maxsteps+1)
 
     # Initialize the Taylor1 expansions
-    xT = Taylor1( x0, order )
+    x = Taylor1( x0, order )
 
     # Initial conditions
     nsteps = 1
@@ -208,8 +208,8 @@ function taylorinteg{T<:Number}(f, x0::TaylorN{T}, t0::T, tmax::T, order::Int,
 
     # Integration
     while t0 < tmax
-        δt, x0 = taylorstep!(f, xT, t0, tmax, x0, order, abstol)
-        xT.coeffs[1] = x0
+        δt, x0 = taylorstep!(f, x, t0, tmax, x0, order, abstol)
+        x.coeffs[1] = x0
         t0 += δt
         nsteps += 1
         @inbounds tv[nsteps] = t0
@@ -235,11 +235,11 @@ function taylorinteg{T<:Number}(f, q0::Array{TaylorN{T},1}, t0::T, tmax::T,
     xv = Array{TaylorN{T}}(dof, maxsteps+1)
 
     # Initialize the vector of Taylor1 expansions
-    xT = Array{Taylor1{TaylorN{T}}}(dof)
-    xdotT = Array{Taylor1{TaylorN{T}}}(dof)
+    x = Array{Taylor1{TaylorN{T}}}(dof)
+    dx = Array{Taylor1{TaylorN{T}}}(dof)
     xaux = Array{Taylor1{TaylorN{T}}}(dof)
     for i in eachindex(q0)
-        @inbounds xT[i] = Taylor1( q0[i], order )
+        @inbounds x[i] = Taylor1( q0[i], order )
     end
 
     # Initial conditions
@@ -250,9 +250,9 @@ function taylorinteg{T<:Number}(f, q0::Array{TaylorN{T},1}, t0::T, tmax::T,
     # Integration
     nsteps = 1
     while t0 < tmax
-        δt = taylorstep!(f, xT, xdotT, xaux, t0, tmax, x0, order, abstol)
+        δt = taylorstep!(f, x, dx, xaux, t0, tmax, x0, order, abstol)
         for i in eachindex(x0)
-            @inbounds xT[i].coeffs[1] = x0[i]
+            @inbounds x[i].coeffs[1] = x0[i]
         end
         t0 += δt
         nsteps += 1
@@ -327,7 +327,7 @@ function taylorinteg{T<:Number}(f, x0::TaylorN{T}, trange::Range{T},
     fill!(xv, TaylorN{T}(NaN))
 
     # Initialize the Taylor1 expansions
-    xT = Taylor1( x0, order )
+    x = Taylor1( x0, order )
 
     # Initial conditions
     @inbounds xv[1] = x0
@@ -338,8 +338,8 @@ function taylorinteg{T<:Number}(f, x0::TaylorN{T}, trange::Range{T},
         t0, t1 = trange[iter], trange[iter+1]
         nsteps = 0
         while nsteps < maxsteps
-            δt, x0 = taylorstep!(f, xT, t0, t1, x0, order, abstol)
-            xT.coeffs[1] = x0
+            δt, x0 = taylorstep!(f, x, t0, t1, x0, order, abstol)
+            x.coeffs[1] = x0
             t0 += δt
             t0 ≥ t1 && break
             nsteps += 1
@@ -371,11 +371,11 @@ function taylorinteg{T<:Number}(f, q0::Array{TaylorN{T},1}, trange::Range{T},
     end
 
     # Initialize the vector of Taylor1 expansions
-    xT = Array{Taylor1{TaylorN{T}}}(dof)
-    xdotT = Array{Taylor1{TaylorN{T}}}(dof)
+    x = Array{Taylor1{TaylorN{T}}}(dof)
+    dx = Array{Taylor1{TaylorN{T}}}(dof)
     xaux = Array{Taylor1{TaylorN{T}}}(dof)
     for i in eachindex(q0)
-        @inbounds xT[i] = Taylor1( q0[i], order )
+        @inbounds x[i] = Taylor1( q0[i], order )
     end
 
     # Initial conditions
@@ -388,9 +388,9 @@ function taylorinteg{T<:Number}(f, q0::Array{TaylorN{T},1}, trange::Range{T},
         t0, t1 = trange[iter], trange[iter+1]
         nsteps = 0
         while nsteps < maxsteps
-            δt = taylorstep!(f, xT, xdotT, xaux, t0, t1, x0, order, abstol)
+            δt = taylorstep!(f, x, dx, xaux, t0, t1, x0, order, abstol)
             for i in eachindex(x0)
-                @inbounds xT[i].coeffs[1] = x0[i]
+                @inbounds x[i].coeffs[1] = x0[i]
             end
             t0 += δt
             t0 ≥ t1 && break
