@@ -215,7 +215,7 @@ facts("Test integration of ODE with complex dependent variables") do
 
 end
 
-facts("Tests jet transport: simple pendulum") do
+facts("Test jet transport: simple pendulum") do
 
     function pendulum!(t, x, dx) #the simple pendulum ODE
         dx[1] = x[2]
@@ -232,14 +232,25 @@ facts("Tests jet transport: simple pendulum") do
     const tmax = T #the final time
     const integstep = 0.25*T #the time interval between successive evaluations of the solution vector
 
-    xv = taylorinteg(pendulum!, q0, t0:integstep:tmax, _order, _abstol, maxsteps=100)
-    xvTN = taylorinteg(pendulum!, q0TN, t0:integstep:tmax, _order, _abstol, maxsteps=100)
+    #the time range
     tr = t0:integstep:tmax;
+    #xv is the solution vector representing the propagation of the initial condition q0 propagated until time T
+    xv = taylorinteg(pendulum!, q0, tr, _order, _abstol, maxsteps=100)
+    #xvTN is the solution vector representing the propagation of the initial condition q0 plus variations (ξ₁,ξ₂) propagated until time T
+    #note that q0 is a Vector{Float64}, but q0TN is a Vector{TaylorN{Float64}}
+    #but apart from that difference, we're calling `taylorinteg` essentially with the same parameters!
+    #thus, jet transport is reduced to a beautiful application of Julia's multiple dispatch!
+    xvTN = taylorinteg(pendulum!, q0TN, tr, _order, _abstol, maxsteps=100)
 
     xvTN_0 = map( x->evaluate(x, [0.0, 0.0]), xvTN ) # the jet evaluated at the nominal solution
 
     @fact isapprox(xvTN_0[1,:], xvTN_0[end,:]) --> true #end point must coincide with a full period
     @fact isapprox(xv, xvTN_0) --> true #nominal solution must coincide with jet evaluated at ξ=(0,0)
+
+    #testing another jet transport method:
+    tv, xv = taylorinteg(pendulum!, q0, t0, tmax, _order, _abstol, maxsteps=100)
+    @fact isapprox(xv[1,:], xvTN_0[1,:]) --> true #nominal solution must coincide with jet evaluated at ξ=(0,0) at initial time
+    @fact isapprox(xv[end,:], xvTN_0[end,:]) --> true #nominal solution must coincide with jet evaluated at ξ=(0,0) at final time
 
     # a small displacement
     disp = 0.0001 #works even with 0.001, but we're giving it some margin
@@ -252,7 +263,7 @@ facts("Tests jet transport: simple pendulum") do
         # generate a random point on a circumference of radius disp
         ξ = disp*[cos(ϕ), sin(ϕ)]
         #propagate in time full solution with initial condition q0+ξ
-        xv_disp = taylorinteg(pendulum!, q0+ξ, t0:integstep:tmax, _order, _abstol, maxsteps=100)
+        xv_disp = taylorinteg(pendulum!, q0+ξ, tr, _order, _abstol, maxsteps=100)
         #evaluate jet at q0+ξ
         xvTN_disp = map( x->evaluate(x, ξ), xvTN )
         #the propagated exact solution at q0+ξ should be approximately equal to the propagated jet solution evaluated at the same point:
