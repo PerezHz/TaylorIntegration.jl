@@ -72,7 +72,7 @@ end
 # Modified Gram–Schmidt (Trefethen algorithm 8.1)
 function modifiedGS!(A, Q, R, aⱼ, qᵢ)
     m,n = size(A)
-    R[:,:] = zeros(eltype(A),n,n)
+    fill!(R, zero(eltype(A)))
     # aⱼ = Array{eltype(A)}(m)
     # qᵢ = similar(aⱼ)
     # vⱼ = similar(aⱼ)
