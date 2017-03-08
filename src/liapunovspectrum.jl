@@ -16,7 +16,7 @@ function stabilitymatrix!{T<:Number}(eqsdiff!, t0::T, x::Array{T,1},
         δx[ind] = x[ind] + TaylorN(T,ind,order=1)
     end
     eqsdiff!(t0, δx, δdx)
-    jac[:] = jacobian( δdx )
+    jacobian!( jac, δdx )
     nothing
 end
 
@@ -27,7 +27,7 @@ function stabilitymatrix!{T<:Number}(eqsdiff!, t0::T, x::Array{Taylor1{T},1},
             TaylorN(Taylor1{T},ind,order=1)
     end
     eqsdiff!(t0, δx, δdx)
-    jac[:] = jacobian( δdx )
+    jacobian!( jac, δdx )
     nothing
 end
 
