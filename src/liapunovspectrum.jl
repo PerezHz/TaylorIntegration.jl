@@ -185,12 +185,12 @@ spectrum.
 function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
         order::Int, abstol::T; maxsteps::Int=500)
     # Allocation
-    tv = Array{T}(maxsteps+1)
+    const tv = Array{T}(maxsteps+1)
     dof = length(q0)
-    xv = Array{T}(dof, maxsteps+1)
-    λ = similar(xv)
-    λtsum = similar(q0)
-    jt = eye(T, dof)
+    const xv = Array{T}(dof, maxsteps+1)
+    const λ = similar(xv)
+    const λtsum = similar(q0)
+    const jt = eye(T, dof)
 
     # NOTE: This changes GLOBALLY internal parameters of TaylorN
     global _δv = set_variables("δ", order=1, numvars=dof)
@@ -202,30 +202,30 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
         @inbounds λ[ind,1] = zero(T)
         @inbounds λtsum[ind] = zero(T)
     end
-    x0 = vcat(q0, reshape(jt, dof*dof))
+    const x0 = vcat(q0, reshape(jt, dof*dof))
     nx0 = dof*(dof+1)
     t00 = t0
 
     # Initialize the vector of Taylor1 expansions
-    x = Array{Taylor1{T}}(length(x0))
+    const x = Array{Taylor1{T}}(length(x0))
     for i in eachindex(x0)
         @inbounds x[i] = Taylor1( x0[i], order )
     end
 
     #Allocate auxiliary arrays
-    dx = Array{Taylor1{T}}(length(x0))
-    xaux = Array{Taylor1{T}}(length(x0))
-    δx = Array{TaylorN{Taylor1{T}}}(dof)
-    dδx = Array{TaylorN{Taylor1{T}}}(dof)
-    jac = Array{Taylor1{T}}(dof,dof)
+    const dx = Array{Taylor1{T}}(length(x0))
+    const xaux = Array{Taylor1{T}}(length(x0))
+    const δx = Array{TaylorN{Taylor1{T}}}(dof)
+    const dδx = Array{TaylorN{Taylor1{T}}}(dof)
+    const jac = Array{Taylor1{T}}(dof,dof)
     for i in eachindex(jac)
         @inbounds jac[i] = zero(x[1])
     end
-    QH = Array{T}(dof,dof)
-    RH = Array{T}(dof,dof)
-    aⱼ = Array{eltype(jt)}( dof )
-    qᵢ = similar(aⱼ)
-    vⱼ = similar(aⱼ)
+    const QH = Array{T}(dof,dof)
+    const RH = Array{T}(dof,dof)
+    const aⱼ = Array{eltype(jt)}( dof )
+    const qᵢ = similar(aⱼ)
+    const vⱼ = similar(aⱼ)
 
     # Integration
     nsteps = 1
@@ -259,4 +259,91 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
     end
 
     return view(tv,1:nsteps),  view(transpose(xv),1:nsteps,:),  view(transpose(λ),1:nsteps,:)
+end
+
+function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, trange::Range{T},
+        order::Int, abstol::T; maxsteps::Int=500)
+    # Allocation
+    nn = length(trange)
+    dof = length(q0)
+    const xv = Array{T}(dof, nn)
+    fill!(xv, T(NaN))
+    const λ = similar(xv)
+    const λtsum = similar(q0)
+    const jt = eye(T, dof)
+
+    # NOTE: This changes GLOBALLY internal parameters of TaylorN
+    global _δv = set_variables("δ", order=1, numvars=dof)
+
+    # Initial conditions
+    @inbounds for ind in 1:dof
+        xv[ind,1] = q0[ind]
+        λ[ind,1] = zero(T)
+        λtsum[ind] = zero(T)
+    end
+
+    # Initialize the vector of Taylor1 expansions
+    const x0 = vcat(q0, reshape(jt, dof*dof))
+    nx0 = length(x0)
+    const x = Array{Taylor1{T}}(nx0)
+    for i in eachindex(x0)
+        @inbounds x[i] = Taylor1( x0[i], order )
+    end
+    t00 = trange[1]
+    tspan = zero(T)
+
+    #Allocate auxiliary arrays
+    const dx = Array{Taylor1{T}}(nx0)
+    const xaux = Array{Taylor1{T}}(nx0)
+    const δx = Array{TaylorN{Taylor1{T}}}(dof)
+    const dδx = Array{TaylorN{Taylor1{T}}}(dof)
+    const jac = Array{Taylor1{T}}(dof,dof)
+    for i in eachindex(jac)
+        jac[i] = zero(x[1])
+    end
+    const QH = Array{T}(dof,dof)
+    const RH = Array{T}(dof,dof)
+    const aⱼ = Array{eltype(jt)}( dof )
+    const qᵢ = similar(aⱼ)
+    const vⱼ = similar(aⱼ)
+
+    # Integration
+    iter = 1
+    while iter < nn
+        t0, t1 = trange[iter], trange[iter+1]
+        nsteps = 0
+        while nsteps < maxsteps
+            δt = liap_taylorstep!(f, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol)
+            for ind in eachindex(jt)
+                @inbounds jt[ind] = x0[dof+ind]
+            end
+            modifiedGS!( jt, QH, RH, aⱼ, qᵢ, vⱼ )
+            t0 += δt
+            nsteps += 1
+            @inbounds for ind in 1:dof
+                λtsum[ind] += log(RH[ind,ind])
+            end
+            for ind in eachindex(QH)
+                @inbounds x0[dof+ind] = QH[ind]
+            end
+            for i in eachindex(x0)
+                @inbounds x[i] = Taylor1( x0[i], order )
+            end
+            t0 ≥ t1 && break
+        end
+        if nsteps ≥ maxsteps && t0 != t1
+            warn("""
+            Maximum number of integration steps reached; exiting.
+            """)
+            break
+        end
+        iter += 1
+        tspan = t0-t00
+        @inbounds for ind in 1:dof
+            xv[ind,iter] = x0[ind]
+            λ[ind,iter] = λtsum[ind]/tspan
+        end
+    end
+
+    return transpose(xv),  transpose(λ)
 end
