@@ -207,14 +207,14 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
     t00 = t0
 
     # Initialize the vector of Taylor1 expansions
-    const x = Array{Taylor1{T}}(length(x0))
+    const x = Array{Taylor1{T}}(nx0)
     for i in eachindex(x0)
         @inbounds x[i] = Taylor1( x0[i], order )
     end
 
     #Allocate auxiliary arrays
-    const dx = Array{Taylor1{T}}(length(x0))
-    const xaux = Array{Taylor1{T}}(length(x0))
+    const dx = Array{Taylor1{T}}(nx0)
+    const xaux = Array{Taylor1{T}}(nx0)
     const δx = Array{TaylorN{Taylor1{T}}}(dof)
     const dδx = Array{TaylorN{Taylor1{T}}}(dof)
     const jac = Array{Taylor1{T}}(dof,dof)
@@ -223,7 +223,7 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
     end
     const QH = Array{T}(dof,dof)
     const RH = Array{T}(dof,dof)
-    const aⱼ = Array{eltype(jt)}( dof )
+    const aⱼ = Array{T}( dof )
     const qᵢ = similar(aⱼ)
     const vⱼ = similar(aⱼ)
 
@@ -303,7 +303,7 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, trange::Range{T},
     end
     const QH = Array{T}(dof,dof)
     const RH = Array{T}(dof,dof)
-    const aⱼ = Array{eltype(jt)}( dof )
+    const aⱼ = Array{T}( dof )
     const qᵢ = similar(aⱼ)
     const vⱼ = similar(aⱼ)
 
