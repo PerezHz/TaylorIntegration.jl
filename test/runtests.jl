@@ -283,12 +283,6 @@ facts("Test Lyapunov spectrum integrator: Lorenz system") do
     t0 = 0.0 #the initial time
     tmax = t0+20.0 #final time of integration
 
-    #Lorenz system parameters
-    σ = 16.0
-    β = 4.0
-    ρ = 45.92
-    lorenztr = -(σ+one(Float64)+β) #trace of Lorenz system jacobian matrix
-
     #Lorenz system ODE:
     function lorenz!(t, x, dx)
         dx[1] = σ*(x[2]-x[1])
@@ -296,6 +290,20 @@ facts("Test Lyapunov spectrum integrator: Lorenz system") do
         dx[3] = x[1]*x[2]-β*x[3]
         nothing
     end
+
+    #Lorenz system parameters
+    σ = 16.0
+    β = 4.0
+    ρ = 45.92
+
+    #Calculate trace of Lorenz system Jacobian via TaylorSeries.jacobian:
+    xi = set_variables("δ", order=1, numvars=length(x0))
+    x0TN = [ x0[1]+xi[1], x0[2]+xi[2], x0[3]+xi[3] ]
+    dx0TN = similar(x0TN)
+    lorenz!(t0, x0TN, dx0TN)
+    lorenztr = trace(jacobian(dx0TN)) #trace of Lorenz system Jacobian matrix
+
+    @fact lorenztr == -(σ+one(Float64)+β) --> true
 
     tv, xv, λv = liap_taylorinteg(lorenz!, x0, t0, tmax, 28, _abstol; maxsteps=2000)
 
@@ -308,6 +316,19 @@ facts("Test Lyapunov spectrum integrator: Lorenz system") do
     @fact isapprox(λv[end,1], 1.47167, rtol=mytol, atol=mytol) -->true
     @fact isapprox(λv[end,2], -0.00830, rtol=mytol, atol=mytol) -->true
     @fact isapprox(λv[end,3], -22.46336, rtol=mytol, atol=mytol) -->true
+
+    xw, λw = liap_taylorinteg(lorenz!, x0, t0:0.1:tmax, 28, _abstol; maxsteps=2000)
+
+    @fact xw[1,:] == x0 --> true
+    @fact isapprox(sum(λw[1,:]), lorenztr) --> false
+    @fact isapprox(sum(λw[end,:]), lorenztr) --> true
+    @fact isapprox(λw[end,1], 1.47167, rtol=mytol, atol=mytol) -->true
+    @fact isapprox(λw[end,2], -0.00830, rtol=mytol, atol=mytol) -->true
+    @fact isapprox(λw[end,3], -22.46336, rtol=mytol, atol=mytol) -->true
+
+    @fact isapprox(λw[end,1], λv[end,1], rtol=mytol, atol=mytol) -->true
+    @fact isapprox(λw[end,2], λv[end,2], rtol=mytol, atol=mytol) -->true
+    @fact isapprox(λw[end,3], λv[end,3], rtol=mytol, atol=mytol) -->true
 
 end
 
