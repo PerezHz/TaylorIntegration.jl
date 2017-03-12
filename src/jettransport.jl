@@ -1,20 +1,6 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
 # jetcoeffs!
-doc"""
-    jetcoeffs!(f, t, x)
-
-Specialized method of `jetcoeffs!` for jet transport applications.
-Returns an updated `x` using the recursion relation of the
-derivatives from the ODE $\dot{x}=dx/dt=f(t,x)$.
-
-`f` is the function defining the RHS of the ODE, `x` is a `Taylor1{T}`,
-containing the Taylor expansion of the dependent variable of the ODE and
-`t` is the independent variable.
-Initially, `x` contains only the 0-th order Taylor coefficient of
-the current system state (the initial conditions), and `jetcoeffs!`
-computes recursively the high-order derivates back into `x`.
-"""
 function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Taylor1{TaylorN{T}})
     order = x.order
     for ord in 1:order
@@ -33,22 +19,6 @@ function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Taylor1{TaylorN{T}})
     nothing
 end
 
-doc"""
-    jetcoeffs!(f!, t0, x, dx, xaux)
-
-Specialized method of `jetcoeffs!` for jet transport applications.
-Returns an updated `x` using the recursion relation of the
-derivatives from the ODE $\dot{x}=dx/dt=f(t,x)$.
-
-`f!` is the function defining the RHS of the ODE, `x` is a vector of `Taylor1{T}`,
-containing the Taylor expansion of the dependent variables of the ODE and
-`t` is the independent variable. `dx` stores an in-place evaluation of
-the equations of motion, whereas `xaux` is an auxiliary variable which helps
-with optimization.
-Initially, `x` contains only the 0-th order Taylor coefficients of
-the current system state (the initial conditions), and `jetcoeffs!`
-computes recursively the high-order derivates back into `x`.
-"""
 function jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{TaylorN{T}}},
         dx::Vector{Taylor1{TaylorN{T}}}, xaux::Vector{Taylor1{TaylorN{T}}})
     order = x[1].order
@@ -73,13 +43,6 @@ function jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{TaylorN{T}}},
 end
 
 # stepsize
-doc"""
-    stepsize(x, epsilon)
-
-Specialized method of `stepsize` for jet transport applications. Returns a
-time-step for a `x::Taylor1{TaylorN{T}}` using a prescribed absolute tolerance
-`epsilon::T`, for `T<:Number`.
-"""
 function stepsize{T<:Number}(x::Taylor1{TaylorN{T}}, epsilon::T)
     ord = x.order
     h = T(Inf)
@@ -97,13 +60,6 @@ function stepsize{T<:Number}(x::Taylor1{TaylorN{T}}, epsilon::T)
     return h
 end
 
-doc"""
-    stepsize(q, epsilon)
-
-Specialized method of `stepsize` for jet transport applications. Returns the
-minimum time-step for `q::Array{Taylor1{TaylorN{T}},1}`, using a prescribed absolute
-tolerance `epsilon::T`, for `T<:Number`.
-"""
 function stepsize{T<:Number}(q::Array{Taylor1{TaylorN{T}},1}, epsilon::T)
     h = T(Inf)
     for i in eachindex(q)
@@ -113,23 +69,8 @@ function stepsize{T<:Number}(q::Array{Taylor1{TaylorN{T}},1}, epsilon::T)
     return h
 end
 
-# taylorstep and taylorstep!
-doc"""
-    taylorstep(f, x, t0, t1, x0, order, abstol)
-
-Specialized method of `taylorstep` for jet transport applications.
-Compute one-step Taylor integration for the ODE $\dot{x}=dx/dt=f(t, x)$
-with initial conditions $x(t_0)=x0$, returning the
-time-step of the integration carried out and the updated value of `x0::TaylorN{T}`,
-with `T<:Number`.
-
-Here, `x0` is the initial (and returned) dependent variables, `order`
-is the degree used for the `Taylor1` polynomials during the integration
-and `abstol` is the absolute tolerance used to determine the time step
-of the integration. If the time step is larger than `t1-t0`, that difference
-is used as the time step.
-"""
-function taylorstep!{T<:Number}(f, x::TaylorN{Taylor1{T}}, t0::T, t1::T,
+# taylorstep!
+function taylorstep!{T<:Number}(f, x::Taylor1{TaylorN{T}}, t0::T, t1::T,
         x0::TaylorN{T}, order::Int, abstol::T)
     @assert t1 > t0
     # Compute the Taylor coefficients
@@ -141,23 +82,9 @@ function taylorstep!{T<:Number}(f, x::TaylorN{Taylor1{T}}, t0::T, t1::T,
     return δt, x0
 end
 
-doc"""
-    taylorstep!(f, x, dx, xaux, t0, t1, x0, order, abstol)
-
-Specialized method of `taylorstep!` for jet transport applications.
-Compute one-step Taylor integration for the ODE $\dot{x}=dx/dt=f(t, x)$
-with initial conditions $x(t_0)=x0$, a vector of type `TaylorN{T}`, returning the
-step-size of the integration carried out and updating `x0`.
-
-Here, `x0` is the initial (and updated) dependent variables; `order`
-is the degree used for the `Taylor1` polynomials during the integration; `dx`
-represents an in-place evaluation of the equations of motion; `xaux` is an
-auxiliary variable which helps with optimization; `abstol` is the absolute
-tolerance used to determine the time step of the integration. If the time step is
-larger than `t1-t0`, that difference is used as the time step.
-"""
-function taylorstep!{T<:Number}(f, x::Vector{Taylor1{TaylorN{T}}}, dx::Vector{Taylor1{TaylorN{T}}},
-        xaux::Vector{Taylor1{TaylorN{T}}}, t0::T, t1::T, x0::Array{TaylorN{T},1}, order::Int, abstol::T)
+function taylorstep!{T<:Number}(f, x::Vector{Taylor1{TaylorN{T}}},
+        dx::Vector{Taylor1{TaylorN{T}}}, xaux::Vector{Taylor1{TaylorN{T}}},
+        t0::T, t1::T, x0::Array{TaylorN{T},1}, order::Int, abstol::T)
     @assert t1 > t0
     # Compute the Taylor coefficients
     jetcoeffs!(f, t0, x, dx, xaux)
@@ -169,28 +96,6 @@ function taylorstep!{T<:Number}(f, x::Vector{Taylor1{TaylorN{T}}}, dx::Vector{Ta
 end
 
 # taylorinteg
-doc"""
-    taylorinteg(f, x0, t0, tmax, order, abstol; keyword... )
-
-Specialized method of `taylorinteg` for jet transport applications.
-This is a jet transport Taylor integrator for the explicit ODE
-$\dot{x}=f(t,x)$ with initial condition specified by `x0` at time `t0::T`.
-Here, `x0` is either a `TaylorN{T}`, or an `Array{TaylorN{T},1}`.
-It returns a vector with the values of time (independent variable),
-and a vector (of type `typeof(x0)`) with the computed values of
-the dependent variable(s). The integration stops when time
-is larger than `tmax` (in which case the last returned values are
-`t_max`, `x(t_max)`), or else when the number of saved steps is larger
-than `maxsteps`.
-
-The integrator uses polynomial expansions on the independent variable
-of order `order`; the parameter `abstol` serves to define the
-time step using the last two Taylor coefficients of the expansions.
-
-The current keyword argument is `maxsteps=500`.
-
----
-"""
 function taylorinteg{T<:Number}(f, x0::TaylorN{T}, t0::T, tmax::T, order::Int,
         abstol::T; maxsteps::Int=500)
 
@@ -269,55 +174,6 @@ function taylorinteg{T<:Number}(f, q0::Array{TaylorN{T},1}, t0::T, tmax::T,
     return view(tv,1:nsteps), view(transpose(xv),1:nsteps,:)
 end
 
-# Integrate and return results evaluated at given time
-doc"""
-    taylorinteg(f, x0, t0, trange, order, abstol; keyword... )
-
-Specialized method of `taylorinteg` for jet transport applications.
-This is a jet transport Taylor integrator for the explicit ODE
-$\dot{x}=f(t,x)$ with initial condition specified by `x0` at time `t0`.
-Here, `x0` is either a `TaylorN{T}`, or an `Array{TaylorN{T},1}`.
-It returns a vector with the values of time (independent variable),
-and a vector (of type `typeof(x0)`) with the computed values of
-the dependent variable(s), evaluated only at the times given by
-`trange`. The integration stops when time
-is larger than `tmax` (in which case the last returned values are
-`t_max`, `x(t_max)`), or else when the number of saved steps is larger
-than `maxsteps`.
-
-The integrator uses polynomial expansions on the independent variable
-of order `order`; the parameter `abstol` serves to define the
-time step using the last two Taylor coefficients of the expansions.
-
-The current keyword argument is `maxsteps=500`.
-
-Example:
-
-```julia
-
-    using TaylorSeries, TaylorIntegration, Elliptic
-
-    function pendulum!(t, x, dx) #the simple pendulum ODE
-        dx[1] = x[2]
-        dx[2] = -sin(x[1])
-    end
-
-    const varorder = 3 #the order of the variational expansion
-    p = set_variables("ξ", numvars=2, order=varorder) #TaylorN steup
-    q0 = [1.3, 0.0] #the initial conditions
-    q0TN = q0 + p #parametrization of a small neighbourhood around the initial conditions
-    const order = 28 #the order of the Taylor expansion wrt time
-    const abstol = 1e-20 #the absolute tolerance of the integration
-    const T = 4*Elliptic.K(sin(q0[1]/2)^2) #the librational period
-    const t0 = 0.0 #the initial time
-    const tmax = T #the final time
-    const integstep = 0.125*T #the time interval between successive evaluations of the solution vector
-
-    @time xv = taylorinteg(pendulum!, q0TN, t0:integstep:tmax, order, abstol, maxsteps=100);
-    tr = t0:integstep:tmax;
-```
----
-"""
 function taylorinteg{T<:Number}(f, x0::TaylorN{T}, trange::Range{T},
         order::Int, abstol::T; maxsteps::Int=500)
 
