@@ -12,7 +12,7 @@ auxiliary arrays of type `Vector{TaylorN{T}}` to avoid allocations.
 function stabilitymatrix!{T<:Number}(eqsdiff!, t0::T, x::AbstractArray{T,1},
         δx::Array{TaylorN{T},1}, dδx::Array{TaylorN{T},1}, jac::Array{T,2})
 
-    @simd for ind in eachindex(x)
+    for ind in eachindex(x)
         @inbounds δx[ind] = x[ind] + TaylorN(T,ind,order=1)
     end
     eqsdiff!(t0, δx, dδx)
@@ -33,7 +33,7 @@ function stabilitymatrix!{T<:Number}(eqsdiff!, t0::T, x::AbstractArray{Taylor1{T
         δx::Array{TaylorN{Taylor1{T}},1}, dδx::Array{TaylorN{Taylor1{T}},1},
         jac::Array{Taylor1{T},2})
 
-    @simd for ind in eachindex(x)
+    for ind in eachindex(x)
         @inbounds δx[ind] = x[ind] + TaylorN(Taylor1{T},ind,order=1)
     end
     eqsdiff!(t0, δx, dδx)
@@ -51,14 +51,14 @@ function classicalGS!(A, Q, R, aⱼ, qᵢ, vⱼ)
     fill!(R, zero(eltype(A)))
     for j = 1:n
         # aⱼ = A[:,j]
-        @simd for ind = 1:m
+        for ind = 1:m
             @inbounds aⱼ[ind] = A[ind,j]
             @inbounds vⱼ[ind] = aⱼ[ind]
         end
         # vⱼ = copy(aⱼ) # use copy so that modifying vⱼ doesn't change aⱼ
         for i = 1:j-1
             # qᵢ = Q[:,i]
-            @simd for ind = 1:m
+            for ind = 1:m
                 @inbounds qᵢ[ind] = Q[ind,i]
             end
             @inbounds R[i,j] = dot(qᵢ, aⱼ)
@@ -69,7 +69,7 @@ function classicalGS!(A, Q, R, aⱼ, qᵢ, vⱼ)
         end
         @inbounds R[j,j] = norm(vⱼ)
         # Q[:,j] = vⱼ / R[j,j]
-        @simd for ind = 1:m
+        for ind = 1:m
             @inbounds Q[ind,j] = vⱼ[ind] / R[j,j]
         end
     end
@@ -82,14 +82,14 @@ function modifiedGS!(A, Q, R, aⱼ, qᵢ, vⱼ)
     fill!(R, zero(eltype(A)))
     for j = 1:n
         # aⱼ = A[:,j]
-        @simd for ind = 1:m
+        for ind = 1:m
             @inbounds aⱼ[ind] = A[ind,j]
             @inbounds vⱼ[ind] = aⱼ[ind]
         end
         # vⱼ = copy(aⱼ) # use copy so that modifying vⱼ doesn't change aⱼ
         for i = 1:j-1
             # qᵢ = Q[:,i]
-            @simd for ind = 1:m
+            for ind = 1:m
                 @inbounds qᵢ[ind] = Q[ind,i]
             end
             @inbounds R[i,j] = dot(qᵢ, vⱼ) # ⟵ NOTICE: mgs has vⱼ, clgs has aⱼ
@@ -100,7 +100,7 @@ function modifiedGS!(A, Q, R, aⱼ, qᵢ, vⱼ)
         end
         @inbounds R[j,j] = norm(vⱼ)
         # Q[:,j] = vⱼ / R[j,j]
-        @simd for ind = 1:m
+        for ind = 1:m
             @inbounds Q[ind,j] = vⱼ[ind] / R[j,j]
         end
     end
@@ -130,7 +130,7 @@ function liap_jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}},
         ordnext = ord+1
 
         # Set `xaux`, auxiliary vector of Taylor1 to order `ord`
-        @simd for j in eachindex(x)
+        for j in eachindex(x)
             @inbounds xaux[j] = Taylor1( x[j].coeffs[1:ord] )
         end
 
@@ -141,7 +141,7 @@ function liap_jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}},
         @inbounds dx[dof+1:nx] = jac * reshape( xaux[dof+1:nx], (dof,dof) )
 
         # Recursion relations
-        @simd for j in eachindex(x)
+        for j in eachindex(x)
             @inbounds x[j].coeffs[ordnext] = dx[j].coeffs[ord]/ord
         end
     end
@@ -197,7 +197,7 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
 
     # Initial conditions
     @inbounds tv[1] = t0
-    @simd for ind in 1:dof
+    for ind in 1:dof
         @inbounds xv[ind,1] = q0[ind]
         @inbounds λ[ind,1] = zero(T)
         @inbounds λtsum[ind] = zero(T)
@@ -208,7 +208,7 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
 
     # Initialize the vector of Taylor1 expansions
     x = Array{Taylor1{T}}(length(x0))
-    @simd for i in eachindex(x0)
+    for i in eachindex(x0)
         @inbounds x[i] = Taylor1( x0[i], order )
     end
 
@@ -218,7 +218,7 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
     δx = Array{TaylorN{Taylor1{T}}}(dof)
     dδx = Array{TaylorN{Taylor1{T}}}(dof)
     jac = Array{Taylor1{T}}(dof,dof)
-    @simd for i in eachindex(jac)
+    for i in eachindex(jac)
         @inbounds jac[i] = zero(x[1])
     end
     QH = Array{T}(dof,dof)
@@ -231,7 +231,7 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
     nsteps = 1
     while t0 < tmax
         δt = liap_taylorstep!(f, x, dx, xaux, δx, dδx, jac, t0, tmax, x0, order, abstol)
-        @simd for ind in eachindex(jt)
+        for ind in eachindex(jt)
             @inbounds jt[ind] = x0[dof+ind]
         end
         modifiedGS!( jt, QH, RH, aⱼ, qᵢ, vⱼ )
@@ -244,10 +244,10 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
             λtsum[ind] += log(RH[ind,ind])
             λ[ind,nsteps] = λtsum[ind]/tspan
         end
-        @simd for ind in eachindex(QH)
+        for ind in eachindex(QH)
             @inbounds x0[dof+ind] = QH[ind]
         end
-        @simd for i in eachindex(x0)
+        for i in eachindex(x0)
             @inbounds x[i] = Taylor1( x0[i], order )
         end
         if nsteps > maxsteps
