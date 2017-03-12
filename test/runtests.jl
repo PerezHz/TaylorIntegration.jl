@@ -219,6 +219,34 @@ facts("Test integration of ODE with complex dependent variables") do
 
 end
 
+facts("Test jet transport: 1-dim case") do
+    f(t, x) = x^2
+    p = set_variables("ξ", numvars=1, order=5)
+    x0 = 3.0 #"nominal" initial condition
+    x0TN = x0 + p[1] #jet transport initial condition
+    t0=0.0
+    tmax=0.3
+    tvTN, xvTN = taylorinteg(f, x0TN, t0, tmax, _order, _abstol, maxsteps=500)
+    tv, xv = taylorinteg(f, x0, t0, tmax, _order, _abstol, maxsteps=500)
+    exactsol(t, x0, t0) = x0./(1.0-x0.*(t-t0)) #the analytical solution
+    δsol = exactsol(tvTN[end], x0TN, t0)-xvTN[end]
+    δcoeffs = map(y->y[1], map(x->x.coeffs, δsol.coeffs))
+
+    @fact isapprox(δcoeffs, zeros(6), atol=1e-10, rtol=0) --> true
+
+    g(t, x) = 0.3x
+    y0 = 1.0 #"nominal" initial condition
+    y0TN = y0 + p[1] #jet transport initial condition
+    uvTN, yvTN = taylorinteg(g, y0TN, t0, 10/0.3, _order, _abstol, maxsteps=500);
+    uv, yv = taylorinteg(g, y0, t0, 10/0.3, _order, _abstol, maxsteps=500);
+    exactsol_g(u, y0, u0) = y0*exp.(0.3(u-u0))
+    exactsol_g(uv, y0, t0)
+    δsol_g = exactsol_g(uvTN[end], y0TN, t0)-yvTN[end]
+    δcoeffs_g = map(y->y[1], map(x->x.coeffs, δsol_g.coeffs))
+
+    @fact isapprox(δcoeffs_g, zeros(6), atol=1e-10, rtol=0) --> true
+end
+
 facts("Test jet transport: simple pendulum") do
 
     function pendulum!(t, x, dx) #the simple pendulum ODE
