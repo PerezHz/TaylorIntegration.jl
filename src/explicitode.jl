@@ -10,7 +10,7 @@ $\dot{x}=dx/dt=f(t,x)$.
 
 `eqsdiff` is the function defining the RHS of the ODE,
 `x` contains the Taylor1 expansion of the dependent variable(s) and
-`t` is the independent variable. See [`taylointeg`](@ref) for examples
+`t` is the independent variable. See [`taylorinteg`](@ref) for examples
 and structure of `eqsdiff`.
 Note that `x` is of type `Taylor1{T}` or `Taylor1{TaylorN{T}}`
 
@@ -64,7 +64,7 @@ $\dot{x}=dx/dt=f(t,x)$.
 
 `eqsdiff!` is the function defining the RHS of the ODE,
 `x` contains the Taylor1 expansion of the dependent variables and
-`t` is the independent variable. See [`taylointeg`](@ref) for examples
+`t` is the independent variable. See [`taylorinteg`](@ref) for examples
 and structure of `eqsdiff!`. Note that `x` is of type `Vector{Taylor1{T}}`
 or `Vector{Taylor1{TaylorN{T}}}`. In this case, two auxiliary containers
 `dx` and `xaux` (both of the same type as `x`) are needed to avoid
@@ -82,8 +82,8 @@ function jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}},
         ordnext = ord+1
 
         # Set `xaux`, auxiliary vector of Taylor1 to order `ord`
-        @inbounds for j in eachindex(x)
-            xaux[j] = Taylor1( x[j].coeffs[1:ord] )
+        @simd for j in eachindex(x)
+            @inbounds xaux[j] = Taylor1( x[j].coeffs[1:ord] )
         end
 
         # Equations of motion
@@ -91,8 +91,8 @@ function jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}},
         eqsdiff!(t0, xaux, dx)
 
         # Recursion relations
-        @inbounds for j in eachindex(x)
-            x[j].coeffs[ordnext] = dx[j].coeffs[ord]/ord
+        @simd for j in eachindex(x)
+            @inbounds x[j].coeffs[ordnext] = dx[j].coeffs[ord]/ord
         end
     end
     nothing
@@ -105,8 +105,8 @@ function jetcoeffs!{T<:Real}(eqsdiff!, t0::T, x::Vector{Taylor1{Complex{T}}},
         ordnext = ord+1
 
         # Set `xaux`, auxiliary vector of Taylor1 to order `ord`
-        @inbounds for j in eachindex(x)
-            xaux[j] = Taylor1( x[j].coeffs[1:ord] )
+        @simd for j in eachindex(x)
+            @inbounds xaux[j] = Taylor1( x[j].coeffs[1:ord] )
         end
 
         # Equations of motion
@@ -114,8 +114,8 @@ function jetcoeffs!{T<:Real}(eqsdiff!, t0::T, x::Vector{Taylor1{Complex{T}}},
         eqsdiff!(t0, xaux, dx)
 
         # Recursion relations
-        @inbounds for j in eachindex(x)
-            x[j].coeffs[ordnext] = dx[j].coeffs[ord]/ord
+        @simd for j in eachindex(x)
+            @inbounds x[j].coeffs[ordnext] = dx[j].coeffs[ord]/ord
         end
     end
     nothing
@@ -188,7 +188,7 @@ with initial conditions $x(t_0)=x_0$, computed from `t0` up to
 and the updated value of `x0`.
 
 Here, `f` is the function defining the RHS of the ODE (see
-[`taylointeg`](@ref) for examples and structure of `f`), `x` contains
+[`taylorinteg`](@ref) for examples and structure of `f`), `x` contains
 the Taylor expansion of the dependent variable, `x0` is the initial
 value of the dependent variable, `order`
 is the degree  used for the `Taylor1` polynomials during the integration
@@ -238,7 +238,7 @@ with initial conditions $x(t_0)=x_0$, computed from `t0` up to
 and updating (in-place) `x0`.
 
 Here, `f!` is the function defining the RHS of the ODE (see
-[`taylointeg`](@ref) for examples and structure of `f!`), `x` contains
+[`taylorinteg`](@ref) for examples and structure of `f!`), `x` contains
 the Taylor expansion of the dependent variables, `x0` corresponds
 to the initial (and updated) dependent variables and is of
 type `Vector{Taylor1{T<:Number}}` or `Vector{Taylor1{TaylorN{T}}}`, `order`
@@ -402,26 +402,26 @@ function taylorinteg{T<:Number}(f!, q0::Array{T,1}, t0::T, tmax::T,
     x = Array{Taylor1{T}}(dof)
     dx = Array{Taylor1{T}}(dof)
     xaux = Array{Taylor1{T}}(dof)
-    for i in eachindex(q0)
+    @simd for i in eachindex(q0)
         @inbounds x[i] = Taylor1( q0[i], order )
     end
 
     # Initial conditions
     @inbounds tv[1] = t0
-    @inbounds xv[:,1] = q0[:]
+    @inbounds xv[:,1] .= q0
     x0 = copy(q0)
 
     # Integration
     nsteps = 1
     while t0 < tmax
         δt = taylorstep!(f!, x, dx, xaux, t0, tmax, x0, order, abstol)
-        for i in eachindex(x0)
+        @simd for i in eachindex(x0)
             @inbounds x[i].coeffs[1] = x0[i]
         end
         t0 += δt
         nsteps += 1
         @inbounds tv[nsteps] = t0
-        @inbounds xv[:,nsteps] = x0[:]
+        @inbounds xv[:,nsteps] .= x0
         if nsteps > maxsteps
             warn("""
             Maximum number of integration steps reached; exiting.
@@ -480,26 +480,26 @@ function taylorinteg{T<:Real}(f!, q0::Array{Complex{T},1}, t0::T, tmax::T,
     x = Array{Taylor1{Complex{T}}}(dof)
     dx = Array{Taylor1{Complex{T}}}(dof)
     xaux = Array{Taylor1{Complex{T}}}(dof)
-    for i in eachindex(q0)
+    @simd for i in eachindex(q0)
         @inbounds x[i] = Taylor1( q0[i], order )
     end
 
     # Initial conditions
     @inbounds tv[1] = t0
-    @inbounds xv[:,1] = q0[:]
+    @inbounds xv[:,1] .= q0
     x0 = copy(q0)
 
     # Integration
     nsteps = 1
     while t0 < tmax
         δt = taylorstep!(f!, x, dx, xaux, t0, tmax, x0, order, abstol)
-        for i in eachindex(x0)
+        @simd for i in eachindex(x0)
             @inbounds x[i].coeffs[1] = x0[i]
         end
         t0 += δt
         nsteps += 1
         @inbounds tv[nsteps] = t0
-        @inbounds xv[:,nsteps] = x0[:]
+        @inbounds xv[:,nsteps] .= x0
         if nsteps > maxsteps
             warn("""
             Maximum number of integration steps reached; exiting.
@@ -629,21 +629,21 @@ function taylorinteg{T<:Number}(f!, q0::Array{T,1}, trange::Range{T},
     x0 = similar(q0, T, dof)
     fill!(x0, T(NaN))
     xv = Array{eltype(q0)}(dof, nn)
-    @inbounds for ind in 1:nn
-        xv[:,ind] = x0[:]
+    @simd for ind in 1:nn
+        @inbounds xv[:,ind] .= x0
     end
 
     # Initialize the vector of Taylor1 expansions
     x = Array{Taylor1{T}}(dof)
     dx = Array{Taylor1{T}}(dof)
     xaux = Array{Taylor1{T}}(dof)
-    for i in eachindex(q0)
+    @simd for i in eachindex(q0)
         @inbounds x[i] = Taylor1( q0[i], order )
     end
 
     # Initial conditions
-    @inbounds x0[:] = q0[:]
-    @inbounds xv[:,1] = q0[:]
+    @inbounds x0 .= q0
+    @inbounds xv[:,1] .= q0
 
     # Integration
     iter = 1
@@ -652,7 +652,7 @@ function taylorinteg{T<:Number}(f!, q0::Array{T,1}, trange::Range{T},
         nsteps = 0
         while nsteps < maxsteps
             δt = taylorstep!(f!, x, dx, xaux, t0, t1, x0, order, abstol)
-            for i in eachindex(x0)
+            @simd for i in eachindex(x0)
                 @inbounds x[i].coeffs[1] = x0[i]
             end
             t0 += δt
@@ -666,7 +666,7 @@ function taylorinteg{T<:Number}(f!, q0::Array{T,1}, trange::Range{T},
             break
         end
         iter += 1
-        @inbounds xv[:,iter] = x0[:]
+        @inbounds xv[:,iter] .= x0
     end
 
     return transpose(xv)
@@ -689,11 +689,11 @@ function taylorinteg{T<:Real}(f, x0::Complex{T}, trange::Range{T},
     # Integration
     iter = 1
     while iter < nn
-        t0, t1 = trange[iter], trange[iter+1]
+        @inbounds t0, t1 = trange[iter], trange[iter+1]
         nsteps = 0
         while nsteps < maxsteps
             δt, x0 = taylorstep!(f, x, t0, t1, x0, order, abstol)
-            x.coeffs[1] = x0
+            @inbounds x.coeffs[1] = x0
             t0 += δt
             t0 ≥ t1 && break
             nsteps += 1
@@ -720,21 +720,21 @@ function taylorinteg{T<:Real}(f!, q0::Array{Complex{T},1}, trange::Range{T},
     x0 = similar(q0, Complex{T}, dof)
     fill!(x0, T(NaN))
     xv = Array{eltype(q0)}(dof, nn)
-    @inbounds for ind in 1:nn
-        xv[:,ind] = x0[:]
+    @simd for ind in 1:nn
+        @inbounds xv[:,ind] .= x0
     end
 
     # Initialize the vector of Taylor1 expansions
     x = Array{Taylor1{Complex{T}}}(dof)
     dx = Array{Taylor1{Complex{T}}}(dof)
     xaux = Array{Taylor1{Complex{T}}}(dof)
-    for i in eachindex(q0)
+    @simd for i in eachindex(q0)
         @inbounds x[i] = Taylor1( q0[i], order )
     end
 
     # Initial conditions
-    @inbounds x0[:] = q0[:]
-    @inbounds xv[:,1] = q0[:]
+    @inbounds x0 .= q0
+    @inbounds xv[:,1] .= q0
 
     # Integration
     iter = 1
@@ -743,7 +743,7 @@ function taylorinteg{T<:Real}(f!, q0::Array{Complex{T},1}, trange::Range{T},
         nsteps = 0
         while nsteps < maxsteps
             δt = taylorstep!(f!, x, dx, xaux, t0, t1, x0, order, abstol)
-            for i in eachindex(x0)
+            @simd for i in eachindex(x0)
                 @inbounds x[i].coeffs[1] = x0[i]
             end
             t0 += δt
@@ -757,7 +757,7 @@ function taylorinteg{T<:Real}(f!, q0::Array{Complex{T},1}, trange::Range{T},
             break
         end
         iter += 1
-        @inbounds xv[:,iter] = x0[:]
+        @inbounds xv[:,iter] .= x0
     end
 
     return transpose(xv)
