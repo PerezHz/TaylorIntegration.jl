@@ -348,8 +348,8 @@ function taylorinteg{T<:Number}(f, x0::T, t0::T, tmax::T, order::Int,
         abstol::T; maxsteps::Int=500)
 
     # Allocation
-    tv = Array{T}(maxsteps+1)
-    xv = Array{T}(maxsteps+1)
+    const tv = Array{T}(maxsteps+1)
+    const xv = Array{T}(maxsteps+1)
 
     # Initialize the Taylor1 expansions
     x = Taylor1( x0, order )
@@ -394,14 +394,14 @@ function taylorinteg{T<:Number}(f!, q0::Array{T,1}, t0::T, tmax::T,
         order::Int, abstol::T; maxsteps::Int=500)
 
     # Allocation
-    tv = Array{T}(maxsteps+1)
+    const tv = Array{T}(maxsteps+1)
     dof = length(q0)
-    xv = Array{T}(dof, maxsteps+1)
+    const xv = Array{T}(dof, maxsteps+1)
 
     # Initialize the vector of Taylor1 expansions
-    x = Array{Taylor1{T}}(dof)
-    dx = Array{Taylor1{T}}(dof)
-    xaux = Array{Taylor1{T}}(dof)
+    const x = Array{Taylor1{T}}(dof)
+    const dx = Array{Taylor1{T}}(dof)
+    const xaux = Array{Taylor1{T}}(dof)
     for i in eachindex(q0)
         @inbounds x[i] = Taylor1( q0[i], order )
     end
@@ -437,8 +437,8 @@ function taylorinteg{T<:Real}(f, x0::Complex{T}, t0::T, tmax::T, order::Int,
         abstol::T; maxsteps::Int=500)
 
     # Allocation
-    tv = Array{T}(maxsteps+1)
-    xv = Array{Complex{T}}(maxsteps+1)
+    const tv = Array{T}(maxsteps+1)
+    const xv = Array{Complex{T}}(maxsteps+1)
 
     # Initialize the Taylor1 expansions
     x = Taylor1( x0, order )
@@ -472,14 +472,14 @@ function taylorinteg{T<:Real}(f!, q0::Array{Complex{T},1}, t0::T, tmax::T,
         order::Int, abstol::T; maxsteps::Int=500)
 
     # Allocation
-    tv = Array{T}(maxsteps+1)
+    const tv = Array{T}(maxsteps+1)
     dof = length(q0)
-    xv = Array{Complex{T}}(dof, maxsteps+1)
+    const xv = Array{Complex{T}}(dof, maxsteps+1)
 
     # Initialize the vector of Taylor1 expansions
-    x = Array{Taylor1{Complex{T}}}(dof)
-    dx = Array{Taylor1{Complex{T}}}(dof)
-    xaux = Array{Taylor1{Complex{T}}}(dof)
+    const x = Array{Taylor1{Complex{T}}}(dof)
+    const dx = Array{Taylor1{Complex{T}}}(dof)
+    const xaux = Array{Taylor1{Complex{T}}}(dof)
     for i in eachindex(q0)
         @inbounds x[i] = Taylor1( q0[i], order )
     end
@@ -586,7 +586,7 @@ function taylorinteg{T<:Number}(f, x0::T, trange::Range{T},
 
     # Allocation
     nn = length(trange)
-    xv = Array{T}(nn)
+    const xv = Array{T}(nn)
     fill!(xv, T(NaN))
 
     # Initialize the Taylor1 expansions
@@ -626,17 +626,17 @@ function taylorinteg{T<:Number}(f!, q0::Array{T,1}, trange::Range{T},
     # Allocation
     nn = length(trange)
     dof = length(q0)
-    x0 = similar(q0, T, dof)
+    const x0 = similar(q0, T, dof)
     fill!(x0, T(NaN))
-    xv = Array{eltype(q0)}(dof, nn)
+    const xv = Array{eltype(q0)}(dof, nn)
     for ind in 1:nn
         @inbounds xv[:,ind] .= x0
     end
 
     # Initialize the vector of Taylor1 expansions
-    x = Array{Taylor1{T}}(dof)
-    dx = Array{Taylor1{T}}(dof)
-    xaux = Array{Taylor1{T}}(dof)
+    const x = Array{Taylor1{T}}(dof)
+    const dx = Array{Taylor1{T}}(dof)
+    const xaux = Array{Taylor1{T}}(dof)
     for i in eachindex(q0)
         @inbounds x[i] = Taylor1( q0[i], order )
     end
@@ -677,7 +677,7 @@ function taylorinteg{T<:Real}(f, x0::Complex{T}, trange::Range{T},
 
     # Allocation
     nn = length(trange)
-    xv = Array{Complex{T}}(nn)
+    const xv = Array{Complex{T}}(nn)
     fill!(xv, T(NaN))
 
     # Initialize the Taylor1 expansions
@@ -717,17 +717,17 @@ function taylorinteg{T<:Real}(f!, q0::Array{Complex{T},1}, trange::Range{T},
     # Allocation
     nn = length(trange)
     dof = length(q0)
-    x0 = similar(q0, Complex{T}, dof)
+    const x0 = similar(q0, Complex{T}, dof)
     fill!(x0, T(NaN))
-    xv = Array{eltype(q0)}(dof, nn)
+    const xv = Array{eltype(q0)}(dof, nn)
     for ind in 1:nn
         @inbounds xv[:,ind] .= x0
     end
 
     # Initialize the vector of Taylor1 expansions
-    x = Array{Taylor1{Complex{T}}}(dof)
-    dx = Array{Taylor1{Complex{T}}}(dof)
-    xaux = Array{Taylor1{Complex{T}}}(dof)
+    const x = Array{Taylor1{Complex{T}}}(dof)
+    const dx = Array{Taylor1{Complex{T}}}(dof)
+    const xaux = Array{Taylor1{Complex{T}}}(dof)
     for i in eachindex(q0)
         @inbounds x[i] = Taylor1( q0[i], order )
     end
