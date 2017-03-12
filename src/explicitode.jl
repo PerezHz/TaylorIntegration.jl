@@ -1,19 +1,23 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
-
 # jetcoeffs!
 doc"""
-    jetcoeffs!(f, t, x)
+    jetcoeffs!(eqsdiff, t, x)
 
 Returns an updated `x` using the recursion relation of the
-derivatives from the ODE $\dot{x}=dx/dt=f(t,x)$.
+derivatives obtained from the differential equations
+$\dot{x}=dx/dt=f(t,x)$.
 
-`f` is the function defining the RHS of the ODE, `x` is a `Taylor1{T}`,
-containing the Taylor expansion of the dependent variable of the ODE and
-`t` is the independent variable.
+`eqsdiff` is the function defining the RHS of the ODE,
+`x` contains the Taylor1 expansion of the dependent variable(s) and
+`t` is the independent variable. See [`taylointeg`](@ref) for examples
+and structure of `eqsdiff`.
+Note that `x` is of type `Taylor1{T}` or `Taylor1{TaylorN{T}}`
+
 Initially, `x` contains only the 0-th order Taylor coefficient of
 the current system state (the initial conditions), and `jetcoeffs!`
 computes recursively the high-order derivates back into `x`.
+
 """
 function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Taylor1{T})
     order = x.order
@@ -33,20 +37,43 @@ function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Taylor1{T})
     nothing
 end
 
+function jetcoeffs!{T<:Real}(eqsdiff, t0::T, x::Taylor1{Complex{T}})
+    order = x.order
+    for ord in 1:order
+        ordnext = ord+1
+
+        # Set `xaux`, auxiliary Taylor1 variable to order `ord`
+        @inbounds xaux = Taylor1( x.coeffs[1:ord] )
+
+        # Equations of motion
+        # TODO! define a macro to optimize the eqsdiff
+        dx = eqsdiff(t0, xaux)
+
+        # Recursion relation
+        @inbounds x.coeffs[ordnext] = dx.coeffs[ord]/ord
+    end
+    nothing
+end
+
 doc"""
-    jetcoeffs!(f!, t, x, dx, xaux)
+    jetcoeffs!(eqsdiff!, t, x, dx, xaux)
 
 Returns an updated `x` using the recursion relation of the
-derivatives from the ODE $\dot{x}=dx/dt=f(t,x)$.
+derivatives obtained from the differential equations
+$\dot{x}=dx/dt=f(t,x)$.
 
-`f!` is the function defining the RHS of the ODE, `x` is a vector of `Taylor1{T}`,
-containing the Taylor expansion of the dependent variables of the ODE and
-`t` is the independent variable. `dx` stores an in-place evaluation of
-the equations of motion, whereas `xaux` is an auxiliary variable which helps
-with optimization.
-Initially, `x` contains only the 0-th order Taylor coefficients of
+`eqsdiff!` is the function defining the RHS of the ODE,
+`x` contains the Taylor1 expansion of the dependent variables and
+`t` is the independent variable. See [`taylointeg`](@ref) for examples
+and structure of `eqsdiff!`. Note that `x` is of type `Vector{Taylor1{T}}`
+or `Vector{Taylor1{TaylorN{T}}}`. In this case, two auxiliary containers
+`dx` and `xaux` (both of the same type as `x`) are needed to avoid
+allocations.
+
+Initially, `x` contains only the 0-th order Taylor coefficient of
 the current system state (the initial conditions), and `jetcoeffs!`
 computes recursively the high-order derivates back into `x`.
+
 """
 function jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}},
         dx::Vector{Taylor1{T}}, xaux::Vector{Taylor1{T}})
@@ -67,24 +94,6 @@ function jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}},
         @inbounds for j in eachindex(x)
             x[j].coeffs[ordnext] = dx[j].coeffs[ord]/ord
         end
-    end
-    nothing
-end
-
-function jetcoeffs!{T<:Real}(eqsdiff, t0::T, x::Taylor1{Complex{T}})
-    order = x.order
-    for ord in 1:order
-        ordnext = ord+1
-
-        # Set `xaux`, auxiliary Taylor1 variable to order `ord`
-        @inbounds xaux = Taylor1( x.coeffs[1:ord] )
-
-        # Equations of motion
-        # TODO! define a macro to optimize the eqsdiff
-        dx = eqsdiff(t0, xaux)
-
-        # Recursion relation
-        @inbounds x.coeffs[ordnext] = dx.coeffs[ord]/ord
     end
     nothing
 end
@@ -117,8 +126,13 @@ end
 doc"""
     stepsize(x, epsilon)
 
-Returns a time-step for a `x::Taylor1{T}` using a
-prescribed absolute tolerance `epsilon`.
+Returns a maximum time-step for a the Taylor expansion `x`
+using a prescribed absolute tolerance `epsilon` and the last two
+Taylor coefficients of (each component of) `x`.
+
+Note that `x` is of type `Taylor1{T}` or `Vector{Taylor1{T}}`, including
+also the cases `Taylor1{TaylorN{T}}` and `Vector{Taylor1{TaylorN{T}}}`.
+
 """
 function stepsize{T<:Number}(x::Taylor1{T}, epsilon::T)
     ord = x.order
@@ -147,12 +161,6 @@ function stepsize{T<:Real}(x::Taylor1{Complex{T}}, epsilon::T)
     return h
 end
 
-doc"""
-    stepsize(q, epsilon)
-
-Returns the minimum time-step for `q::Array{Taylor1{T},1}`,
-using a prescribed absolute tolerance `epsilon`.
-"""
 function stepsize{T<:Number}(q::Array{Taylor1{T},1}, epsilon::T)
     h = T(Inf)
     for i in eachindex(q)
@@ -174,15 +182,21 @@ end
 doc"""
     taylorstep!(f, x, t0, t1, x0, order, abstol)
 
-Compute one-step Taylor integration for the ODE $\dot{x}=dx/dt=f(t, x)$
-with initial conditions $x(t_0)=x0$, returning the
-time-step of the integration carried out and the updated value of `x0`.
+One-step Taylor integration for the ODE $\dot{x}=dx/dt=f(t, x)$
+with initial conditions $x(t_0)=x_0$, computed from `t0` up to
+`t1`, returning the time-step of the actual integration carried out
+and the updated value of `x0`.
 
-Here, `x0` is the initial (and returned) dependent variables, `order`
-is the degree used for the `Taylor1` polynomials during the integration
+Here, `f` is the function defining the RHS of the ODE (see
+[`taylointeg`](@ref) for examples and structure of `f`), `x` contains
+the Taylor expansion of the dependent variable, `x0` is the initial
+value of the dependent variable, `order`
+is the degree  used for the `Taylor1` polynomials during the integration
 and `abstol` is the absolute tolerance used to determine the time step
-of the integration. If the time step is larger than `t1-t0`, that difference
-is used as the time step.
+of the integration. Note that `x0` is of type `Taylor1{T<:Number}` or
+`Taylor1{TaylorN{T}}`. If the time step is larger than `t1-t0`, that
+difference is used as the time step.
+
 """
 function taylorstep!{T<:Number}(f, x::Taylor1{T}, t0::T, t1::T, x0::T,
         order::Int, abstol::T)
@@ -218,19 +232,26 @@ end
 doc"""
     taylorstep!(f!, x, dx, xaux, t0, t1, x0, order, abstol)
 
-Compute one-step Taylor integration for the ODE $\dot{x}=dx/dt=f!(t, x)$
-with initial conditions $x(t_0)=x0$, a vector of type T, returning the
-step-size of the integration carried out and updating `x0`.
+One-step Taylor integration for the ODE $\dot{x}=dx/dt=f(t, x)$
+with initial conditions $x(t_0)=x_0$, computed from `t0` up to
+`t1`, returning the time-step of the actual integration carried out
+and updating (in-place) `x0`.
 
-Here, `x0` is the initial (and updated) dependent variables; `order`
-is the degree used for the `Taylor1` polynomials during the integration; `dx`
-represents an in-place evaluation of the equations of motion; `xaux` is an
-auxiliary variable which helps with optimization; `abstol` is the absolute
-tolerance used to determine the time step of the integration. If the time step is
-larger than `t1-t0`, that difference is used as the time step.
+Here, `f!` is the function defining the RHS of the ODE (see
+[`taylointeg`](@ref) for examples and structure of `f!`), `x` contains
+the Taylor expansion of the dependent variables, `x0` corresponds
+to the initial (and updated) dependent variables and is of
+type `Vector{Taylor1{T<:Number}}` or `Vector{Taylor1{TaylorN{T}}}`, `order`
+is the degree used for the `Taylor1` polynomials during the integration
+and `abstol` is the absolute tolerance used to determine the time step
+of the integration.  `dx` and `xaux`, both of the same type as `x0`,
+are needed to avoid allocations.
+
+
 """
 function taylorstep!{T<:Number}(f!, x::Vector{Taylor1{T}}, dx::Vector{Taylor1{T}},
-        xaux::Vector{Taylor1{T}}, t0::T, t1::T, x0::Array{T,1}, order::Int, abstol::T)
+        xaux::Vector{Taylor1{T}}, t0::T, t1::T, x0::Array{T,1},
+        order::Int, abstol::T)
     @assert t1 > t0
 
     # Compute the Taylor coefficients
@@ -244,8 +265,9 @@ function taylorstep!{T<:Number}(f!, x::Vector{Taylor1{T}}, dx::Vector{Taylor1{T}
     return δt
 end
 
-function taylorstep!{T<:Real}(f!, x::Vector{Taylor1{Complex{T}}}, dx::Vector{Taylor1{Complex{T}}},
-        xaux::Vector{Taylor1{Complex{T}}}, t0::T, t1::T, x0::Array{Complex{T},1}, order::Int, abstol::T)
+function taylorstep!{T<:Real}(f!, x::Vector{Taylor1{Complex{T}}},
+        dx::Vector{Taylor1{Complex{T}}}, xaux::Vector{Taylor1{Complex{T}}},
+        t0::T, t1::T, x0::Array{Complex{T},1}, order::Int, abstol::T)
     @assert t1 > t0
 
     # Compute the Taylor coefficients
@@ -264,8 +286,12 @@ end
 doc"""
     taylorinteg(f, x0, t0, tmax, order, abstol; keyword... )
 
-This is a general-purpose Taylor integrator for the explicit ODE
-$\dot{x}=f(t,x)$ with initial condition specified by `x0` at time `t0`.
+General-purpose Taylor integrator for the explicit ODE
+$\dot{x}=f(t,x)$ with initial condition specified by `x0`
+at time `t0`. The initial condition `x0` may be of type `T<:Number`
+or a `Vector{T}`, with `T` including `TaylorN{T}`; the latter case
+is of interest for jet transport applications.
+
 It returns a vector with the values of time (independent variable),
 and a vector (of type `typeof(x0)`) with the computed values of
 the dependent variable(s). The integration stops when time
@@ -273,13 +299,16 @@ is larger than `tmax` (in which case the last returned values are
 `t_max`, `x(t_max)`), or else when the number of saved steps is larger
 than `maxsteps`.
 
-The integrator uses polynomial expansions on the independent variable
+The integration uses polynomial expansions on the independent variable
 of order `order`; the parameter `abstol` serves to define the
 time step using the last two Taylor coefficients of the expansions.
+Make sure you use a *large enough* `order` to assure convergence.
 
 The current keyword argument is `maxsteps=500`.
 
-Example (1-dim case):
+**Examples**:
+
+- One dependent variable: The function `f` defines the equation of motion.
 
 ```julia
     using TaylorIntegration
@@ -289,7 +318,8 @@ Example (1-dim case):
     tv, xv = taylorinteg(f, 3, 0.0, 0.3, 25, 1.0e-20, maxsteps=100 )
 ```
 
-Example (multi-dim case):
+- Many (two or more) dependent variable: The function `f!` defines
+    the equation of motion.
 
 ```julia
     using TaylorIntegration
@@ -302,7 +332,7 @@ Example (multi-dim case):
 
     tv, xv = taylorinteg(f!, [3.0,3.0], 0.0, 0.3, 25, 1.0e-20, maxsteps=100 )
 ```
----
+Note that `f!` updates (mutates) the pre-allocated vector `dx`.
 
 """
 function taylorinteg{S<:Number, T<:Number, U<:Number, V<:Number}(f, x0::S,
@@ -438,7 +468,6 @@ function taylorinteg{T<:Real}(f, x0::Complex{T}, t0::T, tmax::T, order::Int,
     return view(tv,1:nsteps), view(xv,1:nsteps)
 end
 
-
 function taylorinteg{T<:Real}(f!, q0::Array{Complex{T},1}, t0::T, tmax::T,
         order::Int, abstol::T; maxsteps::Int=500)
 
@@ -487,23 +516,26 @@ end
 doc"""
     taylorinteg(f, x0, t0, trange, order, abstol; keyword... )
 
-This is a general-purpose Taylor integrator for the explicit ODE
-$\dot{x}=f(t,x)$ with initial condition specified by `x0` at time `t0`.
+General-purpose Taylor integrator for the explicit ODE
+$\dot{x}=f(t,x)$ with initial condition specified by `x0::{T<:Number}`
+or `x0::Vector{T}` at time `t0`.
 It returns a vector with the values of time (independent variable),
 and a vector (of type `typeof(x0)`) with the computed values of
-the dependent variable(s), evaluated only at the times given by
-`trange`. The integration stops when time
-is larger than `tmax` (in which case the last returned values are
-`t_max`, `x(t_max)`), or else when the number of saved steps is larger
-than `maxsteps`.
+the dependent variable(s), evaluated *only* at the times specified by
+the range `trange`. The integration stops at `tmax=trange[end]`
+(in which case the last returned values are `t_max`, `x(t_max)`), or
+else when the number of computed time steps is larger than `maxsteps`.
 
-The integrator uses polynomial expansions on the independent variable
+The integration uses polynomial expansions on the independent variable
 of order `order`; the parameter `abstol` serves to define the
 time step using the last two Taylor coefficients of the expansions.
+Make sure you use a *large enough* `order` to assure convergence.
 
 The current keyword argument is `maxsteps=500`.
 
-Example (1-dim case):
+**Examples**:
+
+- One dependent variable: The function `f` defines the equation of motion.
 
 ```julia
     using TaylorIntegration
@@ -513,7 +545,8 @@ Example (1-dim case):
     xv = taylorinteg(f, 3.0, 0.0:0.001:0.3, 25, 1.0e-20, maxsteps=100 )
 ```
 
-Example (multi-dim case):
+- Many (two or more) dependent variable: The function f! defines the
+    equation of motion.
 
 ```julia
     using TaylorIntegration
@@ -526,7 +559,26 @@ Example (multi-dim case):
 
     xv = taylorinteg(f!, [3.0, 3.0], 0.0:0.001:0.3, 25, 1.0e-20, maxsteps=100 )
 ```
----
+Note that f! updates (mutates) the pre-allocated vector dx.
+
+- Jet transport for the simple pendulum.
+
+```julia
+    using TaylorSeries, TaylorIntegration
+
+    function pendulum!(t, x, dx) #the simple pendulum ODE
+        dx[1] = x[2]
+        dx[2] = -sin(x[1])
+    end
+
+    p = set_variables("ξ", numvars=2, order=5) #TaylorN set-up, order 5
+    q0 = [1.3, 0.0]    # initial conditions
+    q0TN = q0 + p      # parametrization of a neighbourhood around q0
+    tr = 0.0:0.125:6pi
+
+    @time xv = taylorinteg(pendulum!, q0TN, tr, 28, 1e-20, maxsteps=100);
+```
+Note that the initial conditions `q0TN` are of type `TaylorN{Float64}`.
 
 """
 function taylorinteg{T<:Number}(f, x0::T, trange::Range{T},

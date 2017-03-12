@@ -1,33 +1,44 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
 """
-    stabilitymatrix!{T<:Number, S<:Number}(eqsdiff, t0::T, x::Array{T,1},
-        jac::Array{T,2})
-    stabilitymatrix!{T<:Number, S<:Number}(eqsdiff, t0::T, x::Array{Taylor1{T},1},
-        jac::Array{Taylor1{T},2})
+    stabilitymatrix!(eqsdiff!, t0, x, δx, dδx, jac)
 
-Updates the matrix `jac` (linearized equations of motion)
-computed from the equations of motion (`eqsdiff`), at time `t0`
-at `x0`.
+Updates the matrix `jac::Array{T,2}` (linearized equations of motion)
+computed from the equations of motion (`eqsdiff!`), at time `t0`
+at `x`; `x` is of type `Vector{T<:Number}`. `δx` and `dδx` are two
+auxiliary arrays of type `Vector{TaylorN{T}}` to avoid allocations.
+
 """
 function stabilitymatrix!{T<:Number}(eqsdiff!, t0::T, x::Array{T,1},
-        δx::Array{TaylorN{T},1}, δdx::Array{TaylorN{T},1}, jac::Array{T,2})
+        δx::Array{TaylorN{T},1}, dδx::Array{TaylorN{T},1}, jac::Array{T,2})
+
     @inbounds for ind in eachindex(x)
         δx[ind] = x[ind] + TaylorN(T,ind,order=1)
     end
-    eqsdiff!(t0, δx, δdx)
-    jacobian!( jac, δdx )
+    eqsdiff!(t0, δx, dδx)
+    jacobian!( jac, dδx )
     nothing
 end
 
+"""
+    stabilitymatrix!(eqsdiff!, t0, x, δx, dδx, jac)
+
+Updates the matrix `jac::Array{Taylor1{T},2}` (linearized equations of motion)
+computed from the equations of motion (`eqsdiff!`), at time `t0`
+at `x`; `x` is of type `Vector{Taylor1{T<:Number}}`. `δx` and `dδx` are two
+auxiliary arrays of type `Vector{TaylorN{Taylor1{T}}}` to avoid allocations.
+
+"""
 function stabilitymatrix!{T<:Number}(eqsdiff!, t0::T, x::Array{Taylor1{T},1},
-        δx::Array{TaylorN{Taylor1{T}},1}, δdx::Array{TaylorN{Taylor1{T}},1}, jac::Array{Taylor1{T},2})
+        δx::Array{TaylorN{Taylor1{T}},1}, dδx::Array{TaylorN{Taylor1{T}},1},
+        jac::Array{Taylor1{T},2})
+
     @inbounds for ind in eachindex(x)
         δx[ind] = convert(TaylorN{Taylor1{T}}, x[ind]) +
             TaylorN(Taylor1{T},ind,order=1)
     end
-    eqsdiff!(t0, δx, δdx)
-    jacobian!( jac, δdx )
+    eqsdiff!(t0, δx, dδx)
+    jacobian!( jac, dδx )
     nothing
 end
 
@@ -65,7 +76,8 @@ function classicalGS!(A, Q, R, aⱼ, qᵢ, vⱼ)
     end
     return nothing
 end
-# Modified Gram–Schmidt (Trefethen algorithm 8.1)
+# Modified Gram–Schmidt (Trefethen algorithm 8.1); see also
+# http://nbviewer.jupyter.org/url/math.mit.edu/~stevenj/18.335/Gram-Schmidt.ipynb
 function modifiedGS!(A, Q, R, aⱼ, qᵢ, vⱼ)
     m,n = size(A)
     fill!(R, zero(eltype(A)))
@@ -96,10 +108,19 @@ function modifiedGS!(A, Q, R, aⱼ, qᵢ, vⱼ)
     return nothing
 end
 
+"""
+    liap_jetcoeffs!(eqsdiff!, t0, x, dx, xaux, δx, dδx, jac)
 
+Similar to [`jetcoeffs!`](@ref) for the calculation of the Liapunov
+spectrum. `jac` is the linearization of the equations of motion,
+and `xaux`, `δx` and `dδx` are auxiliary vectors.
+
+"""
 function liap_jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}},
         dx::Vector{Taylor1{T}}, xaux::Vector{Taylor1{T}},
-        δx::Array{TaylorN{Taylor1{T}},1}, δdx::Array{TaylorN{Taylor1{T}},1}, jac::Array{Taylor1{T},2})
+        δx::Array{TaylorN{Taylor1{T}},1}, dδx::Array{TaylorN{Taylor1{T}},1},
+        jac::Array{Taylor1{T},2})
+
     order = x[1].order
 
     # Dimensions of phase-space: dof
@@ -116,7 +137,7 @@ function liap_jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}},
 
         # Equations of motion
         eqsdiff!(t0, xaux, dx)
-        stabilitymatrix!( eqsdiff!, t0, xaux[1:dof], δx, δdx, jac )
+        stabilitymatrix!( eqsdiff!, t0, xaux[1:dof], δx, dδx, jac )
         @inbounds dx[dof+1:nx] = jac * reshape( xaux[dof+1:nx], (dof,dof) )
 
         # Recursion relations
@@ -128,13 +149,21 @@ function liap_jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}},
 end
 
 
+"""
+    liap_taylorstep!(f, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol)
+
+Similar to [`taylorstep!`](@ref) for the calculation of the Liapunov
+spectrum. `jac` is the linearization of the equations of motion,
+and `xaux`, `δx` and `dδx` are auxiliary vectors.
+
+"""
 function liap_taylorstep!{T<:Number}(f, x::Vector{Taylor1{T}}, dx::Vector{Taylor1{T}},
         xaux::Vector{Taylor1{T}}, δx::Array{TaylorN{Taylor1{T}},1},
-        δdx::Array{TaylorN{Taylor1{T}},1}, jac::Array{Taylor1{T},2}, t0::T, t1::T, x0::Array{T,1},
+        dδx::Array{TaylorN{Taylor1{T}},1}, jac::Array{Taylor1{T},2}, t0::T, t1::T, x0::Array{T,1},
         order::Int, abstol::T)
 
     # Compute the Taylor coefficients
-    liap_jetcoeffs!(f, t0, x, dx, xaux, δx, δdx, jac)
+    liap_jetcoeffs!(f, t0, x, dx, xaux, δx, dδx, jac)
 
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(x, abstol)
@@ -146,6 +175,13 @@ function liap_taylorstep!{T<:Number}(f, x::Vector{Taylor1{T}}, dx::Vector{Taylor
 end
 
 
+"""
+    liap_taylorinteg(f, q0, t0, tmax, order, abstol; maxsteps::Int=500)
+
+Similar to [`taylorinteg!`](@ref) for the calculation of the Liapunov
+spectrum.
+
+"""
 function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
         order::Int, abstol::T; maxsteps::Int=500)
     # Allocation
@@ -180,7 +216,7 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
     dx = Array{Taylor1{T}}(length(x0))
     xaux = Array{Taylor1{T}}(length(x0))
     δx = Array{TaylorN{Taylor1{T}}}(dof)
-    δdx = Array{TaylorN{Taylor1{T}}}(dof)
+    dδx = Array{TaylorN{Taylor1{T}}}(dof)
     jac = Array{Taylor1{T}}(dof,dof)
     for i in eachindex(jac)
         jac[i] = zero(x[1])
@@ -194,7 +230,7 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
     # Integration
     nsteps = 1
     while t0 < tmax
-        δt = liap_taylorstep!(f, x, dx, xaux, δx, δdx, jac, t0, tmax, x0, order, abstol)
+        δt = liap_taylorstep!(f, x, dx, xaux, δx, dδx, jac, t0, tmax, x0, order, abstol)
         @inbounds for ind in eachindex(jt)
             jt[ind] = x0[dof+ind]
         end
