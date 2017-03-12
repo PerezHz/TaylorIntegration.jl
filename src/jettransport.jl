@@ -100,8 +100,8 @@ function taylorinteg{T<:Number}(f, x0::TaylorN{T}, t0::T, tmax::T, order::Int,
         abstol::T; maxsteps::Int=500)
 
     # Allocation
-    tv = Array{T}(maxsteps+1)
-    xv = Array{TaylorN{T}}(maxsteps+1)
+    const tv = Array{T}(maxsteps+1)
+    const xv = Array{TaylorN{T}}(maxsteps+1)
 
     # Initialize the Taylor1 expansions
     x = Taylor1( x0, order )
@@ -135,14 +135,14 @@ function taylorinteg{T<:Number}(f, q0::Array{TaylorN{T},1}, t0::T, tmax::T,
         order::Int, abstol::T; maxsteps::Int=500)
 
     # Allocation
-    tv = Array{T}(maxsteps+1)
+    const tv = Array{T}(maxsteps+1)
     dof = length(q0)
-    xv = Array{TaylorN{T}}(dof, maxsteps+1)
+    const xv = Array{TaylorN{T}}(dof, maxsteps+1)
 
     # Initialize the vector of Taylor1 expansions
-    x = Array{Taylor1{TaylorN{T}}}(dof)
-    dx = Array{Taylor1{TaylorN{T}}}(dof)
-    xaux = Array{Taylor1{TaylorN{T}}}(dof)
+    const x = Array{Taylor1{TaylorN{T}}}(dof)
+    const dx = Array{Taylor1{TaylorN{T}}}(dof)
+    const xaux = Array{Taylor1{TaylorN{T}}}(dof)
     for i in eachindex(q0)
         @inbounds x[i] = Taylor1( q0[i], order )
     end
@@ -179,7 +179,7 @@ function taylorinteg{T<:Number}(f, x0::TaylorN{T}, trange::Range{T},
 
     # Allocation
     nn = length(trange)
-    xv = Array{TaylorN{T}}(nn)
+    const xv = Array{TaylorN{T}}(nn)
     fill!(xv, TaylorN{T}(NaN))
 
     # Initialize the Taylor1 expansions
@@ -219,17 +219,17 @@ function taylorinteg{T<:Number}(f, q0::Array{TaylorN{T},1}, trange::Range{T},
     # Allocation
     nn = length(trange)
     dof = length(q0)
-    x0 = similar(q0, TaylorN{T}, dof)
+    const x0 = similar(q0, TaylorN{T}, dof)
     fill!(x0, TaylorN{T}(NaN))
-    xv = Array{eltype(q0)}(dof, nn)
+    const xv = Array{eltype(q0)}(dof, nn)
     for ind in 1:nn
         @inbounds xv[:,ind] .= x0
     end
 
     # Initialize the vector of Taylor1 expansions
-    x = Array{Taylor1{TaylorN{T}}}(dof)
-    dx = Array{Taylor1{TaylorN{T}}}(dof)
-    xaux = Array{Taylor1{TaylorN{T}}}(dof)
+    const x = Array{Taylor1{TaylorN{T}}}(dof)
+    const dx = Array{Taylor1{TaylorN{T}}}(dof)
+    const xaux = Array{Taylor1{TaylorN{T}}}(dof)
     for i in eachindex(q0)
         @inbounds x[i] = Taylor1( q0[i], order )
     end
