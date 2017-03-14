@@ -219,7 +219,7 @@ facts("Test integration of ODE with complex dependent variables") do
 
 end
 
-facts("Test jet transport: 1-dim case") do
+facts("Test jet transport (t0, tmax): 1-dim case") do
     f(t, x) = x^2
     p = set_variables("ξ", numvars=1, order=5)
     x0 = 3.0 #"nominal" initial condition
@@ -247,7 +247,38 @@ facts("Test jet transport: 1-dim case") do
     @fact isapprox(δcoeffs_g, zeros(6), atol=1e-10, rtol=0) --> true
 end
 
-facts("Test jet transport: simple pendulum") do
+facts("Test jet transport (trange): 1-dim case") do
+    f(t, x) = x^2
+    p = set_variables("ξ", numvars=1, order=5)
+    x0 = 3.0 #"nominal" initial condition
+    x0TN = x0 + p[1] #jet transport initial condition
+    t0=0.0
+    tmax=0.33
+    tv = t0:0.05:tmax
+    xvTN = taylorinteg(f, x0TN, tv, _order, _abstol, maxsteps=500)
+    xv = taylorinteg(f, x0, tv, _order, _abstol, maxsteps=500)
+    exactsol(t, x0, t0) = x0./(1.0-x0.*(t-t0)) #the analytical solution
+    δsol = exactsol(tv[end], x0TN, t0)-xvTN[end]
+    δcoeffs = map(y->y[1], map(x->x.coeffs, δsol.coeffs))
+
+    @fact length(tv) == length(xvTN) --> true
+    @fact isapprox(δcoeffs, zeros(6), atol=1e-10, rtol=0) --> true
+
+    g(t, x) = 0.3x
+    y0 = 1.0 #"nominal" initial condition
+    y0TN = y0 + p[1] #jet transport initial condition
+    tv = t0:1/0.3:10/0.3
+    yvTN = taylorinteg(g, y0TN, tv, _order, _abstol, maxsteps=500);
+    yv = taylorinteg(g, y0, tv, _order, _abstol, maxsteps=500);
+    exactsol_g(u, y0, u0) = y0*exp.(0.3(u-u0))
+    δsol_g = exactsol_g(tv[end], y0TN, t0)-yvTN[end]
+    δcoeffs_g = map(y->y[1], map(x->x.coeffs, δsol_g.coeffs))
+
+    @fact length(tv) == length(yvTN) --> true
+    @fact isapprox(δcoeffs_g, zeros(6), atol=1e-10, rtol=0) --> true
+end
+
+facts("Test jet transport (trange): simple pendulum") do
 
     function pendulum!(t, x, dx) #the simple pendulum ODE
         dx[1] = x[2]
@@ -337,7 +368,7 @@ facts("Test Lyapunov spectrum integrator (t0, tmax): Lorenz system") do
 
     @fact xv[1,:] == x0 --> true
     @fact tv[1] == t0 --> true
-
+    @fact size(xv) == size(λv) --> true
     @fact isapprox(sum(λv[1,:]), lorenztr) --> false
     @fact isapprox(sum(λv[end,:]), lorenztr) --> true
     mytol = 1e-4
@@ -378,6 +409,7 @@ facts("Test Lyapunov spectrum integrator (trange): Lorenz system") do
     xw, λw = liap_taylorinteg(lorenz!, x0, t0:1.0:tmax, 28, _abstol; maxsteps=2000)
 
     @fact xw[1,:] == x0 --> true
+    @fact size(xw) == size(λw) --> true
     @fact isapprox(sum(λw[1,:]), lorenztr) --> false
     @fact isapprox(sum(λw[end,:]), lorenztr) --> true
     mytol = 1e-4
