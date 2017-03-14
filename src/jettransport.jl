@@ -171,7 +171,8 @@ function taylorinteg{T<:Number}(f, q0::Array{TaylorN{T},1}, t0::T, tmax::T,
         end
     end
 
-    return view(tv,1:nsteps), view(transpose(xv),1:nsteps,:)
+    # return view(tv,1:nsteps), view(transpose(xv),1:nsteps,:)
+    return view(tv,1:nsteps), transpose(view(xv,:,1:nsteps))
 end
 
 function taylorinteg{T<:Number}(f, x0::TaylorN{T}, trange::Range{T},
