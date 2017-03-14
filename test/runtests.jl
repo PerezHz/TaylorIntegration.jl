@@ -233,6 +233,9 @@ facts("Test jet transport (t0, tmax): 1-dim case") do
     δcoeffs = map(y->y[1], map(x->x.coeffs, δsol.coeffs))
 
     @fact isapprox(δcoeffs, zeros(6), atol=1e-10, rtol=0) --> true
+    @fact isapprox(x0, evaluate(xvTN[1])) --> true
+    @fact isapprox(xv[1], evaluate(xvTN[1])) --> true
+    @fact isapprox(xv[end], evaluate(xvTN[end])) --> true
 
     g(t, x) = 0.3x
     y0 = 1.0 #"nominal" initial condition
@@ -252,13 +255,11 @@ facts("Test jet transport (trange): 1-dim case") do
     p = set_variables("ξ", numvars=1, order=5)
     x0 = 3.0 #"nominal" initial condition
     x0TN = x0 + p[1] #jet transport initial condition
-    t0=0.0
-    tmax=0.33
-    tv = t0:0.05:tmax
+    tv = 0.0:0.05:0.33
     xvTN = taylorinteg(f, x0TN, tv, _order, _abstol, maxsteps=500)
     xv = taylorinteg(f, x0, tv, _order, _abstol, maxsteps=500)
     exactsol(t, x0, t0) = x0./(1.0-x0.*(t-t0)) #the analytical solution
-    δsol = exactsol(tv[end], x0TN, t0)-xvTN[end]
+    δsol = exactsol(tv[end], x0TN, tv[1])-xvTN[end]
     δcoeffs = map(y->y[1], map(x->x.coeffs, δsol.coeffs))
 
     @fact length(tv) == length(xvTN) --> true
@@ -267,15 +268,44 @@ facts("Test jet transport (trange): 1-dim case") do
     g(t, x) = 0.3x
     y0 = 1.0 #"nominal" initial condition
     y0TN = y0 + p[1] #jet transport initial condition
-    tv = t0:1/0.3:10/0.3
+    tv = 0.0:1/0.3:10/0.3
     yvTN = taylorinteg(g, y0TN, tv, _order, _abstol, maxsteps=500);
     yv = taylorinteg(g, y0, tv, _order, _abstol, maxsteps=500);
     exactsol_g(u, y0, u0) = y0*exp.(0.3(u-u0))
-    δsol_g = exactsol_g(tv[end], y0TN, t0)-yvTN[end]
+    δsol_g = exactsol_g(tv[end], y0TN, tv[1])-yvTN[end]
     δcoeffs_g = map(y->y[1], map(x->x.coeffs, δsol_g.coeffs))
 
     @fact length(tv) == length(yvTN) --> true
     @fact isapprox(δcoeffs_g, zeros(6), atol=1e-10, rtol=0) --> true
+end
+
+facts("Test jet transport (t0,tmax): harmonic oscillator") do
+    function harmosc!(t, x, dx) #the harmonic oscillator ODE
+        dx[1] = x[2]
+        dx[2] = -x[1]
+        nothing
+    end
+    p = set_variables("ξ", numvars=2, order=5)
+    x0 = [-1.0,0.45]
+    x0TN = x0 + p
+    tvTN, xvTN = taylorinteg(harmosc!, x0TN, 0.0, 10pi, _order, _abstol, maxsteps=500)
+    tv  , xv   = taylorinteg(harmosc!, x0  , 0.0, 10pi, _order, _abstol, maxsteps=500)
+    x_analyticsol(t,x0,p0) = p0*sin(t)+x0*cos(t)
+    p_analyticsol(t,x0,p0) = p0*cos(t)-x0*sin(t)
+    x_δsol = x_analyticsol(tvTN[end], x0TN[1], x0TN[2])-xvTN[end,1]
+    x_δcoeffs = map(y->y[1], map(x->x.coeffs, x_δsol.coeffs))
+    p_δsol = p_analyticsol(tvTN[end], x0TN[1], x0TN[2])-xvTN[end,2]
+    p_δcoeffs = map(y->y[1], map(x->x.coeffs, p_δsol.coeffs))
+
+    @fact (length(tvTN), length(x0)) == size(xvTN) --> true
+    @fact isapprox(x_δcoeffs, zeros(6), atol=1e-10, rtol=0) --> true
+    @fact isapprox(x0, map( x->evaluate(x), xvTN[1,:])) --> true
+    @fact isapprox(xv[1,:], map( x->evaluate(x), xvTN[1,:])) --> true # nominal solution must coincide with jet evaluated at ξ=(0,0) at initial time
+    @fact isapprox(xv[end,:], map( x->evaluate(x), xvTN[end,:])) --> true #nominal solution must coincide with jet evaluated at ξ=(0,0) at final time
+
+    xvTN_0 = map( x->evaluate(x), xvTN ) # the jet evaluated at the nominal solution
+    @fact isapprox(xv[end,:], xvTN_0[end,:]) --> true # nominal solution must coincide with jet evaluated at ξ=(0,0) at final time
+    @fact isapprox(xvTN_0[1,:], xvTN_0[end,:]) --> true # end point must coincide with a full period
 end
 
 facts("Test jet transport (trange): simple pendulum") do
