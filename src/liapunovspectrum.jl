@@ -79,30 +79,34 @@ end
 # http://nbviewer.jupyter.org/url/math.mit.edu/~stevenj/18.335/Gram-Schmidt.ipynb
 function modifiedGS!(A, Q, R, aⱼ, qᵢ, vⱼ)
     m,n = size(A)
-    fill!(R, zero(eltype(A)))
+    # fill!(R, zero(eltype(A)))
+    # for j = 1:n
+    #     # aⱼ = A[:,j]
+    #     for ind = 1:m
+    #         @inbounds aⱼ[ind] = A[ind,j]
+    #         @inbounds vⱼ[ind] = aⱼ[ind]
+    #     end
+    #     # vⱼ = copy(aⱼ) # use copy so that modifying vⱼ doesn't change aⱼ
+    #     for i = 1:j-1
+    #         # qᵢ = Q[:,i]
+    #         for ind = 1:m
+    #             @inbounds qᵢ[ind] = Q[ind,i]
+    #         end
+    #         @inbounds R[i,j] = dot(qᵢ, vⱼ) # ⟵ NOTICE: mgs has vⱼ, clgs has aⱼ
+    #         # vⱼ -= R[i,j] * qᵢ
+    #         @inbounds for ind = 1:m
+    #             vⱼ[ind] -= R[i,j] * qᵢ[ind]
+    #         end
+    #     end
+    #     @inbounds R[j,j] = norm(vⱼ)
+    #     # Q[:,j] = vⱼ / R[j,j]
+    #     for ind = 1:m
+    #         @inbounds Q[ind,j] = vⱼ[ind] / R[j,j]
+    #     end
+    # end
+    aⱼ[:], Q[:,:] = eig(A'*A)
     for j = 1:n
-        # aⱼ = A[:,j]
-        for ind = 1:m
-            @inbounds aⱼ[ind] = A[ind,j]
-            @inbounds vⱼ[ind] = aⱼ[ind]
-        end
-        # vⱼ = copy(aⱼ) # use copy so that modifying vⱼ doesn't change aⱼ
-        for i = 1:j-1
-            # qᵢ = Q[:,i]
-            for ind = 1:m
-                @inbounds qᵢ[ind] = Q[ind,i]
-            end
-            @inbounds R[i,j] = dot(qᵢ, vⱼ) # ⟵ NOTICE: mgs has vⱼ, clgs has aⱼ
-            # vⱼ -= R[i,j] * qᵢ
-            @inbounds for ind = 1:m
-                vⱼ[ind] -= R[i,j] * qᵢ[ind]
-            end
-        end
-        @inbounds R[j,j] = norm(vⱼ)
-        # Q[:,j] = vⱼ / R[j,j]
-        for ind = 1:m
-            @inbounds Q[ind,j] = vⱼ[ind] / R[j,j]
-        end
+        @inbounds R[j,j] = aⱼ[j]
     end
     return nothing
 end
@@ -234,15 +238,15 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
         for ind in eachindex(jt)
             @inbounds jt[ind] = x0[dof+ind]
         end
-        modifiedGS!( jt, QH, RH, aⱼ, qᵢ, vⱼ )
         t0 += δt
         tspan = t0-t00
         nsteps += 1
+        modifiedGS!( jt, QH, RH, aⱼ, qᵢ, vⱼ )
         @inbounds tv[nsteps] = t0
         @inbounds for ind in 1:dof
             xv[ind,nsteps] = x0[ind]
-            λtsum[ind] += log(RH[ind,ind])
-            λ[ind,nsteps] = λtsum[ind]/tspan
+            λtsum[ind] += log(abs(RH[ind,ind]))
+            λ[ind,nsteps] = 0.5λtsum[ind]/tspan
         end
         for ind in eachindex(QH)
             @inbounds x0[dof+ind] = QH[ind]
@@ -317,11 +321,11 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, trange::Range{T},
             for ind in eachindex(jt)
                 @inbounds jt[ind] = x0[dof+ind]
             end
-            modifiedGS!( jt, QH, RH, aⱼ, qᵢ, vⱼ )
             t0 += δt
             nsteps += 1
+            modifiedGS!( jt, QH, RH, aⱼ, qᵢ, vⱼ )
             @inbounds for ind in 1:dof
-                λtsum[ind] += log(RH[ind,ind])
+                λtsum[ind] += log(abs(RH[ind,ind]))
             end
             for ind in eachindex(QH)
                 @inbounds x0[dof+ind] = QH[ind]
