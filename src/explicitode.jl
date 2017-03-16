@@ -25,14 +25,14 @@ function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Taylor1{T})
         ordnext = ord+1
 
         # Set `xaux`, auxiliary Taylor1 variable to order `ord`
-        @inbounds xaux = Taylor1( x.coeffs[1:ord] )
+        @inbounds xaux = Taylor1( x[1:ord] )
 
         # Equations of motion
         # TODO! define a macro to optimize the eqsdiff
         dx = eqsdiff(t0, xaux)
 
         # Recursion relation
-        @inbounds x.coeffs[ordnext] = dx.coeffs[ord]/ord
+        @inbounds x[ordnext] = dx[ord]/ord
     end
     nothing
 end
@@ -43,14 +43,14 @@ function jetcoeffs!{T<:Real}(eqsdiff, t0::T, x::Taylor1{Complex{T}})
         ordnext = ord+1
 
         # Set `xaux`, auxiliary Taylor1 variable to order `ord`
-        @inbounds xaux = Taylor1( x.coeffs[1:ord] )
+        @inbounds xaux = Taylor1( x[1:ord] )
 
         # Equations of motion
         # TODO! define a macro to optimize the eqsdiff
         dx = eqsdiff(t0, xaux)
 
         # Recursion relation
-        @inbounds x.coeffs[ordnext] = dx.coeffs[ord]/ord
+        @inbounds x[ordnext] = dx[ord]/ord
     end
     nothing
 end
@@ -83,7 +83,7 @@ function jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}},
 
         # Set `xaux`, auxiliary vector of Taylor1 to order `ord`
         for j in eachindex(x)
-            @inbounds xaux[j] = Taylor1( x[j].coeffs[1:ord] )
+            @inbounds xaux[j] = Taylor1( x[j][1:ord] )
         end
 
         # Equations of motion
@@ -92,7 +92,7 @@ function jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}},
 
         # Recursion relations
         for j in eachindex(x)
-            @inbounds x[j].coeffs[ordnext] = dx[j].coeffs[ord]/ord
+            @inbounds x[j][ordnext] = dx[j][ord]/ord
         end
     end
     nothing
@@ -106,7 +106,7 @@ function jetcoeffs!{T<:Real}(eqsdiff!, t0::T, x::Vector{Taylor1{Complex{T}}},
 
         # Set `xaux`, auxiliary vector of Taylor1 to order `ord`
         for j in eachindex(x)
-            @inbounds xaux[j] = Taylor1( x[j].coeffs[1:ord] )
+            @inbounds xaux[j] = Taylor1( x[j][1:ord] )
         end
 
         # Equations of motion
@@ -115,7 +115,7 @@ function jetcoeffs!{T<:Real}(eqsdiff!, t0::T, x::Vector{Taylor1{Complex{T}}},
 
         # Recursion relations
         for j in eachindex(x)
-            @inbounds x[j].coeffs[ordnext] = dx[j].coeffs[ord]/ord
+            @inbounds x[j][ordnext] = dx[j][ord]/ord
         end
     end
     nothing
@@ -138,7 +138,7 @@ function stepsize{T<:Number}(x::Taylor1{T}, epsilon::T)
     ord = x.order
     h = T(Inf)
     for k in (ord-1, ord)
-        @inbounds aux = abs( x.coeffs[k+1] )
+        @inbounds aux = abs( x[k+1] )
         aux == zero(T) && continue
         aux = epsilon / aux
         kinv = one(T)/k
@@ -151,7 +151,7 @@ function stepsize{T<:Real}(x::Taylor1{Complex{T}}, epsilon::T)
     ord = x.order
     h = T(Inf)
     for k in (ord-1, ord)
-        @inbounds aux = abs( x.coeffs[k+1] )
+        @inbounds aux = abs( x[k+1] )
         aux == zero(T) && continue
         aux = epsilon / aux
         kinv = one(T)/k
@@ -362,7 +362,7 @@ function taylorinteg{T<:Number}(f, x0::T, t0::T, tmax::T, order::Int,
     # Integration
     while t0 < tmax
         δt, x0 = taylorstep!(f, x, t0, tmax, x0, order, abstol)
-        x.coeffs[1] = x0
+        x[1] = x0
         t0 += δt
         nsteps += 1
         @inbounds tv[nsteps] = t0
@@ -416,7 +416,7 @@ function taylorinteg{T<:Number}(f!, q0::Array{T,1}, t0::T, tmax::T,
     while t0 < tmax
         δt = taylorstep!(f!, x, dx, xaux, t0, tmax, x0, order, abstol)
         for i in eachindex(x0)
-            @inbounds x[i].coeffs[1] = x0[i]
+            @inbounds x[i][1] = x0[i]
         end
         t0 += δt
         nsteps += 1
@@ -451,7 +451,7 @@ function taylorinteg{T<:Real}(f, x0::Complex{T}, t0::T, tmax::T, order::Int,
     # Integration
     while t0 < tmax
         δt, x0 = taylorstep!(f, x, t0, tmax, x0, order, abstol)
-        x.coeffs[1] = x0
+        x[1] = x0
         t0 += δt
         nsteps += 1
         @inbounds tv[nsteps] = t0
@@ -494,7 +494,7 @@ function taylorinteg{T<:Real}(f!, q0::Array{Complex{T},1}, t0::T, tmax::T,
     while t0 < tmax
         δt = taylorstep!(f!, x, dx, xaux, t0, tmax, x0, order, abstol)
         for i in eachindex(x0)
-            @inbounds x[i].coeffs[1] = x0[i]
+            @inbounds x[i][1] = x0[i]
         end
         t0 += δt
         nsteps += 1
@@ -602,7 +602,7 @@ function taylorinteg{T<:Number}(f, x0::T, trange::Range{T},
         nsteps = 0
         while nsteps < maxsteps
             δt, x0 = taylorstep!(f, x, t0, t1, x0, order, abstol)
-            x.coeffs[1] = x0
+            x[1] = x0
             t0 += δt
             t0 ≥ t1 && break
             nsteps += 1
@@ -653,7 +653,7 @@ function taylorinteg{T<:Number}(f!, q0::Array{T,1}, trange::Range{T},
         while nsteps < maxsteps
             δt = taylorstep!(f!, x, dx, xaux, t0, t1, x0, order, abstol)
             for i in eachindex(x0)
-                @inbounds x[i].coeffs[1] = x0[i]
+                @inbounds x[i][1] = x0[i]
             end
             t0 += δt
             t0 ≥ t1 && break
@@ -693,7 +693,7 @@ function taylorinteg{T<:Real}(f, x0::Complex{T}, trange::Range{T},
         nsteps = 0
         while nsteps < maxsteps
             δt, x0 = taylorstep!(f, x, t0, t1, x0, order, abstol)
-            @inbounds x.coeffs[1] = x0
+            @inbounds x[1] = x0
             t0 += δt
             t0 ≥ t1 && break
             nsteps += 1
@@ -744,7 +744,7 @@ function taylorinteg{T<:Real}(f!, q0::Array{Complex{T},1}, trange::Range{T},
         while nsteps < maxsteps
             δt = taylorstep!(f!, x, dx, xaux, t0, t1, x0, order, abstol)
             for i in eachindex(x0)
-                @inbounds x[i].coeffs[1] = x0[i]
+                @inbounds x[i][1] = x0[i]
             end
             t0 += δt
             t0 ≥ t1 && break
