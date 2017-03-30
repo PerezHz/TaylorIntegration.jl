@@ -25,7 +25,7 @@ function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Taylor1{T})
         ordnext = ord+1
 
         # Set `xaux`, auxiliary Taylor1 variable to order `ord`
-        @inbounds xaux = Taylor1( x[1:ord] )
+        @inbounds xaux = Taylor1( x.coeffs[1:ord] )
 
         # Equations of motion
         # TODO! define a macro to optimize the eqsdiff
@@ -43,7 +43,7 @@ function jetcoeffs!{T<:Real}(eqsdiff, t0::T, x::Taylor1{Complex{T}})
         ordnext = ord+1
 
         # Set `xaux`, auxiliary Taylor1 variable to order `ord`
-        @inbounds xaux = Taylor1( x[1:ord] )
+        @inbounds xaux = Taylor1( x.coeffs[1:ord] )
 
         # Equations of motion
         # TODO! define a macro to optimize the eqsdiff
@@ -83,7 +83,7 @@ function jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}},
 
         # Set `xaux`, auxiliary vector of Taylor1 to order `ord`
         for j in eachindex(x)
-            @inbounds xaux[j] = Taylor1( x[j][1:ord] )
+            @inbounds xaux[j] = Taylor1( x[j].coeffs[1:ord] )
         end
 
         # Equations of motion
@@ -106,7 +106,7 @@ function jetcoeffs!{T<:Real}(eqsdiff!, t0::T, x::Vector{Taylor1{Complex{T}}},
 
         # Set `xaux`, auxiliary vector of Taylor1 to order `ord`
         for j in eachindex(x)
-            @inbounds xaux[j] = Taylor1( x[j][1:ord] )
+            @inbounds xaux[j] = Taylor1( x[j].coeffs[1:ord] )
         end
 
         # Equations of motion

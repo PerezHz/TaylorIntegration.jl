@@ -7,7 +7,7 @@ function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Taylor1{TaylorN{T}})
         ordnext = ord+1
 
         # Set `xaux`, auxiliary Taylor1 variable to order `ord`
-        @inbounds xaux = Taylor1( x[1:ord] )
+        @inbounds xaux = Taylor1( x.coeffs[1:ord] )
 
         # Equations of motion
         # TODO! define a macro to optimize the eqsdiff
@@ -27,7 +27,7 @@ function jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{TaylorN{T}}},
 
         # Set `xaux`, auxiliary vector of Taylor1 to order `ord`
         for j in eachindex(x)
-            @inbounds xaux[j] = Taylor1( x[j][1:ord] )
+            @inbounds xaux[j] = Taylor1( x[j].coeffs[1:ord] )
         end
 
         # Equations of motion
@@ -49,7 +49,7 @@ function stepsize{T<:Number}(x::Taylor1{TaylorN{T}}, epsilon::T)
     for k in (ord-1, ord)
         @inbounds aux = Array{T}(x[k+1].order)
         for i in 1:x[k+1].order
-            @inbounds aux[i] = norm(x[k+1][i].coeffs,Inf)
+            @inbounds aux[i] = norm(x[k+1][i][:],Inf)
         end
         aux == zeros(T, length(aux)) && continue
         aux = epsilon ./ aux
