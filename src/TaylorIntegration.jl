@@ -25,4 +25,6 @@ include("explicitode.jl")
 include("liapunovspectrum.jl")
 include("common.jl")
 
+include("poincare.jl")
+
 end #module
