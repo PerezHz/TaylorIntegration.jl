@@ -76,7 +76,7 @@ function poincare{T<:Number}(f!, g, q0::Array{T,1}, t0::T, tmax::T,
 
             tvS[nevents] = t0+dt_nr
             xvS[:,nevents] .= view(x_g_Dg_D2g_val,1:dof)
-            gvS[nevents] = g(t0+dt_nr,view(x_g_Dg_D2g_val,1:dof),view(x_g_Dg_D2g_val,dof+1:2dof))
+            gvS[nevents] = x_g_Dg_D2g_val[2dof+1] # g(t0+dt_nr,view(x_g_Dg_D2g_val,1:dof),view(x_g_Dg_D2g_val,dof+1:2dof))
 
             nevents += 1
 
@@ -176,7 +176,7 @@ function poincare2{T<:Number}(f!, g, q0::Array{T,1}, t0::T, tmax::T,
             # println(" * dt_nr0 = ", dt_nr)
             evaluate!(x_g_Dg_D2g[2dof+1:2dof+2], dt_nr, view(x_g_Dg_D2g_val,2dof+1:2dof+2))
 
-            for i in 1:4
+            for i in 1:5
                 dt_nr = dt_nr-x_g_Dg_D2g_val[2dof+1]/x_g_Dg_D2g_val[2dof+2]
                 # println("i = ", i, ", dt_nr = ", dt_nr)
                 evaluate!(x_g_Dg_D2g[2dof+1:2dof+2], dt_nr, view(x_g_Dg_D2g_val,2dof+1:2dof+2))
@@ -185,7 +185,7 @@ function poincare2{T<:Number}(f!, g, q0::Array{T,1}, t0::T, tmax::T,
 
             tvS[nevents] = t0+dt_nr
             xvS[:,nevents] .= view(x_g_Dg_D2g_val,1:dof)
-            gvS[nevents] = g(t0+dt_nr,view(x_g_Dg_D2g_val,1:dof),view(x_g_Dg_D2g_val,dof+1:2dof))
+            gvS[nevents] = x_g_Dg_D2g_val[2dof+1]
 
             nevents += 1
 
