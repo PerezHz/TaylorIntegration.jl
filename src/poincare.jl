@@ -27,11 +27,11 @@ function taylorinteg{T<:Number}(f!, g, q0::Array{T,1}, t0::T, tmax::T,
     while t0 < tmax
         g_val_old = g_val
         δt = taylorstep!(f!, x, dx, xaux, t0, tmax, x0, order, abstol)
-        g_val = g(stateT).coeffs[2]
+        g_val = g(t0,x,dx)
         if g_val_old[1]*g_val[1] < zero(T)
 
-            println("g_val_old= ", g_val_old)
-            println("g_val= ", g_val)
+            println("g_val_old= ", g_val_old[1])
+            println("g_val= ", g_val[1])
 
         end
         for i in eachindex(x0)
