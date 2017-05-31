@@ -215,7 +215,7 @@ function poincare{T<:Number}(f!, g, q0::Array{TaylorN{T},1}, t0::T, tmax::T,
         end
     end
 
-    return view(tv,1:nsteps), view(transpose(xv),1:nsteps,:), view(tvS,1:nevents-1), view(transpose(xvS),1:nevents-1,:), view(gvS,1:nevents-1)
+    return view(tv,1:nsteps), transpose(view(xv,:,1:nsteps)), view(tvS,1:nevents-1), transpose(view(xvS,:,1:nevents-1)), view(gvS,1:nevents-1)
 end
 
 function poincare2{T<:Number}(f!, g, q0::Array{T,1}, t0::T, tmax::T,
