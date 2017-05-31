@@ -130,20 +130,21 @@ function poincare{T<:Number}(f!, g, q0::Array{TaylorN{T},1}, t0::T, tmax::T,
     x0 = copy(q0)
 
     #Some auxiliary arrays for root-finding/event detection/Poincaré surface of section evaluation
-    const g_val = Taylor1(zero(T), order)
-    const g_val_old = Taylor1(zero(T), order)
-    const slope = zero(T)
-    const dt_li = zero(T)
-    const dt_nr = zero(T)
-    const δt = zero(T)
-    const δt_old = zero(T)
+    zeroTN = zero(q0[1])
+    const g_val = Taylor1(zeroTN, order)
+    const g_val_old = Taylor1(zeroTN, order)
+    const slope = zeroTN
+    const dt_li = zeroTN
+    const dt_nr = zeroTN
+    const δt = zeroTN
+    const δt_old = zeroTN
 
     const x_g_Dg_D2g = vcat(x, dx, zero(x[1]), zero(x[1]))
-    const x_g_Dg_D2g_val = Array{Float64}( length(x_g_Dg_D2g) )
+    const x_g_Dg_D2g_val = Array{TaylorN{T}}( length(x_g_Dg_D2g) )
 
-    const tvS = similar(tv)
+    const tvS = Array{TaylorN{T}}( length(tv) )
     const xvS = similar(xv)
-    const gvS = similar(tv)
+    const gvS = similar(tvS)
 
     # Integration
     nsteps = 1
@@ -152,7 +153,7 @@ function poincare{T<:Number}(f!, g, q0::Array{TaylorN{T},1}, t0::T, tmax::T,
         δt_old = δt
         δt = taylorstep!(f!, x, dx, xaux, t0, tmax, x0, order, abstol)
         g_val = g(t0, x, dx)
-        if g_val_old[1]*g_val[1] < zero(T)
+        if g_val_old[1][1][1]*g_val[1][1][1] < zero(T)
             # println("* * * begin poincare")
             #
             # println("g_val_old= ", g_val_old[1])
