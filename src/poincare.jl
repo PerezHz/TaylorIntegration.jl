@@ -29,7 +29,7 @@ function poincare{T<:Number}(f!, g, q0::Array{T,1}, t0::T, tmax::T,
     const δt_old = zero(T)
 
     const x_g_Dg_D2g = vcat(x, dx, zero(x[1]), zero(x[1]))
-    const x_g_Dg_D2g_val = Array{Float64}( length(x_g_Dg_D2g) )
+    const x_g_Dg_D2g_val = Array{T}( length(x_g_Dg_D2g) )
 
     const tvS = similar(tv)
     const xvS = similar(xv)
@@ -249,7 +249,7 @@ function poincare2{T<:Number}(f!, g, q0::Array{T,1}, t0::T, tmax::T,
     const δt_old = zero(T)
 
     const x_g_Dg_D2g = vcat(x, dx, zero(x[1]), zero(x[1]))
-    const x_g_Dg_D2g_val = Array{Float64}( length(x_g_Dg_D2g) )
+    const x_g_Dg_D2g_val = Array{T}( length(x_g_Dg_D2g) )
 
     const tvS = similar(tv)
     const xvS = similar(xv)
