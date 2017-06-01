@@ -25,6 +25,7 @@ Comments, suggestions, and improvements are welcome and appreciated.
 + [Kepler problem](http://nbviewer.jupyter.org/github/PerezHz/TaylorIntegration.jl/blob/master/examples/Kepler-problem.ipynb)
 + [Evaluating definite integrals](http://nbviewer.jupyter.org/github/PerezHz/TaylorIntegration.jl/blob/master/examples/Evaluating-definite-integrals.ipynb)
 + [Damped, driven linear oscillator](http://nbviewer.jupyter.org/github/PerezHz/TaylorIntegration.jl/blob/master/examples/Damped-driven-linear-oscillator.ipynb)
++ [The Lyapunov spectrum of the Lorenz system](http://nbviewer.jupyter.org/github/PerezHz/TaylorIntegration.jl/blob/jp/fixnotebooks/examples/Lorenz-Lyapunov-spectrum.ipynb)
 
 #### License
 
