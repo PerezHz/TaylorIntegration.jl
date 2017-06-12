@@ -77,10 +77,10 @@ end
 
 # taylorstep!
 function taylorstep!{T<:Number}(f, x::Taylor1{TaylorN{T}}, t0::T, t1::T,
-        x0::TaylorN{T}, order::Int, abstol::T)
+        x0::TaylorN{T}, order::Int, abstol::T, vT::Vector{T})
     @assert t1 > t0
     # Compute the Taylor coefficients
-    jetcoeffs!(f, t0, x)
+    jetcoeffs!(f, t0, x, vT)
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(x, abstol)
     δt = min(δt, t1-t0)

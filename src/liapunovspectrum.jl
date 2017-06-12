@@ -108,7 +108,7 @@ function modifiedGS!(A, Q, R, aⱼ, qᵢ, vⱼ)
 end
 
 """
-    liap_jetcoeffs!(eqsdiff!, t0, x, dx, xaux, δx, dδx, jac)
+    liap_jetcoeffs!(eqsdiff!, t0, x, dx, xaux, δx, dδx, jac, vT)
 
 Similar to [`jetcoeffs!`](@ref) for the calculation of the Liapunov
 spectrum. `jac` is the linearization of the equations of motion,
@@ -122,7 +122,7 @@ function liap_jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}},
 
     order = x[1].order
     vT[1] = t0
-    
+
     # Dimensions of phase-space: dof
     nx = length(x)
     dof = round(Int, (-1+sqrt(1+4*nx))/2)
@@ -152,7 +152,7 @@ end
 
 
 """
-    liap_taylorstep!(f, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol)
+    liap_taylorstep!(f, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol, vT)
 
 Similar to [`taylorstep!`](@ref) for the calculation of the Liapunov
 spectrum. `jac` is the linearization of the equations of motion,

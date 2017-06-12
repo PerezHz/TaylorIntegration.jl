@@ -2,7 +2,7 @@
 
 # jetcoeffs!
 doc"""
-    jetcoeffs!(eqsdiff, t, x)
+    jetcoeffs!(eqsdiff, t, x, vT)
 
 Returns an updated `x` using the recursion relation of the
 derivatives obtained from the differential equations
@@ -62,7 +62,7 @@ function jetcoeffs!{T<:Real}(eqsdiff, t0::T, x::Taylor1{Complex{T}}, vT::Vector{
 end
 
 doc"""
-    jetcoeffs!(eqsdiff!, t, x, dx, xaux)
+    jetcoeffs!(eqsdiff!, t, x, dx, xaux, vT)
 
 Returns an updated `x` using the recursion relation of the
 derivatives obtained from the differential equations
@@ -192,7 +192,7 @@ end
 
 
 doc"""
-    taylorstep!(f, x, t0, t1, x0, order, abstol)
+    taylorstep!(f, x, t0, t1, x0, order, abstol, vT)
 
 One-step Taylor integration for the ODE $\dot{x}=dx/dt=f(t, x)$
 with initial conditions $x(t_0)=x_0$, computed from `t0` up to
@@ -243,7 +243,7 @@ end
 
 
 doc"""
-    taylorstep!(f!, x, dx, xaux, t0, t1, x0, order, abstol)
+    taylorstep!(f!, x, dx, xaux, t0, t1, x0, order, abstol, vT)
 
 One-step Taylor integration for the ODE $\dot{x}=dx/dt=f(t, x)$
 with initial conditions $x(t_0)=x_0$, computed from `t0` up to
@@ -269,7 +269,7 @@ function taylorstep!{T<:Number}(f!, x::Vector{Taylor1{T}}, dx::Vector{Taylor1{T}
     @assert t1 > t0
 
     # Compute the Taylor coefficients
-    jetcoeffs!(f!, t0, x, dx, xaux)
+    jetcoeffs!(f!, t0, x, dx, xaux, vT)
 
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(x, abstol)

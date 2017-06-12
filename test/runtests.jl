@@ -6,13 +6,16 @@ using TaylorSeries, TaylorIntegration, FactCheck
 
 const _order = 28
 const _abstol = 1.0E-20
+const vT = zeros(_order+1)
+vT[2] = 1.0
 
 facts("Tests: dot{x}=x^2, x(0) = 1") do
     eqs_mov(t, x) = x^2
     t0 = 0.0
     x0 = 1.0
     x0T = Taylor1(x0, _order)
-    TaylorIntegration.jetcoeffs!(eqs_mov, t0, x0T)
+    vT[1] = t0
+    TaylorIntegration.jetcoeffs!(eqs_mov, t0, x0T, vT)
     @fact x0T.coeffs[end] --> 1.0
     δt = _abstol^inv(_order-1)
     @fact TaylorIntegration.stepsize(x0T, _abstol) --> δt
@@ -40,7 +43,8 @@ facts("Tests: dot{x}=x^2, x(0) = 3; nsteps <= maxsteps") do
     x0 = 3.0
     q0 = [3.0, 3.0]
     x0T = Taylor1(x0, _order)
-    TaylorIntegration.jetcoeffs!(eqs_mov, t0, x0T)
+    vT[1] = t0
+    TaylorIntegration.jetcoeffs!(eqs_mov, t0, x0T, vT)
     @fact x0T.coeffs[end] --> 3.0^(_order+1)
     δt = (_abstol/x0T.coeffs[end-1])^inv(_order-1)
     @fact TaylorIntegration.stepsize(x0T, _abstol) --> δt
@@ -116,7 +120,8 @@ facts("Tests: dot{x}=x.^2, x(0) = [3.0,1.0]") do
     q0T = [Taylor1(q0[1], _order), Taylor1(q0[2], _order)]
     xdotT = Array{Taylor1{Float64}}(length(q0))
     xaux = Array{Taylor1{Float64}}(length(q0))
-    TaylorIntegration.jetcoeffs!(eqs_mov!, t0, q0T, xdotT, xaux)
+    vT[1] = t0
+    TaylorIntegration.jetcoeffs!(eqs_mov!, t0, q0T, xdotT, xaux, vT)
     @fact q0T[1].coeffs[end] --> 3.0^(_order+1)
     @fact q0T[2].coeffs[end] --> 1.0
     δt = (_abstol/q0T[1].coeffs[end-1])^inv(_order-1)
@@ -139,7 +144,7 @@ facts("Tests: dot{x}=x.^2, x(0) = [3.0,1.0]") do
     @fact abs(xv[2,1] - 4.8) ≤ eps(4.8) --> true
 end
 
-facts("Test non-autonomous ODE: dot{x}=cos(t)") do
+facts("Test non-autonomous ODE (1): dot{x}=cos(t)") do
     function f!(t, x, Dx)
         Dx[1] = one(x[1])
         Dx[2] = cos(x[1])
@@ -172,6 +177,29 @@ facts("Test non-autonomous ODE: dot{x}=cos(t)") do
     @fact xT[1,2] == x0[2] --> true
     @fact tT[end] == xT[end,1] --> true
     @fact abs(sin(tmax)-xT[end,2]) < 1e-14 --> true
+end
+
+facts("Test non-autonomous ODE (2): dot{x}=cos(t)") do
+    f!(t, x) = cos(t)
+    t0 = 0//1
+    tmax = 10.25*(2pi)
+    abstol = 1e-20
+    order = 25
+    x0 = 0.0 #initial conditions such that x(t)=sin(t)
+    tT, xT = taylorinteg(f!, x0, t0, tmax, order, abstol)
+    @fact length(tT) < 501 --> true
+    @fact length(xT) < 501 --> true
+    # @fact length(xT[:,2]) < 501 --> true
+    @fact xT[1] --> x0
+    @fact tT[1] == t0 --> true
+    @fact abs(sin(tmax)-xT[end]) < 1e-14 --> true
+
+    tmax = 15*(2pi)
+    tT, xT = taylorinteg(f!, x0, t0, tmax, order, abstol)
+    @fact length(tT) < 501 --> true
+    @fact length(xT) < 501 --> true
+    @fact xT[1] --> x0
+    @fact abs(sin(tmax)-xT[end]) < 1e-14 --> true
 end
 
 facts("Test integration of ODE with complex dependent variables") do
