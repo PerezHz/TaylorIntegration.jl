@@ -83,7 +83,7 @@ computes recursively the high-order derivates back into `x`.
 
 """
 function jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}},
-        dx::Vector{Taylor1{T}}, xaux::Vector{Taylor1{T}}, vT::Vector{T}t)
+        dx::Vector{Taylor1{T}}, xaux::Vector{Taylor1{T}}, vT::Vector{T})
     order = x[1].order
     vT[1] = t0
     for ord in 1:order
