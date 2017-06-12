@@ -118,10 +118,11 @@ and `xaux`, `δx` and `dδx` are auxiliary vectors.
 function liap_jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}},
         dx::Vector{Taylor1{T}}, xaux::Vector{Taylor1{T}},
         δx::Array{TaylorN{Taylor1{T}},1}, dδx::Array{TaylorN{Taylor1{T}},1},
-        jac::Array{Taylor1{T},2})
+        jac::Array{Taylor1{T},2}, vT::Vector{T})
 
     order = x[1].order
-
+    vT[1] = t0
+    
     # Dimensions of phase-space: dof
     nx = length(x)
     dof = round(Int, (-1+sqrt(1+4*nx))/2)
@@ -135,7 +136,8 @@ function liap_jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}},
         end
 
         # Equations of motion
-        eqsdiff!(t0, xaux, dx)
+        tT = Taylor1(vT[1:ord])
+        eqsdiff!(tT, xaux, dx)
         # stabilitymatrix!( eqsdiff!, t0, xaux[1:dof], δx, dδx, jac )
         stabilitymatrix!( eqsdiff!, t0, view(xaux,1:dof), δx, dδx, jac )
         @inbounds dx[dof+1:nx] = jac * reshape( xaux[dof+1:nx], (dof,dof) )
@@ -154,16 +156,16 @@ end
 
 Similar to [`taylorstep!`](@ref) for the calculation of the Liapunov
 spectrum. `jac` is the linearization of the equations of motion,
-and `xaux`, `δx` and `dδx` are auxiliary vectors.
+and `xaux`, `δx`, `dδx` and `vT` are auxiliary vectors.
 
 """
 function liap_taylorstep!{T<:Number}(f, x::Vector{Taylor1{T}}, dx::Vector{Taylor1{T}},
         xaux::Vector{Taylor1{T}}, δx::Array{TaylorN{Taylor1{T}},1},
         dδx::Array{TaylorN{Taylor1{T}},1}, jac::Array{Taylor1{T},2}, t0::T, t1::T, x0::Array{T,1},
-        order::Int, abstol::T)
+        order::Int, abstol::T, vT::Vector{T})
 
     # Compute the Taylor coefficients
-    liap_jetcoeffs!(f, t0, x, dx, xaux, δx, dδx, jac)
+    liap_jetcoeffs!(f, t0, x, dx, xaux, δx, dδx, jac, vT)
 
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(x, abstol)
@@ -191,6 +193,8 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
     const λ = similar(xv)
     const λtsum = similar(q0)
     const jt = eye(T, dof)
+    const vT = zeros(T, order+1)
+    vT[2] = one(T)
 
     # NOTE: This changes GLOBALLY internal parameters of TaylorN
     global _δv = set_variables("δ", order=1, numvars=dof)
@@ -230,7 +234,7 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
     # Integration
     nsteps = 1
     while t0 < tmax
-        δt = liap_taylorstep!(f, x, dx, xaux, δx, dδx, jac, t0, tmax, x0, order, abstol)
+        δt = liap_taylorstep!(f, x, dx, xaux, δx, dδx, jac, t0, tmax, x0, order, abstol, vT)
         for ind in eachindex(jt)
             @inbounds jt[ind] = x0[dof+ind]
         end
@@ -271,6 +275,8 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, trange::Range{T},
     const λ = similar(xv)
     const λtsum = similar(q0)
     const jt = eye(T, dof)
+    const vT = zeros(T, order+1)
+    vT[2] = one(T)
 
     # NOTE: This changes GLOBALLY internal parameters of TaylorN
     global _δv = set_variables("δ", order=1, numvars=dof)
@@ -313,7 +319,7 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, trange::Range{T},
         t0, t1 = trange[iter], trange[iter+1]
         nsteps = 0
         while nsteps < maxsteps
-            δt = liap_taylorstep!(f, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol)
+            δt = liap_taylorstep!(f, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol, vT)
             for ind in eachindex(jt)
                 @inbounds jt[ind] = x0[dof+ind]
             end

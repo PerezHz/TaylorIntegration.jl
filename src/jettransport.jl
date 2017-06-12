@@ -1,8 +1,10 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
 # jetcoeffs!
-function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Taylor1{TaylorN{T}})
+function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Taylor1{TaylorN{T}},
+        vT::Vector{T})
     order = x.order
+    vT[1] = t0
     for ord in 1:order
         ordnext = ord+1
 
@@ -11,7 +13,8 @@ function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Taylor1{TaylorN{T}})
 
         # Equations of motion
         # TODO! define a macro to optimize the eqsdiff
-        dx = eqsdiff(t0, xaux)
+        tT = Taylor1(vT[1:ord])
+        dx = eqsdiff(tT, xaux)
 
         # Recursion relation
         @inbounds x.coeffs[ordnext] = dx.coeffs[ord]/ord
@@ -20,8 +23,10 @@ function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Taylor1{TaylorN{T}})
 end
 
 function jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{TaylorN{T}}},
-        dx::Vector{Taylor1{TaylorN{T}}}, xaux::Vector{Taylor1{TaylorN{T}}})
+        dx::Vector{Taylor1{TaylorN{T}}}, xaux::Vector{Taylor1{TaylorN{T}}},
+        vT::Vector{T})
     order = x[1].order
+    vT[1] = t0
     for ord in 1:order
         ordnext = ord+1
 
@@ -32,7 +37,8 @@ function jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{TaylorN{T}}},
 
         # Equations of motion
         # TODO! define a macro to optimize the eqsdiff
-        eqsdiff!(t0, xaux, dx)
+        tT = Taylor1(vT[1:ord])
+        eqsdiff!(tT, xaux, dx)
 
         # Recursion relations
         for j in eachindex(x)
@@ -84,10 +90,11 @@ end
 
 function taylorstep!{T<:Number}(f, x::Vector{Taylor1{TaylorN{T}}},
         dx::Vector{Taylor1{TaylorN{T}}}, xaux::Vector{Taylor1{TaylorN{T}}},
-        t0::T, t1::T, x0::Array{TaylorN{T},1}, order::Int, abstol::T)
+        t0::T, t1::T, x0::Array{TaylorN{T},1}, order::Int, abstol::T,
+        vT::Vector{T})
     @assert t1 > t0
     # Compute the Taylor coefficients
-    jetcoeffs!(f, t0, x, dx, xaux)
+    jetcoeffs!(f, t0, x, dx, xaux, vT)
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(x, abstol)
     δt = min(δt, t1-t0)
@@ -102,6 +109,8 @@ function taylorinteg{T<:Number}(f, x0::TaylorN{T}, t0::T, tmax::T, order::Int,
     # Allocation
     const tv = Array{T}(maxsteps+1)
     const xv = Array{TaylorN{T}}(maxsteps+1)
+    const vT = zeros(T, order+1)
+    vT[2] = one(T)
 
     # Initialize the Taylor1 expansions
     x = Taylor1( x0, order )
@@ -113,7 +122,7 @@ function taylorinteg{T<:Number}(f, x0::TaylorN{T}, t0::T, tmax::T, order::Int,
 
     # Integration
     while t0 < tmax
-        δt, x0 = taylorstep!(f, x, t0, tmax, x0, order, abstol)
+        δt, x0 = taylorstep!(f, x, t0, tmax, x0, order, abstol, vT)
         x.coeffs[1] = x0
         t0 += δt
         nsteps += 1
@@ -138,6 +147,8 @@ function taylorinteg{T<:Number}(f, q0::Array{TaylorN{T},1}, t0::T, tmax::T,
     const tv = Array{T}(maxsteps+1)
     dof = length(q0)
     const xv = Array{TaylorN{T}}(dof, maxsteps+1)
+    const vT = zeros(T, order+1)
+    vT[2] = one(T)
 
     # Initialize the vector of Taylor1 expansions
     const x = Array{Taylor1{TaylorN{T}}}(dof)
@@ -155,7 +166,7 @@ function taylorinteg{T<:Number}(f, q0::Array{TaylorN{T},1}, t0::T, tmax::T,
     # Integration
     nsteps = 1
     while t0 < tmax
-        δt = taylorstep!(f, x, dx, xaux, t0, tmax, x0, order, abstol)
+        δt = taylorstep!(f, x, dx, xaux, t0, tmax, x0, order, abstol, vT)
         for i in eachindex(x0)
             @inbounds x[i].coeffs[1] = x0[i]
         end
@@ -182,6 +193,8 @@ function taylorinteg{T<:Number}(f, x0::TaylorN{T}, trange::Range{T},
     nn = length(trange)
     const xv = Array{TaylorN{T}}(nn)
     fill!(xv, TaylorN{T}(NaN))
+    const vT = zeros(T, order+1)
+    vT[2] = one(T)
 
     # Initialize the Taylor1 expansions
     x = Taylor1( x0, order )
@@ -195,7 +208,7 @@ function taylorinteg{T<:Number}(f, x0::TaylorN{T}, trange::Range{T},
         t0, t1 = trange[iter], trange[iter+1]
         nsteps = 0
         while nsteps < maxsteps
-            δt, x0 = taylorstep!(f, x, t0, t1, x0, order, abstol)
+            δt, x0 = taylorstep!(f, x, t0, t1, x0, order, abstol, vT)
             @inbounds x.coeffs[1] = x0
             t0 += δt
             t0 ≥ t1 && break
@@ -226,6 +239,8 @@ function taylorinteg{T<:Number}(f, q0::Array{TaylorN{T},1}, trange::Range{T},
     for ind in 1:nn
         @inbounds xv[:,ind] .= x0
     end
+    const vT = zeros(T, order+1)
+    vT[2] = one(T)
 
     # Initialize the vector of Taylor1 expansions
     const x = Array{Taylor1{TaylorN{T}}}(dof)
@@ -245,7 +260,7 @@ function taylorinteg{T<:Number}(f, q0::Array{TaylorN{T},1}, trange::Range{T},
         t0, t1 = trange[iter], trange[iter+1]
         nsteps = 0
         while nsteps < maxsteps
-            δt = taylorstep!(f, x, dx, xaux, t0, t1, x0, order, abstol)
+            δt = taylorstep!(f, x, dx, xaux, t0, t1, x0, order, abstol, vT)
             for i in eachindex(x0)
                 @inbounds x[i].coeffs[1] = x0[i]
             end
