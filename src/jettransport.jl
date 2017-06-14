@@ -17,7 +17,7 @@ function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Taylor1{TaylorN{T}},
         dx = eqsdiff(tT, xaux)
 
         # Recursion relation
-        @inbounds x.coeffs[ordnext] = dx.coeffs[ord]/ord
+        @inbounds x[ordnext] = dx[ord]/ord
     end
     nothing
 end
@@ -42,7 +42,7 @@ function jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{TaylorN{T}}},
 
         # Recursion relations
         for j in eachindex(x)
-            @inbounds x[j].coeffs[ordnext] = dx[j].coeffs[ord]/ord
+            @inbounds x[j][ordnext] = dx[j][ord]/ord
         end
     end
     nothing
@@ -53,9 +53,9 @@ function stepsize{T<:Number}(x::Taylor1{TaylorN{T}}, epsilon::T)
     ord = x.order
     h = convert(T, Inf)
     for k in (ord-1, ord)
-        @inbounds aux = Array{T}(x.coeffs[k+1].order)
-        for i in 1:x.coeffs[k+1].order
-            @inbounds aux[i] = norm(x.coeffs[k+1].coeffs[i].coeffs,Inf)
+        @inbounds aux = Array{T}(x[k+1].order)
+        for i in 1:x[k+1].order
+            @inbounds aux[i] = norm(x[k+1][i].coeffs,Inf)
         end
         aux == zeros(T, length(aux)) && continue
         aux = epsilon ./ aux
@@ -123,7 +123,7 @@ function taylorinteg{T<:Number}(f, x0::TaylorN{T}, t0::T, tmax::T, order::Int,
     # Integration
     while t0 < tmax
         δt, x0 = taylorstep!(f, x, t0, tmax, x0, order, abstol, vT)
-        x.coeffs[1] = x0
+        x[1] = x0
         t0 += δt
         nsteps += 1
         @inbounds tv[nsteps] = t0
@@ -168,7 +168,7 @@ function taylorinteg{T<:Number}(f, q0::Array{TaylorN{T},1}, t0::T, tmax::T,
     while t0 < tmax
         δt = taylorstep!(f, x, dx, xaux, t0, tmax, x0, order, abstol, vT)
         for i in eachindex(x0)
-            @inbounds x[i].coeffs[1] = x0[i]
+            @inbounds x[i][1] = x0[i]
         end
         t0 += δt
         nsteps += 1
@@ -209,7 +209,7 @@ function taylorinteg{T<:Number}(f, x0::TaylorN{T}, trange::Range{T},
         nsteps = 0
         while nsteps < maxsteps
             δt, x0 = taylorstep!(f, x, t0, t1, x0, order, abstol, vT)
-            @inbounds x.coeffs[1] = x0
+            @inbounds x[1] = x0
             t0 += δt
             t0 ≥ t1 && break
             nsteps += 1
@@ -262,7 +262,7 @@ function taylorinteg{T<:Number}(f, q0::Array{TaylorN{T},1}, trange::Range{T},
         while nsteps < maxsteps
             δt = taylorstep!(f, x, dx, xaux, t0, t1, x0, order, abstol, vT)
             for i in eachindex(x0)
-                @inbounds x[i].coeffs[1] = x0[i]
+                @inbounds x[i][1] = x0[i]
             end
             t0 += δt
             t0 ≥ t1 && break

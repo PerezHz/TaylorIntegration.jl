@@ -144,7 +144,7 @@ function liap_jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}},
 
         # Recursion relations
         for j in eachindex(x)
-            @inbounds x[j].coeffs[ordnext] = dx[j].coeffs[ord]/ord
+            @inbounds x[j][ordnext] = dx[j][ord]/ord
         end
     end
     nothing
