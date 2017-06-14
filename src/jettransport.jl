@@ -51,7 +51,7 @@ end
 # stepsize
 function stepsize{T<:Number}(x::Taylor1{TaylorN{T}}, epsilon::T)
     ord = x.order
-    h = T(Inf)
+    h = convert(T, Inf)
     for k in (ord-1, ord)
         @inbounds aux = Array{T}(x.coeffs[k+1].order)
         for i in 1:x.coeffs[k+1].order
@@ -67,7 +67,7 @@ function stepsize{T<:Number}(x::Taylor1{TaylorN{T}}, epsilon::T)
 end
 
 function stepsize{T<:Number}(q::Array{Taylor1{TaylorN{T}},1}, epsilon::T)
-    h = T(Inf)
+    h = convert(T, Inf)
     for i in eachindex(q)
         @inbounds hi = stepsize( q[i], epsilon )
         h = min( h, hi )
