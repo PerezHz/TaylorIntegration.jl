@@ -148,7 +148,7 @@ also the cases `Taylor1{TaylorN{T}}` and `Vector{Taylor1{TaylorN{T}}}`.
 """
 function stepsize{T<:Number}(x::Taylor1{T}, epsilon::T)
     ord = x.order
-    h = T(Inf)
+    h = convert(T, Inf)
     for k in (ord-1, ord)
         @inbounds aux = abs( x.coeffs[k+1] )
         aux == zero(T) && continue
@@ -161,7 +161,7 @@ function stepsize{T<:Number}(x::Taylor1{T}, epsilon::T)
 end
 function stepsize{T<:Real}(x::Taylor1{Complex{T}}, epsilon::T)
     ord = x.order
-    h = T(Inf)
+    h = convert(T, Inf)
     for k in (ord-1, ord)
         @inbounds aux = abs( x.coeffs[k+1] )
         aux == zero(T) && continue
@@ -174,7 +174,7 @@ function stepsize{T<:Real}(x::Taylor1{Complex{T}}, epsilon::T)
 end
 
 function stepsize{T<:Number}(q::Array{Taylor1{T},1}, epsilon::T)
-    h = T(Inf)
+    h = convert(T, Inf)
     for i in eachindex(q)
         @inbounds hi = stepsize( q[i], epsilon )
         h = min( h, hi )
@@ -182,7 +182,7 @@ function stepsize{T<:Number}(q::Array{Taylor1{T},1}, epsilon::T)
     return h
 end
 function stepsize{T<:Real}(q::Array{Taylor1{Complex{T}},1}, epsilon::T)
-    h = T(Inf)
+    h = convert(T, Inf)
     for i in eachindex(q)
         @inbounds hi = stepsize( q[i], epsilon )
         h = min( h, hi )
