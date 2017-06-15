@@ -5,6 +5,8 @@ function poincare{T<:Number}(f!, g, q0::Array{T,1}, t0::T, tmax::T,
     const tv = Array{T}(maxsteps+1)
     dof = length(q0)
     const xv = Array{T}(dof, maxsteps+1)
+    const vT = zeros(T, order+1)
+    vT[2] = one(T)
 
     # Initialize the vector of Taylor1 expansions
     const x = Array{Taylor1{T}}(dof)
@@ -99,6 +101,8 @@ function poincare{T<:Number}(f!, g, q0::Array{TaylorN{T},1}, t0::T, tmax::T,
     const tv = Array{T}(maxsteps+1)
     dof = length(q0)
     const xv = Array{TaylorN{T}}(dof, maxsteps+1)
+    const vT = zeros(T, order+1)
+    vT[2] = one(T)
 
     # Initialize the vector of Taylor1 expansions
     const x = Array{Taylor1{TaylorN{T}}}(dof)
@@ -193,6 +197,8 @@ function poincare2{T<:Number}(f!, g, q0::Array{T,1}, t0::T, tmax::T,
     const tv = Array{T}(maxsteps+1)
     dof = length(q0)
     const xv = Array{T}(dof, maxsteps+1)
+    const vT = zeros(T, order+1)
+    vT[2] = one(T)
 
     # Initialize the vector of Taylor1 expansions
     const x = Array{Taylor1{T}}(dof)
@@ -287,6 +293,8 @@ function poincare2{T<:Number}(f!, g, q0::Array{TaylorN{T},1}, t0::T, tmax::T,
     const tv = Array{T}(maxsteps+1)
     dof = length(q0)
     const xv = Array{TaylorN{T}}(dof, maxsteps+1)
+    const vT = zeros(T, order+1)
+    vT[2] = one(T)
 
     # Initialize the vector of Taylor1 expansions
     const x = Array{Taylor1{TaylorN{T}}}(dof)
