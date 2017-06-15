@@ -1,5 +1,5 @@
 function poincare{T<:Number}(f!, g, q0::Array{T,1}, t0::T, tmax::T,
-        order::Int, abstol::T; maxsteps::Int=500)
+        order::Int, abstol::T; maxsteps::Int=500, nriter::Int=5)
 
     # Allocation
     const tv = Array{T}(maxsteps+1)
@@ -35,6 +35,9 @@ function poincare{T<:Number}(f!, g, q0::Array{T,1}, t0::T, tmax::T,
     const xvS = similar(xv)
     const gvS = similar(tv)
 
+    #auxiliary range object for Newton-Raphson iterations
+    const nrinds = 1:nriter
+
     # Integration
     nsteps = 1
     nevents = 1 #number of detected events
@@ -57,7 +60,7 @@ function poincare{T<:Number}(f!, g, q0::Array{T,1}, t0::T, tmax::T,
             dt_nr = dt_li
             evaluate!(x_g_Dg_D2g[2dof+1:2dof+2], dt_nr, view(x_g_Dg_D2g_val,2dof+1:2dof+2))
 
-            for i in 1:5
+            for i in eachindex(nrinds)
                 dt_nr = dt_nr-x_g_Dg_D2g_val[2dof+1]/x_g_Dg_D2g_val[2dof+2]
                 evaluate!(x_g_Dg_D2g[2dof+1:2dof+2], dt_nr, view(x_g_Dg_D2g_val,2dof+1:2dof+2))
             end
@@ -90,7 +93,7 @@ end
 
 #poincare + jet transport
 function poincare{T<:Number}(f!, g, q0::Array{TaylorN{T},1}, t0::T, tmax::T,
-        order::Int, abstol::T; maxsteps::Int=500)
+        order::Int, abstol::T; maxsteps::Int=500, nriter::Int=5)
 
     # Allocation
     const tv = Array{T}(maxsteps+1)
@@ -127,6 +130,9 @@ function poincare{T<:Number}(f!, g, q0::Array{TaylorN{T},1}, t0::T, tmax::T,
     const xvS = similar(xv)
     const gvS = similar(tvS)
 
+    #auxiliary range object for Newton-Raphson iterations
+    const nrinds = 1:nriter
+
     # Integration
     nsteps = 1
     nevents = 1 #number of detected events
@@ -149,7 +155,7 @@ function poincare{T<:Number}(f!, g, q0::Array{TaylorN{T},1}, t0::T, tmax::T,
             dt_nr = dt_li
             evaluate!(x_g_Dg_D2g[2dof+1:2dof+2], dt_nr, view(x_g_Dg_D2g_val,2dof+1:2dof+2))
 
-            for i in 1:5
+            for i in eachindex(nrinds)
                 dt_nr = dt_nr-x_g_Dg_D2g_val[2dof+1]/x_g_Dg_D2g_val[2dof+2]
                 evaluate!(x_g_Dg_D2g[2dof+1:2dof+2], dt_nr, view(x_g_Dg_D2g_val,2dof+1:2dof+2))
             end
@@ -181,7 +187,7 @@ function poincare{T<:Number}(f!, g, q0::Array{TaylorN{T},1}, t0::T, tmax::T,
 end
 
 function poincare2{T<:Number}(f!, g, q0::Array{T,1}, t0::T, tmax::T,
-        order::Int, abstol::T; maxsteps::Int=500)
+        order::Int, abstol::T; maxsteps::Int=500, nriter::Int=5)
 
     # Allocation
     const tv = Array{T}(maxsteps+1)
@@ -217,6 +223,9 @@ function poincare2{T<:Number}(f!, g, q0::Array{T,1}, t0::T, tmax::T,
     const xvS = similar(xv)
     const gvS = similar(tv)
 
+    #auxiliary range object for Newton-Raphson iterations
+    const nrinds = 1:nriter
+
     # Integration
     nsteps = 1
     nevents = 1 #number of detected events
@@ -239,7 +248,7 @@ function poincare2{T<:Number}(f!, g, q0::Array{T,1}, t0::T, tmax::T,
             dt_nr = dt_li
             evaluate!(x_g_Dg_D2g[2dof+1:2dof+2], dt_nr, view(x_g_Dg_D2g_val,2dof+1:2dof+2))
 
-            for i in 1:5
+            for i in eachindex(nrinds)
                 dt_nr = dt_nr-x_g_Dg_D2g_val[2dof+1]/x_g_Dg_D2g_val[2dof+2]
                 evaluate!(x_g_Dg_D2g[2dof+1:2dof+2], dt_nr, view(x_g_Dg_D2g_val,2dof+1:2dof+2))
             end
@@ -272,7 +281,7 @@ end
 
 #poincare2 + jet transport
 function poincare2{T<:Number}(f!, g, q0::Array{TaylorN{T},1}, t0::T, tmax::T,
-        order::Int, abstol::T; maxsteps::Int=500)
+        order::Int, abstol::T; maxsteps::Int=500, nriter::Int=5)
 
     # Allocation
     const tv = Array{T}(maxsteps+1)
@@ -309,6 +318,9 @@ function poincare2{T<:Number}(f!, g, q0::Array{TaylorN{T},1}, t0::T, tmax::T,
     const xvS = similar(xv)
     const gvS = similar(tvS)
 
+    #auxiliary range object for Newton-Raphson iterations
+    const nrinds = 1:nriter
+
     # Integration
     nsteps = 1
     nevents = 1 #number of detected events
@@ -331,7 +343,7 @@ function poincare2{T<:Number}(f!, g, q0::Array{TaylorN{T},1}, t0::T, tmax::T,
             dt_nr = dt_li
             evaluate!(x_g_Dg_D2g[2dof+1:2dof+2], dt_nr, view(x_g_Dg_D2g_val,2dof+1:2dof+2))
 
-            for i in 1:5
+            for i in eachindex(nrinds)
                 dt_nr = dt_nr-x_g_Dg_D2g_val[2dof+1]/x_g_Dg_D2g_val[2dof+2]
                 evaluate!(x_g_Dg_D2g[2dof+1:2dof+2], dt_nr, view(x_g_Dg_D2g_val,2dof+1:2dof+2))
             end
