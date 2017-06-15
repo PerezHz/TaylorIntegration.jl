@@ -43,7 +43,7 @@ function poincare{T<:Number}(f!, g, q0::Array{T,1}, t0::T, tmax::T,
     nevents = 1 #number of detected events
     while t0 < tmax
         δt_old = δt
-        δt = taylorstep!(f!, x, dx, xaux, t0, tmax, x0, order, abstol)
+        δt = taylorstep!(f!, x, dx, xaux, t0, tmax, x0, order, abstol, vT)
         g_val = g(t0, x, dx)
         if g_val_old[1]*g_val[1] < zero(T)
 
@@ -138,7 +138,7 @@ function poincare{T<:Number}(f!, g, q0::Array{TaylorN{T},1}, t0::T, tmax::T,
     nevents = 1 #number of detected events
     while t0 < tmax
         δt_old = δt
-        δt = taylorstep!(f!, x, dx, xaux, t0, tmax, x0, order, abstol)
+        δt = taylorstep!(f!, x, dx, xaux, t0, tmax, x0, order, abstol, vT)
         g_val = g(t0, x, dx)
         if g_val_old[1][1][1]*g_val[1][1][1] < zero(T)
 
@@ -231,7 +231,7 @@ function poincare2{T<:Number}(f!, g, q0::Array{T,1}, t0::T, tmax::T,
     nevents = 1 #number of detected events
     while t0 < tmax
         δt_old = δt
-        δt = taylorstep!(f!, x, dx, xaux, t0, tmax, x0, order, abstol)
+        δt = taylorstep!(f!, x, dx, xaux, t0, tmax, x0, order, abstol, vT)
         g_val = g(t0, x, dx)
         if g_val_old[2]*g_val[2] < zero(T)
 
@@ -326,7 +326,7 @@ function poincare2{T<:Number}(f!, g, q0::Array{TaylorN{T},1}, t0::T, tmax::T,
     nevents = 1 #number of detected events
     while t0 < tmax
         δt_old = δt
-        δt = taylorstep!(f!, x, dx, xaux, t0, tmax, x0, order, abstol)
+        δt = taylorstep!(f!, x, dx, xaux, t0, tmax, x0, order, abstol, vT)
         g_val = g(t0, x, dx)
         if g_val_old[2][1][1]*g_val[2][1][1] < zero(T)
 
