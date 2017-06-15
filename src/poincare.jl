@@ -74,7 +74,7 @@ function poincare{T<:Number}(f!, g, q0::Array{T,1}, t0::T, tmax::T,
         end
         g_val_old = deepcopy(g_val)
         for i in eachindex(x0)
-            @inbounds x[i].coeffs[1] = x0[i]
+            @inbounds x[i][1] = x0[i]
         end
         t0 += δt
         nsteps += 1
@@ -169,7 +169,7 @@ function poincare{T<:Number}(f!, g, q0::Array{TaylorN{T},1}, t0::T, tmax::T,
         end
         g_val_old = deepcopy(g_val)
         for i in eachindex(x0)
-            @inbounds x[i].coeffs[1] = x0[i]
+            @inbounds x[i][1] = x0[i]
         end
         t0 += δt
         nsteps += 1
@@ -262,7 +262,7 @@ function poincare2{T<:Number}(f!, g, q0::Array{T,1}, t0::T, tmax::T,
         end
         g_val_old = deepcopy(g_val)
         for i in eachindex(x0)
-            @inbounds x[i].coeffs[1] = x0[i]
+            @inbounds x[i][1] = x0[i]
         end
         t0 += δt
         nsteps += 1
@@ -357,7 +357,7 @@ function poincare2{T<:Number}(f!, g, q0::Array{TaylorN{T},1}, t0::T, tmax::T,
         end
         g_val_old = deepcopy(g_val)
         for i in eachindex(x0)
-            @inbounds x[i].coeffs[1] = x0[i]
+            @inbounds x[i][1] = x0[i]
         end
         t0 += δt
         nsteps += 1
