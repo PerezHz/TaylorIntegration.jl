@@ -12,4 +12,6 @@ include("jettransport.jl")
 
 include("liapunovspectrum.jl")
 
+include("validated.jl")
+
 end #module
