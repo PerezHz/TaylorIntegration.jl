@@ -14,4 +14,6 @@ include("liapunovspectrum.jl")
 
 include("validated.jl")
 
+include("sensitivity.jl")
+
 end #module
