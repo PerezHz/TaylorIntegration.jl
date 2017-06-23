@@ -26,6 +26,7 @@ Comments, suggestions, and improvements are welcome and appreciated.
 + [Evaluating definite integrals](http://nbviewer.jupyter.org/github/PerezHz/TaylorIntegration.jl/blob/master/examples/Evaluating-definite-integrals.ipynb)
 + [Damped, driven linear oscillator](http://nbviewer.jupyter.org/github/PerezHz/TaylorIntegration.jl/blob/master/examples/Damped-driven-linear-oscillator.ipynb)
 + [The Lyapunov spectrum of the Lorenz system](http://nbviewer.jupyter.org/github/PerezHz/TaylorIntegration.jl/blob/master/examples/Lorenz-Lyapunov-spectrum.ipynb)
++ [TaylorIntegration @ JuliaCon 2017 (slides)](http://nbviewer.jupyter.org/format/slides/github/PerezHz/TaylorIntegration.jl/blob/master/examples/JuliaCon2017/TaylorIntegration_JuliaCon.ipynb)
 
 #### License
 
