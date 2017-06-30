@@ -316,6 +316,10 @@ facts("Test jet transport (t0,tmax): harmonic oscillator") do
     p = set_variables("ξ", numvars=2, order=5)
     x0 = [-1.0,0.45]
     x0TN = x0 + p
+    tvTN, xvTN = taylorinteg(harmosc!, x0TN, 0.0, 10pi, _order, _abstol, maxsteps=1)
+    @fact length(tvTN) <= 2 --> true
+    @fact length(xvTN[:,1]) <= 2 --> true
+    @fact length(xvTN[:,2]) <= 2 --> true
     tvTN, xvTN = taylorinteg(harmosc!, x0TN, 0.0, 10pi, _order, _abstol, maxsteps=500)
     tv  , xv   = taylorinteg(harmosc!, x0  , 0.0, 10pi, _order, _abstol, maxsteps=500)
     x_analyticsol(t,x0,p0) = p0*sin(t)+x0*cos(t)
@@ -362,6 +366,9 @@ facts("Test jet transport (trange): simple pendulum") do
     #note that q0 is a Vector{Float64}, but q0TN is a Vector{TaylorN{Float64}}
     #but apart from that difference, we're calling `taylorinteg` essentially with the same parameters!
     #thus, jet transport is reduced to a beautiful application of Julia's multiple dispatch!
+    xvTN = taylorinteg(pendulum!, q0TN, tr, _order, _abstol, maxsteps=1)
+    @fact size(xvTN) == (length(tr), length(q0)) --> true
+    @fact prod(isnan.(xvTN[2:end,:])) --> true
     xvTN = taylorinteg(pendulum!, q0TN, tr, _order, _abstol, maxsteps=100)
 
     xvTN_0 = map( x->evaluate(x, [0.0, 0.0]), xvTN ) # the jet evaluated at the nominal solution
