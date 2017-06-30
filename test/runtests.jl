@@ -484,13 +484,13 @@ facts("Test Lyapunov spectrum integrator (trange): Lorenz system") do
 
     @fact lorenztr == -(σ+one(eltype(x0))+β) --> true
 
-    xw, λw = liap_taylorinteg(lorenz!, x0, t0:1.0:tmax, 28, _abstol; maxsteps=2)
+    xw, λw = liap_taylorinteg(lorenz!, x0, t0:1.0:tmax, _order, _abstol; maxsteps=2)
 
     @fact size(xw) == (length(t0:1.0:tmax), length(x0)) --> true
     @fact size(λw) == (length(t0:1.0:tmax), length(x0)) --> true
     @fact prod(isnan.(xw[2:end,:])) --> true
 
-    xw, λw = liap_taylorinteg(lorenz!, x0, t0:1.0:tmax, 28, _abstol; maxsteps=2000)
+    xw, λw = liap_taylorinteg(lorenz!, x0, t0:1.0:tmax, _order, _abstol; maxsteps=2000)
 
     @fact xw[1,:] == x0 --> true
     @fact size(xw) == size(λw) --> true
@@ -502,5 +502,33 @@ facts("Test Lyapunov spectrum integrator (trange): Lorenz system") do
     @fact isapprox(λw[end,3], -22.46336, rtol=mytol, atol=mytol) -->true
 
 end
+
+facts("Test ODE integration with BigFloats: simple pendulum") do
+
+    function pendulum!(t, x, dx) #the simple pendulum ODE
+        dx[1] = x[2]
+        dx[2] = -sin(x[1])
+        nothing
+    end
+
+    q0 = [1.3, 0.0] #the initial conditions
+    # T is the librational period == 4Elliptic.K(sin(q0[1]/2)^2) # this is an explicit value that will be used until Elliptic.K works with julia 0.6
+    T = 7.019250311844546
+    t0 = 0.0 #the initial time
+    tmax = T #the final time
+
+    tv, xv = taylorinteg(pendulum!, q0, BigFloat(t0), tmax, _order, _abstol)
+    @fact length(tv) < 501 --> true
+    @fact length(xv[:,1]) < 501 --> true
+    @fact length(xv[:,2]) < 501 --> true
+    @fact norm(xv[end,:]-q0,Inf) < eps(10.0) --> true
+
+    tv, xv = taylorinteg(pendulum!, q0, BigFloat(t0), tmax, _order, _abstol; maxsteps=10)
+    @fact length(tv) <= 11 --> true
+    @fact length(xv[:,1]) <= 11 --> true
+    @fact length(xv[:,2]) <= 11 --> true
+
+end
+
 
 exitstatus()
