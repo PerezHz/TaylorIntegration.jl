@@ -432,6 +432,13 @@ facts("Test Lyapunov spectrum integrator (t0, tmax): Lorenz system") do
 
     @fact xv[1,:] == x0 --> true
     @fact tv[1] == t0 --> true
+    @fact length(tv[:,1]) < 2001 --> true
+    @fact length(xv[:,1]) < 2001 --> true
+    @fact length(xv[:,2]) < 2001 --> true
+    @fact length(xv[:,3]) < 2001 --> true
+    @fact length(λv[:,1]) < 2001 --> true
+    @fact length(λv[:,2]) < 2001 --> true
+    @fact length(λv[:,3]) < 2001 --> true
     @fact size(xv) == size(λv) --> true
     @fact isapprox(sum(λv[1,:]), lorenztr) --> false
     @fact isapprox(sum(λv[end,:]), lorenztr) --> true
@@ -468,12 +475,12 @@ facts("Test Lyapunov spectrum integrator (trange): Lorenz system") do
     lorenz!(t0, x0TN, dx0TN)
     lorenztr = trace(jacobian(dx0TN)) #trace of Lorenz system Jacobian matrix
 
-    @fact lorenztr == -(σ+one(Float64)+β) --> true
+    @fact lorenztr == -(σ+one(eltype(x0))+β) --> true
 
     xw, λw = liap_taylorinteg(lorenz!, x0, t0:1.0:tmax, 28, _abstol; maxsteps=2)
 
-    @fact size(xw) == (length(t0:1.0:tmax), 3) --> true
-    @fact size(λw) == (length(t0:1.0:tmax), 3) --> true
+    @fact size(xw) == (length(t0:1.0:tmax), length(x0)) --> true
+    @fact size(λw) == (length(t0:1.0:tmax), length(x0)) --> true
     @fact prod(isnan.(xw[2:end,:])) --> true
 
     xw, λw = liap_taylorinteg(lorenz!, x0, t0:1.0:tmax, 28, _abstol; maxsteps=2000)
