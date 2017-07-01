@@ -511,34 +511,34 @@ facts("Test ODE integration with BigFloats: simple pendulum") do
         nothing
     end
 
-    q0 = [1.3, 0.0] #the initial conditions
+    q0 = BigFloat.(["1.3", 0.0]) #the initial condition as a Vector{BigFloat}
     # T is the pendulum's librational period == 4Elliptic.K(sin(q0[1]/2)^2)
     # we will evaluate the elliptic integral K using TaylorIntegration.jl:
-    g(t,x) = (1-((sin(q0[1]/2))^2)*(sin(t)^2))^(-0.5) # K elliptic integral kernel
-    tvk, xvk = taylorinteg(g, 0.0, 0.0, BigFloat(π)/2, 25, 1e-20)
+    g(t,x) = 1/sqrt(1-((sin(q0[1]/2))^2)*(sin(t)^2)) # K elliptic integral kernel
+    tvk, xvk = taylorinteg(g, 0.0, 0.0, BigFloat(π)/2, 90, 1e-77)
     @fact eltype(tvk) == BigFloat --> true
     @fact eltype(xvk) == BigFloat --> true
-    T = 4xvk[end]
+    T = 4xvk[end] # T = 4Elliptic.K(sin(q0[1]/2)^2)
     @fact typeof(T) == BigFloat --> true
     @fact abs(T-7.019250311844546) < eps(10.0) --> true
 
     t0 = 0.0 #the initial time
-    tmax = T #the final time
-    @fact typeof(tmax) == BigFloat --> true
 
-    tv, xv = taylorinteg(pendulum!, q0, t0, tmax, _order, _abstol; maxsteps=1)
+    tv, xv = taylorinteg(pendulum!, q0, t0, T, 90, 1e-77; maxsteps=1)
     @fact eltype(tv) == BigFloat --> true
     @fact eltype(xv) == BigFloat --> true
     @fact length(tv) == 2 --> true
     @fact length(xv[:,1]) == 2 --> true
     @fact length(xv[:,2]) == 2 --> true
 
-    #note that tmax is a BigFloat
-    tv, xv = taylorinteg(pendulum!, q0, t0, tmax, _order, _abstol)
+    #note that T is a BigFloat
+    tv, xv = taylorinteg(pendulum!, q0, t0, T, 90, 1e-77)
     @fact length(tv) < 501 --> true
     @fact length(xv[:,1]) < 501 --> true
     @fact length(xv[:,2]) < 501 --> true
-    @fact norm(xv[end,:]-q0,Inf) < eps(10.0) --> true
+    #the line below implies that we've evaluated the pendulum's period
+    #up to an accuracy comparable to eps(BigFloat) ~ 1e-77!!!
+    @fact norm(xv[end,:].-q0,Inf) < 100eps(BigFloat) --> true
 
 end
 
