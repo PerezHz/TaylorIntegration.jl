@@ -512,10 +512,20 @@ facts("Test ODE integration with BigFloats: simple pendulum") do
     end
 
     q0 = [1.3, 0.0] #the initial conditions
-    # T is the librational period == 4Elliptic.K(sin(q0[1]/2)^2) # this is an explicit value that will be used until Elliptic.K works with julia 0.6
-    T = 7.019250311844546
+    # T is the pendulum's librational period == 4Elliptic.K(sin(q0[1]/2)^2)
+    # we will evaluate the elliptic integral K using TaylorIntegration.jl:
+    g(t,x) = (1-((sin(q0[1]/2))^2)*(sin(t)^2))^(-0.5) # K elliptic integral kernel
+    tvk, xvk = taylorinteg(g, 0.0, 0.0, BigFloat(π)/2, 25, 1e-20)
+    T = 4xvk[end]
+    @fact abs(T-7.019250311844546) < eps(10.0) --> true
+
     t0 = 0.0 #the initial time
     tmax = T #the final time
+
+    tv, xv = taylorinteg(pendulum!, q0, BigFloat(t0), tmax, _order, _abstol; maxsteps=1)
+    @fact length(tv) == 2 --> true
+    @fact length(xv[:,1]) == 2 --> true
+    @fact length(xv[:,2]) == 2 --> true
 
     tv, xv = taylorinteg(pendulum!, q0, BigFloat(t0), tmax, _order, _abstol)
     @fact length(tv) < 501 --> true
@@ -523,12 +533,6 @@ facts("Test ODE integration with BigFloats: simple pendulum") do
     @fact length(xv[:,2]) < 501 --> true
     @fact norm(xv[end,:]-q0,Inf) < eps(10.0) --> true
 
-    tv, xv = taylorinteg(pendulum!, q0, BigFloat(t0), tmax, _order, _abstol; maxsteps=10)
-    @fact length(tv) <= 11 --> true
-    @fact length(xv[:,1]) <= 11 --> true
-    @fact length(xv[:,2]) <= 11 --> true
-
 end
-
 
 exitstatus()
