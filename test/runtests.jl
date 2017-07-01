@@ -516,18 +516,27 @@ facts("Test ODE integration with BigFloats: simple pendulum") do
     # we will evaluate the elliptic integral K using TaylorIntegration.jl:
     g(t,x) = (1-((sin(q0[1]/2))^2)*(sin(t)^2))^(-0.5) # K elliptic integral kernel
     tvk, xvk = taylorinteg(g, 0.0, 0.0, BigFloat(π)/2, 25, 1e-20)
+    println("eltype(tvk) = ", eltype(tvk))
+    println("eltype(xvk) = ", eltype(xvk))
+    @fact eltype(tvk) == BigFloat --> true
+    @fact eltype(xvk) == BigFloat --> true
     T = 4xvk[end]
+    @fact typeof(T) == BigFloat --> true
     @fact abs(T-7.019250311844546) < eps(10.0) --> true
 
     t0 = 0.0 #the initial time
     tmax = T #the final time
+    @fact typeof(tmax) == BigFloat --> true
 
-    tv, xv = taylorinteg(pendulum!, q0, BigFloat(t0), tmax, _order, _abstol; maxsteps=1)
+    tv, xv = taylorinteg(pendulum!, q0, t0, tmax, _order, _abstol; maxsteps=1)
+    @fact eltype(tv) == BigFloat --> true
+    @fact eltype(xv) == BigFloat --> true
     @fact length(tv) == 2 --> true
     @fact length(xv[:,1]) == 2 --> true
     @fact length(xv[:,2]) == 2 --> true
 
-    tv, xv = taylorinteg(pendulum!, q0, BigFloat(t0), tmax, _order, _abstol)
+    #note that tmax is a BigFloat
+    tv, xv = taylorinteg(pendulum!, q0, t0, tmax, _order, _abstol)
     @fact length(tv) < 501 --> true
     @fact length(xv[:,1]) < 501 --> true
     @fact length(xv[:,2]) < 501 --> true
