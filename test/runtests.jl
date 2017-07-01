@@ -511,7 +511,7 @@ facts("Test ODE integration with BigFloats: simple pendulum") do
         nothing
     end
 
-    q0 = BigFloat.(["1.3", 0.0]) #the initial condition as a Vector{BigFloat}
+    q0 = [big"1.3", 0.0] #the initial condition as a Vector{BigFloat}
     # T is the pendulum's librational period == 4Elliptic.K(sin(q0[1]/2)^2)
     # we will evaluate the elliptic integral K using TaylorIntegration.jl:
     g(t,x) = 1/sqrt(1-((sin(q0[1]/2))^2)*(sin(t)^2)) # K elliptic integral kernel
