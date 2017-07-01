@@ -516,8 +516,6 @@ facts("Test ODE integration with BigFloats: simple pendulum") do
     # we will evaluate the elliptic integral K using TaylorIntegration.jl:
     g(t,x) = (1-((sin(q0[1]/2))^2)*(sin(t)^2))^(-0.5) # K elliptic integral kernel
     tvk, xvk = taylorinteg(g, 0.0, 0.0, BigFloat(π)/2, 25, 1e-20)
-    println("eltype(tvk) = ", eltype(tvk))
-    println("eltype(xvk) = ", eltype(xvk))
     @fact eltype(tvk) == BigFloat --> true
     @fact eltype(xvk) == BigFloat --> true
     T = 4xvk[end]
