@@ -40,7 +40,7 @@ end)
 );
 
 const _LOOP_PARSEDFN = sanitize(:(
-    for ord in 1:order
+    for ord in 1:order-1
         ordnext = ord+1
     end
     )
@@ -159,28 +159,21 @@ function _nfnpreamble_body(fnbody, fnargs)
         end
     end
 
-    @show(v_vars, v_preamb, v_assign)
-    println()
-    @show(newfnbody)
-    println()
-
-    # Clean-up numeric assignements in body
-    for kk in reverse(v_assign)
-        newfnbody = subs(newfnbody, Dict(kk[2].args[1] => kk[2].args[2]))
-        deleteat!(newfnbody.args, kk[1])
-    end
-
-    @show(newfnbody)
-    println()
-
     # Define premable (temporary allocations)
     preamble = _nfnpreamble(v_vars, v_preamb, fnargs)
+
+    # Clean-up numeric assignements in preamble and body
+    for kk in reverse(v_assign)
+        newfnbody = subs(newfnbody, Dict(kk[2].args[1] => kk[2].args[2]))
+        preamble = subs(preamble, Dict(kk[2].args[1] => kk[2].args[2]))
+        deleteat!(newfnbody.args, kk[1])
+    end
 
     return preamble, newfnbody
 end
 
 
-function to_parsed_jetcoeffs( ex )
+function _to_parsed_jetcoeffs( ex )
     # Capture the body of the passed function
     @capture( shortdef(ex), fn_(fnargs__) = fnbody_ ) ||
         throw(ArgumentError("Must be a function call\n", ex))
@@ -196,25 +189,33 @@ function to_parsed_jetcoeffs( ex )
     # Transform graph representation of the body of the function
     preamble, fnbody = _nfnpreamble_body(fnbody, fnargs);
 
-    #### FALTA INCLUIR LA RECURRENCIA EN LAS ECS!!
-
     # Guessed return variable
     retvar = preamble.args[end].args[1]
 
+    # Recursion relation
+    # @inbounds x[ordnext] = dx[ord]/ord
+    if length(fnargs) == 2
+        rec_preamb = :( $(fnargs[2])[2] = $(retvar)[1] )
+        rec_fnbody = :( $(fnargs[2])[ordnext+1] =
+            $(retvar)[ordnext]/ordnext )
+    elseif length(fnargs) == 3
+        rec_preamb = :( $(fnargs[2:end])[2] .= $(retvar)[:][1] )
+        rec_fnbody = :( $(fnargs[2:end])[ordnext+1] .=
+            $(retvar)[:][ordnext]/ordnext )
+    else
+        throw(ArgumentError(
+        "Wrong number of arguments in the definition of the function $fn"))
+    end
+
     # Add preamble to newfunction
-    push!(newfunction.args[2].args, preamble.args...)
+    push!(newfunction.args[2].args, preamble.args..., rec_preamb)
 
     # Add parsed fnbody to forloopblock
-    push!(forloopblock.args[2].args, fnbody.args...)
+    push!(forloopblock.args[2].args, fnbody.args..., rec_fnbody)
 
     # Push preamble and forloopblock to newfunction
     push!(newfunction.args[2].args, forloopblock);
-
-    if length(fnargs) == 2
-        push!(newfunction.args[2].args, parse("return $retvar"))
-    else
-        push!(newfunction.args[2].args, parse("return nothing"))
-    end
+    push!(newfunction.args[2].args, parse("return nothing"))
 
     # Rename variables of the body of the new function
     newfunction = subs(newfunction,
@@ -223,6 +224,5 @@ function to_parsed_jetcoeffs( ex )
         newfunction = subs(newfunction, Dict(fnargs[3] => :(__dx)))
     end
 
-    @show(newfunction)
-    nothing
+    newfunction
 end
