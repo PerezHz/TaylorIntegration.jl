@@ -26,6 +26,7 @@ const _HEAD_PARSEDFN_SCALAR = sanitize(:(
 function parsed_jetcoeffs!{T<:Number}(__t0::T, __x::Taylor1{T}, __vT::Vector{T})
     order = __x.order
     __vT[1] = __t0
+    __tT = Taylor1(__vT, order)
 end)
 );
 
@@ -36,6 +37,7 @@ function parsed_jetcoeffs!{T<:Number}(__t0::T, __x::Vector{Taylor1{T}},
 
     order = __x[1].order
     __vT[1] = __t0
+    __tT = Taylor1(__vT, order)
 end)
 );
 
@@ -138,20 +140,21 @@ function _preamble_body(fnbody, fnargs, debug=false)
     # Sanity check: for a function is a simple assignment
     if isa(fnbody.args[end], Symbol)
         fnbody.args[end] = :( identity($(fnbody.args[end])) )
+        debug && @show(fnbody)
     end
 
     # Unfolds the body to the expresion graph (AST) of the function,
     # a priori as unary and binary calls
     newfnbody = sanitize(to_expr( ExGraph(fnbody) ))
 
-    if debug
-        @show(newfnbody)
-        println
-    end
-
     # Needed, if `newfnbody` consists of a single assignment (unary call)
     if newfnbody.head == :(=)
         newfnbody = Expr(:block, newfnbody)
+    end
+
+    if debug
+        @show(newfnbody)
+        println()
     end
 
     # Populate v_vars, v_assign, v_preamb
@@ -197,11 +200,6 @@ function _preamble_body(fnbody, fnargs, debug=false)
         newfnbody = subs(newfnbody, Dict(kk[2].args[1] => kk[2].args[2]))
         preamble = subs(preamble, Dict(kk[2].args[1] => kk[2].args[2]))
         deleteat!(newfnbody.args, kk[1])
-    end
-
-    if debug
-        @show(v_vars, v_preamb, v_assign)
-        println()
     end
 
     # Check consistency of retvar
@@ -268,7 +266,7 @@ function _to_parsed_jetcoeffs( ex, debug=false )
 
     # Rename variables of the body of the new function
     newfunction = subs(newfunction,
-        Dict(fnargs[1] => :(__vT), fnargs[2] => :(__x)))
+        Dict(fnargs[1] => :(__tT), fnargs[2] => :(__x)))
     if length(fnargs) == 3
         newfunction = subs(newfunction, Dict(fnargs[3] => :(__dx)))
     end
