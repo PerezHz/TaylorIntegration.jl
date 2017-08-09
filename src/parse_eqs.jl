@@ -47,7 +47,7 @@ const _LOOP_PARSEDFN = sanitize(:(
 );
 
 
-function _nfnhead(fn, fnargs)
+function _newhead(fn, fnargs)
 
     # Construct common elements of the new expression
     if length(fnargs) == 2
@@ -112,7 +112,7 @@ function _replacevars!(fnold::Expr, newvar::Symbol, v_vars)
 end
 
 
-function _nfnpreamble(v_vars, v_preamb, fnargs)
+function _newpreamble(v_vars, v_preamb, fnargs)
     preamble = Expr(:block,)
     for i in eachindex(v_vars)
         nv = v_vars[i]
@@ -128,58 +128,105 @@ function _nfnpreamble(v_vars, v_preamb, fnargs)
 end
 
 
-function _nfnpreamble_body(fnbody, fnargs)
+function _preamble_body(fnbody, fnargs, debug=false)
+
+    # Bookkeeping
+    v_vars = Symbol[]               # List of symbols with created variables
+    v_preamb = Dict{Symbol,Expr}()  # Auxiliary definitions
+    v_assign = Tuple{Int,Expr}[]    # Numeric assignments (to be deleted)
+
+    # Sanity check: for a function is a simple assignment
+    if isa(fnbody.args[end], Symbol)
+        fnbody.args[end] = :( identity($(fnbody.args[end])) )
+    end
 
     # Unfolds the body to the expresion graph (AST) of the function,
     # a priori as unary and binary calls
     newfnbody = sanitize(to_expr( ExGraph(fnbody) ))
 
-    v_vars = Symbol[]            # List of symbols with created variables
-    v_preamb = Dict{Symbol,Expr}()  # Auxiliary definitions
-    v_assign = Tuple{Int,Expr}[] # Numeric assignements (to be deleated)
+    if debug
+        @show(newfnbody)
+        println
+    end
+
+    # Needed, if `newfnbody` consists of a single assignment (unary call)
+    if newfnbody.head == :(=)
+        newfnbody = Expr(:block, newfnbody)
+    end
 
     # Populate v_vars, v_assign, v_preamb
-    for (i,aa) in enumerate(newfnbody.args)
+    for (i, aa) in enumerate(newfnbody.args)
         aavar = aa.args[1]
         aaa = aa.args[2]
         if isa(aaa, Expr)
-            push!(v_vars, aavar)
             fnexpr, def_fnexpr, auxfnexpr = _replacevars!(aaa, aavar, v_vars)
             push!(v_preamb, def_fnexpr.args[1] => def_fnexpr.args[2])
             newfnbody.args[i] = fnexpr
             if auxfnexpr.head != :nothing
-                newvar = v_vars[end]
                 push!(v_preamb, auxfnexpr.args[1] => auxfnexpr.args[2])
             end
+            push!(v_vars, aavar)
+            #
+        elseif isa(aaa, Symbol) # occurs when there is a simple assignment
+            bb = subs(aa, Dict(aaa => :(identity($aaa))))
+            bbvar = bb.args[1]
+            bbb = bb.args[2]
+            fnexpr, def_fnexpr, auxfnexpr = _replacevars!(bbb, bbvar, v_vars)
+            push!(v_preamb, def_fnexpr.args[1] => def_fnexpr.args[2])
+            newfnbody.args[i] = fnexpr
+            if auxfnexpr.head != :nothing
+                push!(v_preamb, auxfnexpr.args[1] => auxfnexpr.args[2])
+            end
+            push!(v_vars, bbvar)
+            #
         elseif isa(aaa, Number)
             push!(v_assign, (i, aa))
+            #
         else #needed?
             @show(aa.args[2], typeof(aa.args[2]))
-            error("Different from `Number` or `Expr`")
+            error("Different from `Expr`, `Symbol` or `Number`")
+            #
         end
     end
 
     # Define premable (temporary allocations)
-    preamble = _nfnpreamble(v_vars, v_preamb, fnargs)
+    preamble = _newpreamble(v_vars, v_preamb, fnargs)
 
-    # Clean-up numeric assignements in preamble and body
+    # Clean-up numeric assignments in preamble and body
     for kk in reverse(v_assign)
         newfnbody = subs(newfnbody, Dict(kk[2].args[1] => kk[2].args[2]))
         preamble = subs(preamble, Dict(kk[2].args[1] => kk[2].args[2]))
         deleteat!(newfnbody.args, kk[1])
     end
 
-    return preamble, newfnbody
+    if debug
+        @show(v_vars, v_preamb, v_assign)
+        println()
+    end
+
+    # Check consistency of retvar
+    @assert(v_vars[end] == preamble.args[end].args[1])
+
+    # Guessed return variable; last included in v_vars/preamble
+    # retvar = preamble.args[end].args[1]
+    retvar = v_vars[end]
+
+    return preamble, newfnbody, retvar
 end
 
 
-function _to_parsed_jetcoeffs( ex )
+function _to_parsed_jetcoeffs( ex, debug=false )
     # Capture the body of the passed function
     @capture( shortdef(ex), fn_(fnargs__) = fnbody_ ) ||
         throw(ArgumentError("Must be a function call\n", ex))
 
+    if debug
+        @show(fn, fnargs, fnbody)
+        println()
+    end
+
     # Set up new function
-    newfunction = _nfnhead(fn, fnargs)
+    newfunction = _newhead(fn, fnargs)
 
     # for-loop block; it will include parsed body
     forloopblock = copy(_LOOP_PARSEDFN)
@@ -187,10 +234,12 @@ function _to_parsed_jetcoeffs( ex )
         Dict(:(ordnext = ord + 1) => Expr(:block, :(ordnext = ord + 1))) )
 
     # Transform graph representation of the body of the function
-    preamble, fnbody = _nfnpreamble_body(fnbody, fnargs);
+    preamble, fnbody, retvar = _preamble_body(fnbody, fnargs, debug)
 
-    # Guessed return variable
-    retvar = preamble.args[end].args[1]
+    if debug
+        @show(preamble, fnbody, retvar)
+        println()
+    end
 
     # Recursion relation
     # @inbounds x[ordnext] = dx[ord]/ord
@@ -199,8 +248,8 @@ function _to_parsed_jetcoeffs( ex )
         rec_fnbody = :( $(fnargs[2])[ordnext+1] =
             $(retvar)[ordnext]/ordnext )
     elseif length(fnargs) == 3
-        rec_preamb = :( $(fnargs[2:end])[2] .= $(retvar)[:][1] )
-        rec_fnbody = :( $(fnargs[2:end])[ordnext+1] .=
+        rec_preamb = :( $(fnargs[2])[:][2] .= $(retvar)[:][1] )
+        rec_fnbody = :( $(fnargs[2])[:][ordnext+1] .=
             $(retvar)[:][ordnext]/ordnext )
     else
         throw(ArgumentError(
