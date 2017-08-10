@@ -137,12 +137,6 @@ function _preamble_body(fnbody, fnargs, debug=false)
     v_preamb = Dict{Symbol,Expr}()  # Auxiliary definitions
     v_assign = Tuple{Int,Expr}[]    # Numeric assignments (to be deleted)
 
-    # Sanity check: for a function is a simple assignment
-    if isa(fnbody.args[end], Symbol)
-        fnbody.args[end] = :( identity($(fnbody.args[end])) )
-        debug && @show(fnbody)
-    end
-
     # Unfolds the body to the expresion graph (AST) of the function,
     # a priori as unary and binary calls
     newfnbody = sanitize(to_expr( ExGraph(fnbody) ))
@@ -217,6 +211,22 @@ function _to_parsed_jetcoeffs( ex, debug=false )
     # Capture the body of the passed function
     @capture( shortdef(ex), fn_(fnargs__) = fnbody_ ) ||
         throw(ArgumentError("Must be a function call\n", ex))
+
+    # Standarize fnbody
+    if length(fnbody.args) > 1
+        fnbody.args[1] = Expr(:block, copy(fnbody.args)...)
+        deleteat!(fnbody.args, 2:length(fnbody.args))
+    end
+
+    # Sanity check: the function is a simple assignement or a numerical value
+    if isa(fnbody.args[1].args[end], Symbol)
+        fnbody.args[1].args[end] = :( identity($(fnbody.args[1].args[end])) )
+        debug && @show(fnbody)
+    elseif isa(fnbody.args[1].args[end], Number)
+        fnbody.args[1].args[end] =
+            :( $(fnbody.args[1].args[end])+zero($(fnargs[1])) )
+        debug && @show(fnbody)
+    end
 
     if debug
         @show(fn, fnargs, fnbody)
