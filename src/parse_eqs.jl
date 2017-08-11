@@ -49,6 +49,37 @@ const _LOOP_PARSEDFN = sanitize(:(
 );
 
 
+function _extract_parts(ex, debug=false)
+
+    # Capture name, args and body
+    @capture( shortdef(ex), fn_(fnargs__) = fnbody_ ) ||
+        throw(ArgumentError("Must be a function call\n", ex))
+
+    # Standarize fnbody
+    if length(fnbody.args) > 1
+        fnbody.args[1] = Expr(:block, copy(fnbody.args)...)
+        deleteat!(fnbody.args, 2:length(fnbody.args))
+    end
+
+    # Sanity check: the function is a simple assignement or a numerical value
+    if isa(fnbody.args[1].args[end], Symbol)
+        fnbody.args[1].args[end] = :( identity($(fnbody.args[1].args[end])) )
+        # debug && @show(fnbody)
+    elseif isa(fnbody.args[1].args[end], Number)
+        fnbody.args[1].args[end] =
+            :( $(fnbody.args[1].args[end])+zero($(fnargs[1])) )
+        # debug && @show(fnbody)
+    end
+
+    if debug
+        @show(fn, fnargs, fnbody)
+        println()
+    end
+
+    return fn, fnargs, fnbody
+end
+
+
 function _newhead(fn, fnargs)
 
     # Construct common elements of the new expression
@@ -207,31 +238,39 @@ function _preamble_body(fnbody, fnargs, debug=false)
 end
 
 
+function _rename_indexedvars(fnbody)
+
+    v_indexed = Symbol[]
+    d_indx = Dict{Symbol, Expr}()
+
+    !Espresso.isindexed(fnbody) && return fnbody, v_indexed, d_indx
+
+    # Obtain variables
+    vvars = Espresso.get_vars(fnbody, rec=true)
+
+    # Rename indexed variables
+    for v in vvars
+        if Espresso.isindexed(v)
+            newvar = Espresso.genname()
+            push!(v_indexed, newvar)
+            push!(d_indx, newvar => v)
+            fnbody = subs(fnbody, Dict(v => newvar))
+            vvars .= subs.(vvars, Dict(v => newvar))
+        end
+    end
+
+    return fnbody, v_indexed, d_indx
+end
+
+
+
 function _to_parsed_jetcoeffs( ex, debug=false )
-    # Capture the body of the passed function
-    @capture( shortdef(ex), fn_(fnargs__) = fnbody_ ) ||
-        throw(ArgumentError("Must be a function call\n", ex))
 
-    # Standarize fnbody
-    if length(fnbody.args) > 1
-        fnbody.args[1] = Expr(:block, copy(fnbody.args)...)
-        deleteat!(fnbody.args, 2:length(fnbody.args))
-    end
+    # Extract the name, args and body of the function
+    fn, fnargs, fnbody = _extract_parts(ex, debug)
 
-    # Sanity check: the function is a simple assignement or a numerical value
-    if isa(fnbody.args[1].args[end], Symbol)
-        fnbody.args[1].args[end] = :( identity($(fnbody.args[1].args[end])) )
-        debug && @show(fnbody)
-    elseif isa(fnbody.args[1].args[end], Number)
-        fnbody.args[1].args[end] =
-            :( $(fnbody.args[1].args[end])+zero($(fnargs[1])) )
-        debug && @show(fnbody)
-    end
-
-    if debug
-        @show(fn, fnargs, fnbody)
-        println()
-    end
+    # Rename vars to have the body in non-indexed form
+    fnbody, v_indexed, d_indx = _rename_indexedvars(fnbody)
 
     # Set up new function
     newfunction = _newhead(fn, fnargs)
