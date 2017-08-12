@@ -101,7 +101,7 @@ function _newhead(fn, fnargs)
 end
 
 
-function _replacevars!(fnold::Expr, newvar::Symbol, v_vars)
+function _replacecalls!(fnold::Expr, newvar::Symbol, v_vars)
 
     ll = length(fnold.args)
 
@@ -151,9 +151,9 @@ function _newpreamble(v_vars, v_preamb, fnargs)
         nv = v_vars[i]
         if in(nv, keys(v_preamb))
             push!(preamble.args, parse("$nv = Taylor1( $(v_preamb[nv]) , order)") )
-            continue
         else
             # is this unreachable ?
+            throw(ArgumentError("_newpreamble: $nv"))
             push!(preamble.args, parse("$nv = zero( $(fnargs[2]) )") )
         end
     end
@@ -168,26 +168,42 @@ function _preamble_body(fnbody, fnargs, debug=false)
     v_preamb = Dict{Symbol,Expr}()  # Auxiliary definitions
     v_assign = Tuple{Int,Expr}[]    # Numeric assignments (to be deleted)
 
+    # Rename vars to have the body in non-indexed form
+    fnbody, v_indexed, d_indx = _rename_indexedvars(fnbody)
+    debug && (@show(fnbody, v_indexed, d_indx); println())
+
     # Unfolds the body to the expresion graph (AST) of the function,
     # a priori as unary and binary calls
-    newfnbody = sanitize(to_expr( ExGraph(fnbody) ))
+    # newfnbody = sanitize(to_expr( ExGraph(fnbody) ))
+    newfnbody = Expr(:block,)
+    for (i,ex) in enumerate(fnbody.args[1].args)
+        if isa(ex, Expr)
+            ex.head == :line && continue
+            nex =  to_expr(ExGraph(ex))
+            push!(newfnbody.args, nex.args[2:end]...)
+        else
+            @show(typeof(ex))
+            throw(ArgumentError(ex, "is not an `Expr`"))
+            #
+        end
+    end
+
+    debug && @show(newfnbody)
 
     # Needed, if `newfnbody` consists of a single assignment (unary call)
     if newfnbody.head == :(=)
         newfnbody = Expr(:block, newfnbody)
+        debug && @show(newfnbody)
     end
 
-    if debug
-        @show(newfnbody)
-        println()
-    end
+    debug && (@show(newfnbody); println())
 
     # Populate v_vars, v_assign, v_preamb
     for (i, aa) in enumerate(newfnbody.args)
         aavar = aa.args[1]
         aaa = aa.args[2]
         if isa(aaa, Expr)
-            fnexpr, def_fnexpr, auxfnexpr = _replacevars!(aaa, aavar, v_vars)
+            fnexpr, def_fnexpr, auxfnexpr = _replacecalls!(aaa, aavar, v_vars)
             push!(v_preamb, def_fnexpr.args[1] => def_fnexpr.args[2])
             newfnbody.args[i] = fnexpr
             if auxfnexpr.head != :nothing
@@ -199,7 +215,7 @@ function _preamble_body(fnbody, fnargs, debug=false)
             bb = subs(aa, Dict(aaa => :(identity($aaa))))
             bbvar = bb.args[1]
             bbb = bb.args[2]
-            fnexpr, def_fnexpr, auxfnexpr = _replacevars!(bbb, bbvar, v_vars)
+            fnexpr, def_fnexpr, auxfnexpr = _replacecalls!(bbb, bbvar, v_vars)
             push!(v_preamb, def_fnexpr.args[1] => def_fnexpr.args[2])
             newfnbody.args[i] = fnexpr
             if auxfnexpr.head != :nothing
@@ -217,6 +233,8 @@ function _preamble_body(fnbody, fnargs, debug=false)
         end
     end
 
+    debug && @show(v_vars, v_assign, v_preamb)
+
     # Define premable (temporary allocations)
     preamble = _newpreamble(v_vars, v_preamb, fnargs)
 
@@ -233,6 +251,11 @@ function _preamble_body(fnbody, fnargs, debug=false)
     # Guessed return variable; last included in v_vars/preamble
     # retvar = preamble.args[end].args[1]
     retvar = v_vars[end]
+
+    # Bring back indexed variables into place
+    preamble = subs( preamble, d_indx)
+    newfnbody = subs( newfnbody, d_indx)
+    retvar = subs( retvar, d_indx)
 
     return preamble, newfnbody, retvar
 end
@@ -263,14 +286,10 @@ function _rename_indexedvars(fnbody)
 end
 
 
-
 function _to_parsed_jetcoeffs( ex, debug=false )
 
     # Extract the name, args and body of the function
     fn, fnargs, fnbody = _extract_parts(ex, debug)
-
-    # Rename vars to have the body in non-indexed form
-    fnbody, v_indexed, d_indx = _rename_indexedvars(fnbody)
 
     # Set up new function
     newfunction = _newhead(fn, fnargs)
