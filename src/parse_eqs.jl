@@ -1,43 +1,27 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
-# Load necessary components of TaylorSeries, MacroTools and Espresso
-using TaylorSeries: _dict_unary_calls, _dict_binary_calls
-
-# Simple access to all internal mutating functions from TaylorSeries
-for kk in keys(_dict_unary_calls)
-    args = _dict_unary_calls[kk][1].args[1]
-    ex = :(using TaylorSeries: $(_dict_unary_calls[kk][1].args[1]) )
-    eval(ex)
-end
-for kk in keys(_dict_binary_calls)
-    args = _dict_binary_calls[kk][1].args[1]
-    ex = :(using TaylorSeries: $(_dict_binary_calls[kk][1].args[1]) )
-    eval(ex)
-end
-
+# Load necessary components of MacroTools and Espresso
 using MacroTools: @capture, shortdef
 
-using Espresso: subs, ExGraph, to_expr, sanitize, genname
+using Espresso: subs, ExGraph, to_expr, sanitize, genname, isindexed, get_vars
 
 
 
-# Define some constants for the newly (parsed) functions
+# Define some constants to create the newly (parsed) functions
 const _HEAD_PARSEDFN_SCALAR = sanitize(:(
-function parsed_jetcoeffs!{T<:Number}(__t0::T, __x::Taylor1{T}, __vT::Vector{T})
+function parsed_jetcoeffs!{T<:Number}(__t0::T, __x::Taylor1{T})
+
     order = __x.order
-    __vT[1] = __t0
-    __tT = Taylor1(__vT, order)
+    __tT = Taylor1([__t0, one(T)], order)
 end)
 );
 
 const _HEAD_PARSEDFN_VECTOR = sanitize(:(
 function parsed_jetcoeffs!{T<:Number}(__t0::T, __x::Vector{Taylor1{T}},
-        __dx::Vector{Taylor1{T}},
-        __xaux::Vector{Taylor1{T}}, __vT::Vector{T})
+        __dx::Vector{Taylor1{T}})
 
     order = __x[1].order
-    __vT[1] = __t0
-    __tT = Taylor1(__vT, order)
+    __tT = Taylor1([__t0, one(T)], order)
 end)
 );
 
@@ -49,26 +33,34 @@ const _LOOP_PARSEDFN = sanitize(:(
 );
 
 
+"""
+`_extract_parts(ex::Expr)`
+
+Returns the function name, the function arguments, and the body of
+a function passed as an `Expr`. The function may be provided as
+a one-line function, or in the long form (anonymous functions
+do not work).
+
+"""
 function _extract_parts(ex, debug=false)
 
     # Capture name, args and body
     @capture( shortdef(ex), fn_(fnargs__) = fnbody_ ) ||
         throw(ArgumentError("Must be a function call\n", ex))
 
-    # Standarize fnbody
+    # Standarize fnbody, same structure for one-line of long form functions
     if length(fnbody.args) > 1
         fnbody.args[1] = Expr(:block, copy(fnbody.args)...)
         deleteat!(fnbody.args, 2:length(fnbody.args))
     end
 
-    # Sanity check: the function is a simple assignement or a numerical value
+    # Special case: the last arg of the function is a simple
+    # assignement (symbol) or a numerical value
     if isa(fnbody.args[1].args[end], Symbol)
         fnbody.args[1].args[end] = :( identity($(fnbody.args[1].args[end])) )
-        # debug && @show(fnbody)
     elseif isa(fnbody.args[1].args[end], Number)
         fnbody.args[1].args[end] =
             :( $(fnbody.args[1].args[end])+zero($(fnargs[1])) )
-        # debug && @show(fnbody)
     end
 
     if debug
@@ -80,6 +72,16 @@ function _extract_parts(ex, debug=false)
 end
 
 
+"""
+`_newhead(fn, fnargs)`
+
+Creates the head of the new function, whose name is
+`fn` appended by `_parsed_jetcoeffs!`. Here, `fn`
+is the Symbol that represents the original name of the
+function, and `fnargs` is a vector with the
+arguments of the function (two or three).
+
+"""
 function _newhead(fn, fnargs)
 
     # Construct common elements of the new expression
@@ -95,22 +97,32 @@ function _newhead(fn, fnargs)
     # Rename the new function; equivalent to:
     # newfunction.args[1].args[1].args[1] = Symbol(fn, "_parsed_jetcoeffs!")
     newfunction = subs( newfunction,
-        Dict(:(parsed_jetcoeffs!) => Symbol(fn, "_parsed!")) )
+        Dict(:(parsed_jetcoeffs!) => Symbol(fn, "_parsed_jetcoeffs!")) )
 
     return newfunction
 end
 
 
-function _replacecalls!(fnold::Expr, newvar::Symbol, v_vars)
+"""
+`_replacecalls!(fnold, newvar, v_vars)`
+
+Replaces the symbols of unary and binary calls
+of the expression `fnold` which defines `newvar`
+by their mutating functions in TaylorSeries.jl.
+The vector `v_vars` is updated with the new auxiliary
+variables introduced.
+
+"""
+function _replacecalls!(fnold::Expr, newvar::Symbol, v_vars::Vector{Symbol})
 
     ll = length(fnold.args)
 
     if ll == 2
         # Unary call
-        @assert(in(fnold.args[1], keys(_dict_unary_calls)))
+        @assert(in(fnold.args[1], keys(TaylorSeries._dict_unary_calls)))
 
         # Replacements
-        fnexpr, def_fnexpr, aux_fnexpr = _dict_unary_calls[fnold.args[1]]
+        fnexpr, def_fnexpr, aux_fnexpr = TaylorSeries._dict_unary_calls[fnold.args[1]]
         fnexpr = subs(fnexpr, Dict(:_res => newvar,
             :_arg1 => fnold.args[2], :_k => :ord))
         def_fnexpr = subs(def_fnexpr, Dict(:_res => newvar,
@@ -126,10 +138,10 @@ function _replacecalls!(fnold::Expr, newvar::Symbol, v_vars)
         end
     elseif ll == 3
         # Binary call; no auxiliary expressions needed
-        @assert(in(fnold.args[1], keys(_dict_binary_calls)))
+        @assert(in(fnold.args[1], keys(TaylorSeries._dict_binary_calls)))
 
         # Replacements
-        fnexpr, def_fnexpr, aux_fnexpr = _dict_binary_calls[fnold.args[1]]
+        fnexpr, def_fnexpr, aux_fnexpr = TaylorSeries._dict_binary_calls[fnold.args[1]]
         fnexpr = subs(fnexpr, Dict(:_res => newvar,
             :_arg1 => fnold.args[2], :_arg2 => fnold.args[3],
             :_k => :ord))
@@ -138,13 +150,23 @@ function _replacecalls!(fnold::Expr, newvar::Symbol, v_vars)
             :_arg2 => :(constant_term($(fnold.args[3]))),
             :_k => :ord))
     else
-        throw(ArgumentError("`:call` is not unary or binary; use parenthesis!"))
+        throw(ArgumentError("""
+            A call in the function definition is not unary or binary;
+            use parenthesis to have only binary and unary operations!"""
+            ))
     end
 
     return fnexpr, def_fnexpr, aux_fnexpr
 end
 
 
+"""
+`_newpreamble(v_vars, v_preamb, fnargs)`
+
+Returns the preamble expression, where the auxiliary `Taylor1` objects
+are defined.
+
+"""
 function _newpreamble(v_vars, v_preamb, fnargs)
     preamble = Expr(:block,)
     for i in eachindex(v_vars)
@@ -152,7 +174,7 @@ function _newpreamble(v_vars, v_preamb, fnargs)
         if in(nv, keys(v_preamb))
             push!(preamble.args, parse("$nv = Taylor1( $(v_preamb[nv]) , order)") )
         else
-            # is this unreachable ?
+            # Is this unreachable ? Do we really need fnargs ?
             throw(ArgumentError("_newpreamble: $nv"))
             push!(preamble.args, parse("$nv = zero( $(fnargs[2]) )") )
         end
@@ -161,6 +183,16 @@ function _newpreamble(v_vars, v_preamb, fnargs)
 end
 
 
+"""
+`_preamble_body(fnbody, fnargs, debug=false)`
+
+Returns the preamble, the body and the guessed returned
+variable, which will be used to build the parsed
+function. `fnbody` is the expression with the body of
+the original function, `fnargs` is a vector of symbols
+of the original diferential equations function.
+
+"""
 function _preamble_body(fnbody, fnargs, debug=false)
 
     # Bookkeeping
@@ -261,20 +293,29 @@ function _preamble_body(fnbody, fnargs, debug=false)
 end
 
 
+"""
+`_rename_indexedvars(fnbody)`
+
+Renames the indexed variables (using `Espresso.genname()`) that
+exists in `fnbody`. Returns `fnbody` with the renamed variables,
+a vector of symbols with the new variables, and a dictionary
+that links the new variables to the old indexed variables.
+
+"""
 function _rename_indexedvars(fnbody)
 
     v_indexed = Symbol[]
     d_indx = Dict{Symbol, Expr}()
 
-    !Espresso.isindexed(fnbody) && return fnbody, v_indexed, d_indx
+    !(isindexed(fnbody)) && return fnbody, v_indexed, d_indx
 
     # Obtain variables
-    vvars = Espresso.get_vars(fnbody, rec=true)
+    vvars = get_vars(fnbody, rec=true)
 
     # Rename indexed variables
     for v in vvars
-        if Espresso.isindexed(v)
-            newvar = Espresso.genname()
+        if isindexed(v)
+            newvar = genname()
             push!(v_indexed, newvar)
             push!(d_indx, newvar => v)
             fnbody = subs(fnbody, Dict(v => newvar))
@@ -286,7 +327,15 @@ function _rename_indexedvars(fnbody)
 end
 
 
-function _to_parsed_jetcoeffs( ex, debug=false )
+"""
+`_make_parsed_jetcoeffs( ex, debug=false )`
+
+This function constructs a new function, equivalent to the
+differential equations, which exploits the mutating functions
+of TaylorSeries.jl.
+
+"""
+function _make_parsed_jetcoeffs( ex, debug=false )
 
     # Extract the name, args and body of the function
     fn, fnargs, fnbody = _extract_parts(ex, debug)
