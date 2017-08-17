@@ -46,7 +46,7 @@ function _extract_parts(ex, debug=false)
 
     # Capture name, args and body
     @capture( shortdef(ex), fn_(fnargs__) = fnbody_ ) ||
-        throw(ArgumentError("Must be a function call\n", ex))
+        throw(ArgumentError("It must be a function call:\n $ex"))
 
     # Standarize fnbody, same structure for one-line of long form functions
     if length(fnbody.args) > 1
@@ -215,7 +215,7 @@ function _preamble_body(fnbody, fnargs, debug=false)
             push!(newfnbody.args, nex.args[2:end]...)
         else
             @show(typeof(ex))
-            throw(ArgumentError(ex, "is not an `Expr`"))
+            throw(ArgumentError("$ex is not an `Expr`"))
             #
         end
     end
@@ -389,4 +389,23 @@ function _make_parsed_jetcoeffs( ex, debug=false )
     end
 
     newfunction
+end
+
+
+"""
+`@taylorize_ode(ex)`
+
+Used only when `ex` is the definition of a function. It
+evaluates `ex` and also the parsed function corresponding
+to `ex` in terms of the mutating functions of TaylorSeries.
+
+"""
+macro taylorize_ode( ex )
+    nex = _make_parsed_jetcoeffs(ex)
+    quote
+        _ex = $(esc(ex))
+        _nex = $(esc(nex))
+        eval(_ex)
+        eval(_nex)
+    end
 end
