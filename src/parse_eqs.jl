@@ -9,7 +9,8 @@ using Espresso: subs, ExGraph, to_expr, sanitize, genname, isindexed, get_vars
 
 # Define some constants to create the newly (parsed) functions
 const _HEAD_PARSEDFN_SCALAR = sanitize(:(
-function parsed_jetcoeffs!{T<:Number}(__t0::T, __x::Taylor1{T})
+function jetcoeffs!{T<:Number}(::Type{Val{__fn}}, __t0::T,
+        __x::Taylor1{T})
 
     order = __x.order
     __tT = Taylor1([__t0, one(T)], order)
@@ -17,8 +18,8 @@ end)
 );
 
 const _HEAD_PARSEDFN_VECTOR = sanitize(:(
-function parsed_jetcoeffs!{T<:Number}(__t0::T, __x::Vector{Taylor1{T}},
-        __dx::Vector{Taylor1{T}})
+function jetcoeffs!{T<:Number}(::Type{Val{__fn}}, __t0::T,
+        __x::Vector{Taylor1{T}}, __dx::Vector{Taylor1{T}})
 
     order = __x[1].order
     __tT = Taylor1([__t0, one(T)], order)
@@ -75,11 +76,9 @@ end
 """
 `_newhead(fn, fnargs)`
 
-Creates the head of the new function, whose name is
-`fn` appended by `_parsed_jetcoeffs!`. Here, `fn`
-is the Symbol that represents the original name of the
-function, and `fnargs` is a vector with the
-arguments of the function (two or three).
+Creates the head of the new method of `jetcoeffs!`. Here,
+`fn` is the name of the passed function and `fnargs` is a
+vector with its arguments (which are two or three).
 
 """
 function _newhead(fn, fnargs)
@@ -94,10 +93,9 @@ function _newhead(fn, fnargs)
         "Wrong number of arguments in the definition of the function $fn"))
     end
 
-    # Rename the new function; equivalent to:
-    # newfunction.args[1].args[1].args[1] = Symbol(fn, "_parsed_jetcoeffs!")
-    newfunction = subs( newfunction,
-        Dict(:(parsed_jetcoeffs!) => Symbol(fn, "_parsed_jetcoeffs!")) )
+    # Add `TaylorIntegration` to create a new method of `jetcoeffs!`
+    newfunction.args[1].args[1].args[1] =
+        Expr(:., :TaylorIntegration, :(:jetcoeffs!))
 
     return newfunction
 end
@@ -383,7 +381,7 @@ function _make_parsed_jetcoeffs( ex, debug=false )
 
     # Rename variables of the body of the new function
     newfunction = subs(newfunction,
-        Dict(fnargs[1] => :(__tT), fnargs[2] => :(__x)))
+        Dict(fnargs[1] => :(__tT), fnargs[2] => :(__x), :(__fn) => fn ))
     if length(fnargs) == 3
         newfunction = subs(newfunction, Dict(fnargs[3] => :(__dx)))
     end
@@ -393,7 +391,7 @@ end
 
 
 """
-`@taylorize_ode(ex)`
+`@taylorize_ode ex`
 
 Used only when `ex` is the definition of a function. It
 evaluates `ex` and also the parsed function corresponding
@@ -403,9 +401,7 @@ to `ex` in terms of the mutating functions of TaylorSeries.
 macro taylorize_ode( ex )
     nex = _make_parsed_jetcoeffs(ex)
     quote
-        _ex = $(esc(ex))
-        _nex = $(esc(nex))
-        eval(_ex)
-        eval(_nex)
+        eval( $(esc(ex)) )  # evals to calling scope the passed function
+        eval( $(esc(nex)) ) # New method of `jetcoeffs!`
     end
 end
