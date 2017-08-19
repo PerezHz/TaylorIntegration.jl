@@ -184,7 +184,7 @@ end
 """
 `_preamble_body(fnbody, fnargs, debug=false)`
 
-Returns the preamble, the body and the guessed returned
+Returns the preamble, the body and a guessed return
 variable, which will be used to build the parsed
 function. `fnbody` is the expression with the body of
 the original function, `fnargs` is a vector of symbols
@@ -208,7 +208,7 @@ function _preamble_body(fnbody, fnargs, debug=false)
     newfnbody = Expr(:block,)
     for (i,ex) in enumerate(fnbody.args[1].args)
         if isa(ex, Expr)
-            ex.head == :line && continue
+            (ex.head == :line || ex.head == :return) && continue
             nex =  to_expr(ExGraph(ex))
             push!(newfnbody.args, nex.args[2:end]...)
         else
@@ -278,7 +278,7 @@ function _preamble_body(fnbody, fnargs, debug=false)
     # Check consistency of retvar
     @assert(v_vars[end] == preamble.args[end].args[1])
 
-    # Guessed return variable; last included in v_vars/preamble
+    # Guessed return variable (scalar equations); last included in v_vars/preamble
     # retvar = preamble.args[end].args[1]
     retvar = v_vars[end]
 
@@ -355,15 +355,23 @@ function _make_parsed_jetcoeffs( ex, debug=false )
     end
 
     # Recursion relation
-    # @inbounds x[ordnext] = dx[ord]/ord
     if length(fnargs) == 2
         rec_preamb = :( $(fnargs[2])[2] = $(retvar)[1] )
         rec_fnbody = :( $(fnargs[2])[ordnext+1] =
             $(retvar)[ordnext]/ordnext )
     elseif length(fnargs) == 3
-        rec_preamb = :( $(fnargs[2])[:][2] .= $(retvar)[:][1] )
-        rec_fnbody = :( $(fnargs[2])[:][ordnext+1] .=
-            $(retvar)[:][ordnext]/ordnext )
+        retvar = fnargs[end]
+        rec_preamb = :(
+            @inbounds for __idx in eachindex($(fnargs[2]))
+                $(fnargs[2])[__idx].coeffs[2] = $(retvar)[__idx].coeffs[1]
+            end
+        )
+        rec_fnbody = :(
+            @inbounds for __idx in eachindex($(fnargs[2]))
+                $(fnargs[2])[__idx].coeffs[ordnext+1] =
+                    $(retvar)[__idx].coeffs[ordnext]/ordnext
+            end
+        )
     else
         throw(ArgumentError(
         "Wrong number of arguments in the definition of the function $fn"))
