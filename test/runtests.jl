@@ -316,6 +316,10 @@ facts("Test jet transport (t0,tmax): harmonic oscillator") do
     p = set_variables("ξ", numvars=2, order=5)
     x0 = [-1.0,0.45]
     x0TN = x0 + p
+    tvTN, xvTN = taylorinteg(harmosc!, x0TN, 0.0, 10pi, _order, _abstol, maxsteps=1)
+    @fact length(tvTN) <= 2 --> true
+    @fact length(xvTN[:,1]) <= 2 --> true
+    @fact length(xvTN[:,2]) <= 2 --> true
     tvTN, xvTN = taylorinteg(harmosc!, x0TN, 0.0, 10pi, _order, _abstol, maxsteps=500)
     tv  , xv   = taylorinteg(harmosc!, x0  , 0.0, 10pi, _order, _abstol, maxsteps=500)
     x_analyticsol(t,x0,p0) = p0*sin(t)+x0*cos(t)
@@ -362,6 +366,9 @@ facts("Test jet transport (trange): simple pendulum") do
     #note that q0 is a Vector{Float64}, but q0TN is a Vector{TaylorN{Float64}}
     #but apart from that difference, we're calling `taylorinteg` essentially with the same parameters!
     #thus, jet transport is reduced to a beautiful application of Julia's multiple dispatch!
+    xvTN = taylorinteg(pendulum!, q0TN, tr, _order, _abstol, maxsteps=1)
+    @fact size(xvTN) == (length(tr), length(q0)) --> true
+    @fact prod(isnan.(xvTN[2:end,:])) --> true
     xvTN = taylorinteg(pendulum!, q0TN, tr, _order, _abstol, maxsteps=100)
 
     xvTN_0 = map( x->evaluate(x, [0.0, 0.0]), xvTN ) # the jet evaluated at the nominal solution
@@ -432,6 +439,13 @@ facts("Test Lyapunov spectrum integrator (t0, tmax): Lorenz system") do
 
     @fact xv[1,:] == x0 --> true
     @fact tv[1] == t0 --> true
+    @fact length(tv[:,1]) < 2001 --> true
+    @fact length(xv[:,1]) < 2001 --> true
+    @fact length(xv[:,2]) < 2001 --> true
+    @fact length(xv[:,3]) < 2001 --> true
+    @fact length(λv[:,1]) < 2001 --> true
+    @fact length(λv[:,2]) < 2001 --> true
+    @fact length(λv[:,3]) < 2001 --> true
     @fact size(xv) == size(λv) --> true
     @fact isapprox(sum(λv[1,:]), lorenztr) --> false
     @fact isapprox(sum(λv[end,:]), lorenztr) --> true
@@ -468,15 +482,15 @@ facts("Test Lyapunov spectrum integrator (trange): Lorenz system") do
     lorenz!(t0, x0TN, dx0TN)
     lorenztr = trace(jacobian(dx0TN)) #trace of Lorenz system Jacobian matrix
 
-    @fact lorenztr == -(σ+one(Float64)+β) --> true
+    @fact lorenztr == -(σ+one(eltype(x0))+β) --> true
 
-    xw, λw = liap_taylorinteg(lorenz!, x0, t0:1.0:tmax, 28, _abstol; maxsteps=2)
+    xw, λw = liap_taylorinteg(lorenz!, x0, t0:1.0:tmax, _order, _abstol; maxsteps=2)
 
-    @fact size(xw) == (length(t0:1.0:tmax), 3) --> true
-    @fact size(λw) == (length(t0:1.0:tmax), 3) --> true
+    @fact size(xw) == (length(t0:1.0:tmax), length(x0)) --> true
+    @fact size(λw) == (length(t0:1.0:tmax), length(x0)) --> true
     @fact prod(isnan.(xw[2:end,:])) --> true
 
-    xw, λw = liap_taylorinteg(lorenz!, x0, t0:1.0:tmax, 28, _abstol; maxsteps=2000)
+    xw, λw = liap_taylorinteg(lorenz!, x0, t0:1.0:tmax, _order, _abstol; maxsteps=2000)
 
     @fact xw[1,:] == x0 --> true
     @fact size(xw) == size(λw) --> true
@@ -486,6 +500,45 @@ facts("Test Lyapunov spectrum integrator (trange): Lorenz system") do
     @fact isapprox(λw[end,1], 1.47167, rtol=mytol, atol=mytol) -->true
     @fact isapprox(λw[end,2], -0.00830, rtol=mytol, atol=mytol) -->true
     @fact isapprox(λw[end,3], -22.46336, rtol=mytol, atol=mytol) -->true
+
+end
+
+facts("Test ODE integration with BigFloats: simple pendulum") do
+
+    function pendulum!(t, x, dx) #the simple pendulum ODE
+        dx[1] = x[2]
+        dx[2] = -sin(x[1])
+        nothing
+    end
+
+    q0 = [big"1.3", 0.0] #the initial condition as a Vector{BigFloat}
+    # T is the pendulum's librational period == 4Elliptic.K(sin(q0[1]/2)^2)
+    # we will evaluate the elliptic integral K using TaylorIntegration.jl:
+    g(t,x) = 1/sqrt(1-((sin(q0[1]/2))^2)*(sin(t)^2)) # K elliptic integral kernel
+    tvk, xvk = taylorinteg(g, 0.0, 0.0, BigFloat(π)/2, 90, 1e-77)
+    @fact eltype(tvk) == BigFloat --> true
+    @fact eltype(xvk) == BigFloat --> true
+    T = 4xvk[end] # T = 4Elliptic.K(sin(q0[1]/2)^2)
+    @fact typeof(T) == BigFloat --> true
+    @fact abs(T-7.019250311844546) < eps(10.0) --> true
+
+    t0 = 0.0 #the initial time
+
+    tv, xv = taylorinteg(pendulum!, q0, t0, T, 90, 1e-77; maxsteps=1)
+    @fact eltype(tv) == BigFloat --> true
+    @fact eltype(xv) == BigFloat --> true
+    @fact length(tv) == 2 --> true
+    @fact length(xv[:,1]) == 2 --> true
+    @fact length(xv[:,2]) == 2 --> true
+
+    #note that T is a BigFloat
+    tv, xv = taylorinteg(pendulum!, q0, t0, T, 90, 1e-77)
+    @fact length(tv) < 501 --> true
+    @fact length(xv[:,1]) < 501 --> true
+    @fact length(xv[:,2]) < 501 --> true
+    #the line below implies that we've evaluated the pendulum's period
+    #up to an accuracy comparable to eps(BigFloat) ~ 1e-77!!!
+    @fact norm(xv[end,:].-q0,Inf) < 100eps(BigFloat) --> true
 
 end
 

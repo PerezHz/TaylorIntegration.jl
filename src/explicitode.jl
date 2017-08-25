@@ -449,8 +449,7 @@ function taylorinteg{T<:Number}(f!, q0::Array{T,1}, t0::T, tmax::T,
             break
         end
     end
-
-    return view(tv,1:nsteps), view(transpose(xv),1:nsteps,:)
+    return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:)
 end
 
 function taylorinteg{T<:Real}(f, x0::Complex{T}, t0::T, tmax::T, order::Int,
@@ -532,7 +531,7 @@ function taylorinteg{T<:Real}(f!, q0::Array{Complex{T},1}, t0::T, tmax::T,
         end
     end
 
-    return view(tv,1:nsteps), view(transpose(xv),1:nsteps,:)
+    return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:)
 end
 
 
