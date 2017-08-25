@@ -6,8 +6,10 @@ using Base.Test
 const _order = 28
 const _abstol = 1.0E-20
 
+f(t, x) = x^2
+g(t, x) = 0.3x
+
 @testset "Test jet transport (t0, tmax): 1-dim case" begin
-    f(t, x) = x^2
     p = set_variables("ξ", numvars=1, order=5)
     x0 = 3.0 #"nominal" initial condition
     x0TN = x0 + p[1] #jet transport initial condition
@@ -24,7 +26,6 @@ const _abstol = 1.0E-20
     @test isapprox(xv[1], evaluate(xvTN[1]))
     @test isapprox(xv[end], evaluate(xvTN[end]))
 
-    g(t, x) = 0.3x
     y0 = 1.0 #"nominal" initial condition
     y0TN = y0 + p[1] #jet transport initial condition
     uvTN, yvTN = taylorinteg(g, y0TN, t0, 10/0.3, _order, _abstol, maxsteps=500);
@@ -38,7 +39,6 @@ const _abstol = 1.0E-20
 end
 
 @testset "Test jet transport (trange): 1-dim case" begin
-    f(t, x) = x^2
     p = set_variables("ξ", numvars=1, order=5)
     x0 = 3.0 #"nominal" initial condition
     x0TN = x0 + p[1] #jet transport initial condition
@@ -52,7 +52,6 @@ end
     @test length(tv) == length(xvTN)
     @test isapprox(δcoeffs, zeros(6), atol=1e-10, rtol=0)
 
-    g(t, x) = 0.3x
     y0 = 1.0 #"nominal" initial condition
     y0TN = y0 + p[1] #jet transport initial condition
     tv = 0.0:1/0.3:10/0.3
