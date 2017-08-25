@@ -15,8 +15,11 @@ g(t, x) = 0.3x
     x0TN = x0 + p[1] #jet transport initial condition
     t0=0.0
     tmax=0.3
-    tvTN, xvTN = taylorinteg(f, x0TN, t0, tmax, _order, _abstol, maxsteps=500)
-    tv, xv = taylorinteg(f, x0, t0, tmax, _order, _abstol, maxsteps=500)
+    tvTN, xvTN = taylorinteg(f, x0TN, t0, tmax, _order, _abstol, maxsteps=1)
+    @test size(tvTN) == (2,)
+    @test size(xvTN) == (2,)
+    tvTN, xvTN = taylorinteg(f, x0TN, t0, tmax, _order, _abstol)
+    tv, xv = taylorinteg(f, x0, t0, tmax, _order, _abstol)
     exactsol(t, x0, t0) = x0./(1.0-x0.*(t-t0)) #the analytical solution
     δsol = exactsol(tvTN[end], x0TN, t0)-xvTN[end]
     δcoeffs = map(y->y[1], map(x->x.coeffs, δsol.coeffs))
@@ -28,8 +31,11 @@ g(t, x) = 0.3x
 
     y0 = 1.0 #"nominal" initial condition
     y0TN = y0 + p[1] #jet transport initial condition
-    uvTN, yvTN = taylorinteg(g, y0TN, t0, 10/0.3, _order, _abstol, maxsteps=500);
-    uv, yv = taylorinteg(g, y0, t0, 10/0.3, _order, _abstol, maxsteps=500);
+    uvTN, yvTN = taylorinteg(g, y0TN, t0, 10/0.3, _order, _abstol, maxsteps=1)
+    @test size(uvTN) == (2,)
+    @test size(yvTN) == (2,)
+    uvTN, yvTN = taylorinteg(g, y0TN, t0, 10/0.3, _order, _abstol)
+    uv, yv = taylorinteg(g, y0, t0, 10/0.3, _order, _abstol)
     exactsol_g(u, y0, u0) = y0*exp.(0.3(u-u0))
     exactsol_g(uv, y0, t0)
     δsol_g = exactsol_g(uvTN[end], y0TN, t0)-yvTN[end]
@@ -43,8 +49,10 @@ end
     x0 = 3.0 #"nominal" initial condition
     x0TN = x0 + p[1] #jet transport initial condition
     tv = 0.0:0.05:0.33
-    xvTN = taylorinteg(f, x0TN, tv, _order, _abstol, maxsteps=500)
-    xv = taylorinteg(f, x0, tv, _order, _abstol, maxsteps=500)
+    xvTN = taylorinteg(f, x0TN, tv, _order, _abstol, maxsteps=1)
+    @test size(xvTN) == (7,)
+    xvTN = taylorinteg(f, x0TN, tv, _order, _abstol)
+    xv = taylorinteg(f, x0, tv, _order, _abstol)
     exactsol(t, x0, t0) = x0./(1.0-x0.*(t-t0)) #the analytical solution
     δsol = exactsol(tv[end], x0TN, tv[1])-xvTN[end]
     δcoeffs = map(y->y[1], map(x->x.coeffs, δsol.coeffs))
@@ -55,8 +63,10 @@ end
     y0 = 1.0 #"nominal" initial condition
     y0TN = y0 + p[1] #jet transport initial condition
     tv = 0.0:1/0.3:10/0.3
-    yvTN = taylorinteg(g, y0TN, tv, _order, _abstol, maxsteps=500);
-    yv = taylorinteg(g, y0, tv, _order, _abstol, maxsteps=500);
+    yvTN = taylorinteg(g, y0TN, tv, _order, _abstol, maxsteps=1)
+    @test size(yvTN) == (11,)
+    yvTN = taylorinteg(g, y0TN, tv, _order, _abstol)
+    yv = taylorinteg(g, y0, tv, _order, _abstol)
     exactsol_g(u, y0, u0) = y0*exp.(0.3(u-u0))
     δsol_g = exactsol_g(tv[end], y0TN, tv[1])-yvTN[end]
     δcoeffs_g = map(y->y[1], map(x->x.coeffs, δsol_g.coeffs))
@@ -74,8 +84,8 @@ end
     p = set_variables("ξ", numvars=2, order=5)
     x0 = [-1.0,0.45]
     x0TN = x0 + p
-    tvTN, xvTN = taylorinteg(harmosc!, x0TN, 0.0, 10pi, _order, _abstol, maxsteps=500)
-    tv  , xv   = taylorinteg(harmosc!, x0  , 0.0, 10pi, _order, _abstol, maxsteps=500)
+    tvTN, xvTN = taylorinteg(harmosc!, x0TN, 0.0, 10pi, _order, _abstol)
+    tv  , xv   = taylorinteg(harmosc!, x0  , 0.0, 10pi, _order, _abstol)
     x_analyticsol(t,x0,p0) = p0*sin(t)+x0*cos(t)
     p_analyticsol(t,x0,p0) = p0*cos(t)-x0*sin(t)
     x_δsol = x_analyticsol(tvTN[end], x0TN[1], x0TN[2])-xvTN[end,1]
@@ -120,8 +130,10 @@ end
     #note that q0 is a Vector{Float64}, but q0TN is a Vector{TaylorN{Float64}}
     #but apart from that difference, we're calling `taylorinteg` essentially with the same parameters!
     #thus, jet transport is reduced to a beautiful application of Julia's multiple dispatch!
+    xvTN = taylorinteg(pendulum!, q0TN, tr, _order, _abstol, maxsteps=1)
+    @test size(xvTN) == (5,2)
     xvTN = taylorinteg(pendulum!, q0TN, tr, _order, _abstol, maxsteps=100)
-
+    
     xvTN_0 = map( x->evaluate(x, [0.0, 0.0]), xvTN ) # the jet evaluated at the nominal solution
 
     @test isapprox(xvTN_0[1,:], xvTN_0[end,:]) #end point must coincide with a full period
@@ -137,6 +149,8 @@ end
 
     #compare the jet solution evaluated at various variation vectors ξ, wrt to full solution, at each time evaluation point
     srand(14908675)
+    xv_disp = taylorinteg(pendulum!, q0+[disp,0.0], tr, _order, _abstol, maxsteps=1)
+    @test size(xv_disp) == (5,2)
     for i in 1:10
         # generate a random angle
         ϕ = 2pi*rand()
