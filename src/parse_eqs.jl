@@ -17,9 +17,27 @@ function jetcoeffs!{T<:Number}(::Type{Val{__fn}}, __t0::T,
 end)
 );
 
+const _HEAD_PARSEDFN_SCALAR_COMPLEX = sanitize(:(
+function jetcoeffs!{T<:Real}(::Type{Val{__fn}}, __t0::T,
+        __x::Taylor1{Complex{T}})
+
+    order = __x.order
+    __tT = Taylor1([__t0, one(T)], order)
+end)
+);
+
 const _HEAD_PARSEDFN_VECTOR = sanitize(:(
 function jetcoeffs!{T<:Number}(::Type{Val{__fn}}, __t0::T,
         __x::Vector{Taylor1{T}}, __dx::Vector{Taylor1{T}})
+
+    order = __x[1].order
+    __tT = Taylor1([__t0, one(T)], order)
+end)
+);
+
+const _HEAD_PARSEDFN_VECTOR_COMPLEX = sanitize(:(
+function jetcoeffs!{T<:Real}(::Type{Val{__fn}}, __t0::T,
+        __x::Vector{Taylor1{Complex{T}}}, __dx::Vector{Taylor1{Complex{T}}})
 
     order = __x[1].order
     __tT = Taylor1([__t0, one(T)], order)
@@ -100,6 +118,24 @@ function _newhead(fn, fnargs)
     return newfunction
 end
 
+function _newhead_complex(fn, fnargs)
+    
+        # Construct common elements of the new expression
+        if length(fnargs) == 2
+            newfunction = copy(_HEAD_PARSEDFN_SCALAR_COMPLEX)
+        elseif length(fnargs) == 3
+            newfunction = copy(_HEAD_PARSEDFN_VECTOR_COMPLEX)
+        else
+            throw(ArgumentError(
+            "Wrong number of arguments in the definition of the function $fn"))
+        end
+    
+        # Add `TaylorIntegration` to create a new method of `jetcoeffs!`
+        newfunction.args[1].args[1].args[1] =
+            Expr(:., :TaylorIntegration, :(:jetcoeffs!))
+    
+        return newfunction
+    end    
 
 """
 `_replacecalls!(fnold, newvar, v_vars)`
@@ -397,6 +433,69 @@ function _make_parsed_jetcoeffs( ex, debug=false )
     newfunction
 end
 
+function _make_parsed_jetcoeffs_complex( ex, debug=false )
+
+    # Extract the name, args and body of the function
+    fn, fnargs, fnbody = _extract_parts(ex, debug)
+
+    # Set up new function
+    newfunction = _newhead_complex(fn, fnargs)
+
+    # for-loop block; it will include parsed body
+    forloopblock = copy(_LOOP_PARSEDFN)
+    forloopblock = subs(forloopblock,
+        Dict(:(ordnext = ord + 1) => Expr(:block, :(ordnext = ord + 1))) )
+
+    # Transform graph representation of the body of the function
+    preamble, fnbody, retvar = _preamble_body(fnbody, fnargs, debug)
+
+    if debug
+        @show(preamble, fnbody, retvar)
+        println()
+    end
+
+    # Recursion relation
+    if length(fnargs) == 2
+        rec_preamb = :( $(fnargs[2])[2] = $(retvar)[1] )
+        rec_fnbody = :( $(fnargs[2])[ordnext+1] =
+            $(retvar)[ordnext]/ordnext )
+    elseif length(fnargs) == 3
+        retvar = fnargs[end]
+        rec_preamb = :(
+            @inbounds for __idx in eachindex($(fnargs[2]))
+                $(fnargs[2])[__idx].coeffs[2] = $(retvar)[__idx].coeffs[1]
+            end
+        )
+        rec_fnbody = :(
+            @inbounds for __idx in eachindex($(fnargs[2]))
+                $(fnargs[2])[__idx].coeffs[ordnext+1] =
+                    $(retvar)[__idx].coeffs[ordnext]/ordnext
+            end
+        )
+    else
+        throw(ArgumentError(
+        "Wrong number of arguments in the definition of the function $fn"))
+    end
+
+    # Add preamble to newfunction
+    push!(newfunction.args[2].args, preamble.args..., rec_preamb)
+
+    # Add parsed fnbody to forloopblock
+    push!(forloopblock.args[2].args, fnbody.args..., rec_fnbody)
+
+    # Push preamble and forloopblock to newfunction
+    push!(newfunction.args[2].args, forloopblock);
+    push!(newfunction.args[2].args, parse("return nothing"))
+
+    # Rename variables of the body of the new function
+    newfunction = subs(newfunction,
+        Dict(fnargs[1] => :(__tT), fnargs[2] => :(__x), :(__fn) => fn ))
+    if length(fnargs) == 3
+        newfunction = subs(newfunction, Dict(fnargs[3] => :(__dx)))
+    end
+
+    newfunction
+end
 
 """
 `@taylorize_ode ex`
@@ -408,8 +507,10 @@ to `ex` in terms of the mutating functions of TaylorSeries.
 """
 macro taylorize_ode( ex )
     nex = _make_parsed_jetcoeffs(ex)
+    nex_complex = _make_parsed_jetcoeffs_complex(ex)
     quote
         eval( $(esc(ex)) )  # evals to calling scope the passed function
         eval( $(esc(nex)) ) # New method of `jetcoeffs!`
+        eval( $(esc(nex_complex)) ) # New method of `jetcoeffs!` for Complex
     end
 end
