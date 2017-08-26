@@ -232,6 +232,33 @@ end
     end
 end
 
+@testset "Test Taylor1 jet transport (t0,tmax): harmonic oscillator" begin
+    t = Taylor1([0.0, 1.0], 10)
+    ω0 = 1.0
+    δω=0.001
+    x0 = [0.0,ω0,ω0]
+    x0T1 = x0+[0t,t,t]
+    δwN = set_variables("wN", numvars=1, order=10)
+    x0TN = x0+[0δwN[1],δwN[1],δwN[1]]
+    function harmosc!(t, x, dx) #the harmonic oscillator ODE
+        dx[1] = x[2]
+        dx[2] = -x[1]*x[3]^2
+        dx[3] = zero(x[1])
+        nothing
+    end
+    tv, xv = taylorinteg(harmosc!, x0, 0.0, 100pi, 28, 1.0e-20, maxsteps=2000)
+    tv1, xv1 = taylorinteg(harmosc!, x0T1, 0.0, 100pi, 28, 1.0e-20, maxsteps=1)
+    @test size(tv1) == (2,)
+    @test size(xv1) == (2, 3)
+    tv1, xv1 = taylorinteg(harmosc!, x0T1, 0.0, 100pi, 28, 1.0e-20, maxsteps=2000)
+    y0 = evaluate.(xv1)
+    δωv = similar(y0)
+    fill!(δωv, δω)
+    y1 = evaluate.(xv1, δωv)
+    @test norm(y1[:,1]-sin.((ω0+δω)*tv1),Inf) < 1e-11
+    @test norm(y1[:,2]-(ω0+δω)*cos.((ω0+δω)*tv1),Inf) < 1e-11
+end
+
 @testset "Test TaylorN jet transport (t0,tmax): harmonic oscillator" begin
     function harmosc!(t, x, dx) #the harmonic oscillator ODE
         dx[1] = x[2]
@@ -305,7 +332,6 @@ end
     disp = 0.0001 #works even with 0.001, but we're giving it some margin
 
     #compare the jet solution evaluated at various variation vectors ξ, wrt to full solution, at each time evaluation point
-    srand(14908675)
     xv_disp = taylorinteg(pendulum!, q0+[disp,0.0], tr, _order, _abstol, maxsteps=1)
     @test size(xv_disp) == (5,2)
     for i in 1:10
