@@ -26,7 +26,7 @@ const _abstol = 1.0E-20
     end
 end
 
-@testset "Test `classicalGS!`, `modifiedGS!`" begin
+@testset "Test `classicalGS!`" begin
     dof = 3
     jt = rand(dof,dof)
     QH = Array{eltype(jt)}(dof,dof)
