@@ -41,7 +41,7 @@ end
             if j == i
                 @test isapprox( dot(QH[:,i],QH[:,j]), one(eltype(jt)) )
             else
-                @test abs( dot(QH[:,i],QH[:,j]) ) < 1E-14
+                @test abs( dot(QH[:,i],QH[:,j]) ) < 1E-10
             end
         end
     end
