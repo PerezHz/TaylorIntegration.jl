@@ -6,6 +6,49 @@ using Base.Test
 const _order = 28
 const _abstol = 1.0E-20
 
+@testset "Test `stabilitymatrix!`" begin
+    function lorenz!(t, x, dx) #Lorenz system ODE:
+        dx[1] = σ*(x[2]-x[1])
+        dx[2] = x[1]*(ρ-x[3])-x[2]
+        dx[3] = x[1]*x[2]-β*x[3]
+        nothing
+    end
+    σ = 16.0; β = 4.0; ρ = 45.92 #Lorenz system parameters
+    t0 = 0.0 #the initial time
+    for i in 1:10
+        x0 = 10rand(3) #the initial condition
+        xi = set_variables("δ", order=1, numvars=length(x0))
+        δx = [ x0[1]+xi[1], x0[2]+xi[2], x0[3]+xi[3] ]
+        dδx = similar(δx)
+        lorenzjac = Array{eltype(x0)}(3,3)
+        TaylorIntegration.stabilitymatrix!(lorenz!, t0, x0, δx, dδx, lorenzjac)
+        @test trace(lorenzjac) == -(σ+one(Float64)+β)
+    end
+end
+
+@testset "Test `classicalGS!`, `modifiedGS!`" begin
+    dof = 3
+    jt = rand(dof,dof)
+    QH = Array{eltype(jt)}(dof,dof)
+    RH = Array{eltype(jt)}(dof,dof)
+    aⱼ = Array{eltype(jt)}(dof)
+    qᵢ = similar(aⱼ)
+    vⱼ = similar(aⱼ)
+    TaylorIntegration.classicalGS!( jt, QH, RH, aⱼ, qᵢ, vⱼ )
+    @test norm(jt-QH*RH, Inf) < 1e-14
+    for i in 1:dof
+        for j in i:dof
+            if j == i
+                @test isapprox( dot(QH[:,i],QH[:,j]), one(eltype(jt)) )
+            else
+                @test abs( dot(QH[:,i],QH[:,j]) ) < 1E-14
+            end
+        end
+    end
+    @test istriu(RH) #is RH an upper triangular matrix?
+    @test prod(diag(RH) .> 0.0) #are the diagonal elements of RH positive?
+end
+
 @testset "Test Lyapunov spectrum integrator (t0, tmax): Lorenz system" begin
 
     x0 = [19.0, 20.0, 50.0] #the initial condition
