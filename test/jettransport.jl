@@ -308,8 +308,11 @@ end
     p = set_variables("ξ", numvars=2, order=5)
     x0 = [-1.0,0.45]
     x0TN = x0 + p
+    tvTN, xvTN = taylorinteg(harmosc!, x0TN, 0.0, 10pi, _order, _abstol, maxsteps=1)
+    @test length(tvTN) == 2
+    @test size(xvTN) == (length(tvTN), length(x0TN))
     tvTN, xvTN = taylorinteg(harmosc!, x0TN, 0.0, 10pi, _order, _abstol)
-    tv  , xv   = taylorinteg(harmosc!, x0  , 0.0, 10pi, _order, _abstol)
+    tv , xv = taylorinteg(harmosc!, x0  , 0.0, 10pi, _order, _abstol)
     x_analyticsol(t,x0,p0) = p0*sin(t)+x0*cos(t)
     p_analyticsol(t,x0,p0) = p0*cos(t)-x0*sin(t)
     x_δsol = x_analyticsol(tvTN[end], x0TN[1], x0TN[2])-xvTN[end,1]

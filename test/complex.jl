@@ -25,6 +25,9 @@ end
     @test isapprox( zsol1[2]  , z0*exp(-tr[2]) )
     @test isapprox( zsol1[6], z0*exp(-tr[6]) )
     @test isapprox( zsol1[end], z0*exp(-tr[end]) )
+    tt, zsol1 = taylorinteg(eqs1, z0, 0.0, 2pi, 28, 1.0e-20, maxsteps=1)
+    @test length(tt) == 2
+    @test length(zsol1) == 2
     tt, zsol1 = taylorinteg(eqs1, z0, 0.0, 2pi, 28, 1.0e-20)
     @test zsol1[1] == z0
     @test isapprox( zsol1[2]  , z0*exp(-tt[2]) )
@@ -41,6 +44,9 @@ end
     @test zsol2[1] == z0
     @test isapprox( zsol2[3], z0*exp( complex(0.0, tr[3])) )
     @test isapprox( zsol2[5], z0*exp( complex(0.0, tr[5])) )
+    tt, zsol2 = taylorinteg(eqs2, z0, 0.0, 2pi, 28, 1.0e-20, maxsteps=1)
+    @test length(tt) == 2
+    @test length(zsol2) == 2
     tt, zsol2 = taylorinteg(eqs2, z0, 0.0, 2pi, 28, 1.0e-20)
     @test zsol2[1] == z0
     @test isapprox( zsol2[2], z0*exp( complex(0.0, tt[2])) )
@@ -59,6 +65,9 @@ end
     @test isapprox( zsol3[7,1], z0*exp(-tr[7]) )
     @test isapprox( zsol3[4,2], z0*exp( complex(0.0, tr[4])) )
     @test isapprox( zsol3[7,2], z0*exp( complex(0.0, tr[7])) )
+    tt, zsol3 = taylorinteg(eqs3!, zz0, 0.0, 2pi, 28, 1.0e-20, maxsteps=1)
+    @test length(tt) == 2
+    @test size(zsol3) == (length(tt), length(zz0))
     tt, zsol3 = taylorinteg(eqs3!, zz0, 0.0, 2pi, 28, 1.0e-20)
     @test zsol3[1,1] == z0
     @test zsol3[1,2] == z0
