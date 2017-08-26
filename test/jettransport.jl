@@ -20,10 +20,9 @@ g(t, x) = 0.3x
     @test size(xvT1) == (2,)
     tvT1, xvT1 = taylorinteg(f, x0T1, t0, tmax, _order, _abstol)
     tv, xv = taylorinteg(f, x0, t0, tmax, _order, _abstol)
-    exactsol(t, x0, t0) = x0./(1.0-x0.*(t-t0)) #the analytical solution
+    exactsol(t, x0, t0) = x0/(1.0-x0*(t-t0)) #the analytical solution
     δsol = exactsol(tvT1[end], x0T1, t0)-xvT1[end]
     δcoeffs = δsol.coeffs
-
     @test isapprox(δcoeffs, zeros(6), atol=1e-10, rtol=0)
     @test isapprox(x0, evaluate(xvT1[1]))
     @test isapprox(xv[1], evaluate(xvT1[1]))
@@ -37,18 +36,13 @@ g(t, x) = 0.3x
     @test size(yvT1) == (2,)
     uvT1, yvT1 = taylorinteg(g, y0T1, t0, 10/0.3, _order, _abstol) #Taylor1 jet transport integration
     uv, yv = taylorinteg(g, y0, t0, 10/0.3, _order, _abstol) #reference integration
-    exactsol_g(u, y0, u0) = y0*exp.(0.3(u-u0))  #the analytical solution
+    exactsol_g(u, y0, u0) = y0*exp(0.3(u-u0))  #the analytical solution
     δsol_g = exactsol_g(uvT1[end], y0T1, t0)-yvT1[end]
     δcoeffs_g = δsol_g.coeffs
     @test isapprox(δcoeffs_g, zeros(6), atol=1e-10, rtol=0)
     @test isapprox(y0, evaluate(yvT1[1]), atol=1e-10, rtol=0)
     @test isapprox(yv[1], evaluate(yvT1[1]), atol=1e-10, rtol=0)
     @test isapprox(yv[end], evaluate(yvT1[end]), atol=1e-10, rtol=0)
-    yv_analytical = exactsol_g(uv, y0, t0)
-    yvT1_0 = evaluate.(yvT1)
-    for i in eachindex(uv)
-        @test isapprox(yv_analytical, yvT1_0, atol=1e-10, rtol=0)
-    end
 end
 
 @testset "Test TaylorN jet transport (t0, tmax): 1-dim case" begin
@@ -62,10 +56,9 @@ end
     @test size(xvTN) == (2,)
     tvTN, xvTN = taylorinteg(f, x0TN, t0, tmax, _order, _abstol)
     tv, xv = taylorinteg(f, x0, t0, tmax, _order, _abstol)
-    exactsol(t, x0, t0) = x0./(1.0-x0.*(t-t0)) #the analytical solution
+    exactsol(t, x0, t0) = x0/(1.0-x0*(t-t0)) #the analytical solution
     δsol = exactsol(tvTN[end], x0TN, t0)-xvTN[end]
     δcoeffs = map(y->y[1], map(x->x.coeffs, δsol.coeffs))
-
     @test isapprox(δcoeffs, zeros(6), atol=1e-10, rtol=0)
     @test isapprox(x0, evaluate(xvTN[1]))
     @test isapprox(xv[1], evaluate(xvTN[1]))
@@ -78,22 +71,63 @@ end
     @test size(yvTN) == (2,)
     uvTN, yvTN = taylorinteg(g, y0TN, t0, 10/0.3, _order, _abstol)
     uv, yv = taylorinteg(g, y0, t0, 10/0.3, _order, _abstol)
-    exactsol_g(u, y0, u0) = y0*exp.(0.3(u-u0))
-    exactsol_g(uv, y0, t0)
+    exactsol_g(u, y0, u0) = y0*exp(0.3(u-u0))
     δsol_g = exactsol_g(uvTN[end], y0TN, t0)-yvTN[end]
     δcoeffs_g = map(y->y[1], map(x->x.coeffs, δsol_g.coeffs))
     @test isapprox(δcoeffs_g, zeros(6), atol=1e-10, rtol=0)
     @test isapprox(y0, evaluate(yvTN[1]), atol=1e-10, rtol=0)
     @test isapprox(yv[1], evaluate(yvTN[1]), atol=1e-10, rtol=0)
     @test isapprox(yv[end], evaluate(yvTN[end]), atol=1e-10, rtol=0)
-    yv_analytical = exactsol_g(uv, y0, t0)
-    yvTN_0 = evaluate.(yvTN)
-    for i in eachindex(uv)
-        @test isapprox(yv_analytical, yvTN_0, atol=1e-10, rtol=0)
+end
+
+@testset "Test Taylor1 jet transport (trange): 1-dim case" begin
+    p = Taylor1(5)
+    x0 = 3.0 #"nominal" initial condition
+    x0T1 = x0 + p #jet transport initial condition
+    tv = 0.0:0.05:0.33
+    xvT1 = taylorinteg(f, x0T1, tv, _order, _abstol, maxsteps=1)
+    @test size(xvT1) == (7,)
+    xvT1 = taylorinteg(f, x0T1, tv, _order, _abstol)
+    xv = taylorinteg(f, x0, tv, _order, _abstol)
+    exactsol(t, x0, t0) = x0/(1.0-x0*(t-t0)) #the analytical solution
+    δsol = exactsol(tv[end], x0T1, tv[1])-xvT1[end]
+    δcoeffs = δsol.coeffs
+    @test length(tv) == length(xvT1)
+    @test isapprox(δcoeffs, zeros(6), atol=1e-10, rtol=0)
+    xv_analytical = exactsol.(tv, x0, tv[1])
+    xvT1_0 = evaluate.(xvT1)
+    @test isapprox(xv_analytical, xvT1_0, atol=1e-10, rtol=0)
+    for i in 1:5
+        disp = 0.001*rand() #a small, random displacement
+        xv_disp = taylorinteg(f, x0+disp, tv, _order, _abstol)
+        xvT1_disp = evaluate.(xvT1, disp)
+        @test isapprox(xv_disp, xvT1_disp)
+    end
+
+    y0 = 1.0 #"nominal" initial condition
+    y0T1 = y0 + p #jet transport initial condition
+    uv = 0.0:1/0.3:10/0.3
+    yvT1 = taylorinteg(g, y0T1, uv, _order, _abstol, maxsteps=1)
+    @test size(yvT1) == (11,)
+    yvT1 = taylorinteg(g, y0T1, uv, _order, _abstol)
+    yv = taylorinteg(g, y0, uv, _order, _abstol)
+    exactsol_g(u, y0, u0) = y0*exp(0.3(u-u0))
+    δsol_g = exactsol_g(uv[end], y0T1, uv[1])-yvT1[end]
+    δcoeffs_g = δsol_g.coeffs
+    @test length(uv) == length(yvT1)
+    @test isapprox(δcoeffs_g, zeros(6), atol=1e-10, rtol=0)
+    yv_analytical = exactsol_g.(uv, y0, uv[1])
+    yvT1_0 = evaluate.(yvT1)
+    @test isapprox(yv_analytical, yvT1_0, atol=1e-10, rtol=0)
+    for i in 1:5
+        disp = 0.001*rand() #a small, random displacement
+        yv_disp = taylorinteg(g, y0+disp, uv, _order, _abstol)
+        yvT1_disp = evaluate.(yvT1, disp)
+        @test isapprox(yv_disp, yvT1_disp)
     end
 end
 
-@testset "Test jet transport (trange): 1-dim case" begin
+@testset "Test TaylorN jet transport (trange): 1-dim case" begin
     p = set_variables("ξ", numvars=1, order=5)
     x0 = 3.0 #"nominal" initial condition
     x0TN = x0 + p[1] #jet transport initial condition
@@ -102,29 +136,33 @@ end
     @test size(xvTN) == (7,)
     xvTN = taylorinteg(f, x0TN, tv, _order, _abstol)
     xv = taylorinteg(f, x0, tv, _order, _abstol)
-    exactsol(t, x0, t0) = x0./(1.0-x0.*(t-t0)) #the analytical solution
+    exactsol(t, x0, t0) = x0/(1.0-x0*(t-t0)) #the analytical solution
     δsol = exactsol(tv[end], x0TN, tv[1])-xvTN[end]
     δcoeffs = map(y->y[1], map(x->x.coeffs, δsol.coeffs))
-
     @test length(tv) == length(xvTN)
     @test isapprox(δcoeffs, zeros(6), atol=1e-10, rtol=0)
+    xv_analytical = exactsol.(tv, x0, tv[1])
+    xvTN_0 = evaluate.(xvTN)
+    @test isapprox(xv_analytical, xvTN_0, atol=1e-10, rtol=0)
 
     y0 = 1.0 #"nominal" initial condition
     y0TN = y0 + p[1] #jet transport initial condition
-    tv = 0.0:1/0.3:10/0.3
-    yvTN = taylorinteg(g, y0TN, tv, _order, _abstol, maxsteps=1)
+    uv = 0.0:1/0.3:10/0.3
+    yvTN = taylorinteg(g, y0TN, uv, _order, _abstol, maxsteps=1)
     @test size(yvTN) == (11,)
-    yvTN = taylorinteg(g, y0TN, tv, _order, _abstol)
-    yv = taylorinteg(g, y0, tv, _order, _abstol)
-    exactsol_g(u, y0, u0) = y0*exp.(0.3(u-u0))
-    δsol_g = exactsol_g(tv[end], y0TN, tv[1])-yvTN[end]
+    yvTN = taylorinteg(g, y0TN, uv, _order, _abstol)
+    yv = taylorinteg(g, y0, uv, _order, _abstol)
+    exactsol_g(u, y0, u0) = y0*exp(0.3(u-u0))
+    δsol_g = exactsol_g(uv[end], y0TN, uv[1])-yvTN[end]
     δcoeffs_g = map(y->y[1], map(x->x.coeffs, δsol_g.coeffs))
-
-    @test length(tv) == length(yvTN)
+    @test length(uv) == length(yvTN)
     @test isapprox(δcoeffs_g, zeros(6), atol=1e-10, rtol=0)
+    yv_analytical = exactsol_g.(uv, y0, uv[1])
+    yvTN_0 = evaluate.(yvTN)
+    @test isapprox(yv_analytical, yvTN_0, atol=1e-10, rtol=0)
 end
 
-@testset "Test jet transport (t0,tmax): harmonic oscillator" begin
+@testset "Test TaylorN jet transport (t0,tmax): harmonic oscillator" begin
     function harmosc!(t, x, dx) #the harmonic oscillator ODE
         dx[1] = x[2]
         dx[2] = -x[1]
@@ -153,7 +191,7 @@ end
     @test isapprox(xvTN_0[1,:], xvTN_0[end,:]) # end point must coincide with a full period
 end
 
-@testset "Test jet transport (trange): simple pendulum" begin
+@testset "Test TaylorN jet transport (trange): simple pendulum" begin
 
     function pendulum!(t, x, dx) #the simple pendulum ODE
         dx[1] = x[2]
