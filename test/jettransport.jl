@@ -10,7 +10,7 @@ f(t, x) = x^2
 g(t, x) = 0.3x
 
 @testset "Test Taylor1 jet transport (t0, tmax): 1-dim case" begin
-    p = Taylor1(5)
+    p = Taylor1([0.0,1.0], 5)
     x0 = 3.0 #"nominal" initial condition
     x0T1 = x0 + p #jet transport initial condition
     t0=0.0
@@ -133,7 +133,7 @@ end
 end
 
 @testset "Test Taylor1 jet transport (trange): 1-dim case" begin
-    p = Taylor1(5)
+    p = Taylor1([0.0,1.0], 5)
     x0 = 3.0 #"nominal" initial condition
     x0T1 = x0 + p #jet transport initial condition
     tv = 0.0:0.05:0.33
