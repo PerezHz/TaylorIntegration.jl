@@ -21,27 +21,8 @@ the current system state (the initial conditions), and `jetcoeffs!`
 computes recursively the high-order derivates back into `x`.
 
 """
-function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Taylor1{T}, vT::Vector{T})
-    order = x.order
-    vT[1] = t0
-    for ord in 1:order
-        ordnext = ord+1
-
-        # Set `xaux`, auxiliary Taylor1 variable to order `ord`
-        @inbounds xaux = Taylor1( x.coeffs[1:ord] )
-
-        # Equations of motion
-        # TODO! define a macro to optimize the eqsdiff
-        tT = Taylor1(vT[1:ord])
-        dx = eqsdiff(tT, xaux)
-
-        # Recursion relation
-        @inbounds x[ordnext] = dx[ord]/ord
-    end
-    nothing
-end
-
-function jetcoeffs!{T<:Real}(eqsdiff, t0::T, x::Taylor1{Complex{T}}, vT::Vector{T})
+function jetcoeffs!{T <: Real, U <: Number}(eqsdiff, t0::T, 
+        x::Taylor1{U}, vT::Vector{T})
     order = x.order
     vT[1] = t0
     for ord in 1:order
@@ -82,8 +63,8 @@ the current system state (the initial conditions), and `jetcoeffs!`
 computes recursively the high-order derivates back into `x`.
 
 """
-function jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}},
-        dx::Vector{Taylor1{T}}, xaux::Vector{Taylor1{T}}, vT::Vector{T})
+function jetcoeffs!{T <: Real, U <: Number}(eqsdiff!, t0::T, x::Vector{Taylor1{U}}, 
+        dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}}, vT::Vector{T})
     order = x[1].order
     vT[1] = t0
     for ord in 1:order
@@ -106,33 +87,6 @@ function jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}},
     end
     nothing
 end
-
-function jetcoeffs!{T<:Real}(eqsdiff!, t0::T, x::Vector{Taylor1{Complex{T}}},
-        dx::Vector{Taylor1{Complex{T}}}, xaux::Vector{Taylor1{Complex{T}}},
-        vT::Vector{T})
-    order = x[1].order
-    vT[1] = t0
-    for ord in 1:order
-        ordnext = ord+1
-
-        # Set `xaux`, auxiliary vector of Taylor1 to order `ord`
-        for j in eachindex(x)
-            @inbounds xaux[j] = Taylor1( x[j].coeffs[1:ord] )
-        end
-
-        # Equations of motion
-        # TODO! define a macro to optimize the eqsdiff
-        tT = Taylor1(vT[1:ord])
-        eqsdiff!(tT, xaux, dx)
-
-        # Recursion relations
-        for j in eachindex(x)
-            @inbounds x[j][ordnext] = dx[j][ord]/ord
-        end
-    end
-    nothing
-end
-
 
 # stepsize
 doc"""
@@ -146,20 +100,7 @@ Note that `x` is of type `Taylor1{T}` or `Vector{Taylor1{T}}`, including
 also the cases `Taylor1{TaylorN{T}}` and `Vector{Taylor1{TaylorN{T}}}`.
 
 """
-function stepsize{T<:Number}(x::Taylor1{T}, epsilon::T)
-    ord = x.order
-    h = convert(T, Inf)
-    for k in (ord-1, ord)
-        @inbounds aux = abs( x[k+1] )
-        aux == zero(T) && continue
-        aux = epsilon / aux
-        kinv = one(T)/k
-        aux = aux^kinv
-        h = min(h, aux)
-    end
-    return h
-end
-function stepsize{T<:Real}(x::Taylor1{Complex{T}}, epsilon::T)
+function stepsize{T <: Real, U <: Number}(x::Taylor1{U}, epsilon::T)
     ord = x.order
     h = convert(T, Inf)
     for k in (ord-1, ord)
@@ -173,7 +114,7 @@ function stepsize{T<:Real}(x::Taylor1{Complex{T}}, epsilon::T)
     return h
 end
 
-function stepsize{T<:Number}(q::Array{Taylor1{T},1}, epsilon::T)
+function stepsize{T<:Real, U<:Number}(q::Array{Taylor1{U},1}, epsilon::T)
     h = convert(T, Inf)
     for i in eachindex(q)
         @inbounds hi = stepsize( q[i], epsilon )
@@ -181,15 +122,6 @@ function stepsize{T<:Number}(q::Array{Taylor1{T},1}, epsilon::T)
     end
     return h
 end
-function stepsize{T<:Real}(q::Array{Taylor1{Complex{T}},1}, epsilon::T)
-    h = convert(T, Inf)
-    for i in eachindex(q)
-        @inbounds hi = stepsize( q[i], epsilon )
-        h = min( h, hi )
-    end
-    return h
-end
-
 
 doc"""
     taylorstep!(f, x, t0, t1, x0, order, abstol, vT)
@@ -211,7 +143,7 @@ difference is used as the time step. `vT::Vector{T}` is a pre-allocated
 vector used for time-dependent differential equations.
 
 """
-function taylorstep!{T<:Number}(f, x::Taylor1{T}, t0::T, t1::T, x0::T,
+function taylorstep!{T<:Real, U<:Number}(f, x::Taylor1{U}, t0::T, t1::T, x0::U,
         order::Int, abstol::T, vT::Vector{T})
     @assert t1 > t0
 
@@ -225,22 +157,6 @@ function taylorstep!{T<:Number}(f, x::Taylor1{T}, t0::T, t1::T, x0::T,
     x0 = evaluate(x, δt)
     return δt, x0
 end
-
-function taylorstep!{T<:Real}(f, x::Taylor1{Complex{T}}, t0::T, t1::T,
-        x0::Complex{T}, order::Int, abstol::T, vT::Vector{T})
-    @assert t1 > t0
-
-    # Compute the Taylor coefficients
-    jetcoeffs!(f, t0, x, vT)
-
-    # Compute the step-size of the integration using `abstol`
-    δt = stepsize(x, abstol)
-    δt = min(δt, t1-t0)
-
-    x0 = evaluate(x, δt)
-    return δt, x0
-end
-
 
 doc"""
     taylorstep!(f!, x, dx, xaux, t0, t1, x0, order, abstol, vT)
@@ -263,8 +179,8 @@ vector used for time-dependent differential equations.
 
 
 """
-function taylorstep!{T<:Number}(f!, x::Vector{Taylor1{T}}, dx::Vector{Taylor1{T}},
-        xaux::Vector{Taylor1{T}}, t0::T, t1::T, x0::Array{T,1},
+function taylorstep!{T<:Real, U<:Number}(f!, x::Vector{Taylor1{U}}, dx::Vector{Taylor1{U}},
+        xaux::Vector{Taylor1{U}}, t0::T, t1::T, x0::Array{U,1},
         order::Int, abstol::T, vT::Vector{T})
     @assert t1 > t0
 
@@ -278,25 +194,6 @@ function taylorstep!{T<:Number}(f!, x::Vector{Taylor1{T}}, dx::Vector{Taylor1{T}
     evaluate!(x, δt, x0)
     return δt
 end
-
-function taylorstep!{T<:Real}(f!, x::Vector{Taylor1{Complex{T}}},
-        dx::Vector{Taylor1{Complex{T}}}, xaux::Vector{Taylor1{Complex{T}}},
-        t0::T, t1::T, x0::Array{Complex{T},1}, order::Int, abstol::T,
-        vT::Vector{T})
-
-    @assert t1 > t0
-
-    # Compute the Taylor coefficients
-    jetcoeffs!(f!, t0, x, dx, xaux, vT)
-
-    # Compute the step-size of the integration using `abstol`
-    δt = stepsize(x, abstol)
-    δt = min(δt, t1-t0)
-
-    evaluate!(x, δt, x0)
-    return δt
-end
-
 
 # taylorinteg
 doc"""
