@@ -21,7 +21,7 @@ the current system state (the initial conditions), and `jetcoeffs!`
 computes recursively the high-order derivates back into `x`.
 
 """
-function jetcoeffs!{T <: Real, U <: Number}(eqsdiff, t0::T, 
+function jetcoeffs!{T<:Real, U<:Number}(eqsdiff, t0::T, 
         x::Taylor1{U}, vT::Vector{T})
     order = x.order
     vT[1] = t0
@@ -63,7 +63,7 @@ the current system state (the initial conditions), and `jetcoeffs!`
 computes recursively the high-order derivates back into `x`.
 
 """
-function jetcoeffs!{T <: Real, U <: Number}(eqsdiff!, t0::T, x::Vector{Taylor1{U}}, 
+function jetcoeffs!{T<:Real, U<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{U}}, 
         dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}}, vT::Vector{T})
     order = x[1].order
     vT[1] = t0
@@ -100,7 +100,7 @@ Note that `x` is of type `Taylor1{T}` or `Vector{Taylor1{T}}`, including
 also the cases `Taylor1{TaylorN{T}}` and `Vector{Taylor1{TaylorN{T}}}`.
 
 """
-function stepsize{T <: Real, U <: Number}(x::Taylor1{U}, epsilon::T)
+function stepsize{T<:Real, U<:Number}(x::Taylor1{U}, epsilon::T)
     ord = x.order
     h = convert(T, Inf)
     for k in (ord-1, ord)
@@ -257,7 +257,7 @@ function taylorinteg{S<:Number, T<:Number, U<:Number, V<:Number}(f, x0::S,
     taylorinteg(f, x0, t0, tmax, order, abstol, maxsteps=maxsteps)
 end
 
-function taylorinteg{T<:Number}(f, x0::T, t0::T, tmax::T, order::Int,
+function taylorinteg{T<:Real}(f, x0::T, t0::T, tmax::T, order::Int,
         abstol::T; maxsteps::Int=500)
 
     # Allocation
@@ -305,7 +305,7 @@ function taylorinteg{S<:Number, T<:Number, U<:Number, V<:Number}(f,
     taylorinteg(f, q0_, t0, tmax, order, abstol, maxsteps=maxsteps)
 end
 
-function taylorinteg{T<:Number}(f!, q0::Array{T,1}, t0::T, tmax::T,
+function taylorinteg{T<:Real}(f!, q0::Array{T,1}, t0::T, tmax::T,
         order::Int, abstol::T; maxsteps::Int=500)
 
     # Allocation
@@ -349,12 +349,12 @@ function taylorinteg{T<:Number}(f!, q0::Array{T,1}, t0::T, tmax::T,
     return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:)
 end
 
-function taylorinteg{T<:Real}(f, x0::Complex{T}, t0::T, tmax::T, order::Int,
+function taylorinteg{T<:Real, U<:Number}(f, x0::U, t0::T, tmax::T, order::Int,
         abstol::T; maxsteps::Int=500)
 
     # Allocation
     const tv = Array{T}(maxsteps+1)
-    const xv = Array{Complex{T}}(maxsteps+1)
+    const xv = Array{U}(maxsteps+1)
     const vT = zeros(T, order+1)
     vT[2] = one(T)
 
@@ -386,20 +386,20 @@ function taylorinteg{T<:Real}(f, x0::Complex{T}, t0::T, tmax::T, order::Int,
     return view(tv,1:nsteps), view(xv,1:nsteps)
 end
 
-function taylorinteg{T<:Real}(f!, q0::Array{Complex{T},1}, t0::T, tmax::T,
+function taylorinteg{T<:Real, U<:Number}(f!, q0::Array{U,1}, t0::T, tmax::T,
         order::Int, abstol::T; maxsteps::Int=500)
 
     # Allocation
     const tv = Array{T}(maxsteps+1)
     dof = length(q0)
-    const xv = Array{Complex{T}}(dof, maxsteps+1)
+    const xv = Array{U}(dof, maxsteps+1)
     const vT = zeros(T, order+1)
     vT[2] = one(T)
 
     # Initialize the vector of Taylor1 expansions
-    const x = Array{Taylor1{Complex{T}}}(dof)
-    const dx = Array{Taylor1{Complex{T}}}(dof)
-    const xaux = Array{Taylor1{Complex{T}}}(dof)
+    const x = Array{Taylor1{U}}(dof)
+    const dx = Array{Taylor1{U}}(dof)
+    const xaux = Array{Taylor1{U}}(dof)
     for i in eachindex(q0)
         @inbounds x[i] = Taylor1( q0[i], order )
     end
@@ -501,7 +501,7 @@ Note that f! updates (mutates) the pre-allocated vector dx.
 Note that the initial conditions `q0TN` are of type `TaylorN{Float64}`.
 
 """
-function taylorinteg{T<:Number}(f, x0::T, trange::Range{T},
+function taylorinteg{T<:Real}(f, x0::T, trange::Range{T},
         order::Int, abstol::T; maxsteps::Int=500)
 
     # Allocation
@@ -542,7 +542,7 @@ function taylorinteg{T<:Number}(f, x0::T, trange::Range{T},
     return xv
 end
 
-function taylorinteg{T<:Number}(f!, q0::Array{T,1}, trange::Range{T},
+function taylorinteg{T<:Real}(f!, q0::Array{T,1}, trange::Range{T},
         order::Int, abstol::T; maxsteps::Int=500)
 
     # Allocation
@@ -596,12 +596,12 @@ function taylorinteg{T<:Number}(f!, q0::Array{T,1}, trange::Range{T},
     return transpose(xv)
 end
 
-function taylorinteg{T<:Real}(f, x0::Complex{T}, trange::Range{T},
+function taylorinteg{T<:Real, U<:Number}(f, x0::U, trange::Range{T},
         order::Int, abstol::T; maxsteps::Int=500)
 
     # Allocation
     nn = length(trange)
-    const xv = Array{Complex{T}}(nn)
+    const xv = Array{U}(nn)
     fill!(xv, T(NaN))
     const vT = zeros(T, order+1)
     vT[2] = one(T)
@@ -637,13 +637,13 @@ function taylorinteg{T<:Real}(f, x0::Complex{T}, trange::Range{T},
     return xv
 end
 
-function taylorinteg{T<:Real}(f!, q0::Array{Complex{T},1}, trange::Range{T},
+function taylorinteg{T<:Real, U<:Number}(f!, q0::Array{U,1}, trange::Range{T},
         order::Int, abstol::T; maxsteps::Int=500)
 
     # Allocation
     nn = length(trange)
     dof = length(q0)
-    const x0 = similar(q0, Complex{T}, dof)
+    const x0 = similar(q0, eltype(q0), dof)
     fill!(x0, T(NaN))
     const xv = Array{eltype(q0)}(dof, nn)
     for ind in 1:nn
@@ -653,9 +653,9 @@ function taylorinteg{T<:Real}(f!, q0::Array{Complex{T},1}, trange::Range{T},
     vT[2] = one(T)
 
     # Initialize the vector of Taylor1 expansions
-    const x = Array{Taylor1{Complex{T}}}(dof)
-    const dx = Array{Taylor1{Complex{T}}}(dof)
-    const xaux = Array{Taylor1{Complex{T}}}(dof)
+    const x = Array{Taylor1{U}}(dof)
+    const dx = Array{Taylor1{U}}(dof)
+    const xaux = Array{Taylor1{U}}(dof)
     for i in eachindex(q0)
         @inbounds x[i] = Taylor1( q0[i], order )
     end
