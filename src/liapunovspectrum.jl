@@ -9,38 +9,16 @@ at `x`; `x` is of type `Vector{T<:Number}`. `δx` and `dδx` are two
 auxiliary arrays of type `Vector{TaylorN{T}}` to avoid allocations.
 
 """
-function stabilitymatrix!{T<:Number}(eqsdiff!, t0::T, x::AbstractArray{T,1},
-        δx::Array{TaylorN{T},1}, dδx::Array{TaylorN{T},1}, jac::Array{T,2})
+function stabilitymatrix!{T<:Real, U<:Number}(eqsdiff!, t0::T, x::AbstractArray{U,1},
+        δx::Array{TaylorN{U},1}, dδx::Array{TaylorN{U},1}, jac::Array{U,2})
 
     for ind in eachindex(x)
-        @inbounds δx[ind] = x[ind] + TaylorN(T,ind,order=1)
+        @inbounds δx[ind] = x[ind] + TaylorN(U,ind,order=1)
     end
     eqsdiff!(t0, δx, dδx)
     jacobian!( jac, dδx )
     nothing
 end
-
-"""
-    stabilitymatrix!(eqsdiff!, t0, x, δx, dδx, jac)
-
-Updates the matrix `jac::Array{Taylor1{T},2}` (linearized equations of motion)
-computed from the equations of motion (`eqsdiff!`), at time `t0`
-at `x`; `x` is of type `Vector{Taylor1{T<:Number}}`. `δx` and `dδx` are two
-auxiliary arrays of type `Vector{TaylorN{Taylor1{T}}}` to avoid allocations.
-
-"""
-function stabilitymatrix!{T<:Number}(eqsdiff!, t0::T, x::AbstractArray{Taylor1{T},1},
-        δx::Array{TaylorN{Taylor1{T}},1}, dδx::Array{TaylorN{Taylor1{T}},1},
-        jac::Array{Taylor1{T},2})
-
-    for ind in eachindex(x)
-        @inbounds δx[ind] = x[ind] + TaylorN(Taylor1{T},ind,order=1)
-    end
-    eqsdiff!(t0, δx, dδx)
-    jacobian!( jac, dδx )
-    nothing
-end
-
 
 # Modified from `cgs` and `mgs`, obtained from:
 # http://nbviewer.jupyter.org/url/math.mit.edu/~stevenj/18.335/Gram-Schmidt.ipynb
@@ -75,6 +53,7 @@ function classicalGS!(A, Q, R, aⱼ, qᵢ, vⱼ)
     end
     return nothing
 end
+
 # Modified Gram–Schmidt (Trefethen algorithm 8.1); see also
 # http://nbviewer.jupyter.org/url/math.mit.edu/~stevenj/18.335/Gram-Schmidt.ipynb
 function modifiedGS!(A, Q, R, aⱼ, qᵢ, vⱼ)
@@ -115,10 +94,10 @@ spectrum. `jac` is the linearization of the equations of motion,
 and `xaux`, `δx` and `dδx` are auxiliary vectors.
 
 """
-function liap_jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}},
-        dx::Vector{Taylor1{T}}, xaux::Vector{Taylor1{T}},
-        δx::Array{TaylorN{Taylor1{T}},1}, dδx::Array{TaylorN{Taylor1{T}},1},
-        jac::Array{Taylor1{T},2}, vT::Vector{T})
+function liap_jetcoeffs!{T<:Real, U<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{U}},
+        dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}},
+        δx::Array{TaylorN{Taylor1{U}},1}, dδx::Array{TaylorN{Taylor1{U}},1},
+        jac::Array{Taylor1{U},2}, vT::Vector{T})
 
     order = x[1].order
     vT[1] = t0
@@ -150,7 +129,6 @@ function liap_jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}},
     nothing
 end
 
-
 """
     liap_taylorstep!(f, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol, vT)
 
@@ -159,9 +137,9 @@ spectrum. `jac` is the linearization of the equations of motion,
 and `xaux`, `δx`, `dδx` and `vT` are auxiliary vectors.
 
 """
-function liap_taylorstep!{T<:Number}(f, x::Vector{Taylor1{T}}, dx::Vector{Taylor1{T}},
-        xaux::Vector{Taylor1{T}}, δx::Array{TaylorN{Taylor1{T}},1},
-        dδx::Array{TaylorN{Taylor1{T}},1}, jac::Array{Taylor1{T},2}, t0::T, t1::T, x0::Array{T,1},
+function liap_taylorstep!{T<:Real, U<:Number}(f, x::Vector{Taylor1{U}}, dx::Vector{Taylor1{U}},
+        xaux::Vector{Taylor1{U}}, δx::Array{TaylorN{Taylor1{U}},1},
+        dδx::Array{TaylorN{Taylor1{U}},1}, jac::Array{Taylor1{U},2}, t0::T, t1::T, x0::Array{U,1},
         order::Int, abstol::T, vT::Vector{T})
 
     # Compute the Taylor coefficients
@@ -176,7 +154,6 @@ function liap_taylorstep!{T<:Number}(f, x::Vector{Taylor1{T}}, dx::Vector{Taylor
     return δt
 end
 
-
 """
     liap_taylorinteg(f, q0, t0, tmax, order, abstol; maxsteps::Int=500)
 
@@ -184,15 +161,15 @@ Similar to [`taylorinteg!`](@ref) for the calculation of the Liapunov
 spectrum.
 
 """
-function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
+function liap_taylorinteg{T<:Real, U<:Number}(f, q0::Array{U,1}, t0::T, tmax::T,
         order::Int, abstol::T; maxsteps::Int=500)
     # Allocation
     const tv = Array{T}(maxsteps+1)
     dof = length(q0)
-    const xv = Array{T}(dof, maxsteps+1)
+    const xv = Array{U}(dof, maxsteps+1)
     const λ = similar(xv)
     const λtsum = similar(q0)
-    const jt = eye(T, dof)
+    const jt = eye(U, dof)
     const vT = zeros(T, order+1)
     vT[2] = one(T)
 
@@ -203,31 +180,31 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
     @inbounds tv[1] = t0
     for ind in 1:dof
         @inbounds xv[ind,1] = q0[ind]
-        @inbounds λ[ind,1] = zero(T)
-        @inbounds λtsum[ind] = zero(T)
+        @inbounds λ[ind,1] = zero(U)
+        @inbounds λtsum[ind] = zero(U)
     end
     const x0 = vcat(q0, reshape(jt, dof*dof))
     nx0 = dof*(dof+1)
     t00 = t0
 
     # Initialize the vector of Taylor1 expansions
-    const x = Array{Taylor1{T}}(nx0)
+    const x = Array{Taylor1{U}}(nx0)
     for i in eachindex(x0)
         @inbounds x[i] = Taylor1( x0[i], order )
     end
 
     #Allocate auxiliary arrays
-    const dx = Array{Taylor1{T}}(nx0)
-    const xaux = Array{Taylor1{T}}(nx0)
-    const δx = Array{TaylorN{Taylor1{T}}}(dof)
-    const dδx = Array{TaylorN{Taylor1{T}}}(dof)
-    const jac = Array{Taylor1{T}}(dof,dof)
+    const dx = Array{Taylor1{U}}(nx0)
+    const xaux = Array{Taylor1{U}}(nx0)
+    const δx = Array{TaylorN{Taylor1{U}}}(dof)
+    const dδx = Array{TaylorN{Taylor1{U}}}(dof)
+    const jac = Array{Taylor1{U}}(dof,dof)
     for i in eachindex(jac)
         @inbounds jac[i] = zero(x[1])
     end
-    const QH = Array{T}(dof,dof)
-    const RH = Array{T}(dof,dof)
-    const aⱼ = Array{T}( dof )
+    const QH = Array{U}(dof,dof)
+    const RH = Array{U}(dof,dof)
+    const aⱼ = Array{U}( dof )
     const qᵢ = similar(aⱼ)
     const vⱼ = similar(aⱼ)
 
@@ -265,16 +242,16 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, t0::T, tmax::T,
     return view(tv,1:nsteps),  view(transpose(xv),1:nsteps,:),  view(transpose(λ),1:nsteps,:)
 end
 
-function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, trange::Range{T},
+function liap_taylorinteg{T<:Real, U<:Number}(f, q0::Array{U,1}, trange::Range{T},
         order::Int, abstol::T; maxsteps::Int=500)
     # Allocation
     nn = length(trange)
     dof = length(q0)
-    const xv = Array{T}(dof, nn)
-    fill!(xv, T(NaN))
+    const xv = Array{U}(dof, nn)
+    fill!(xv, U(NaN))
     const λ = similar(xv)
     const λtsum = similar(q0)
-    const jt = eye(T, dof)
+    const jt = eye(U, dof)
     const vT = zeros(T, order+1)
     vT[2] = one(T)
 
@@ -284,14 +261,14 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, trange::Range{T},
     # Initial conditions
     @inbounds for ind in 1:dof
         xv[ind,1] = q0[ind]
-        λ[ind,1] = zero(T)
-        λtsum[ind] = zero(T)
+        λ[ind,1] = zero(U)
+        λtsum[ind] = zero(U)
     end
 
     # Initialize the vector of Taylor1 expansions
     const x0 = vcat(q0, reshape(jt, dof*dof))
     nx0 = length(x0)
-    const x = Array{Taylor1{T}}(nx0)
+    const x = Array{Taylor1{U}}(nx0)
     for i in eachindex(x0)
         @inbounds x[i] = Taylor1( x0[i], order )
     end
@@ -299,17 +276,17 @@ function liap_taylorinteg{T<:Number}(f, q0::Array{T,1}, trange::Range{T},
     tspan = zero(T)
 
     #Allocate auxiliary arrays
-    const dx = Array{Taylor1{T}}(nx0)
-    const xaux = Array{Taylor1{T}}(nx0)
-    const δx = Array{TaylorN{Taylor1{T}}}(dof)
-    const dδx = Array{TaylorN{Taylor1{T}}}(dof)
-    const jac = Array{Taylor1{T}}(dof,dof)
+    const dx = Array{Taylor1{U}}(nx0)
+    const xaux = Array{Taylor1{U}}(nx0)
+    const δx = Array{TaylorN{Taylor1{U}}}(dof)
+    const dδx = Array{TaylorN{Taylor1{U}}}(dof)
+    const jac = Array{Taylor1{U}}(dof,dof)
     for i in eachindex(jac)
         jac[i] = zero(x[1])
     end
-    const QH = Array{T}(dof,dof)
-    const RH = Array{T}(dof,dof)
-    const aⱼ = Array{T}( dof )
+    const QH = Array{U}(dof,dof)
+    const RH = Array{U}(dof,dof)
+    const aⱼ = Array{U}( dof )
     const qᵢ = similar(aⱼ)
     const vⱼ = similar(aⱼ)
 

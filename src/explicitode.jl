@@ -21,27 +21,8 @@ the current system state (the initial conditions), and `jetcoeffs!`
 computes recursively the high-order derivates back into `x`.
 
 """
-function jetcoeffs!{T<:Number}(eqsdiff, t0::T, x::Taylor1{T}, vT::Vector{T})
-    order = x.order
-    vT[1] = t0
-    for ord in 1:order
-        ordnext = ord+1
-
-        # Set `xaux`, auxiliary Taylor1 variable to order `ord`
-        @inbounds xaux = Taylor1( x.coeffs[1:ord] )
-
-        # Equations of motion
-        # TODO! define a macro to optimize the eqsdiff
-        tT = Taylor1(vT[1:ord])
-        dx = eqsdiff(tT, xaux)
-
-        # Recursion relation
-        @inbounds x[ordnext] = dx[ord]/ord
-    end
-    nothing
-end
-
-function jetcoeffs!{T<:Real}(eqsdiff, t0::T, x::Taylor1{Complex{T}}, vT::Vector{T})
+function jetcoeffs!{T<:Real, U<:Number}(eqsdiff, t0::T, 
+        x::Taylor1{U}, vT::Vector{T})
     order = x.order
     vT[1] = t0
     for ord in 1:order
@@ -82,8 +63,8 @@ the current system state (the initial conditions), and `jetcoeffs!`
 computes recursively the high-order derivates back into `x`.
 
 """
-function jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}},
-        dx::Vector{Taylor1{T}}, xaux::Vector{Taylor1{T}}, vT::Vector{T})
+function jetcoeffs!{T<:Real, U<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{U}}, 
+        dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}}, vT::Vector{T})
     order = x[1].order
     vT[1] = t0
     for ord in 1:order
@@ -106,33 +87,6 @@ function jetcoeffs!{T<:Number}(eqsdiff!, t0::T, x::Vector{Taylor1{T}},
     end
     nothing
 end
-
-function jetcoeffs!{T<:Real}(eqsdiff!, t0::T, x::Vector{Taylor1{Complex{T}}},
-        dx::Vector{Taylor1{Complex{T}}}, xaux::Vector{Taylor1{Complex{T}}},
-        vT::Vector{T})
-    order = x[1].order
-    vT[1] = t0
-    for ord in 1:order
-        ordnext = ord+1
-
-        # Set `xaux`, auxiliary vector of Taylor1 to order `ord`
-        for j in eachindex(x)
-            @inbounds xaux[j] = Taylor1( x[j].coeffs[1:ord] )
-        end
-
-        # Equations of motion
-        # TODO! define a macro to optimize the eqsdiff
-        tT = Taylor1(vT[1:ord])
-        eqsdiff!(tT, xaux, dx)
-
-        # Recursion relations
-        for j in eachindex(x)
-            @inbounds x[j][ordnext] = dx[j][ord]/ord
-        end
-    end
-    nothing
-end
-
 
 # stepsize
 doc"""
@@ -146,20 +100,7 @@ Note that `x` is of type `Taylor1{T}` or `Vector{Taylor1{T}}`, including
 also the cases `Taylor1{TaylorN{T}}` and `Vector{Taylor1{TaylorN{T}}}`.
 
 """
-function stepsize{T<:Number}(x::Taylor1{T}, epsilon::T)
-    ord = x.order
-    h = convert(T, Inf)
-    for k in (ord-1, ord)
-        @inbounds aux = abs( x[k+1] )
-        aux == zero(T) && continue
-        aux = epsilon / aux
-        kinv = one(T)/k
-        aux = aux^kinv
-        h = min(h, aux)
-    end
-    return h
-end
-function stepsize{T<:Real}(x::Taylor1{Complex{T}}, epsilon::T)
+function stepsize{T<:Real, U<:Number}(x::Taylor1{U}, epsilon::T)
     ord = x.order
     h = convert(T, Inf)
     for k in (ord-1, ord)
@@ -173,15 +114,7 @@ function stepsize{T<:Real}(x::Taylor1{Complex{T}}, epsilon::T)
     return h
 end
 
-function stepsize{T<:Number}(q::Array{Taylor1{T},1}, epsilon::T)
-    h = convert(T, Inf)
-    for i in eachindex(q)
-        @inbounds hi = stepsize( q[i], epsilon )
-        h = min( h, hi )
-    end
-    return h
-end
-function stepsize{T<:Real}(q::Array{Taylor1{Complex{T}},1}, epsilon::T)
+function stepsize{T<:Real, U<:Number}(q::Array{Taylor1{U},1}, epsilon::T)
     h = convert(T, Inf)
     for i in eachindex(q)
         @inbounds hi = stepsize( q[i], epsilon )
@@ -190,7 +123,7 @@ function stepsize{T<:Real}(q::Array{Taylor1{Complex{T}},1}, epsilon::T)
     return h
 end
 
-
+#taylorstep
 doc"""
     taylorstep!(f, x, t0, t1, x0, order, abstol, vT)
 
@@ -211,7 +144,7 @@ difference is used as the time step. `vT::Vector{T}` is a pre-allocated
 vector used for time-dependent differential equations.
 
 """
-function taylorstep!{T<:Number}(f, x::Taylor1{T}, t0::T, t1::T, x0::T,
+function taylorstep!{T<:Real, U<:Number}(f, x::Taylor1{U}, t0::T, t1::T, x0::U,
         order::Int, abstol::T, vT::Vector{T})
     @assert t1 > t0
 
@@ -225,22 +158,6 @@ function taylorstep!{T<:Number}(f, x::Taylor1{T}, t0::T, t1::T, x0::T,
     x0 = evaluate(x, δt)
     return δt, x0
 end
-
-function taylorstep!{T<:Real}(f, x::Taylor1{Complex{T}}, t0::T, t1::T,
-        x0::Complex{T}, order::Int, abstol::T, vT::Vector{T})
-    @assert t1 > t0
-
-    # Compute the Taylor coefficients
-    jetcoeffs!(f, t0, x, vT)
-
-    # Compute the step-size of the integration using `abstol`
-    δt = stepsize(x, abstol)
-    δt = min(δt, t1-t0)
-
-    x0 = evaluate(x, δt)
-    return δt, x0
-end
-
 
 doc"""
     taylorstep!(f!, x, dx, xaux, t0, t1, x0, order, abstol, vT)
@@ -263,8 +180,8 @@ vector used for time-dependent differential equations.
 
 
 """
-function taylorstep!{T<:Number}(f!, x::Vector{Taylor1{T}}, dx::Vector{Taylor1{T}},
-        xaux::Vector{Taylor1{T}}, t0::T, t1::T, x0::Array{T,1},
+function taylorstep!{T<:Real, U<:Number}(f!, x::Vector{Taylor1{U}}, dx::Vector{Taylor1{U}},
+        xaux::Vector{Taylor1{U}}, t0::T, t1::T, x0::Array{U,1},
         order::Int, abstol::T, vT::Vector{T})
     @assert t1 > t0
 
@@ -278,25 +195,6 @@ function taylorstep!{T<:Number}(f!, x::Vector{Taylor1{T}}, dx::Vector{Taylor1{T}
     evaluate!(x, δt, x0)
     return δt
 end
-
-function taylorstep!{T<:Real}(f!, x::Vector{Taylor1{Complex{T}}},
-        dx::Vector{Taylor1{Complex{T}}}, xaux::Vector{Taylor1{Complex{T}}},
-        t0::T, t1::T, x0::Array{Complex{T},1}, order::Int, abstol::T,
-        vT::Vector{T})
-
-    @assert t1 > t0
-
-    # Compute the Taylor coefficients
-    jetcoeffs!(f!, t0, x, dx, xaux, vT)
-
-    # Compute the step-size of the integration using `abstol`
-    δt = stepsize(x, abstol)
-    δt = min(δt, t1-t0)
-
-    evaluate!(x, δt, x0)
-    return δt
-end
-
 
 # taylorinteg
 doc"""
@@ -351,7 +249,7 @@ The current keyword argument is `maxsteps=500`.
 Note that `f!` updates (mutates) the pre-allocated vector `dx`.
 
 """
-function taylorinteg{S<:Number, T<:Number, U<:Number, V<:Number}(f, x0::S,
+function taylorinteg{S<:Number, T<:Real, U<:Real, V<:Real}(f, x0::S,
         t0::T, tmax::U, order::Int, abstol::V; maxsteps::Int=500)
 
     #in order to handle mixed input types, we promote types before integrating:
@@ -360,44 +258,7 @@ function taylorinteg{S<:Number, T<:Number, U<:Number, V<:Number}(f, x0::S,
     taylorinteg(f, x0, t0, tmax, order, abstol, maxsteps=maxsteps)
 end
 
-function taylorinteg{T<:Number}(f, x0::T, t0::T, tmax::T, order::Int,
-        abstol::T; maxsteps::Int=500)
-
-    # Allocation
-    const tv = Array{T}(maxsteps+1)
-    const xv = Array{T}(maxsteps+1)
-    const vT = zeros(T, order+1)
-    vT[2] = one(T)
-
-    # Initialize the Taylor1 expansions
-    x = Taylor1( x0, order )
-
-    # Initial conditions
-    nsteps = 1
-    @inbounds tv[1] = t0
-    @inbounds xv[1] = x0
-
-    # Integration
-    while t0 < tmax
-        δt, x0 = taylorstep!(f, x, t0, tmax, x0, order, abstol, vT)
-        x[1] = x0
-        t0 += δt
-        nsteps += 1
-        @inbounds tv[nsteps] = t0
-        @inbounds xv[nsteps] = x0
-        if nsteps > maxsteps
-            warn("""
-            Maximum number of integration steps reached; exiting.
-            """)
-            break
-        end
-    end
-
-    #return tv, xv
-    return view(tv,1:nsteps), view(xv,1:nsteps)
-end
-
-function taylorinteg{S<:Number, T<:Number, U<:Number, V<:Number}(f,
+function taylorinteg{S<:Number, T<:Real, U<:Real, V<:Real}(f,
         q0::Array{S,1}, t0::T, tmax::U, order::Int, abstol::V; maxsteps::Int=500)
 
     #promote to common type before integrating:
@@ -408,56 +269,12 @@ function taylorinteg{S<:Number, T<:Number, U<:Number, V<:Number}(f,
     taylorinteg(f, q0_, t0, tmax, order, abstol, maxsteps=maxsteps)
 end
 
-function taylorinteg{T<:Number}(f!, q0::Array{T,1}, t0::T, tmax::T,
-        order::Int, abstol::T; maxsteps::Int=500)
-
-    # Allocation
-    const tv = Array{T}(maxsteps+1)
-    dof = length(q0)
-    const xv = Array{T}(dof, maxsteps+1)
-    const vT = zeros(T, order+1)
-    vT[2] = one(T)
-
-    # Initialize the vector of Taylor1 expansions
-    const x = Array{Taylor1{T}}(dof)
-    const dx = Array{Taylor1{T}}(dof)
-    const xaux = Array{Taylor1{T}}(dof)
-    for i in eachindex(q0)
-        @inbounds x[i] = Taylor1( q0[i], order )
-    end
-
-    # Initial conditions
-    @inbounds tv[1] = t0
-    @inbounds xv[:,1] .= q0
-    x0 = copy(q0)
-
-    # Integration
-    nsteps = 1
-    while t0 < tmax
-        δt = taylorstep!(f!, x, dx, xaux, t0, tmax, x0, order, abstol, vT)
-        for i in eachindex(x0)
-            @inbounds x[i][1] = x0[i]
-        end
-        t0 += δt
-        nsteps += 1
-        @inbounds tv[nsteps] = t0
-        @inbounds xv[:,nsteps] .= x0
-        if nsteps > maxsteps
-            warn("""
-            Maximum number of integration steps reached; exiting.
-            """)
-            break
-        end
-    end
-    return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:)
-end
-
-function taylorinteg{T<:Real}(f, x0::Complex{T}, t0::T, tmax::T, order::Int,
+function taylorinteg{T<:Real, U<:Number}(f, x0::U, t0::T, tmax::T, order::Int,
         abstol::T; maxsteps::Int=500)
 
     # Allocation
     const tv = Array{T}(maxsteps+1)
-    const xv = Array{Complex{T}}(maxsteps+1)
+    const xv = Array{U}(maxsteps+1)
     const vT = zeros(T, order+1)
     vT[2] = one(T)
 
@@ -489,20 +306,20 @@ function taylorinteg{T<:Real}(f, x0::Complex{T}, t0::T, tmax::T, order::Int,
     return view(tv,1:nsteps), view(xv,1:nsteps)
 end
 
-function taylorinteg{T<:Real}(f!, q0::Array{Complex{T},1}, t0::T, tmax::T,
+function taylorinteg{T<:Real, U<:Number}(f!, q0::Array{U,1}, t0::T, tmax::T,
         order::Int, abstol::T; maxsteps::Int=500)
 
     # Allocation
     const tv = Array{T}(maxsteps+1)
     dof = length(q0)
-    const xv = Array{Complex{T}}(dof, maxsteps+1)
+    const xv = Array{U}(dof, maxsteps+1)
     const vT = zeros(T, order+1)
     vT[2] = one(T)
 
     # Initialize the vector of Taylor1 expansions
-    const x = Array{Taylor1{Complex{T}}}(dof)
-    const dx = Array{Taylor1{Complex{T}}}(dof)
-    const xaux = Array{Taylor1{Complex{T}}}(dof)
+    const x = Array{Taylor1{U}}(dof)
+    const dx = Array{Taylor1{U}}(dof)
+    const xaux = Array{Taylor1{U}}(dof)
     for i in eachindex(q0)
         @inbounds x[i] = Taylor1( q0[i], order )
     end
@@ -533,7 +350,6 @@ function taylorinteg{T<:Real}(f!, q0::Array{Complex{T},1}, t0::T, tmax::T,
 
     return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:)
 end
-
 
 # Integrate and return results evaluated at given time
 doc"""
@@ -604,107 +420,12 @@ Note that f! updates (mutates) the pre-allocated vector dx.
 Note that the initial conditions `q0TN` are of type `TaylorN{Float64}`.
 
 """
-function taylorinteg{T<:Number}(f, x0::T, trange::Range{T},
+function taylorinteg{T<:Real, U<:Number}(f, x0::U, trange::Range{T},
         order::Int, abstol::T; maxsteps::Int=500)
 
     # Allocation
     nn = length(trange)
-    const xv = Array{T}(nn)
-    fill!(xv, T(NaN))
-    const vT = zeros(T, order+1)
-    vT[2] = one(T)
-
-    # Initialize the Taylor1 expansions
-    x = Taylor1( x0, order )
-
-    # Initial conditions
-    @inbounds xv[1] = x0
-
-    # Integration
-    iter = 1
-    while iter < nn
-        t0, t1 = trange[iter], trange[iter+1]
-        nsteps = 0
-        while nsteps < maxsteps
-            δt, x0 = taylorstep!(f, x, t0, t1, x0, order, abstol, vT)
-            x[1] = x0
-            t0 += δt
-            t0 ≥ t1 && break
-            nsteps += 1
-        end
-        if nsteps ≥ maxsteps && t0 != t1
-            warn("""
-            Maximum number of integration steps reached; exiting.
-            """)
-            break
-        end
-        iter += 1
-        @inbounds xv[iter] = x0
-    end
-
-    return xv
-end
-
-function taylorinteg{T<:Number}(f!, q0::Array{T,1}, trange::Range{T},
-        order::Int, abstol::T; maxsteps::Int=500)
-
-    # Allocation
-    nn = length(trange)
-    dof = length(q0)
-    const x0 = similar(q0, T, dof)
-    fill!(x0, T(NaN))
-    const xv = Array{eltype(q0)}(dof, nn)
-    for ind in 1:nn
-        @inbounds xv[:,ind] .= x0
-    end
-    const vT = zeros(T, order+1)
-    vT[2] = one(T)
-
-    # Initialize the vector of Taylor1 expansions
-    const x = Array{Taylor1{T}}(dof)
-    const dx = Array{Taylor1{T}}(dof)
-    const xaux = Array{Taylor1{T}}(dof)
-    for i in eachindex(q0)
-        @inbounds x[i] = Taylor1( q0[i], order )
-    end
-
-    # Initial conditions
-    @inbounds x0 .= q0
-    @inbounds xv[:,1] .= q0
-
-    # Integration
-    iter = 1
-    while iter < nn
-        t0, t1 = trange[iter], trange[iter+1]
-        nsteps = 0
-        while nsteps < maxsteps
-            δt = taylorstep!(f!, x, dx, xaux, t0, t1, x0, order, abstol, vT)
-            for i in eachindex(x0)
-                @inbounds x[i][1] = x0[i]
-            end
-            t0 += δt
-            t0 ≥ t1 && break
-            nsteps += 1
-        end
-        if nsteps ≥ maxsteps && t0 != t1
-            warn("""
-            Maximum number of integration steps reached; exiting.
-            """)
-            break
-        end
-        iter += 1
-        @inbounds xv[:,iter] .= x0
-    end
-
-    return transpose(xv)
-end
-
-function taylorinteg{T<:Real}(f, x0::Complex{T}, trange::Range{T},
-        order::Int, abstol::T; maxsteps::Int=500)
-
-    # Allocation
-    nn = length(trange)
-    const xv = Array{Complex{T}}(nn)
+    const xv = Array{U}(nn)
     fill!(xv, T(NaN))
     const vT = zeros(T, order+1)
     vT[2] = one(T)
@@ -740,13 +461,13 @@ function taylorinteg{T<:Real}(f, x0::Complex{T}, trange::Range{T},
     return xv
 end
 
-function taylorinteg{T<:Real}(f!, q0::Array{Complex{T},1}, trange::Range{T},
+function taylorinteg{T<:Real, U<:Number}(f!, q0::Array{U,1}, trange::Range{T},
         order::Int, abstol::T; maxsteps::Int=500)
 
     # Allocation
     nn = length(trange)
     dof = length(q0)
-    const x0 = similar(q0, Complex{T}, dof)
+    const x0 = similar(q0, eltype(q0), dof)
     fill!(x0, T(NaN))
     const xv = Array{eltype(q0)}(dof, nn)
     for ind in 1:nn
@@ -756,9 +477,9 @@ function taylorinteg{T<:Real}(f!, q0::Array{Complex{T},1}, trange::Range{T},
     vT[2] = one(T)
 
     # Initialize the vector of Taylor1 expansions
-    const x = Array{Taylor1{Complex{T}}}(dof)
-    const dx = Array{Taylor1{Complex{T}}}(dof)
-    const xaux = Array{Taylor1{Complex{T}}}(dof)
+    const x = Array{Taylor1{U}}(dof)
+    const dx = Array{Taylor1{U}}(dof)
+    const xaux = Array{Taylor1{U}}(dof)
     for i in eachindex(q0)
         @inbounds x[i] = Taylor1( q0[i], order )
     end
