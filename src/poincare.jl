@@ -191,7 +191,7 @@ function poincare{T<:Number}(f!, g, q0::Array{TaylorN{T},1}, t0::T, tmax::T,
 end
 
 #poincare + 1 variation jet transport
-function poincare{T<:Number}(f!, g, q0::Array{Taylor1{T},1}, t0::T, tmax::T,
+function poincare{T<:Real}(f!, g, q0::Array{Taylor1{T},1}, t0::T, tmax::T,
         order::Int, abstol::T; maxsteps::Int=500, nriter::Int=5)
 
     # Allocation
