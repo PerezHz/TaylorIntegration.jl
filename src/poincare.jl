@@ -101,19 +101,6 @@ function taylorinteg{T<:Real,U<:Number}(f!, g, q0::Array{U,1}, t0::T, tmax::T,
     end
 
     return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:), view(tvS,1:nevents-1), view(transpose(view(xvS,:,1:nevents-1)),1:nevents-1,:), view(gvS,1:nevents-1)
-    # # @show tv
-    # # @show nsteps
-    # # @show tv[1:steps]
-
-    # # return 0
-
-    # # return view(tv,1:nsteps)
-    # view(transpose(xv),1:nsteps,:)
-    # view(transpose(view(xv,:,1:nsteps)),1:nsteps,:)
-    # # return view(tvS,1:nevents-1)
-    # # return view(transpose(xvS),1:nevents-1,:)
-    # view(transpose(view(xvS,:,1:nevents-1)),1:nevents-1,:)
-    # # return view(gvS,1:nevents-1)
 end
 
 function poincare2{T<:Number}(f!, g, q0::Array{T,1}, t0::T, tmax::T,
