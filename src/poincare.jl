@@ -4,12 +4,23 @@
 # isless(x::AbstractSeries, y::Real) = isless(evaluate(x), y)
 # isless(x::Real, y::AbstractSeries) = isless(x, evaluate(y))
 
-compare{T<:Number}(x::Taylor1{T}, y::Real, order::Int) = compare(x[order], y, order)
-compare{T<:Number}(x::TaylorN{T}, y::Real, order::Int) = compare(x[order][1][1], y, order)
+compare{T<:Number}(x::Taylor1{T}, y::Real, order::Int) = compare(x[order+1], y, order)
+compare{T<:Number}(x::TaylorN{T}, y::Real, order::Int) = compare(x[order+1][1][1], y, order)
 compare(x::Real, y::Real, order::Int) = isless(x,y)
 
+function deriv{T<:Number}(n::Int, a::Taylor1{T})
+    @assert a.order ≥ n ≥ 0
+    if n==0
+        return a
+    elseif n==1
+        return derivative(a)
+    else
+        return deriv(n-1, derivative(a))
+    end
+end
+
 function taylorinteg{T<:Real,U<:Number}(f!, g, q0::Array{U,1}, t0::T, tmax::T,
-        order::Int, abstol::T; maxsteps::Int=500, nriter::Int=5, eventorder::Int=1)
+        order::Int, abstol::T; maxsteps::Int=500, nriter::Int=5, eventorder::Int=0)
 
     # Allocation
     const tv = Array{T}(maxsteps+1)
@@ -53,20 +64,21 @@ function taylorinteg{T<:Real,U<:Number}(f!, g, q0::Array{U,1}, t0::T, tmax::T,
     # Integration
     nsteps = 1
     nevents = 1 #number of detected events
+    nextevord = eventorder+1
     while t0 < tmax
         δt_old = δt
         δt = taylorstep!(f!, x, dx, xaux, t0, tmax, x0, order, abstol, vT)
-        g_val = g(t0, x, dx)
-        if compare(g_val_old*g_val, zero(T),eventorder)
+        g_val = g(Taylor1(vT, order), x, dx)
+        if compare(g_val_old*g_val, zero(T), eventorder)
 
             #first guess: linear interpolation
-            slope = (g_val[eventorder]-g_val_old[eventorder])/δt_old
-            dt_li = -(g_val[eventorder]/slope)
+            slope = (g_val[nextevord]-g_val_old[nextevord])/δt_old
+            dt_li = -(g_val[nextevord]/slope)
 
             x_g_Dg_D2g[1:dof] = x
             x_g_Dg_D2g[dof+1:2dof] = dx
-            x_g_Dg_D2g[2dof+1] = g_val
-            x_g_Dg_D2g[2dof+2] = derivative(g_val)
+            x_g_Dg_D2g[2dof+1] = deriv(eventorder, g_val)
+            x_g_Dg_D2g[2dof+2] = derivative(x_g_Dg_D2g[2dof+1])
 
             #Newton-Raphson iterations
             dt_nr = dt_li
