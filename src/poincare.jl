@@ -1,12 +1,13 @@
-# # # This was an early version of `compare`, which required overloading Base.isless (i.e., < operator)
+# # # This was an early version of `eventisdetected`, which required overloading Base.isless (i.e., < operator)
+# # # # moreover, this only worked for 0-th order event detection
 # import Base.isless
 # isless(x::AbstractSeries, y::AbstractSeries) = isless(evaluate(x), evaluate(y))
 # isless(x::AbstractSeries, y::Real) = isless(evaluate(x), y)
 # isless(x::Real, y::AbstractSeries) = isless(x, evaluate(y))
 
-compare{T<:Number}(x::Taylor1{T}, y::Real, order::Int) = compare(x[order+1], y, order)
-compare{T<:Number}(x::TaylorN{T}, y::Real, order::Int) = compare(x[order+1][1][1], y, order)
-compare(x::Real, y::Real, order::Int) = isless(x,y)
+eventisdetected{T<:Real}(x::Taylor1{T}, y::Taylor1{T}, r::Real, order::Int) = x[order+1]*y[order+1] < r
+eventisdetected{T<:Real}(x::Taylor1{Taylor1{T}}, y::Taylor1{Taylor1{T}}, r::Real, order::Int) = x[order+1][1]*y[order+1][1] < r
+eventisdetected{T<:Real}(x::Taylor1{TaylorN{T}}, y::Taylor1{TaylorN{T}}, r::Real, order::Int) = x[order+1][1][1]*y[order+1][1][1] < r
 
 function deriv{T<:Number}(n::Int, a::Taylor1{T})
     @assert a.order ≥ n ≥ 0
@@ -56,7 +57,7 @@ function taylorinteg{T<:Real,U<:Number}(f!, g, q0::Array{U,1}, t0::T, tmax::T,
 
     const tvS = Array{U}(maxsteps+1)
     const xvS = similar(xv)
-    const gvS = Array{U}(maxsteps+1)
+    const gvS = similar(tvS)
 
     #auxiliary range object for Newton-Raphson iterations
     const nrinds = 1:nriter
@@ -69,7 +70,7 @@ function taylorinteg{T<:Real,U<:Number}(f!, g, q0::Array{U,1}, t0::T, tmax::T,
         δt_old = δt
         δt = taylorstep!(f!, x, dx, xaux, t0, tmax, x0, order, abstol, vT)
         g_val = g(Taylor1(vT, order), x, dx)
-        if compare(g_val_old*g_val, zero(T), eventorder)
+        if eventisdetected(g_val_old, g_val, zero(T), eventorder)
 
             #first guess: linear interpolation
             slope = (g_val[nextevord]-g_val_old[nextevord])/δt_old
