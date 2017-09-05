@@ -3,9 +3,10 @@
 # isless(x::AbstractSeries, y::Real) = isless(evaluate(x), y)
 # isless(x::Real, y::AbstractSeries) = isless(x, evaluate(y))
 
-myisless(x::AbstractSeries, y::AbstractSeries) = isless(evaluate(x), evaluate(y))
-myisless(x::AbstractSeries, y::Real) = isless(evaluate(x), y)
-myisless(x::Real, y::AbstractSeries) = isless(x, evaluate(y))
+myisless(x::AbstractSeries, y::AbstractSeries) = myisless(evaluate(x), evaluate(y))
+myisless(x::AbstractSeries, y::Real) = myisless(evaluate(x), y)
+myisless(x::Real, y::AbstractSeries) = myisless(x, evaluate(y))
+myisless(x::Real, y::Real) = isless(x,y)
 
 function taylorinteg{T<:Real,U<:Number}(f!, g, q0::Array{U,1}, t0::T, tmax::T,
         order::Int, abstol::T; maxsteps::Int=500, nriter::Int=5)
@@ -42,7 +43,7 @@ function taylorinteg{T<:Real,U<:Number}(f!, g, q0::Array{U,1}, t0::T, tmax::T,
     const x_g_Dg_D2g = vcat(x, dx, zero(x[1]), zero(x[1]))
     const x_g_Dg_D2g_val = Array{U}( length(x_g_Dg_D2g) )
 
-    const tvS = similar(tv)
+    const tvS = Array{U}(maxsteps+1)
     const xvS = similar(xv)
     const gvS = Array{U}(maxsteps+1)
 
@@ -99,7 +100,20 @@ function taylorinteg{T<:Real,U<:Number}(f!, g, q0::Array{U,1}, t0::T, tmax::T,
         end
     end
 
-    return view(tv,1:nsteps), view(transpose(xv),1:nsteps,:), view(tvS,1:nevents-1), view(transpose(xvS),1:nevents-1,:), view(gvS,1:nevents-1)
+    return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:), view(tvS,1:nevents-1), view(transpose(view(xvS,:,1:nevents-1)),1:nevents-1,:), view(gvS,1:nevents-1)
+    # # @show tv
+    # # @show nsteps
+    # # @show tv[1:steps]
+
+    # # return 0
+
+    # # return view(tv,1:nsteps)
+    # view(transpose(xv),1:nsteps,:)
+    # view(transpose(view(xv,:,1:nsteps)),1:nsteps,:)
+    # # return view(tvS,1:nevents-1)
+    # # return view(transpose(xvS),1:nevents-1,:)
+    # view(transpose(view(xvS,:,1:nevents-1)),1:nevents-1,:)
+    # # return view(gvS,1:nevents-1)
 end
 
 function poincare2{T<:Number}(f!, g, q0::Array{T,1}, t0::T, tmax::T,
