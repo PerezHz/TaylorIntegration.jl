@@ -27,6 +27,4 @@ include("common.jl")
 
 include("poincare.jl")
 
-include("sensitivity.jl") 
-
 end #module
