@@ -1,15 +1,15 @@
+# # # This was an early version of `compare`, which required overloading Base.isless (i.e., < operator)
 # import Base.isless
 # isless(x::AbstractSeries, y::AbstractSeries) = isless(evaluate(x), evaluate(y))
 # isless(x::AbstractSeries, y::Real) = isless(evaluate(x), y)
 # isless(x::Real, y::AbstractSeries) = isless(x, evaluate(y))
 
-myisless(x::AbstractSeries, y::AbstractSeries) = myisless(evaluate(x), evaluate(y))
-myisless(x::AbstractSeries, y::Real) = myisless(evaluate(x), y)
-myisless(x::Real, y::AbstractSeries) = myisless(x, evaluate(y))
-myisless(x::Real, y::Real) = isless(x,y)
+compare{T<:Number}(x::Taylor1{T}, y::Real, order::Int) = compare(x[order], y, order)
+compare{T<:Number}(x::TaylorN{T}, y::Real, order::Int) = compare(x[order][1][1], y, order)
+compare(x::Real, y::Real, order::Int) = isless(x,y)
 
 function taylorinteg{T<:Real,U<:Number}(f!, g, q0::Array{U,1}, t0::T, tmax::T,
-        order::Int, abstol::T; maxsteps::Int=500, nriter::Int=5)
+        order::Int, abstol::T; maxsteps::Int=500, nriter::Int=5, eventorder::Int=1)
 
     # Allocation
     const tv = Array{T}(maxsteps+1)
@@ -57,11 +57,11 @@ function taylorinteg{T<:Real,U<:Number}(f!, g, q0::Array{U,1}, t0::T, tmax::T,
         δt_old = δt
         δt = taylorstep!(f!, x, dx, xaux, t0, tmax, x0, order, abstol, vT)
         g_val = g(t0, x, dx)
-        if myisless(g_val_old*g_val, zero(U))
+        if compare(g_val_old*g_val, zero(T),eventorder)
 
             #first guess: linear interpolation
-            slope = (g_val[1]-g_val_old[1])/δt_old
-            dt_li = -(g_val[1]/slope)
+            slope = (g_val[eventorder]-g_val_old[eventorder])/δt_old
+            dt_li = -(g_val[eventorder]/slope)
 
             x_g_Dg_D2g[1:dof] = x
             x_g_Dg_D2g[dof+1:2dof] = dx
