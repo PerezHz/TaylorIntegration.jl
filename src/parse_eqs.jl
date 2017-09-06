@@ -64,10 +64,7 @@ function _extract_parts(ex, debug=false)
             :( $(fnbody.args[1].args[end])+zero($(fnargs[1])) )
     end
 
-    if debug
-        @show(fn, fnargs, fnbody)
-        println()
-    end
+    debug && (@show(fn, fnargs, fnbody); println())
 
     return fn, fnargs, fnbody
 end
@@ -132,7 +129,7 @@ function _replacecalls!(fnold::Expr, newvar::Symbol, v_vars::Vector{Symbol})
             aux_fnexpr = subs(aux_fnexpr,
                 Dict(:_arg1 => :(constant_term($(fnold.args[2]))), :_aux => newvar))
             fnexpr = subs(fnexpr, Dict(:_aux => newvar))
-            push!(v_vars, newvar)
+            !in(newvar, v_vars) && push!(v_vars, newvar)
         end
     elseif ll == 3
         # Binary call; no auxiliary expressions needed
@@ -182,6 +179,75 @@ end
 
 
 """
+`_newfnbody(fnbody)`
+
+Returns a new (modified) body of the function, a priori unfolding
+the expression graph (AST) as unary and binary calls.
+"""
+function _newfnbody(fnbody)
+    # `fnbody` is assumed to be a `:block` `Expr`
+    newfnbody = Expr(:block,)
+
+    for (i,ex) in enumerate(fnbody.args[1].args)
+        if isa(ex, Expr)
+            (ex.head == :line || ex.head == :return) && continue
+            nex =  to_expr(ExGraph(ex))
+            push!(newfnbody.args, nex.args[2:end]...)
+        else
+            @show(typeof(ex))
+            throw(ArgumentError("$ex is not an `Expr`"))
+            #
+        end
+    end
+
+    return newfnbody
+end
+
+
+"""
+`_populate!(ex, v_vars, v_assign, v_preamb, v_indexed)`
+"""
+function _populate!(ex::Expr, v_vars, v_assign, v_preamb, v_indexed)
+
+    for (i, aa) in enumerate(ex.args)
+        aa_rhs = aa.args[1]
+        aa_lhs = aa.args[2]
+        if isa(aa_lhs, Expr)
+            fnexpr, def_fnexpr, auxfnexpr = _replacecalls!(aa_lhs, aa_rhs, v_vars)
+            push!(v_preamb, def_fnexpr.args[1] => def_fnexpr.args[2])
+            ex.args[i] = fnexpr
+            if auxfnexpr.head != :nothing
+                push!(v_preamb, auxfnexpr.args[1] => auxfnexpr.args[2])
+            end
+            push!(v_vars, aa_rhs)
+            #
+        elseif isa(aa_lhs, Symbol) # occurs when there is a simple assignment
+            bb = subs(aa, Dict(aa_lhs => :(identity($aa_lhs))))
+            bbvar = bb.args[1]
+            bbb = bb.args[2]
+            fnexpr, def_fnexpr, auxfnexpr = _replacecalls!(bbb, bbvar, v_vars)
+            push!(v_preamb, def_fnexpr.args[1] => def_fnexpr.args[2])
+            ex.args[i] = fnexpr
+            if auxfnexpr.head != :nothing
+                push!(v_preamb, auxfnexpr.args[1] => auxfnexpr.args[2])
+            end
+            push!(v_vars, bbvar)
+            #
+        elseif isa(aa_lhs, Number)
+            push!(v_assign, (i, aa))
+            #
+        else #needed?
+            @show(aa.args[2], typeof(aa.args[2]))
+            error("Different from `Expr`, `Symbol` or `Number`")
+            #
+        end
+    end
+
+    return nothing
+end
+
+
+"""
 `_preamble_body(fnbody, fnargs, debug=false)`
 
 Returns the preamble, the body and a guessed return
@@ -202,23 +268,8 @@ function _preamble_body(fnbody, fnargs, debug=false)
     fnbody, v_indexed, d_indx = _rename_indexedvars(fnbody)
     debug && (@show(fnbody, v_indexed, d_indx); println())
 
-    # Unfolds the body to the expresion graph (AST) of the function,
-    # a priori as unary and binary calls
-    # newfnbody = sanitize(to_expr( ExGraph(fnbody) ))
-    newfnbody = Expr(:block,)
-    for (i,ex) in enumerate(fnbody.args[1].args)
-        if isa(ex, Expr)
-            (ex.head == :line || ex.head == :return) && continue
-            nex =  to_expr(ExGraph(ex))
-            push!(newfnbody.args, nex.args[2:end]...)
-        else
-            @show(typeof(ex))
-            throw(ArgumentError("$ex is not an `Expr`"))
-            #
-        end
-    end
-
-    debug && @show(newfnbody)
+    # Create newfnbody
+    newfnbody = _newfnbody(fnbody)
 
     # Needed, if `newfnbody` consists of a single assignment (unary call)
     if newfnbody.head == :(=)
@@ -229,41 +280,9 @@ function _preamble_body(fnbody, fnargs, debug=false)
     debug && (@show(newfnbody); println())
 
     # Populate v_vars, v_assign, v_preamb
-    for (i, aa) in enumerate(newfnbody.args)
-        aavar = aa.args[1]
-        aaa = aa.args[2]
-        if isa(aaa, Expr)
-            fnexpr, def_fnexpr, auxfnexpr = _replacecalls!(aaa, aavar, v_vars)
-            push!(v_preamb, def_fnexpr.args[1] => def_fnexpr.args[2])
-            newfnbody.args[i] = fnexpr
-            if auxfnexpr.head != :nothing
-                push!(v_preamb, auxfnexpr.args[1] => auxfnexpr.args[2])
-            end
-            push!(v_vars, aavar)
-            #
-        elseif isa(aaa, Symbol) # occurs when there is a simple assignment
-            bb = subs(aa, Dict(aaa => :(identity($aaa))))
-            bbvar = bb.args[1]
-            bbb = bb.args[2]
-            fnexpr, def_fnexpr, auxfnexpr = _replacecalls!(bbb, bbvar, v_vars)
-            push!(v_preamb, def_fnexpr.args[1] => def_fnexpr.args[2])
-            newfnbody.args[i] = fnexpr
-            if auxfnexpr.head != :nothing
-                push!(v_preamb, auxfnexpr.args[1] => auxfnexpr.args[2])
-            end
-            push!(v_vars, bbvar)
-            #
-        elseif isa(aaa, Number)
-            push!(v_assign, (i, aa))
-            #
-        else #needed?
-            @show(aa.args[2], typeof(aa.args[2]))
-            error("Different from `Expr`, `Symbol` or `Number`")
-            #
-        end
-    end
+    _populate!(newfnbody, v_vars, v_assign, v_preamb, v_indexed)
 
-    debug && @show(v_vars, v_assign, v_preamb)
+    debug && (println(); @show(v_vars, v_assign, v_preamb, newfnbody); println())
 
     # Define premable (temporary allocations)
     preamble = _newpreamble(v_vars, v_preamb, fnargs)
