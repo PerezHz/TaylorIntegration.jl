@@ -4,7 +4,7 @@ module TaylorIntegration
 
 using TaylorSeries
 
-export  taylorinteg, liap_taylorinteg
+export taylorinteg, liap_taylorinteg
 
 include("explicitode.jl")
 

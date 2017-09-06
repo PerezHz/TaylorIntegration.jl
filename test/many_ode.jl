@@ -56,26 +56,26 @@ end
     abstol = 1e-20
     order = 25
     x0 = [t0, 0.0] #initial conditions such that x(t)=sin(t)
-    tT, xT = taylorinteg(f!, x0, t0, tmax, order, abstol)
-    @test length(tT) < 501
-    @test length(xT[:,1]) < 501
-    @test length(xT[:,2]) < 501
-    @test xT[1,1:end] == x0
-    @test tT[1] == t0
-    @test xT[1,1] == x0[1]
-    @test xT[1,2] == x0[2]
-    @test tT[end] == xT[end,1]
-    @test abs(sin(tmax)-xT[end,2]) < 1e-14
+    tv, xv = taylorinteg(f!, x0, t0, tmax, order, abstol)
+    @test length(tv) < 501
+    @test length(xv[:,1]) < 501
+    @test length(xv[:,2]) < 501
+    @test xv[1,1:end] == x0
+    @test tv[1] == t0
+    @test xv[1,1] == x0[1]
+    @test xv[1,2] == x0[2]
+    @test tv[end] == xv[end,1]
+    @test abs(sin(tmax)-xv[end,2]) < 1e-14
 
     tmax = 15*(2pi)
-    tT, xT = taylorinteg(f!, x0, t0, tmax, order, abstol)
-    @test length(tT) < 501
-    @test length(xT[:,1]) < 501
-    @test length(xT[:,2]) < 501
-    @test xT[1,1:end] == x0
-    @test tT[1] == t0
-    @test xT[1,1] == x0[1]
-    @test xT[1,2] == x0[2]
-    @test tT[end] == xT[end,1]
-    @test abs(sin(tmax)-xT[end,2]) < 1e-14
+    tv, xv = taylorinteg(f!, x0, t0, tmax, order, abstol)
+    @test length(tv) < 501
+    @test length(xv[:,1]) < 501
+    @test length(xv[:,2]) < 501
+    @test xv[1,1:end] == x0
+    @test tv[1] == t0
+    @test xv[1,1] == x0[1]
+    @test xv[1,2] == x0[2]
+    @test tv[end] == xv[end,1]
+    @test abs(sin(tmax)-xv[end,2]) < 1e-14
 end
