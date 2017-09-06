@@ -5,8 +5,7 @@ using Base.Test
 
 const _order = 28
 const _abstol = 1.0E-20
-const vT = zeros(_order+1)
-vT[2] = 1.0
+const tT = Taylor1(_order)
 
 @testset "Tests: dot{x}=x.^2, x(0) = [3.0,1.0]" begin
     function eqs_mov!(t, x, Dx)
@@ -21,8 +20,8 @@ vT[2] = 1.0
     q0T = [Taylor1(q0[1], _order), Taylor1(q0[2], _order)]
     xdotT = Array{Taylor1{Float64}}(length(q0))
     xaux = Array{Taylor1{Float64}}(length(q0))
-    vT[1] = t0
-    TaylorIntegration.jetcoeffs!(eqs_mov!, t0, q0T, xdotT, xaux, vT)
+    tT[1] = t0
+    TaylorIntegration.jetcoeffs!(eqs_mov!, tT, q0T, xdotT, xaux)
     @test q0T[1].coeffs[end] == 3.0^(_order+1)
     @test q0T[2].coeffs[end] == 1.0
     δt = (_abstol/q0T[1].coeffs[end-1])^inv(_order-1)
