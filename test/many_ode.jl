@@ -5,8 +5,7 @@ using Base.Test
 
 const _order = 28
 const _abstol = 1.0E-20
-const vT = zeros(_order+1)
-vT[2] = 1.0
+const tT = Taylor1(_order)
 
 @testset "Tests: dot{x}=x.^2, x(0) = [3.0,1.0]" begin
     function eqs_mov!(t, x, Dx)
@@ -21,8 +20,8 @@ vT[2] = 1.0
     q0T = [Taylor1(q0[1], _order), Taylor1(q0[2], _order)]
     xdotT = Array{Taylor1{Float64}}(length(q0))
     xaux = Array{Taylor1{Float64}}(length(q0))
-    vT[1] = t0
-    TaylorIntegration.jetcoeffs!(eqs_mov!, t0, q0T, xdotT, xaux, vT)
+    tT[1] = t0
+    TaylorIntegration.jetcoeffs!(eqs_mov!, tT, q0T, xdotT, xaux)
     @test q0T[1].coeffs[end] == 3.0^(_order+1)
     @test q0T[2].coeffs[end] == 1.0
     δt = (_abstol/q0T[1].coeffs[end-1])^inv(_order-1)
@@ -56,26 +55,26 @@ end
     abstol = 1e-20
     order = 25
     x0 = [t0, 0.0] #initial conditions such that x(t)=sin(t)
-    tT, xT = taylorinteg(f!, x0, t0, tmax, order, abstol)
-    @test length(tT) < 501
-    @test length(xT[:,1]) < 501
-    @test length(xT[:,2]) < 501
-    @test xT[1,1:end] == x0
-    @test tT[1] == t0
-    @test xT[1,1] == x0[1]
-    @test xT[1,2] == x0[2]
-    @test tT[end] == xT[end,1]
-    @test abs(sin(tmax)-xT[end,2]) < 1e-14
+    tv, xv = taylorinteg(f!, x0, t0, tmax, order, abstol)
+    @test length(tv) < 501
+    @test length(xv[:,1]) < 501
+    @test length(xv[:,2]) < 501
+    @test xv[1,1:end] == x0
+    @test tv[1] == t0
+    @test xv[1,1] == x0[1]
+    @test xv[1,2] == x0[2]
+    @test tv[end] == xv[end,1]
+    @test abs(sin(tmax)-xv[end,2]) < 1e-14
 
     tmax = 15*(2pi)
-    tT, xT = taylorinteg(f!, x0, t0, tmax, order, abstol)
-    @test length(tT) < 501
-    @test length(xT[:,1]) < 501
-    @test length(xT[:,2]) < 501
-    @test xT[1,1:end] == x0
-    @test tT[1] == t0
-    @test xT[1,1] == x0[1]
-    @test xT[1,2] == x0[2]
-    @test tT[end] == xT[end,1]
-    @test abs(sin(tmax)-xT[end,2]) < 1e-14
+    tv, xv = taylorinteg(f!, x0, t0, tmax, order, abstol)
+    @test length(tv) < 501
+    @test length(xv[:,1]) < 501
+    @test length(xv[:,2]) < 501
+    @test xv[1,1:end] == x0
+    @test tv[1] == t0
+    @test xv[1,1] == x0[1]
+    @test xv[1,2] == x0[2]
+    @test tv[end] == xv[end,1]
+    @test abs(sin(tmax)-xv[end,2]) < 1e-14
 end

@@ -5,16 +5,15 @@ using Base.Test
 
 const _order = 28
 const _abstol = 1.0E-20
-const vT = zeros(_order+1)
-vT[2] = 1.0
+const tT = Taylor1(_order)
 
 @testset "Tests: dot{x}=x^2, x(0) = 1" begin
     eqs_mov(t, x) = x^2
     t0 = 0.0
     x0 = 1.0
     x0T = Taylor1(x0, _order)
-    vT[1] = t0
-    TaylorIntegration.jetcoeffs!(eqs_mov, t0, x0T, vT)
+    tT[1] = t0
+    TaylorIntegration.jetcoeffs!(eqs_mov, tT, x0T)
     @test x0T.coeffs[end] == 1.0
     δt = _abstol^inv(_order-1)
     @test TaylorIntegration.stepsize(x0T, _abstol) == δt
@@ -42,8 +41,8 @@ end
     x0 = 3.0
     q0 = [3.0, 3.0]
     x0T = Taylor1(x0, _order)
-    vT[1] = t0
-    TaylorIntegration.jetcoeffs!(eqs_mov, t0, x0T, vT)
+    tT[1] = t0
+    TaylorIntegration.jetcoeffs!(eqs_mov, tT, x0T)
     @test x0T.coeffs[end] == 3.0^(_order+1)
     δt = (_abstol/x0T.coeffs[end-1])^inv(_order-1)
     @test TaylorIntegration.stepsize(x0T, _abstol) == δt
@@ -107,24 +106,24 @@ end
 end
 
 @testset "Test non-autonomous ODE (1): dot{x}=cos(t)" begin
-    f!(t, x) = cos(t)
+    f(t, x) = cos(t)
     t0 = 0//1
     tmax = 10.25*(2pi)
     abstol = 1e-20
     order = 25
     x0 = 0.0 #initial conditions such that x(t)=sin(t)
-    tT, xT = taylorinteg(f!, x0, t0, tmax, order, abstol)
-    @test length(tT) < 501
-    @test length(xT) < 501
+    tv, xv = taylorinteg(f, x0, t0, tmax, order, abstol)
+    @test length(tv) < 501
+    @test length(xv) < 501
     # @test length(xT[:,2]) < 501
-    @test xT[1] == x0
-    @test tT[1] == t0
-    @test abs(sin(tmax)-xT[end]) < 1e-14
+    @test xv[1] == x0
+    @test tv[1] == t0
+    @test abs(sin(tmax)-xv[end]) < 1e-14
 
     tmax = 15*(2pi)
-    tT, xT = taylorinteg(f!, x0, t0, tmax, order, abstol)
-    @test length(tT) < 501
-    @test length(xT) < 501
-    @test xT[1] == x0
-    @test abs(sin(tmax)-xT[end]) < 1e-14
+    tv, xv = taylorinteg(f, x0, t0, tmax, order, abstol)
+    @test length(tv) < 501
+    @test length(xv) < 501
+    @test xv[1] == x0
+    @test abs(sin(tmax)-xv[end]) < 1e-14
 end
