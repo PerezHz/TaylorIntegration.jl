@@ -13,28 +13,26 @@ function deriv{T<:Number}(n::Int, a::Taylor1{T})
     end
 end
 
-function taylorinteg{T<:Real,U<:Number}(f!, g, q0::Array{U,1}, t0::T, tmax::T,
+function taylorinteg{T<:Real, U<:Number}(f!, g, q0::Array{U,1}, t0::T, tmax::T,
         order::Int, abstol::T; maxsteps::Int=500, nriter::Int=5, eventorder::Int=0)
 
     # Allocation
     const tv = Array{T}(maxsteps+1)
     dof = length(q0)
     const xv = Array{U}(dof, maxsteps+1)
-    const vT = zeros(T, order+1)
-    vT[2] = one(T)
 
     # Initialize the vector of Taylor1 expansions
+    const t = Taylor1(T, order)
     const x = Array{Taylor1{U}}(dof)
     const dx = Array{Taylor1{U}}(dof)
     const xaux = Array{Taylor1{U}}(dof)
-    for i in eachindex(q0)
-        @inbounds x[i] = Taylor1( q0[i], order )
-    end
 
     # Initial conditions
+    @inbounds t[1] = t0
+    x .= Taylor1.(q0, order)
+    x0 = deepcopy(q0)
     @inbounds tv[1] = t0
     @inbounds xv[:,1] .= q0
-    x0 = copy(q0)
 
     #Some auxiliary arrays for root-finding/event detection/Poincaré surface of section evaluation
     const g_val = Taylor1(zero(U), order)
@@ -61,8 +59,8 @@ function taylorinteg{T<:Real,U<:Number}(f!, g, q0::Array{U,1}, t0::T, tmax::T,
     nextevord = eventorder+1
     while t0 < tmax
         δt_old = δt
-        δt = taylorstep!(f!, x, dx, xaux, t0, tmax, x0, order, abstol, vT)
-        g_val = g(Taylor1(vT, order), x, dx)
+        δt = taylorstep!(f!, t, x, dx, xaux, t0, tmax, x0, order, abstol)
+        g_val = g(t, x, dx)
         if eventisdetected(g_val_old, g_val, zero(T), eventorder)
 
             #first guess: linear interpolation
@@ -95,6 +93,7 @@ function taylorinteg{T<:Real,U<:Number}(f!, g, q0::Array{U,1}, t0::T, tmax::T,
             @inbounds x[i][1] = x0[i]
         end
         t0 += δt
+        @inbounds t[1] = t0
         nsteps += 1
         @inbounds tv[nsteps] = t0
         @inbounds xv[:,nsteps] .= x0
