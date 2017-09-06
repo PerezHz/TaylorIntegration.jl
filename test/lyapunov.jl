@@ -21,7 +21,7 @@ const _abstol = 1.0E-20
         δx = [ x0[1]+xi[1], x0[2]+xi[2], x0[3]+xi[3] ]
         dδx = similar(δx)
         lorenzjac = Array{eltype(x0)}(3,3)
-        TaylorIntegration.stabilitymatrix!(lorenz!, t0, x0, δx, dδx, lorenzjac)
+        TaylorIntegration.stabilitymatrix!(lorenz!, t0, view(x0,:), δx, dδx, lorenzjac)
         @test trace(lorenzjac) == -(σ+one(Float64)+β)
     end
 end

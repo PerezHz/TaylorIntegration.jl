@@ -68,8 +68,9 @@ function jetcoeffs!{T<:Real, U<:Number}(eqsdiff!, t::Taylor1{T}, x::Vector{Taylo
     for ord in 1:order
         ordnext = ord+1
 
-        # Set `taux` and `xaux`, auxiliary vector of Taylor1 to order `ord`
+        # Set `taux`, auxiliary Taylor1 variable to order `ord`
         @inbounds taux = Taylor1( t.coeffs[1:ord] )
+        # Set xaux`, auxiliary vector of Taylor1 to order `ord`
         for j in eachindex(x)
             @inbounds xaux[j] = Taylor1( x[j].coeffs[1:ord] )
         end
@@ -276,8 +277,8 @@ function taylorinteg{T<:Real, U<:Number}(f, x0::U, t0::T, tmax::T, order::Int,
     const xv = Array{U}(maxsteps+1)
 
     # Initialize the Taylor1 expansions
-    const x = Taylor1( x0, order )
     const t = Taylor1( T, order )
+    const x = Taylor1( x0, order )
 
     # Initial conditions
     nsteps = 1
@@ -315,7 +316,7 @@ function taylorinteg{T<:Real, U<:Number}(f!, q0::Array{U,1}, t0::T, tmax::T,
     const xv = Array{U}(dof, maxsteps+1)
 
     # Initialize the vector of Taylor1 expansions
-    const t = Taylor1( T, order )
+    const t = Taylor1(T, order)
     const x = Array{Taylor1{U}}(dof)
     const dx = Array{Taylor1{U}}(dof)
     const xaux = Array{Taylor1{U}}(dof)
@@ -428,8 +429,8 @@ function taylorinteg{T<:Real, U<:Number}(f, x0::U, trange::Range{T},
     fill!(xv, T(NaN))
 
     # Initialize the Taylor1 expansions
-    const x = Taylor1( x0, order )
     const t = Taylor1( T, order )
+    const x = Taylor1( x0, order )
 
     # Initial conditions
     @inbounds t[1] = trange[1]
@@ -473,9 +474,9 @@ function taylorinteg{T<:Real, U<:Number}(f!, q0::Array{U,1}, trange::Range{T},
     for ind in 1:nn
         @inbounds xv[:,ind] .= x0
     end
-    const t = Taylor1( T, order )
 
     # Initialize the vector of Taylor1 expansions
+    const t = Taylor1( T, order )
     const x = Array{Taylor1{U}}(dof)
     const dx = Array{Taylor1{U}}(dof)
     const xaux = Array{Taylor1{U}}(dof)
