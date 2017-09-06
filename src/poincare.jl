@@ -1,6 +1,6 @@
-eventisdetected{T<:Real}(x::Taylor1{T}, y::Taylor1{T}, r::Real, order::Int) = x[order+1]*y[order+1] < r
-eventisdetected{T<:Real}(x::Taylor1{Taylor1{T}}, y::Taylor1{Taylor1{T}}, r::Real, order::Int) = x[order+1][1]*y[order+1][1] < r
-eventisdetected{T<:Real}(x::Taylor1{TaylorN{T}}, y::Taylor1{TaylorN{T}}, r::Real, order::Int) = x[order+1][1][1]*y[order+1][1][1] < r
+surfacecrossing{T<:Real}(g::Taylor1{T}, g_old::Taylor1{T}, order::Int) = g[order+1]*g_old[order+1] < zero(T)
+surfacecrossing{T<:Real}(g::Taylor1{Taylor1{T}}, g_old::Taylor1{Taylor1{T}}, order::Int) = g[order+1][1]*g_old[order+1][1] < zero(T)
+surfacecrossing{T<:Real}(g::Taylor1{TaylorN{T}}, g_old::Taylor1{TaylorN{T}}, order::Int) = g[order+1][1][1]*g_old[order+1][1][1] < zero(T)
 
 function deriv{T<:Number}(n::Int, a::Taylor1{T})
     @assert a.order ≥ n ≥ 0
@@ -63,7 +63,7 @@ function taylorinteg{T<:Real, U<:Number}(f!, g, q0::Array{U,1}, t0::T, tmax::T,
         δt_old = δt
         δt = taylorstep!(f!, t, x, dx, xaux, t0, tmax, x0, order, abstol)
         g_val = g(t, x, dx)
-        if eventisdetected(g_val_old, g_val, zero(T), eventorder)
+        if surfacecrossing(g_val_old, g_val, eventorder)
 
             #first guess: linear interpolation
             slope = (g_val[nextevord]-g_val_old[nextevord])/δt_old
