@@ -29,22 +29,24 @@ function taylorinteg{T<:Real, U<:Number}(f!, g, q0::Array{U,1}, t0::T, tmax::T,
 
     # Initial conditions
     @inbounds t[1] = t0
-    x .= Taylor1.(q0, order)
     x0 = deepcopy(q0)
+    x .= Taylor1.(q0, order)
     @inbounds tv[1] = t0
     @inbounds xv[:,1] .= q0
 
     #Some auxiliary arrays for root-finding/event detection/Poincaré surface of section evaluation
-    const g_val = Taylor1(zero(U), order)
-    const g_val_old = Taylor1(zero(U), order)
+    const g_val = zero(g(t,x,x))
+    const g_val_old = zero(g_val)
     const slope = zero(U)
     const dt_li = zero(U)
     const dt_nr = zero(U)
     const δt = zero(U)
     const δt_old = zero(U)
 
-    const x_g_Dg_D2g = vcat(x, dx, zero(x[1]), zero(x[1]))
-    const x_g_Dg_D2g_val = Array{U}( length(x_g_Dg_D2g) )
+    const x_dx = vcat(x, dx)
+    const g_dg = vcat(g_val, g_val_old)
+    const x_dx_val = Array{U}( length(x_dx) )
+    const g_dg_val = vcat(evaluate(g_val), evaluate(g_val_old))
 
     const tvS = Array{U}(maxsteps+1)
     const xvS = similar(xv)
@@ -67,24 +69,24 @@ function taylorinteg{T<:Real, U<:Number}(f!, g, q0::Array{U,1}, t0::T, tmax::T,
             slope = (g_val[nextevord]-g_val_old[nextevord])/δt_old
             dt_li = -(g_val[nextevord]/slope)
 
-            x_g_Dg_D2g[1:dof] = x
-            x_g_Dg_D2g[dof+1:2dof] = dx
-            x_g_Dg_D2g[2dof+1] = deriv(eventorder, g_val)
-            x_g_Dg_D2g[2dof+2] = derivative(x_g_Dg_D2g[2dof+1])
+            x_dx[1:dof] = x
+            x_dx[dof+1:2dof] = dx
+            g_dg[1] = deriv(eventorder, g_val)
+            g_dg[2] = derivative(g_dg[1])
 
             #Newton-Raphson iterations
             dt_nr = dt_li
-            evaluate!(x_g_Dg_D2g[2dof+1:2dof+2], dt_nr, view(x_g_Dg_D2g_val,2dof+1:2dof+2))
+            evaluate!(g_dg, dt_nr, view(g_dg_val,:))
 
             for i in eachindex(nrinds)
-                dt_nr = dt_nr-x_g_Dg_D2g_val[2dof+1]/x_g_Dg_D2g_val[2dof+2]
-                evaluate!(x_g_Dg_D2g[2dof+1:2dof+2], dt_nr, view(x_g_Dg_D2g_val,2dof+1:2dof+2))
+                dt_nr = dt_nr-g_dg_val[1]/g_dg_val[2]
+                evaluate!(g_dg, dt_nr, view(g_dg_val,:))
             end
-            evaluate!(x_g_Dg_D2g[1:2dof], dt_nr, view(x_g_Dg_D2g_val,1:2dof))
+            evaluate!(x_dx, dt_nr, view(x_dx_val,:))
 
             tvS[nevents] = t0+dt_nr
-            xvS[:,nevents] .= view(x_g_Dg_D2g_val,1:dof)
-            gvS[nevents] = x_g_Dg_D2g_val[2dof+1]
+            xvS[:,nevents] .= view(x_dx_val,1:dof)
+            gvS[nevents] = g_dg_val[1]
 
             nevents += 1
         end
