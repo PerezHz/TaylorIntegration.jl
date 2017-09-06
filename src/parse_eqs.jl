@@ -3,7 +3,7 @@
 # Load necessary components of MacroTools and Espresso
 using MacroTools: @capture, shortdef
 
-using Espresso: subs, ExGraph, to_expr, sanitize, genname, isindexed, get_vars
+using Espresso: subs, ExGraph, to_expr, sanitize, genname, find_vars, findex
 
 
 
@@ -300,28 +300,12 @@ a vector of symbols with the new variables, and a dictionary
 that links the new variables to the old indexed variables.
 
 """
+# Thanks to Andrei Zhabinski (@dfdx, see #31) for this compact implementation
 function _rename_indexedvars(fnbody)
-
-    v_indexed = Symbol[]
-    d_indx = Dict{Symbol, Expr}()
-
-    !(isindexed(fnbody)) && return fnbody, v_indexed, d_indx
-
-    # Obtain variables
-    vvars = get_vars(fnbody, rec=true)
-
-    # Rename indexed variables
-    for v in vvars
-        if isindexed(v)
-            newvar = genname()
-            push!(v_indexed, newvar)
-            push!(d_indx, newvar => v)
-            fnbody = subs(fnbody, Dict(v => newvar))
-            vvars .= subs.(vvars, Dict(v => newvar))
-        end
-    end
-
-    return fnbody, v_indexed, d_indx
+    indexed_vars = findex(:(_X[_i...]), fnbody)
+    st = Dict(ivar => genname() for ivar in indexed_vars)
+    new_fnbody = subs(fnbody, st)
+    return new_fnbody, collect(values(st)), Dict(v => k for (k, v) in st)
 end
 
 
