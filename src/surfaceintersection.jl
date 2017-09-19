@@ -1,6 +1,10 @@
-surfacecrossing{T<:Real}(g::Taylor1{T}, g_old::Taylor1{T}, order::Int) = g[order+1]*g_old[order+1] < zero(T)
-surfacecrossing{T<:Real}(g::Taylor1{Taylor1{T}}, g_old::Taylor1{Taylor1{T}}, order::Int) = g[order+1][1]*g_old[order+1][1] < zero(T)
-surfacecrossing{T<:Real}(g::Taylor1{TaylorN{T}}, g_old::Taylor1{TaylorN{T}}, order::Int) = g[order+1][1][1]*g_old[order+1][1][1] < zero(T)
+surfacecrossing{T<:Real}(g_old::Taylor1{T}, g::Taylor1{T}, eventorder::Int) = g_old[eventorder+1]*g[eventorder+1] < zero(T)
+surfacecrossing{T<:Real}(g_old::Taylor1{Taylor1{T}}, g::Taylor1{Taylor1{T}}, eventorder::Int) = g_old[eventorder+1][1]*g[eventorder+1][1] < zero(T)
+surfacecrossing{T<:Real}(g_old::Taylor1{TaylorN{T}}, g::Taylor1{TaylorN{T}}, eventorder::Int) = g_old[eventorder+1][1][1]*g[eventorder+1][1][1] < zero(T)
+
+nrconvergencecriterion{T<:Real}(g_val::T, nrabstol::T, nriter::Int, maxnriters::Int)::Bool = abs(g_val) > nrabstol && nriter ≤ maxnriters
+nrconvergencecriterion{T<:Real}(g_val::Taylor1{T}, nrabstol::T, nriter::Int, maxnriters::Int)::Bool = abs(g_val[1]) > nrabstol && nriter ≤ maxnriters
+nrconvergencecriterion{T<:Real}(g_val::TaylorN{T}, nrabstol::T, nriter::Int, maxnriters::Int)::Bool = abs(g_val[1][1]) > nrabstol && nriter ≤ maxnriters
 
 function deriv{T<:Number}(n::Int, a::Taylor1{T})
     @assert a.order ≥ n ≥ 0
@@ -14,7 +18,8 @@ function deriv{T<:Number}(n::Int, a::Taylor1{T})
 end
 
 function taylorinteg{T<:Real, U<:Number}(f!, g, q0::Array{U,1}, t0::T, tmax::T,
-        order::Int, abstol::T; maxsteps::Int=500, nriter::Int=5, eventorder::Int=0)
+        order::Int, abstol::T; maxsteps::Int=500, eventorder::Int=0,
+        maxnriters::Int=5, nrabstol::T=eps(T))
 
     # Allocation
     const tv = Array{T}(maxsteps+1)
@@ -52,13 +57,13 @@ function taylorinteg{T<:Real, U<:Number}(f!, g, q0::Array{U,1}, t0::T, tmax::T,
     const xvS = similar(xv)
     const gvS = similar(tvS)
 
-    #auxiliary range object for Newton-Raphson iterations
-    const nrinds = 1:nriter
+    #auxiliary Int for Newton-Raphson iterations
+    const nriter = 1
 
     # Integration
-    nsteps = 1
-    nevents = 1 #number of detected events
-    nextevord = eventorder+1
+    const nsteps = 1
+    const nevents = 1 #number of detected events
+    const nextevord = eventorder+1
     while t0 < tmax
         δt_old = δt
         δt = taylorstep!(f!, t, x, dx, xaux, t0, tmax, x0, order, abstol)
@@ -78,10 +83,15 @@ function taylorinteg{T<:Real, U<:Number}(f!, g, q0::Array{U,1}, t0::T, tmax::T,
             dt_nr = dt_li
             evaluate!(g_dg, dt_nr, view(g_dg_val,:))
 
-            for i in eachindex(nrinds)
+            while nrconvergencecriterion(g_dg_val[1], nrabstol, nriter, maxnriters)
                 dt_nr = dt_nr-g_dg_val[1]/g_dg_val[2]
                 evaluate!(g_dg, dt_nr, view(g_dg_val,:))
+                nriter += 1
             end
+            nriter == maxnriters+1 && warn("""
+            Newton-Raphson did not converge for prescribed tolerance and maximum allowed iterations.
+            """)
+            nriter = 1
             evaluate!(x_dx, dt_nr, view(x_dx_val,:))
 
             tvS[nevents] = t0+dt_nr
