@@ -4,7 +4,7 @@
 using MacroTools: @capture, shortdef
 
 using Espresso: subs, ExGraph, to_expr, sanitize, genname,
-    find_vars, findex, get_indices
+    find_vars, findex, find_indices, isindexed
 
 
 # Define some constants to create the newly (parsed) functions
@@ -93,7 +93,7 @@ end
 
 
 """
-`_replacecalls!(fnold, newvar, v_vars)`
+`_replacecalls!(fnold, newvar, d_indx, v_vars)`
 
 Replaces the symbols of unary and binary calls
 of the expression `fnold` which defines `newvar`
@@ -102,41 +102,52 @@ The vector `v_vars` is updated with the new auxiliary
 variables introduced.
 
 """
-function _replacecalls!(fnold::Expr, newvar::Symbol, v_vars::Vector{Symbol})
+function _replacecalls!(fnold::Expr, newvar::Symbol, d_indx, v_vars)
 
     ll = length(fnold.args)
+    dcall = fnold.args[1]
+    newarg1 = fnold.args[2]
 
     if ll == 2
         # Unary call
-        @assert(in(fnold.args[1], keys(TaylorSeries._dict_unary_calls)))
+        @assert(in(dcall, keys(TaylorSeries._dict_unary_calls)))
 
         # Replacements
-        fnexpr, def_fnexpr, aux_fnexpr = TaylorSeries._dict_unary_calls[fnold.args[1]]
+        fnexpr, def_fnexpr, aux_fnexpr = TaylorSeries._dict_unary_calls[dcall]
         fnexpr = subs(fnexpr, Dict(:_res => newvar,
-            :_arg1 => fnold.args[2], :_k => :ord))
+            :_arg1 => newarg1, :_k => :ord))
+
+        # if in(newvar, keys(d_indx)) || in(newarg1, keys(d_indx))
+        def_fnexpr = :( _res = Taylor1($(def_fnexpr.args[2]), order) )
+        # end
         def_fnexpr = subs(def_fnexpr, Dict(:_res => newvar,
-            :_arg1 => :(constant_term($(fnold.args[2]))), :_k => :ord))
+            :_arg1 => :(constant_term($(newarg1))), :_k => :ord))
 
         # Auxiliary expression
         if aux_fnexpr.head != :nothing
-            newvar = genname()
-            aux_fnexpr = subs(aux_fnexpr,
-                Dict(:_arg1 => :(constant_term($(fnold.args[2]))), :_aux => newvar))
-            fnexpr = subs(fnexpr, Dict(:_aux => newvar))
-            !in(newvar, v_vars) && push!(v_vars, newvar)
+            newaux = genname()
+            # if in(newvar, keys(d_indx)) || in(newarg1, keys(d_indx))
+            aux_fnexpr = :( _res = Taylor1($(aux_fnexpr.args[2]), order) )
+            # end
+            aux_fnexpr = subs(aux_fnexpr, Dict(:_res => newaux,
+                :_arg1 => :(constant_term($(newarg1))), :_aux => newaux))
+            fnexpr = subs(fnexpr, Dict(:_aux => newaux))
+            !in(newaux, v_vars) && push!(v_vars, newaux)
         end
     elseif ll == 3
         # Binary call; no auxiliary expressions needed
-        @assert(in(fnold.args[1], keys(TaylorSeries._dict_binary_calls)))
+        @assert(in(dcall, keys(TaylorSeries._dict_binary_calls)))
+        newarg2 = fnold.args[3]
 
         # Replacements
-        fnexpr, def_fnexpr, aux_fnexpr = TaylorSeries._dict_binary_calls[fnold.args[1]]
+        fnexpr, def_fnexpr, aux_fnexpr = TaylorSeries._dict_binary_calls[dcall]
         fnexpr = subs(fnexpr, Dict(:_res => newvar,
-            :_arg1 => fnold.args[2], :_arg2 => fnold.args[3],
-            :_k => :ord))
+            :_arg1 => newarg1, :_arg2 => newarg2, :_k => :ord))
+
+        def_fnexpr = :(_res = Taylor1($(def_fnexpr.args[2]), order) )
         def_fnexpr = subs(def_fnexpr, Dict(:_res => newvar,
-            :_arg1 => :(constant_term($(fnold.args[2]))),
-            :_arg2 => :(constant_term($(fnold.args[3]))),
+            :_arg1 => :(constant_term($(newarg1))),
+            :_arg2 => :(constant_term($(newarg2))),
             :_k => :ord))
     else
         throw(ArgumentError("""
@@ -145,31 +156,70 @@ function _replacecalls!(fnold::Expr, newvar::Symbol, v_vars::Vector{Symbol})
             ))
     end
 
+    # Bring back indexed variables
+    fnexpr = subs(fnexpr, d_indx)
+    def_fnexpr = subs(def_fnexpr, d_indx)
+    aux_fnexpr = subs(aux_fnexpr, d_indx)
+
     return fnexpr, def_fnexpr, aux_fnexpr
 end
 
 
 """
-`_newpreamble(v_vars, v_preamb, d_indx)`
+`_indexed_definitions!(preamble, d_indx, fnargs)`
 
-Returns the preamble expression, where the auxiliary `Taylor1` objects
-are defined.
+Returns a vector with the definitions of some indexed auxiliary variables;
+it may modify `d_indx` if new variables are introduced.
 
 """
-function _newpreamble(v_vars, v_preamb, d_indx)
-    preamble = Expr(:block,)
-    for newvar in v_vars
-        in(newvar, keys(d_indx)) && continue
-        if in(newvar, keys(v_preamb))
-            push!(preamble.args,
-                parse("$newvar = Taylor1( $(v_preamb[newvar]) , order)") )
+function _indexed_definitions!(preamble::Expr, d_indx, fnargs, inloop=false)
+    defspreamble = Expr[]
+
+    for (i,ex) in enumerate(preamble.args)
+        if isa(ex, Expr)
+            # Ignore the following cases
+            (ex.head == :line || ex.head == :return) && continue
+
+            if (ex.head == :block)
+                newblock = _indexed_definitions!(ex, d_indx, fnargs, inloop)
+                append!(defspreamble, newblock)
+            elseif (ex.head == :for)
+                # indx = ex.args[1].args[1]
+                println("0 `for:`")
+                loopbody = _indexed_definitions!(ex.args[2], d_indx, fnargs, true)
+                println("1 `for:`")
+                append!(defspreamble, loopbody)
+            else     # `ex.head` should be a :(:=) of some type
+                @show(ex)
+                ex = subs(ex, d_indx)
+                (inloop && isindexed(ex)) || continue
+                @show(ex)
+                alhs = ex.args[1]
+                arhs = ex.args[2]
+                if isindexed(alhs)
+                    (in(alhs.args[1], fnargs) || in(alhs, d_indx)) &&
+                        continue
+                    throw(ArgumentError(
+                        "Indexed expression case not yet implemented $ex"))
+                end
+                newvar = genname()
+                vars_indexed = findex(:(_X[_i...]), arhs)
+                # Note: Is considering the first indexed var of arhs enough?
+                var1 = vars_indexed[1].args[1]
+                indx1 = vars_indexed[1].args[2]
+                push!(d_indx, alhs => :($newvar[$indx1]) )
+                exx = :($newvar = Array{Taylor1{S}}(length($var1)))
+                push!(defspreamble, exx)
+                ex.args[1] = :($newvar[$indx1])
+                @show(ex)
+            end
         else
-            # Is this unreachable ?
-            throw(ArgumentError("$newvar not in `keys(v_preamb)`"))
-            # push!(preamble.args, parse("$newvar = zero( $(fnargs[2]) )") )
+            @show(typeof(ex))
+            throw(ArgumentError("$ex is not an `Expr`"))
+            #
         end
     end
-    return preamble
+    return defspreamble
 end
 
 
@@ -211,19 +261,22 @@ end
 
 
 """
-`_populate!(ex, v_vars, v_assign, v_preamb)`
+`_populate!(ex, preex, v_vars, v_assign, v_preamb, d_indx)`
 
 Updates inplace the variables (`v_vars`), assignments (`v_assign`)
 and the variables in the preamble (`v_preamb`) from the
-expression `ex`, which may also be changed.
+expression `ex`, which may also be changed, as well as the basis
+for the preamble (`preex`).
 
 """
-function _populate!(ex::Expr, v_vars, v_assign, v_preamb)
+function _populate!(ex::Expr, preex::Expr, d_indx, v_vars, v_assign, v_preamb)
 
-    indx_rm = Int[]
+    indx_rm = Int[]   # Book-keeping: assignements to be deleted
     for (i, aa) in enumerate(ex.args)
         if (aa.head == :for) || (aa.head == :block)
-            _populate!(aa, v_vars, v_assign, v_preamb)
+            push!(preex.args, Expr(aa.head))
+            (aa.head == :for) && push!(preex.args[end].args, aa.args[1])
+            _populate!(aa, preex.args[end], d_indx, v_vars, v_assign, v_preamb)
             #
         else
             # This assumes aa.head == :(:=)
@@ -234,17 +287,19 @@ function _populate!(ex::Expr, v_vars, v_assign, v_preamb)
                 (aa_rhs.args[1] == :eachindex || aa_rhs.head == :(:)) && continue
 
                 fnexpr, def_fnexpr, auxfnexpr =
-                    _replacecalls!(aa_rhs, aa_lhs, v_vars)
-                qbool = !in(def_fnexpr.args[1], keys(v_preamb))
-                qbool && push!(v_preamb, def_fnexpr.args[1] => def_fnexpr.args[2])
+                    _replacecalls!(aa_rhs, aa_lhs, d_indx, v_vars)
+                !in(def_fnexpr.args[1], keys(v_preamb)) &&
+                    push!(v_preamb, def_fnexpr.args[1] => def_fnexpr.args[2])
+                push!(preex.args, def_fnexpr)
 
                 ex.args[i] = fnexpr
                 if auxfnexpr.head != :nothing &&
                         !in(auxfnexpr.args[1], keys(v_preamb))
                     push!(v_preamb, auxfnexpr.args[1] => auxfnexpr.args[2])
+                    push!(preex.args, auxfnexpr)
                 end
-                qbool = !in(aa_lhs, v_vars)
-                qbool && push!(v_vars, aa_lhs)
+
+                !in(aa_lhs, v_vars) && push!(v_vars, subs(aa_lhs, d_indx))
                 #
             elseif isa(aa_rhs, Symbol) # occurs when there is a simple assignment
                 bb = subs(aa, Dict(aa_rhs => :(identity($aa_rhs))))
@@ -252,17 +307,21 @@ function _populate!(ex::Expr, v_vars, v_assign, v_preamb)
                 bb_rhs = bb.args[2]
 
                 fnexpr, def_fnexpr, auxfnexpr =
-                    _replacecalls!(bb_rhs, bb_lhs, v_vars)
-                qbool = !in(def_fnexpr.args[1], keys(v_preamb))
-                qbool && push!(v_preamb, def_fnexpr.args[1] => def_fnexpr.args[2])
+                    _replacecalls!(bb_rhs, bb_lhs, d_indx, v_vars)
+                nvar = def_fnexpr.args[1]
+                !in(nvar, keys(v_preamb)) &&
+                    push!(v_preamb, nvar => def_fnexpr.args[2])
+                push!(preex.args, def_fnexpr)
 
                 ex.args[i] = fnexpr
                 if auxfnexpr.head != :nothing &&
                         !in(auxfnexpr.args[1], keys(v_preamb))
                     push!(v_preamb, auxfnexpr.args[1] => auxfnexpr.args[2])
+                    push!(preex.args, auxfnexpr)
                 end
-                qbool = !in(bb_lhs, v_vars)
-                qbool && push!(v_vars, bb_lhs)
+
+                # !in(bb_lhs, v_vars) && push!(v_vars, bb_lhs)
+                !in(bb_lhs, v_vars) && push!(v_vars, subs(bb_lhs, d_indx))
                 #
             elseif isa(aa_rhs, Number)
                 push!(v_assign, aa_lhs => aa_rhs)
@@ -315,9 +374,9 @@ of the original diferential equations function.
 function _preamble_body(fnbody, fnargs, debug=false)
 
     # Bookkeeping
-    v_vars = Symbol[]                  # List of symbols with created variables
-    v_preamb = Dict{Symbol,Expr}()     # Auxiliary definitions
-    v_assign = Pair{Symbol, Number}[]  # Numeric assignments (to be deleted)
+    v_vars = Union{Symbol,Expr}[]                  # List of symbols with created variables
+    v_preamb = Dict{Union{Symbol,Expr},Expr}()     # Auxiliary definitions
+    v_assign = Pair{Union{Symbol,Expr}, Number}[]  # Numeric assignments (to be deleted)
 
     # Rename vars to have the body in non-indexed form
     fnbody, d_indx = _rename_indexedvars(fnbody)
@@ -329,28 +388,29 @@ function _preamble_body(fnbody, fnargs, debug=false)
     if newfnbody.head == :(=)
         newfnbody = Expr(:block, newfnbody)
     end
+    debug && (@show(newfnbody); println())
 
-    # Populate v_vars, v_assign, v_preamb
-    _populate!(newfnbody, v_vars, v_assign, v_preamb)
-    debug && (@show(v_vars, v_assign, v_preamb); println())
+    # Populate v_vars, v_assign]
+    preamble = Expr(:block,)
+    _populate!(newfnbody, preamble, d_indx, v_vars, v_assign, v_preamb)
+    preamble = preamble.args[1]
+    debug && (@show(v_vars, v_assign, v_preamb, d_indx); println())
+    debug && (@show(preamble); println())
+    debug && (@show(newfnbody); println())
 
-    # Define premable, for auxiliary allocations
-    preamble = _newpreamble(v_vars, v_preamb, d_indx)
-
-    # Substitute numeric assignments in preamble and body
-    preamble = subs(preamble, Dict(v_assign))
+    # Substitute numeric assignments and indexed variables in new function's body
     newfnbody = subs(newfnbody, Dict(v_assign))
+    preamble = subs(preamble, Dict(v_assign))
 
-    # Bring back indexed variables into place
-    preamble = subs( preamble, d_indx)
-    newfnbody = subs( newfnbody, d_indx)
-    debug && (@show(preamble, newfnbody); println())
-
-    # Fix all indices in rhs
-    for kd in keys(d_indx)
-        vkd = get_indices(d_indx[kd])
-        preamble = subs(preamble, Dict(vkd[1][1] => 1))
-    end
+    # Include the assignement of indexed auxiliary variables
+    defspreamble = _indexed_definitions!(preamble::Expr, d_indx, fnargs)
+    debug && (@show(d_indx); println())
+    # Update substitutions
+    preamble = subs(preamble, d_indx)
+    newfnbody = subs(newfnbody, d_indx)
+    prepend!(preamble.args, defspreamble)
+    debug && (@show(preamble); println())
+    debug && (@show(newfnbody); println())
 
     # Define retvar; for scalar eqs is the last included in v_vars
     retvar = length(fnargs) == 2 ? subs(v_vars[end], d_indx) : fnargs[end]
@@ -383,9 +443,6 @@ function _make_parsed_jetcoeffs( ex, debug=false )
     preamble, fnbody, retvar = _preamble_body(fnbody, fnargs, debug)
     debug && (@show(preamble, fnbody, retvar); println())
 
-    # Taylor iteration of order 0
-    fnbody0 = subs(fnbody.args[1], Dict(:ord => 0))
-
     # Recursion relation
     if length(fnargs) == 2
         rec_preamb = :( $(fnargs[2])[2] = $(retvar)[1] )
@@ -412,7 +469,7 @@ function _make_parsed_jetcoeffs( ex, debug=false )
     end
 
     # Add preamble to newfunction
-    push!(newfunction.args[2].args, preamble.args..., fnbody0.args..., rec_preamb)
+    push!(newfunction.args[2].args, preamble.args..., rec_preamb)
 
     # Add parsed fnbody to forloopblock
     push!(forloopblock.args[2].args, fnbody.args[1].args..., rec_fnbody)
@@ -442,6 +499,9 @@ to `ex` in terms of the mutating functions of TaylorSeries.
 """
 macro taylorize_ode( ex )
     nex = _make_parsed_jetcoeffs(ex)
+    @show(ex)
+    println()
+    @show(nex)
     quote
         eval( $(esc(ex)) )  # evals to calling scope the passed function
         eval( $(esc(nex)) ) # New method of `jetcoeffs!`
