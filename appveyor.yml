@@ -11,11 +11,6 @@ matrix:
   - JULIA_URL: "https://julialangnightlies-s3.julialang.org/bin/winnt/x86/julia-latest-win32.exe"
   - JULIA_URL: "https://julialangnightlies-s3.julialang.org/bin/winnt/x64/julia-latest-win64.exe"
 
-branches:
-  only:
-    - master
-    - /release-.*/
-
 notifications:
   - provider: Email
     on_build_success: false
