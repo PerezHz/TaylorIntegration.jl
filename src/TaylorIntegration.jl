@@ -8,7 +8,7 @@ export taylorinteg, liap_taylorinteg
 
 include("explicitode.jl")
 
-include("jettransport.jl")
+#include("jettransport.jl")
 
 include("liapunovspectrum.jl")
 
