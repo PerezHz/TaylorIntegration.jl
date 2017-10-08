@@ -21,8 +21,8 @@ the current system state (the initial conditions), and `jetcoeffs!`
 computes recursively the high-order derivates back into `x`.
 
 """
-function jetcoeffs!{T<:Real, U<:Number}(eqsdiff, t::Taylor1{T},
-        x::Taylor1{U})
+function jetcoeffs!(eqsdiff, t::Taylor1{T},
+        x::Taylor1{U}) where {T<:Real, U<:Number}
     order = x.order
     for ord in 1:order
         ordnext = ord+1
@@ -62,8 +62,8 @@ the current system state (the initial conditions), and `jetcoeffs!`
 computes recursively the high-order derivates back into `x`.
 
 """
-function jetcoeffs!{T<:Real, U<:Number}(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
-        dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}})
+function jetcoeffs!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
+        dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}}) where {T<:Real, U<:Number}
     order = x[1].order
     for ord in 1:order
         ordnext = ord+1
@@ -99,7 +99,7 @@ Note that `x` is of type `Taylor1{T}` or `Vector{Taylor1{T}}`, including
 also the cases `Taylor1{TaylorN{T}}` and `Vector{Taylor1{TaylorN{T}}}`.
 
 """
-function stepsize{T<:Real, U<:Number}(x::Taylor1{U}, epsilon::T)
+function stepsize(x::Taylor1{U}, epsilon::T) where {T<:Real, U<:Number}
     ord = x.order
     h = convert(T, Inf)
     for k in (ord-1, ord)
@@ -113,7 +113,7 @@ function stepsize{T<:Real, U<:Number}(x::Taylor1{U}, epsilon::T)
     return h
 end
 
-function stepsize{T<:Real, U<:Number}(q::Array{Taylor1{U},1}, epsilon::T)
+function stepsize(q::Array{Taylor1{U},1}, epsilon::T) where {T<:Real, U<:Number}
     h = convert(T, Inf)
     for i in eachindex(q)
         @inbounds hi = stepsize( q[i], epsilon )
@@ -143,8 +143,8 @@ difference is used as the time step. `vT::Vector{T}` is a pre-allocated
 vector used for time-dependent differential equations.
 
 """
-function taylorstep!{T<:Real, U<:Number}(f, t::Taylor1{T}, x::Taylor1{U},
-        t0::T, t1::T, x0::U, order::Int, abstol::T)
+function taylorstep!(f, t::Taylor1{T}, x::Taylor1{U},
+        t0::T, t1::T, x0::U, order::Int, abstol::T) where {T<:Real, U<:Number}
     @assert t1 > t0
 
     # Compute the Taylor coefficients
@@ -179,10 +179,10 @@ vector used for time-dependent differential equations.
 
 
 """
-function taylorstep!{T<:Real, U<:Number}(f!, t::Taylor1{T},
+function taylorstep!(f!, t::Taylor1{T},
         x::Vector{Taylor1{U}}, dx::Vector{Taylor1{U}},
         xaux::Vector{Taylor1{U}}, t0::T, t1::T, x0::Array{U,1},
-        order::Int, abstol::T)
+        order::Int, abstol::T) where {T<:Real, U<:Number}
     @assert t1 > t0
 
     # Compute the Taylor coefficients
@@ -249,8 +249,8 @@ The current keyword argument is `maxsteps=500`.
 Note that `f!` updates (mutates) the pre-allocated vector `dx`.
 
 """
-function taylorinteg{S<:Number, T<:Real, U<:Real, V<:Real}(f, x0::S,
-        t0::T, tmax::U, order::Int, abstol::V; maxsteps::Int=500)
+function taylorinteg(f, x0::S,
+        t0::T, tmax::U, order::Int, abstol::V; maxsteps::Int=500) where {S<:Number, T<:Real, U<:Real, V<:Real}
 
     #in order to handle mixed input types, we promote types before integrating:
     x0, t0, tmax, abstol, afloat = promote(x0, t0, tmax, abstol, one(Float64))
@@ -258,8 +258,8 @@ function taylorinteg{S<:Number, T<:Real, U<:Real, V<:Real}(f, x0::S,
     taylorinteg(f, x0, t0, tmax, order, abstol, maxsteps=maxsteps)
 end
 
-function taylorinteg{S<:Number, T<:Real, U<:Real, V<:Real}(f,
-        q0::Array{S,1}, t0::T, tmax::U, order::Int, abstol::V; maxsteps::Int=500)
+function taylorinteg(f,
+        q0::Array{S,1}, t0::T, tmax::U, order::Int, abstol::V; maxsteps::Int=500) where {S<:Number, T<:Real, U<:Real, V<:Real}
 
     #promote to common type before integrating:
     elq0, t0, tmax, abstol, afloat = promote(q0[1], t0, tmax, abstol, one(Float64))
@@ -269,8 +269,8 @@ function taylorinteg{S<:Number, T<:Real, U<:Real, V<:Real}(f,
     taylorinteg(f, q0_, t0, tmax, order, abstol, maxsteps=maxsteps)
 end
 
-function taylorinteg{T<:Real, U<:Number}(f, x0::U, t0::T, tmax::T, order::Int,
-        abstol::T; maxsteps::Int=500)
+function taylorinteg(f, x0::U, t0::T, tmax::T, order::Int,
+        abstol::T; maxsteps::Int=500) where {T<:Real, U<:Number}
 
     # Allocation
     const tv = Array{T}(maxsteps+1)
@@ -307,8 +307,8 @@ function taylorinteg{T<:Real, U<:Number}(f, x0::U, t0::T, tmax::T, order::Int,
     return view(tv,1:nsteps), view(xv,1:nsteps)
 end
 
-function taylorinteg{T<:Real, U<:Number}(f!, q0::Array{U,1}, t0::T, tmax::T,
-        order::Int, abstol::T; maxsteps::Int=500)
+function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
+        order::Int, abstol::T; maxsteps::Int=500) where {T<:Real, U<:Number}
 
     # Allocation
     const tv = Array{T}(maxsteps+1)
@@ -420,8 +420,8 @@ Note that f! updates (mutates) the pre-allocated vector dx.
 Note that the initial conditions `q0TN` are of type `TaylorN{Float64}`.
 
 """
-function taylorinteg{T<:Real, U<:Number}(f, x0::U, trange::Range{T},
-        order::Int, abstol::T; maxsteps::Int=500)
+function taylorinteg(f, x0::U, trange::Range{T},
+        order::Int, abstol::T; maxsteps::Int=500) where {T<:Real, U<:Number}
 
     # Allocation
     nn = length(trange)
@@ -462,8 +462,8 @@ function taylorinteg{T<:Real, U<:Number}(f, x0::U, trange::Range{T},
     return xv
 end
 
-function taylorinteg{T<:Real, U<:Number}(f!, q0::Array{U,1}, trange::Range{T},
-        order::Int, abstol::T; maxsteps::Int=500)
+function taylorinteg(f!, q0::Array{U,1}, trange::Range{T},
+        order::Int, abstol::T; maxsteps::Int=500) where {T<:Real, U<:Number}
 
     # Allocation
     nn = length(trange)
