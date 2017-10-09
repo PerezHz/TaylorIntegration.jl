@@ -62,7 +62,7 @@ the current system state (the initial conditions), and `jetcoeffs!`
 computes recursively the high-order derivates back into `x`.
 
 """
-function jetcoeffs!{T<:Real, U<:Number}(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}}, 
+function jetcoeffs!{T<:Real, U<:Number}(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
         dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}})
     order = x[1].order
     for ord in 1:order
@@ -103,7 +103,7 @@ function stepsize{T<:Real, U<:Number}(x::Taylor1{U}, epsilon::T)
     ord = x.order
     h = convert(T, Inf)
     for k in (ord-1, ord)
-        @inbounds aux = abs( x[k+1] )
+        @inbounds aux = norm( x[k+1], Inf)
         aux == zero(T) && continue
         aux = epsilon / aux
         kinv = one(T)/k
@@ -179,7 +179,7 @@ vector used for time-dependent differential equations.
 
 
 """
-function taylorstep!{T<:Real, U<:Number}(f!, t::Taylor1{T}, 
+function taylorstep!{T<:Real, U<:Number}(f!, t::Taylor1{T},
         x::Vector{Taylor1{U}}, dx::Vector{Taylor1{U}},
         xaux::Vector{Taylor1{U}}, t0::T, t1::T, x0::Array{U,1},
         order::Int, abstol::T)
