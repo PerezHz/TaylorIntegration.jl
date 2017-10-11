@@ -8,21 +8,22 @@ using Espresso: subs, ExGraph, to_expr, sanitize, genname,
 
 
 # Define some constants to create the newly (parsed) functions
+# Teh (irrelevant) `nothing` is there to have a block (:block); deleted later
 const _HEAD_PARSEDFN_SCALAR = sanitize(:(
-function jetcoeffs!{T<:Number, S<:Number}(::Type{Val{__fn}}, __t0::T,
+function jetcoeffs!{T<:Number, S<:Number}(::Type{Val{__fn}}, __tT::Taylor1{T},
         __x::Taylor1{S})
 
     order = __x.order
-    __tT = Taylor1([__t0, one(T)], order)
+    nothing
 end)
 );
 
 const _HEAD_PARSEDFN_VECTOR = sanitize(:(
-function jetcoeffs!{T<:Number, S<:Number}(::Type{Val{__fn}}, __t0::T,
+function jetcoeffs!{T<:Number, S<:Number}(::Type{Val{__fn}}, __tT::Taylor1{T},
         __x::Vector{Taylor1{S}}, __dx::Vector{Taylor1{S}})
 
     order = __x[1].order
-    __tT = Taylor1([__t0, one(T)], order)
+    nothing
 end)
 );
 
@@ -52,7 +53,12 @@ function _extract_parts(ex, debug=false)
     # Special case: the last arg of the function is a simple
     # assignement (symbol) or a numerical value
     if isa(fnbody.args[1].args[end], Symbol)
-        fnbody.args[1].args[end] = :( identity($(fnbody.args[1].args[end])) )
+        # This accouns the case of having `nothing` at the end of the function
+        if fnbody.args[1].args[end] == :nothing
+            pop!(fnbody.args[1].args)
+        else
+            fnbody.args[1].args[end] = :(identity($(fnbody.args[1].args[end])))
+        end
     elseif isa(fnbody.args[1].args[end], Number)
         fnbody.args[1].args[end] =
             :( $(fnbody.args[1].args[end])+zero($(fnargs[1])) )
@@ -87,6 +93,9 @@ function _newhead(fn, fnargs)
     # Add `TaylorIntegration` to create a new method of `jetcoeffs!`
     newfunction.args[1].args[1].args[1] =
         Expr(:., :TaylorIntegration, :(:jetcoeffs!))
+
+    # Delete irrelevant `nothing`
+    pop!(newfunction.args[2].args)
 
     return newfunction
 end
@@ -185,15 +194,15 @@ function _indexed_definitions!(preamble::Expr, d_indx, fnargs, inloop=false)
                 append!(defspreamble, newblock)
             elseif (ex.head == :for)
                 # indx = ex.args[1].args[1]
-                println("0 `for:`")
+                # println("0 `for:`")
                 loopbody = _indexed_definitions!(ex.args[2], d_indx, fnargs, true)
-                println("1 `for:`")
+                # println("1 `for:`")
                 append!(defspreamble, loopbody)
             else     # `ex.head` should be a :(:=) of some type
-                @show(ex)
+                # @show(ex)
                 ex = subs(ex, d_indx)
                 (inloop && isindexed(ex)) || continue
-                @show(ex)
+                # @show(ex)
                 alhs = ex.args[1]
                 arhs = ex.args[2]
                 if isindexed(alhs)
@@ -211,7 +220,7 @@ function _indexed_definitions!(preamble::Expr, d_indx, fnargs, inloop=false)
                 exx = :($newvar = Array{Taylor1{S}}(length($var1)))
                 push!(defspreamble, exx)
                 ex.args[1] = :($newvar[$indx1])
-                @show(ex)
+                # @show(ex)
             end
         else
             @show(typeof(ex))
@@ -499,9 +508,9 @@ to `ex` in terms of the mutating functions of TaylorSeries.
 """
 macro taylorize_ode( ex )
     nex = _make_parsed_jetcoeffs(ex)
-    @show(ex)
+    # @show(ex)
     println()
-    @show(nex)
+    # @show(nex)
     quote
         eval( $(esc(ex)) )  # evals to calling scope the passed function
         eval( $(esc(nex)) ) # New method of `jetcoeffs!`
