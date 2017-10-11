@@ -6,15 +6,15 @@ using Base.Test
 const _order = 28
 const _abstol = 1.0E-20
 
+function pendulum!(t, x, dx)
+    dx[1] = x[2]
+    dx[2] = -sin(x[1])
+    nothing
+end
+
+g(t, x, dx) = x[2]
+
 @testset "Test intersection of surfaces and root-finding: simple pendulum" begin
-    function pendulum!(t, x, dx)
-        dx[1] = x[2]
-        dx[2] = -sin(x[1])
-        nothing
-    end
-
-    g(t, x, dx) = x[2]
-
     const t0 = 0.0
     const x0 = [1.3, 0.0]
     const T = 7.019250311844546
