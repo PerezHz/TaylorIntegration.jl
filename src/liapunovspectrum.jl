@@ -9,9 +9,9 @@ at `x`; `x` is of type `Vector{T<:Number}`. `δx` and `dδx` are two
 auxiliary arrays of type `Vector{TaylorN{T}}` to avoid allocations.
 
 """
-function stabilitymatrix!{T<:Real, U<:Number}(eqsdiff!, t0::T,
+function stabilitymatrix!(eqsdiff!, t0::T,
         x::SubArray{U,1}, δx::Array{TaylorN{U},1},
-        dδx::Array{TaylorN{U},1}, jac::Array{U,2})
+        dδx::Array{TaylorN{U},1}, jac::Array{U,2}) where {T<:Real, U<:Number}
     for ind in eachindex(x)
         @inbounds δx[ind] = x[ind] + TaylorN(U,ind,order=1)
     end
@@ -94,10 +94,10 @@ spectrum. `jac` is the linearization of the equations of motion,
 and `xaux`, `δx` and `dδx` are auxiliary vectors.
 
 """
-function liap_jetcoeffs!{T<:Real, U<:Number}(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
+function liap_jetcoeffs!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
         dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}},
         δx::Array{TaylorN{Taylor1{U}},1}, dδx::Array{TaylorN{Taylor1{U}},1},
-        jac::Array{Taylor1{U},2})
+        jac::Array{Taylor1{U},2}) where {T<:Real, U<:Number}
 
     order = x[1].order
 
@@ -136,10 +136,10 @@ spectrum. `jac` is the linearization of the equations of motion,
 and `xaux`, `δx`, `dδx` and `vT` are auxiliary vectors.
 
 """
-function liap_taylorstep!{T<:Real, U<:Number}(f, t::Taylor1{T}, x::Vector{Taylor1{U}}, dx::Vector{Taylor1{U}},
+function liap_taylorstep!(f, t::Taylor1{T}, x::Vector{Taylor1{U}}, dx::Vector{Taylor1{U}},
         xaux::Vector{Taylor1{U}}, δx::Array{TaylorN{Taylor1{U}},1},
         dδx::Array{TaylorN{Taylor1{U}},1}, jac::Array{Taylor1{U},2}, t0::T, t1::T, x0::Array{U,1},
-        order::Int, abstol::T)
+        order::Int, abstol::T) where {T<:Real, U<:Number}
 
     # Compute the Taylor coefficients
     liap_jetcoeffs!(f, t, x, dx, xaux, δx, dδx, jac)
@@ -160,8 +160,8 @@ Similar to [`taylorinteg!`](@ref) for the calculation of the Liapunov
 spectrum.
 
 """
-function liap_taylorinteg{T<:Real, U<:Number}(f, q0::Array{U,1}, t0::T, tmax::T,
-        order::Int, abstol::T; maxsteps::Int=500)
+function liap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
+        order::Int, abstol::T; maxsteps::Int=500) where {T<:Real, U<:Number}
     # Allocation
     const tv = Array{T}(maxsteps+1)
     dof = length(q0)
@@ -240,8 +240,8 @@ function liap_taylorinteg{T<:Real, U<:Number}(f, q0::Array{U,1}, t0::T, tmax::T,
     return view(tv,1:nsteps),  view(transpose(xv),1:nsteps,:),  view(transpose(λ),1:nsteps,:)
 end
 
-function liap_taylorinteg{T<:Real, U<:Number}(f, q0::Array{U,1}, trange::Range{T},
-        order::Int, abstol::T; maxsteps::Int=500)
+function liap_taylorinteg(f, q0::Array{U,1}, trange::Range{T},
+        order::Int, abstol::T; maxsteps::Int=500) where {T<:Real, U<:Number}
     # Allocation
     nn = length(trange)
     dof = length(q0)
