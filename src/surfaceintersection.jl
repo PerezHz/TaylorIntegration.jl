@@ -8,7 +8,7 @@ nrconvergencecriterion(g_val::T, nrabstol::T, nriter::Int, maxnriters::Int) wher
 nrconvergencecriterion(g_val::Taylor1{T}, nrabstol::T, nriter::Int, maxnriters::Int) where {T<:Real} = abs(g_val[1]) > nrabstol && nriter ≤ maxnriters
 nrconvergencecriterion(g_val::TaylorN{T}, nrabstol::T, nriter::Int, maxnriters::Int) where {T<:Real} = abs(g_val[1][1]) > nrabstol && nriter ≤ maxnriters
 
-# This function be moved to TaylorSeries.jl, but the definitive implementation still should be discussed
+# This function should be moved to TaylorSeries.jl, but the definitive implementation still should be discussed
 function deriv(n::Int, a::Taylor1{T}) where {T <: Number}
     @assert a.order ≥ n ≥ 0
     if n==0
