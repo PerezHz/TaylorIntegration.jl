@@ -10,8 +10,8 @@ using Espresso: subs, ExGraph, to_expr, sanitize, genname,
 # Define some constants to create the newly (parsed) functions
 # Teh (irrelevant) `nothing` is there to have a block (:block); deleted later
 const _HEAD_PARSEDFN_SCALAR = sanitize(:(
-function jetcoeffs!{T<:Number, S<:Number}(::Type{Val{__fn}}, __tT::Taylor1{T},
-        __x::Taylor1{S})
+function jetcoeffs!(__tT::Taylor1{T}, __x::Taylor1{S}, ::Type{Val{__fn}}) where
+        {T<:Real, S<:Number}
 
     order = __x.order
     nothing
@@ -19,8 +19,8 @@ end)
 );
 
 const _HEAD_PARSEDFN_VECTOR = sanitize(:(
-function jetcoeffs!{T<:Number, S<:Number}(::Type{Val{__fn}}, __tT::Taylor1{T},
-        __x::Vector{Taylor1{S}}, __dx::Vector{Taylor1{S}})
+function jetcoeffs!(__tT::Taylor1{T}, __x::Vector{Taylor1{S}},
+        __dx::Vector{Taylor1{S}}, ::Type{Val{__fn}}) where {T<:Real, S<:Number}
 
     order = __x[1].order
     nothing
