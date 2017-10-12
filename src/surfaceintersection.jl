@@ -1,15 +1,15 @@
 # Detect if the solution crossed a root of event function g
-surfacecrossing{T<:Real}(g_old::Taylor1{T}, g::Taylor1{T}, eventorder::Int) = g_old[eventorder+1]*g[eventorder+1] < zero(T)
-surfacecrossing{T<:Real}(g_old::Taylor1{Taylor1{T}}, g::Taylor1{Taylor1{T}}, eventorder::Int) = g_old[eventorder+1][1]*g[eventorder+1][1] < zero(T)
-surfacecrossing{T<:Real}(g_old::Taylor1{TaylorN{T}}, g::Taylor1{TaylorN{T}}, eventorder::Int) = g_old[eventorder+1][1][1]*g[eventorder+1][1][1] < zero(T)
+surfacecrossing(g_old::Taylor1{T}, g::Taylor1{T}, eventorder::Int) where {T <: Real} = g_old[eventorder+1]*g[eventorder+1] < zero(T)
+surfacecrossing(g_old::Taylor1{Taylor1{T}}, g::Taylor1{Taylor1{T}}, eventorder::Int) where {T <: Real} = g_old[eventorder+1][1]*g[eventorder+1][1] < zero(T)
+surfacecrossing(g_old::Taylor1{TaylorN{T}}, g::Taylor1{TaylorN{T}}, eventorder::Int) where {T <: Real} = g_old[eventorder+1][1][1]*g[eventorder+1][1][1] < zero(T)
 
 # An rudimentary convergence criterion for the Newton-Raphson root-finding process
-nrconvergencecriterion{T<:Real}(g_val::T, nrabstol::T, nriter::Int, maxnriters::Int)::Bool = abs(g_val) > nrabstol && nriter ≤ maxnriters
-nrconvergencecriterion{T<:Real}(g_val::Taylor1{T}, nrabstol::T, nriter::Int, maxnriters::Int)::Bool = abs(g_val[1]) > nrabstol && nriter ≤ maxnriters
-nrconvergencecriterion{T<:Real}(g_val::TaylorN{T}, nrabstol::T, nriter::Int, maxnriters::Int)::Bool = abs(g_val[1][1]) > nrabstol && nriter ≤ maxnriters
+nrconvergencecriterion(g_val::T, nrabstol::T, nriter::Int, maxnriters::Int) where {T<:Real} = abs(g_val) > nrabstol && nriter ≤ maxnriters
+nrconvergencecriterion(g_val::Taylor1{T}, nrabstol::T, nriter::Int, maxnriters::Int) where {T<:Real} = abs(g_val[1]) > nrabstol && nriter ≤ maxnriters
+nrconvergencecriterion(g_val::TaylorN{T}, nrabstol::T, nriter::Int, maxnriters::Int) where {T<:Real} = abs(g_val[1][1]) > nrabstol && nriter ≤ maxnriters
 
 # This function be moved to TaylorSeries.jl, but the definitive implementation still should be discussed
-function deriv{T<:Number}(n::Int, a::Taylor1{T})
+function deriv(n::Int, a::Taylor1{T}) where {T <: Number}
     @assert a.order ≥ n ≥ 0
     if n==0
         return a
@@ -20,9 +20,9 @@ function deriv{T<:Number}(n::Int, a::Taylor1{T})
     end
 end
 
-function taylorinteg{T<:Real, U<:Number}(f!, g, q0::Array{U,1}, t0::T, tmax::T,
+function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
         order::Int, abstol::T; maxsteps::Int=500, eventorder::Int=0,
-        maxnriters::Int=5, nrabstol::T=eps(T))
+        maxnriters::Int=5, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
 
     # Allocation
     const tv = Array{T}(maxsteps+1)
