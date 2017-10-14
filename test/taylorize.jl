@@ -30,6 +30,19 @@ ll = length(methods(TaylorIntegration.jetcoeffs!))
     @test iszero( norm(xv1-xv1p, Inf) )
 end
 
+xdot2(t, x) = -9.81 + zero(t)
+@taylorize_ode xdot2_parsed(t, x) = -9.81
+
+@testset "Scalar case: xdot(t,x) = -9.81" begin
+    @test isdefined(:xdot2_parsed)
+
+    tv11, xv11   = taylorinteg( xdot2, 10.0, 1.0, tf, _order, _abstol)
+    tv11p, xv11p = taylorinteg( xdot2_parsed, 10.0, 1.0, tf, _order, _abstol)
+    @test length(tv11) == length(tv11p)
+    @test iszero( norm(tv11-tv11p, Inf) )
+    @test iszero( norm(xv11-xv11p, Inf) )
+end
+
 
 
 # Pendulum integrtf = 100.0
@@ -76,7 +89,7 @@ end
 
 
 # Multiple (3) pendula
-function multpendulum!(t, x, dx)
+function multpendula!(t, x, dx)
     NN = 3
     for i = 1:NN
         dx[i] = x[NN+i]
@@ -84,7 +97,7 @@ function multpendulum!(t, x, dx)
     end
     return nothing
 end
-@taylorize_ode function multpendulum_parsed!(t, x, dx)
+@taylorize_ode function multpendula_parsed!(t, x, dx)
     NN = 3
     for i = 1:NN
         dx[i] = x[NN+i]
@@ -94,11 +107,11 @@ end
 end
 
 @testset "Multiple pendula" begin
-    @test isdefined(:multpendulum_parsed!)
+    @test isdefined(:multpendula_parsed!)
     q0 = [pi-0.001, 0.0, pi-0.001, 0.0,  pi-0.001, 0.0]
-    tv4, xv4 = taylorinteg(multpendulum!, q0, t0, tf, _order, _abstol,
+    tv4, xv4 = taylorinteg(multpendula!, q0, t0, tf, _order, _abstol,
         maxsteps=1000)
-    tv4p, xv4p = taylorinteg(multpendulum_parsed!, q0, t0, tf, _order, _abstol,
+    tv4p, xv4p = taylorinteg(multpendula_parsed!, q0, t0, tf, _order, _abstol,
         maxsteps=1000)
     @test length(tv4) == length(tv4p)
     @test iszero( norm(tv4-tv4p, Inf) )
@@ -111,7 +124,7 @@ end
 _order = 28
 tf = 2π*1000.0
 mμ = -1.0
-function kepler0!(t, q, dq)
+function kepler1!(t, q, dq)
     r_p3d2 = (q[1]^2+q[2]^2)^1.5
 
     dq[1] = q[3]
@@ -121,7 +134,7 @@ function kepler0!(t, q, dq)
 
     return nothing
 end
-@taylorize_ode function kepler0_parsed!(t, q, dq)
+@taylorize_ode function kepler1_parsed!(t, q, dq)
     r_p3d2 = (q[1]^2+q[2]^2)^1.5
 
     dq[1] = q[3]
@@ -132,14 +145,55 @@ end
     return nothing
 end
 
-@testset "Kepler problem (1)" begin
-    @test isdefined(:kepler0_parsed!)
+function kepler2!(t, q, dq)
+    ll = 2
+    r2 = zero(q[1])
+    for i = 1:ll
+        r_aux = r2 + q[i]^2
+        r2 = r_aux
+    end
+    r_p3d2 = r2^1.5
+    for j = 1:ll
+        dq[j] = q[ll+j]
+        dq[ll+j] = mμ*q[j]/r_p3d2
+    end
+
+    nothing
+end
+@taylorize_ode function kepler2_parsed!(t, q, dq)
+    ll = 2
+    r2 = zero(q[1])
+    for i = 1:ll
+        r_aux = r2 + q[i]^2
+        r2 = r_aux
+    end
+    r_p3d2 = r2^1.5
+    for j = 1:ll
+        dq[j] = q[ll+j]
+        dq[ll+j] = mμ*q[j]/r_p3d2
+    end
+
+    nothing
+end
+
+@testset "Kepler problem" begin
+    @test isdefined(:kepler1_parsed!)
     q0 = [0.2, 0.0, 0.0, 3.0]
-    tv5, xv5 = taylorinteg(kepler0!, q0, t0, tf, _order, _abstol,
+    tv5, xv5 = taylorinteg(kepler1!, q0, t0, tf, _order, _abstol,
         maxsteps=500000)
-    tv5p, xv5p = taylorinteg(kepler0_parsed!, q0, t0, tf, _order, _abstol,
+    tv5p, xv5p = taylorinteg(kepler1_parsed!, q0, t0, tf, _order, _abstol,
         maxsteps=500000)
     @test length(tv5) == length(tv5p)
     @test iszero( norm(tv5-tv5p, Inf) )
     @test iszero( norm(xv5-xv5p, Inf) )
+
+    # # Now with `kepler2_parsed`
+    # @test isdefined(:kepler2_parsed!)
+    # tv5, xv5 = taylorinteg(kepler2!, q0, t0, tf, _order, _abstol,
+    #     maxsteps=500000)
+    # tv5p, xv5p = taylorinteg(kepler2_parsed!, q0, t0, tf, _order, _abstol,
+    #     maxsteps=500000)
+    # # @test length(tv5) == length(tv5p)
+    # # @test iszero( norm(tv5-tv5p, Inf) )
+    # # @test iszero( norm(xv5-xv5p, Inf) )
 end
