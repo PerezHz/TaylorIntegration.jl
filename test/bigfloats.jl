@@ -1,4 +1,4 @@
-using TaylorSeries, TaylorIntegration
+using TaylorSeries, TaylorIntegration, Elliptic
 using Base.Test
 
 const _order = 90
@@ -20,7 +20,7 @@ const _abstol = 1.0E-77
     @test eltype(xvk) == BigFloat
     T = 4xvk[end] # T = 4Elliptic.K(sin(q0[1]/2)^2)
     @test typeof(T) == BigFloat
-    @test abs(T-7.019250311844546) < eps(10.0)
+    @test T ≈ 4Elliptic.K(sin(q0[1]/2)^2) atol=eps(2.0) rtol=0.0
 
     t0 = 0.0 #the initial time
 

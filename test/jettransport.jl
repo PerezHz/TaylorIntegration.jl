@@ -1,6 +1,6 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
-using TaylorSeries, TaylorIntegration
+using TaylorSeries, TaylorIntegration, Elliptic
 using Base.Test
 
 const _order = 28
@@ -343,8 +343,8 @@ end
     p = set_variables("ξ", numvars=2, order=varorder) #TaylorN steup
     q0 = [1.3, 0.0] #the initial conditions
     q0TN = q0 + p #parametrization of a small neighbourhood around the initial conditions
-    # T is the librational period == 4Elliptic.K(sin(q0[1]/2)^2) # this is an explicit value that will be used until Elliptic.K works with julia 0.6
-    T = 7.019250311844546
+    # T is the librational period == 4Elliptic.K(sin(q0[1]/2)^2)
+    T = 4Elliptic.K(sin(q0[1]/2)^2) # equals 7.019250311844546
     t0 = 0.0 #the initial time
     tmax = T #the final time
     integstep = 0.25*T #the time interval between successive evaluations of the solution vector
