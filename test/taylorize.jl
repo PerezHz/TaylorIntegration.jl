@@ -144,22 +144,6 @@ end
 
     return nothing
 end
-
-function kepler2!(t, q, dq)
-    ll = 2
-    r2 = zero(q[1])
-    for i = 1:ll
-        r_aux = r2 + q[i]^2
-        r2 = r_aux
-    end
-    r_p3d2 = r2^1.5
-    for j = 1:ll
-        dq[j] = q[ll+j]
-        dq[ll+j] = mμ*q[j]/r_p3d2
-    end
-
-    nothing
-end
 @taylorize_ode function kepler2_parsed!(t, q, dq)
     ll = 2
     r2 = zero(q[1])
@@ -176,24 +160,19 @@ end
     nothing
 end
 
-@testset "Kepler problem" begin
+@testset "Kepler problem (two implementations)" begin
     @test isdefined(:kepler1_parsed!)
+    @test isdefined(:kepler2_parsed!)
     q0 = [0.2, 0.0, 0.0, 3.0]
     tv5, xv5 = taylorinteg(kepler1!, q0, t0, tf, _order, _abstol,
         maxsteps=500000)
     tv5p, xv5p = taylorinteg(kepler1_parsed!, q0, t0, tf, _order, _abstol,
         maxsteps=500000)
-    @test length(tv5) == length(tv5p)
+    tv6p, xv6p = taylorinteg(kepler2_parsed!, q0, t0, tf, _order, _abstol,
+        maxsteps=500000)
+    @test length(tv5) == length(tv5p) == length(tv6p)
     @test iszero( norm(tv5-tv5p, Inf) )
     @test iszero( norm(xv5-xv5p, Inf) )
-
-    # # Now with `kepler2_parsed`
-    # @test isdefined(:kepler2_parsed!)
-    # tv5, xv5 = taylorinteg(kepler2!, q0, t0, tf, _order, _abstol,
-    #     maxsteps=500000)
-    # tv5p, xv5p = taylorinteg(kepler2_parsed!, q0, t0, tf, _order, _abstol,
-    #     maxsteps=500000)
-    # # @test length(tv5) == length(tv5p)
-    # # @test iszero( norm(tv5-tv5p, Inf) )
-    # # @test iszero( norm(xv5-xv5p, Inf) )
+    @test iszero( norm(tv5-tv6p, Inf) )
+    @test iszero( norm(xv5-xv6p, Inf) )
 end

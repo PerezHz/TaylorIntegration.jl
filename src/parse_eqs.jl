@@ -40,7 +40,9 @@ of TaylorSeries.jl.
 function _make_parsed_jetcoeffs( ex, debug=false )
 
     # Extract the name, args and body of the function
-    fn, fnargs, fnbody = _extract_parts(ex, debug)
+    fn, fnargs, fnbody = _extract_parts(ex)
+    debug && (println("****** _extract_parts ******");
+        @show(fn, fnargs, fnbody); println())
 
     # Set up new function
     newfunction = _newhead(fn, fnargs)
@@ -50,26 +52,25 @@ function _make_parsed_jetcoeffs( ex, debug=false )
         Expr(:block, :(ordnext = ord + 1)) )
 
     # Transform graph representation of the body of the function
-    preamble, fnbody, retvar = _preamble_body(fnbody, fnargs, debug)
-    debug && (@show(preamble, fnbody, retvar); println())
+    debug && println("****** _preamble_body ******")
+    assign_preamble, fnbody, retvar = _preamble_body(fnbody, fnargs, debug)
 
     # Recursion relation
-    rec_preamb, rec_fnbody = _recursionloop(fnargs, retvar)
+    debug && println("****** _recursionloop ******")
+    rec_fnbody = _recursionloop(fnargs, retvar)
 
     # Add preamble to newfunction
-    # push!(newfunction.args[2].args, preamble.args..., rec_preamb)
-    push!(newfunction.args[2].args, preamble.args...)
+    push!(newfunction.args[2].args, assign_preamble.args...)
 
     # Add parsed fnbody to forloopblock
     push!(forloopblock.args[2].args, fnbody.args[1].args..., rec_fnbody)
 
     # Push preamble and forloopblock to newfunction
-    push!(newfunction.args[2].args, forloopblock);
-    push!(newfunction.args[2].args, parse("return nothing"))
+    push!(newfunction.args[2].args, forloopblock, parse("return nothing"))
 
     # Rename variables of the body of the new function
-    newfunction = subs(newfunction,
-        Dict(fnargs[1] => :(__tT), fnargs[2] => :(__x), :(__fn) => fn ))
+    newfunction = subs(newfunction, Dict(fnargs[1] => :(__tT),
+        fnargs[2] => :(__x), :(__fn) => fn ))
     if length(fnargs) == 3
         newfunction = subs(newfunction, Dict(fnargs[3] => :(__dx)))
     end
@@ -88,7 +89,7 @@ a one-line function, or in the long form (anonymous functions
 do not work).
 
 """
-function _extract_parts(ex, debug=false)
+function _extract_parts(ex)
 
     # Capture name, args and body
     @capture( shortdef(ex), fn_(fnargs__) = fnbody_ ) ||
@@ -113,8 +114,6 @@ function _extract_parts(ex, debug=false)
         fnbody.args[1].args[end] =
             :( $(fnbody.args[1].args[end])+zero($(fnargs[1])) )
     end
-
-    debug && (@show(fn, fnargs, fnbody); println())
 
     return fn, fnargs, fnbody
 end
@@ -172,13 +171,13 @@ function _preamble_body(fnbody, fnargs, debug=false)
 
     # Rename vars to have the body in non-indexed form
     fnbody, d_indx = _rename_indexedvars(fnbody)
-    debug && (@show(fnbody); println())
-    debug && (@show(d_indx); println())
+    debug && (println("------ _rename_indexedvars ------");
+        @show(fnbody); println(); @show(d_indx); println())
 
     # Create newfnbody; v_newindx contains symbols of auxiliary indexed vars
     newfnbody, v_newindx = _newfnbody(fnbody, d_indx)
-    debug && (@show(v_newindx); println())
-    debug && (@show(newfnbody); println())
+    debug && (println("------ _newfnbody ------");
+        @show(v_newindx); println(); @show(newfnbody); println())
 
     # Parse `newfnbody!` and create `prepreamble`, updating the
     # bookkeeping vectors.
@@ -186,35 +185,29 @@ function _preamble_body(fnbody, fnargs, debug=false)
     _parse_newfnbody!(newfnbody, prepreamble,
         v_vars, v_assign, d_indx, v_newindx)
     preamble = prepreamble.args[1]
-
     # Substitute numeric assignments in new function's body
     newfnbody = subs(newfnbody, Dict(v_assign))
     preamble = subs(preamble, Dict(v_assign))
-    debug && (@show(newfnbody); println())
-    debug && (@show(preamble); println())
-    debug && (@show(v_vars); println())
-    debug && (@show(d_indx); println())
-    debug && (@show(v_newindx); println())
+    debug && (println("------ _parse_newfnbody! ------");
+        @show(newfnbody); println(); @show(preamble); println();
+        @show(v_vars); println(); @show(d_indx); println();
+        @show(v_newindx); println())
 
     # Include the assignement of indexed auxiliary variables
-    #   v_preamb: Auxiliary definitions
-    v_preamb = Dict{Union{Symbol,Expr}, Expr}()
-    defspreamble = _defs_preamble!(preamble, fnargs, d_indx, v_newindx, v_preamb)
+    defspreamble = _defs_preamble!(preamble, fnargs,
+        d_indx, v_newindx, Union{Symbol,Expr}[], similar(d_indx))
     assig_preamble = Expr(:block, defspreamble...)
-    debug && (@show(defspreamble); println())
-    debug && (@show(v_preamb); println())
-    debug && (@show(d_indx); println())
-    debug && (@show(v_newindx); println())
 
     # Update substitutions
-    preamble = subs(preamble, d_indx)
     newfnbody = subs(newfnbody, d_indx)
-    prepend!(preamble.args, defspreamble)
-    debug && (@show(preamble); println())
-    debug && (@show(newfnbody); println())
 
     # Define retvar; for scalar eqs is the last included in v_vars
     retvar = length(fnargs) == 2 ? subs(v_vars[end], d_indx) : fnargs[end]
+
+    debug && (println("------ _defs_preamble! ------");
+        @show(assig_preamble); println();
+        @show(d_indx); println(); @show(v_newindx); println();
+        @show(newfnbody); println(); @show(retvar); println())
 
     # return preamble, newfnbody, retvar
     return assig_preamble, newfnbody, retvar
@@ -247,7 +240,7 @@ end
 
 Returns a new (modified) body of the function, a priori unfolding
 the expression graph (AST) as unary and binary calls, and a vector
-with the name of auxiliary indexed variables.
+(`v_newindx`) with the name of auxiliary indexed variables.
 
 """
 function _newfnbody(fnbody, d_indx)
@@ -270,22 +263,26 @@ function _newfnbody(fnbody, d_indx)
                 loopbody, tmp_indx = _newfnbody( ex.args[2], d_indx )
                 push!(newfnbody.args, Expr(:for, ex.args[1], loopbody))
                 append!(v_newindx, tmp_indx)
-            else
-                # Assumes ex.head == :(:=)
+            else # Assumes ex.head == :(:=)
+
                 # Unfold AST graph
                 nex = to_expr(ExGraph(ex))
-
-                # Bookkeeping of indexed vars
-                if haskey(d_indx, ex.args[1])
-                    for nexx in nex.args
-                        nexx.head == :line && continue
-                        haskey(d_indx, nexx.args[1]) ||
-                            push!(v_newindx, nexx.args[1])
-                    end
-                end
-
                 push!(newfnbody.args, nex.args[2:end]...)
+
+                # Bookkeeping of indexed vars, to define assignements
+                ex_lhs = ex.args[1]
+                isindx_lhs = haskey(d_indx, ex_lhs)
+                for nexargs in nex.args
+                    (nexargs.head == :line || haskey(d_indx, nexargs.args[1])) &&
+                        continue
+                    vars_nex = find_vars(nexargs)
+                    any(haskey.(d_indx, vars_nex[:])) &&
+                        !in(vars_nex[1], v_newindx) &&
+                        (isindx_lhs || vars_nex[1] != ex.args[1]) &&
+                            push!(v_newindx, vars_nex[1])
+                end
             end
+            #
         else
             @show(typeof(ex))
             throw(ArgumentError("$ex is not an `Expr`"))
@@ -298,7 +295,7 @@ function _newfnbody(fnbody, d_indx)
         newfnbody = Expr(:block, newfnbody)
     end
 
-    return newfnbody, v_newindx#, d_indx, d_other
+    return newfnbody, v_newindx
 end
 
 
@@ -482,7 +479,8 @@ end
 
 
 """
-`_defs_preamble!(preamble, fnargs, d_indx, v_newindx, v_preamb, [inloop=false])`
+`_defs_preamble!(preamble, fnargs, d_indx, v_newindx, v_preamb,
+    d_decl, [inloop=false])`
 
 Returns a vector with the expressions defining the auxiliary variables
 in the preamble; it may modify `d_indx` if new variables are introduced.
@@ -490,10 +488,12 @@ in the preamble; it may modify `d_indx` if new variables are introduced.
 
 """
 function _defs_preamble!(preamble::Expr, fnargs,
-        d_indx, v_newindx, v_preamb, inloop::Bool=false)
+        d_indx, v_newindx, v_preamb, d_decl, inloop::Bool=false)
 
     # Initializations
     defspreamble = Expr[]
+    ex_decl_array = Expr(:block,
+        :(__var1 = Array{Taylor1{eltype(__var2[1])}}(length(__var2))) )
     ex_loop_ini = sanitize(:(
         @inbounds for __idx in eachindex(__var2)
             __var1[__idx] = Taylor1( zero(eltype(__var2[1])), order)
@@ -506,11 +506,11 @@ function _defs_preamble!(preamble::Expr, fnargs,
             # Treat :block and :for separately
             if (ex.head == :block)
                 newblock = _defs_preamble!(ex, fnargs,
-                    d_indx, v_newindx, v_preamb, inloop)
+                    d_indx, v_newindx, v_preamb, d_decl, inloop)
                 append!(defspreamble, newblock)
             elseif (ex.head == :for)
                 loopbody = _defs_preamble!(ex.args[2], fnargs,
-                        d_indx, v_newindx, v_preamb, true)
+                        d_indx, v_newindx, v_preamb, d_decl, true)
                 append!(defspreamble, loopbody)
             else
                 # `ex.head` is a :(:=) of some kind
@@ -518,43 +518,47 @@ function _defs_preamble!(preamble::Expr, fnargs,
                 arhs = ex.args[2]
 
                 if !inloop
-                    haskey(v_preamb, alhs) && continue
+                    in(alhs, v_preamb) && continue
                     exx = :($alhs = $arhs)
+                    exx = subs(exx, d_decl)
                     push!(defspreamble, exx)
-                    push!(v_preamb, alhs => exx)
+                    push!(v_preamb, alhs)
                 else
                     # inside a for loop
                     if isindexed(alhs) || in(alhs, v_newindx)
                         if in(alhs, v_newindx)
-                            haskey(v_preamb, alhs) && continue
+                            # haskey(v_preamb, alhs) && continue
+                            in(alhs, v_preamb) && continue
                             vars_indexed = findex(:(_X[_i...]), arhs)
                             # Note: Considers the first indexed var of arhs; is it enough?
                             var1 = vars_indexed[1].args[1]
                             indx1 = vars_indexed[1].args[2]
                             push!(d_indx, alhs => :($alhs[$indx1]) )
-                            exx = Expr(:block,
-                                :($alhs = Array{Taylor1{eltype($var1[1])}}(length($var1))) )
-                            push!(exx.args,
-                                subs(ex_loop_ini,
-                                    Dict(:__maxlength => :(length($var1)),
-                                        :__var1 => :($alhs), :__var2 => :($var1)) ))
-                            # @show(exx)
+                            push!(d_decl, alhs => :($alhs[1]) )
+                            exx = subs(ex_decl_array,
+                                Dict(:__var1 => :($alhs), :__var2 => :($var1)))
+                            push!(exx.args, subs(ex_loop_ini,
+                                Dict(:__maxlength => :(length($var1)),
+                                    :__var1 => :($alhs), :__var2 => :($var1))))
                             push!(defspreamble, exx.args...)
-                            push!(v_preamb, alhs => exx.args[1])
+                            push!(v_preamb, alhs)
                             continue
                         else
                             in(alhs.args[1], fnargs) && continue
                             throw(ArgumentError("Case not implemented $ex"))
                         end
                     else
-                        haskey(v_preamb, alhs) && continue
+                        # haskey(v_preamb, alhs) && continue
+                        in(alhs, v_preamb) && continue
                         vars_indexed = findex(:(_X[_i...]), arhs)
                         exx = :($alhs = $arhs)
                         if !isempty(vars_indexed)
                             exx = subs(exx, Dict(vars_indexed[1].args[2] => 1))
                         end
+                        exx = subs(exx, d_decl)
                         push!(defspreamble, exx)
-                        push!(v_preamb, alhs => exx)
+                        # push!(v_preamb, alhs => exx)
+                        push!(v_preamb, alhs)
                     end
                     #
                 end
@@ -566,7 +570,6 @@ function _defs_preamble!(preamble::Expr, fnargs,
             #
         end
     end
-
     return defspreamble
 end
 
@@ -580,30 +583,25 @@ function _recursionloop(fnargs, retvar)
     ll = length(fnargs)
     if ll == 2
 
-        rec_preamb = sanitize( :( $(fnargs[2])[2] = $(retvar)[1] ) )
         rec_fnbody = sanitize(
             :( $(fnargs[2])[ordnext+1] = $(retvar)[ordnext]/ordnext ) )
+        #
     elseif ll == 3
 
         retvar = fnargs[end]
-        rec_preamb = sanitize(:(
-            @inbounds for __idx in eachindex($(fnargs[2]))
-                $(fnargs[2])[__idx].coeffs[2] = $(retvar)[__idx].coeffs[1]
-            end
-        ))
         rec_fnbody = sanitize(:(
             @inbounds for __idx in eachindex($(fnargs[2]))
                 $(fnargs[2])[__idx].coeffs[ordnext+1] =
                     $(retvar)[__idx].coeffs[ordnext]/ordnext
             end
         ))
+        #
     else
 
         throw(ArgumentError(
         "Wrong number of arguments in the definition of the function $fn"))
     end
-
-    return rec_preamb, rec_fnbody
+    return rec_fnbody
 end
 
 
