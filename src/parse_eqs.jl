@@ -3,7 +3,7 @@
 # Load necessary components of MacroTools and Espresso
 using MacroTools: @capture, shortdef
 
-using Espresso: subs, ExGraph, to_expr, sanitize, genname,
+using Espresso: subs, simplify, ExGraph, to_expr, sanitize, genname,
     find_vars, findex, find_indices, isindexed
 
 
@@ -266,7 +266,7 @@ function _newfnbody(fnbody, d_indx)
             else # Assumes ex.head == :(:=)
 
                 # Unfold AST graph
-                nex = to_expr(ExGraph(ex))
+                nex = to_expr(ExGraph(simplify(ex)))
                 push!(newfnbody.args, nex.args[2:end]...)
 
                 # Bookkeeping of indexed vars, to define assignements
@@ -393,7 +393,7 @@ function _replace_expr!(ex::Expr, preex::Expr, i::Int,
     auxfnexpr = subs(auxfnexpr, d_indx)
 
     # Update `ex` and `preex`
-    nvar = def_fnexpr.args[1]
+    # nvar = def_fnexpr.args[1]
     push!(preex.args, def_fnexpr)
     ex.args[i] = fnexpr
 
@@ -577,6 +577,9 @@ end
 
 """
 `_recursionloop(fnargs, retvar)`
+
+Build the expression for the recursion-loop.
+
 """
 function _recursionloop(fnargs, retvar)
 

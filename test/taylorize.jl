@@ -148,10 +148,10 @@ end
     ll = 2
     r2 = zero(q[1])
     for i = 1:ll
-        r_aux = r2 + q[i]^2
-        r2 = r_aux
+        r2_aux = r2 + q[i]^2
+        r2 = r2_aux
     end
-    r_p3d2 = r2^1.5
+    r_p3d2 = r2^(3/2)
     for j = 1:ll
         dq[j] = q[ll+j]
         dq[ll+j] = mμ*q[j]/r_p3d2
