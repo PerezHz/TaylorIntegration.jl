@@ -1,7 +1,11 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
-using TaylorSeries, TaylorIntegration
-using Base.Test
+using TaylorIntegration
+if VERSION < v"0.7.0-DEV.2004"
+    using Base.Test
+else
+    using Test
+end
 
 # Constants for the integrations
 const _order = 20
