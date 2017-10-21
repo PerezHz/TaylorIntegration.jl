@@ -240,7 +240,7 @@ function liap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
     return view(tv,1:nsteps),  view(transpose(xv),1:nsteps,:),  view(transpose(λ),1:nsteps,:)
 end
 
-function liap_taylorinteg(f, q0::Array{U,1}, trange::Range{T},
+function liap_taylorinteg(f, q0::Array{U,1}, trange::Union{Range{T},Vector{T}},
         order::Int, abstol::T; maxsteps::Int=500) where {T<:Real, U<:Number}
     # Allocation
     nn = length(trange)
