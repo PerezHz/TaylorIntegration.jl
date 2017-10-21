@@ -44,7 +44,7 @@ end
 doc"""
     jetcoeffs!(eqsdiff!, t, x, dx, xaux, vT)
 
-Returns an updated `x` using the recursion relation of the
+Mutates `x` in-place using the recursion relation of the
 derivatives obtained from the differential equations
 $\dot{x}=dx/dt=f(t,x)$.
 
@@ -89,7 +89,7 @@ end
 
 # stepsize
 doc"""
-    stepsize(x, epsilon)
+    stepsize(x, epsilon) -> h
 
 Returns a maximum time-step for a the Taylor expansion `x`
 using a prescribed absolute tolerance `epsilon` and the last two
@@ -124,23 +124,22 @@ end
 
 #taylorstep
 doc"""
-    taylorstep!(f, x, t0, t1, x0, order, abstol, vT)
+    taylorstep!(f, t, x, t0, t1, x0, order, abstol) -> δt, x0
 
 One-step Taylor integration for the ODE $\dot{x}=dx/dt=f(t, x)$
 with initial conditions $x(t_0)=x_0$, computed from `t0` up to
-`t1`, returning the time-step of the actual integration carried out
+`t1`. Returns the time-step of the actual integration carried out
 and the updated value of `x0`.
 
 Here, `f` is the function defining the RHS of the ODE (see
-[`taylorinteg`](@ref) for examples and structure of `f`), `x` contains
-the Taylor expansion of the dependent variable, `x0` is the initial
-value of the dependent variable, `order`
-is the degree  used for the `Taylor1` polynomials during the integration
+[`taylorinteg`](@ref) for examples and structure of `f`), `t` is the
+independent variable, `x` contains the Taylor expansion of the dependent
+variable,`x0` is the initial value of the dependent variable, `order` is
+the degree  used for the `Taylor1` polynomials during the integration
 and `abstol` is the absolute tolerance used to determine the time step
-of the integration. Note that `x0` is of type `Taylor1{T<:Number}` or
-`Taylor1{TaylorN{T}}`. If the time step is larger than `t1-t0`, that
-difference is used as the time step. `vT::Vector{T}` is a pre-allocated
-vector used for time-dependent differential equations.
+of the integration. Note that `x0` is of type `Taylor1{T<:Number}`. If the
+time step is larger than `t1-t0`, that difference is used as the time
+step.
 
 """
 function taylorstep!(f, t::Taylor1{T}, x::Taylor1{U},
@@ -159,7 +158,7 @@ function taylorstep!(f, t::Taylor1{T}, x::Taylor1{U},
 end
 
 doc"""
-    taylorstep!(f!, x, dx, xaux, t0, t1, x0, order, abstol, vT)
+    taylorstep!(f!, t, x, dx, xaux, t0, t1, x0, order, abstol) -> δt
 
 One-step Taylor integration for the ODE $\dot{x}=dx/dt=f(t, x)$
 with initial conditions $x(t_0)=x_0$, computed from `t0` up to
@@ -167,16 +166,15 @@ with initial conditions $x(t_0)=x_0$, computed from `t0` up to
 and updating (in-place) `x0`.
 
 Here, `f!` is the function defining the RHS of the ODE (see
-[`taylorinteg`](@ref) for examples and structure of `f!`), `x` contains
-the Taylor expansion of the dependent variables, `x0` corresponds
-to the initial (and updated) dependent variables and is of
-type `Vector{Taylor1{T<:Number}}` or `Vector{Taylor1{TaylorN{T}}}`, `order`
+[`taylorinteg`](@ref) for examples and structure of `f!`), `t` is the
+independent variable, `x` contains the Taylor expansion of the dependent
+variables, `x0` corresponds to the initial (and updated) dependent
+variables and is of type `Vector{Taylor1{T<:Number}}`, `order`
 is the degree used for the `Taylor1` polynomials during the integration
 and `abstol` is the absolute tolerance used to determine the time step
-of the integration.  `dx` and `xaux`, both of the same type as `x0`,
-are needed to avoid allocations; `vT::Vector{T}` is a pre-allocated
-vector used for time-dependent differential equations.
-
+of the integration. `dx` is of the same type as `x` and represents the 
+LHS of the ODE, whereas `xaux` is of the same type as `x0`; both are needed
+to avoid allocations.
 
 """
 function taylorstep!(f!, t::Taylor1{T},
