@@ -42,6 +42,19 @@ const tT = Taylor1(_order)
     @test (isnan(xv[end,1]) && isnan(xv[end,2]))
     @test abs(xv[3,2] - 4/3) ≤ eps(4/3)
     @test abs(xv[2,1] - 4.8) ≤ eps(4.8)
+
+    tarray = collect(trange)
+    xv2 = taylorinteg(eqs_mov!, q0, tarray, _order, _abstol)
+    @test xv[1:3,:] == xv2[1:3,:]
+    @test xv2[1:3,:] ≈ xv[1:3,:] atol=eps() rtol=0.0
+    @test size(xv2) == (9,2)
+    @test q0 == [3.0, 1.0]
+    @test typeof(xv2) == Array{eltype(q0),2}
+    @test xv2[1,1:end] == q0
+    @test (isnan(xv2[4,1]) && isnan(xv2[4,2]))
+    @test (isnan(xv2[end,1]) && isnan(xv2[end,2]))
+    @test abs(xv2[3,2] - 4/3) ≤ eps(4/3)
+    @test abs(xv2[2,1] - 4.8) ≤ eps(4.8)
 end
 
 @testset "Test non-autonomous ODE (2): dot{x}=cos(t)" begin
