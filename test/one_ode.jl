@@ -31,6 +31,16 @@ const tT = Taylor1(_order)
     @test xv[1] == x0
     @test isnan(xv[end])
     @test abs(xv[5] - 2.0) ≤ eps(2.0)
+
+    tarray = collect(trange)
+    xv2 = taylorinteg(eqs_mov, x0, tarray, _order, _abstol)
+    @test xv[1:end-1] == xv2[1:end-1]
+    @test xv2[1:end-1] ≈ xv[1:end-1] atol=eps() rtol=0.0
+    @test length(xv2) == length(tarray)
+    @test typeof(xv2) == Array{typeof(x0),1}
+    @test xv2[1] == x0
+    @test isnan(xv2[end])
+    @test abs(xv2[5] - 2.0) ≤ eps(2.0)
 end
 
 @testset "Tests: dot{x}=x^2, x(0) = 3; nsteps <= maxsteps" begin
