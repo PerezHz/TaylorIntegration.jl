@@ -19,15 +19,23 @@ end
     tr = 0.0:pi/8:2pi
     ts = 0.0:pi:2pi
     zsol1 = taylorinteg(eqs1, z0, ts, _order, _abstol, maxsteps=1)
-    # @test length(zsol1) == length(tr)
     @test size(zsol1) == (length(ts),)
     zsol1 = taylorinteg(eqs1, z0, tr, _order, _abstol, maxsteps=1)
     @test length(zsol1) == length(tr)
+    ta = collect(tr)
+    zsol1 = taylorinteg(eqs1, z0, ta, _order, _abstol, maxsteps=1)
+    @test length(zsol1) == length(ta)
     zsol1 = taylorinteg(eqs1, z0, tr, _order, _abstol)
     @test zsol1[1] == z0
     @test isapprox( zsol1[2]  , z0*exp(-tr[2]) )
     @test isapprox( zsol1[6], z0*exp(-tr[6]) )
     @test isapprox( zsol1[end], z0*exp(-tr[end]) )
+    zsol11 = taylorinteg(eqs1, z0, ta, _order, _abstol)
+    @test zsol11 == zsol1
+    @test zsol11[1] == z0
+    @test isapprox( zsol11[2]  , z0*exp(-tr[2]) )
+    @test isapprox( zsol11[6], z0*exp(-tr[6]) )
+    @test isapprox( zsol11[end], z0*exp(-tr[end]) )
     tt, zsol1 = taylorinteg(eqs1, z0, 0.0, 2pi, _order, _abstol, maxsteps=1)
     @test length(tt) == 2
     @test length(zsol1) == 2
