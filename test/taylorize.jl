@@ -93,17 +93,18 @@ end
 
 
 # Multiple (3) pendula
+const NN = 3
+const nnrange = 1:3
 function multpendula!(t, x, dx)
-    NN = 3
-    for i = 1:NN
+    # NN = 3
+    for i in nnrange
         dx[i] = x[NN+i]
         dx[i+NN] = -sin( x[i] )
     end
     return nothing
 end
 @taylorize_ode function multpendula_parsed!(t, x, dx)
-    NN = 3
-    for i = 1:NN
+    for i in nnrange
         dx[i] = x[NN+i]
         dx[i+NN] = -sin( x[i] )
     end
