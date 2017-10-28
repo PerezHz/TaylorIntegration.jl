@@ -29,8 +29,8 @@ end)
 
 # Constants for the initial declaration and initialization of arrays
 const _DECL_ARRAY = Expr(:block,
-    :(__var1 = Array{Taylor1{eltype(__var2)}}(__var3)),
-    :(@__dot__ __var1 = Taylor1( zero(eltype(__var2)), order )) )
+    :(__var1 = Array{Taylor1{S}}(__var2)),
+    :(@__dot__  __var1 = Taylor1( zero(S), order )) )
 
 
 """
@@ -524,18 +524,10 @@ function _replacecalls!(fnold::Expr, newvar::Symbol, v_vars)
                 :_arg2 => :(constant_term($(newarg2))),
                 :_k => :ord))
     else
-        # info(ArgumentError("""
-        #     A call in the function definition is not unary or binary;
-        #     use parenthesis to have only binary and unary operations!"""
-        #     ))
-
         # Recognized call, but not as a unary or binary call
-        println("---> _replacecalls!")
-        @show(ll, fnold, newvar, dcall)
         fnexpr = :($newvar = $fnold)
         def_fnexpr = fnexpr
         aux_fnexpr = Expr(:nothing)
-        @show(fnexpr, def_fnexpr, aux_fnexpr)
     end
 
     return fnexpr, def_fnexpr, aux_fnexpr
@@ -560,7 +552,6 @@ function _defs_preamble!(preamble::Expr, fnargs,
     defspreamble = Expr[]
 
     for (i, ex) in enumerate(preamble.args)
-        flag_push = true
 
         if isa(ex, Expr)
 
@@ -575,7 +566,6 @@ function _defs_preamble!(preamble::Expr, fnargs,
                         d_indx, v_newindx, v_preamb, d_decl, true, ex_aux)
                 append!(defspreamble, loopbody)
                 pop!(ex_aux.args)
-                flag_push = true
             elseif (ex.head == :if)
                 for exx in ex.args[2:end]
                     ifassignments = _defs_preamble!(exx, fnargs,
@@ -614,11 +604,10 @@ function _defs_preamble!(preamble::Expr, fnargs,
                     push!(d_indx, alhs => :($alhs[$(indx1...)]) )
                     push!(d_decl, alhs => :($alhs[$exx_indx...]))
                     exx = subs(_DECL_ARRAY, Dict(:__var1 => :($alhs),
-                        :__var2 => :($var1[$exx_indx...]),
-                        :__var3 => :(length($var1)) ))
+                        :__var2 => :(length($var1)) ))
                     push!(defspreamble, exx.args...)
                     push!(v_preamb, alhs)
-                    flag_push = false
+                    continue
                     #
                 elseif isindexed(alhs)
 
@@ -644,10 +633,9 @@ function _defs_preamble!(preamble::Expr, fnargs,
                     ex_tuple = subs(ex_tuple, d_subs)
                     ex_tuple = :( length.( $(Expr(:tuple, ex_tuple.args...)) ))
                     exx = subs(_DECL_ARRAY, Dict(:__var1 => :($var1),
-                        :__var2 => :($var2), :__var3 => :($ex_tuple)) )
+                        :__var2 => :($ex_tuple)) )
                     push!(defspreamble, exx.args...)
                     push!(v_preamb, var1)
-                    flag_push = false
                     continue
                     #
                 else
@@ -661,7 +649,7 @@ function _defs_preamble!(preamble::Expr, fnargs,
                     ex = subs(ex, d_decl)
                     push!(defspreamble, ex)
                     push!(v_preamb, alhs)
-                    flag_push = false
+                    continue
                     #
                 end
                 #
@@ -673,7 +661,7 @@ function _defs_preamble!(preamble::Expr, fnargs,
         end
 
         exx = subs(ex, d_indx)
-        !inloop && flag_push && push!(defspreamble, exx)
+        !inloop && push!(defspreamble, exx)
 
     end
     return defspreamble
