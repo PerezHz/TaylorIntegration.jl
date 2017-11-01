@@ -10,7 +10,7 @@
 
 ODE integration using Taylor's method in [Julia](http://julialang.org).
 
-#### Authors
+## Authors
 
 - [Jorge A. Pérez](https://www.linkedin.com/in/perezhz),
 Instituto de Ciencias Físicas, Universidad Nacional Autónoma de México (UNAM)
@@ -19,15 +19,15 @@ Instituto de Ciencias Físicas, Universidad Nacional Autónoma de México (UNAM)
 
 Comments, suggestions, and improvements are welcome and appreciated.
 
-#### Examples
+## Examples
 
 + [x'=x^2](http://nbviewer.jupyter.org/github/PerezHz/TaylorIntegration.jl/blob/master/examples/x-dot-equals-x-squared.ipynb)
 + [Kepler problem](http://nbviewer.jupyter.org/github/PerezHz/TaylorIntegration.jl/blob/master/examples/Kepler-problem.ipynb)
-+ [Evaluating definite integrals](http://nbviewer.jupyter.org/github/PerezHz/TaylorIntegration.jl/blob/master/examples/Evaluating-definite-integrals.ipynb)
++ [High-order polynomial approximations to special functions and integral transforms](http://nbviewer.jupyter.org/github/PerezHz/TaylorIntegration.jl/blob/master/examples/Polynomial-approx-special-functions-integral-transforms.ipynb)
 + [Damped, driven linear oscillator](http://nbviewer.jupyter.org/github/PerezHz/TaylorIntegration.jl/blob/master/examples/Damped-driven-linear-oscillator.ipynb)
 + [The Lyapunov spectrum of the Lorenz system](http://nbviewer.jupyter.org/github/PerezHz/TaylorIntegration.jl/blob/master/examples/Lorenz-Lyapunov-spectrum.ipynb)
-+ [TaylorIntegration @ JuliaCon 2017 (slides)](http://nbviewer.jupyter.org/format/slides/github/PerezHz/TaylorIntegration.jl/blob/master/examples/JuliaCon2017/TaylorIntegration_JuliaCon.ipynb)
++ TaylorIntegration @ JuliaCon 2017 [(slides)](http://nbviewer.jupyter.org/format/slides/github/PerezHz/TaylorIntegration.jl/blob/master/examples/JuliaCon2017/TaylorIntegration_JuliaCon.ipynb)
 
-#### License
+## License
 
 `TaylorIntegration` is licensed under the [MIT "Expat" license](./LICENSE.md).

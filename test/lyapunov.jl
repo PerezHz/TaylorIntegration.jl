@@ -140,4 +140,18 @@ end
     @test isapprox(λw[end,1], 1.47167, rtol=mytol, atol=mytol)
     @test isapprox(λw[end,2], -0.00830, rtol=mytol, atol=mytol)
     @test isapprox(λw[end,3], -22.46336, rtol=mytol, atol=mytol)
+
+    xw2, λw2 = liap_taylorinteg(lorenz!, x0, collect(t0:1.0:tmax), 28, _abstol; maxsteps=2000)
+
+    @test xw2 == xw
+    @test λw2 == λw
+
+    @test xw2[1,:] == x0
+    @test size(xw2) == size(λw2)
+    @test isapprox(sum(λw2[1,:]), lorenztr) == false
+    @test isapprox(sum(λw2[end,:]), lorenztr)
+    mytol = 1e-4
+    @test isapprox(λw2[end,1], 1.47167, rtol=mytol, atol=mytol)
+    @test isapprox(λw2[end,2], -0.00830, rtol=mytol, atol=mytol)
+    @test isapprox(λw2[end,3], -22.46336, rtol=mytol, atol=mytol)
 end

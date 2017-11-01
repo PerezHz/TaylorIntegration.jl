@@ -1,6 +1,6 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
-using TaylorSeries, TaylorIntegration
+using TaylorSeries, TaylorIntegration, Elliptic
 using Base.Test
 
 const _order = 28
@@ -13,8 +13,8 @@ g(t, x) = 0.3x
     p = Taylor1([0.0,1.0], 5)
     x0 = 3.0 #"nominal" initial condition
     x0T1 = x0 + p #jet transport initial condition
-    t0=0.0
-    tmax=0.3
+    t0 = 0.0
+    tmax = 0.3
     tvT1, xvT1 = taylorinteg(f, x0T1, t0, tmax, _order, _abstol, maxsteps=1)
     @test size(tvT1) == (2,)
     @test size(xvT1) == (2,)
@@ -126,9 +126,9 @@ end
         uv_disp, yv_disp = taylorinteg(g, y0_disp, u0, 10/0.3, _order, _abstol)
         yvTN_disp = evaluate.(yvTN, dv)
         @test norm(exactsol_g.(uvTN, y0_disp, u0)-yvTN_disp, Inf) < 1E-9 #analytical vs jet transport
-        @test norm(y0_disp-evaluate(yvTN[1], [disp]), Inf) < 1E-9
-        @test norm(yv_disp[1]-evaluate(yvTN[1], [disp]), Inf) < 1E-9
-        @test norm(yv_disp[end]-evaluate(yvTN[end], [disp]), Inf) < 1E-9
+        @test norm(y0_disp-yvTN[1]([disp]), Inf) < 1E-9
+        @test norm(yv_disp[1]-yvTN[1]([disp]), Inf) < 1E-9
+        @test norm(yv_disp[end]-yvTN[end]([disp]), Inf) < 1E-9
     end
 end
 
@@ -139,7 +139,12 @@ end
     tv = 0.0:0.05:0.33
     xvT1 = taylorinteg(f, x0T1, tv, _order, _abstol, maxsteps=1)
     @test size(xvT1) == (7,)
+    ta = collect(tv)
+    xvT1 = taylorinteg(f, x0T1, ta, _order, _abstol, maxsteps=1)
+    @test size(xvT1) == (7,)
     xvT1 = taylorinteg(f, x0T1, tv, _order, _abstol)
+    xvT11 = taylorinteg(f, x0T1, ta, _order, _abstol)
+    @test xvT11 == xvT1
     xv = taylorinteg(f, x0, tv, _order, _abstol)
     exactsol(t, x0, t0) = x0/(1.0-x0*(t-t0)) #the analytical solution
     δsol = exactsol(tv[end], x0T1, tv[1])-xvT1[end]
@@ -147,12 +152,14 @@ end
     @test length(tv) == length(xvT1)
     @test isapprox(δcoeffs, zeros(6), atol=1e-10, rtol=0)
     xv_analytical = exactsol.(tv, x0, tv[1])
-    xvT1_0 = evaluate.(xvT1)
+    xvT1_0 = xvT1.()
     @test isapprox(xv_analytical, xvT1_0, atol=1e-10, rtol=0)
     for i in 1:5
         disp = 0.001*rand() #a small, random displacement
         xv_disp = taylorinteg(f, x0+disp, tv, _order, _abstol)
-        xvT1_disp = evaluate.(xvT1, disp)
+        xv_disp2 = taylorinteg(f, x0+disp, ta, _order, _abstol)
+        @test xv_disp == xv_disp2
+        xvT1_disp = xvT1.(disp)
         @test norm(exactsol.(tv, x0+disp, tv[1])-xvT1_disp, Inf) < 1E-12 #analytical vs jet transport
         @test norm(xv_disp-xvT1_disp, Inf) < 1E-12 # integration vs jet transport
     end
@@ -188,7 +195,12 @@ end
     tv = 0.0:0.05:0.33
     xvTN = taylorinteg(f, x0TN, tv, _order, _abstol, maxsteps=1)
     @test size(xvTN) == (7,)
+    ta = collect(tv)
+    xvTN = taylorinteg(f, x0TN, ta, _order, _abstol, maxsteps=1)
+    @test size(xvTN) == (7,)
     xvTN = taylorinteg(f, x0TN, tv, _order, _abstol)
+    xvTN_ = taylorinteg(f, x0TN, ta, _order, _abstol)
+    @test xvTN == xvTN_
     xv = taylorinteg(f, x0, tv, _order, _abstol)
     exactsol(t, x0, t0) = x0/(1.0-x0*(t-t0)) #the analytical solution
     δsol = exactsol(tv[end], x0TN, tv[1])-xvTN[end]
@@ -202,6 +214,8 @@ end
         disp = 0.001*rand() #a small, random displacement
         dv = map(x->[disp], tv) #a vector of identical displacements
         xv_disp = taylorinteg(f, x0+disp, tv, _order, _abstol)
+        xv_disp_ = taylorinteg(f, x0+disp, ta, _order, _abstol)
+        @test xv_disp == xv_disp_
         xvTN_disp = evaluate.(xvTN, dv)
         @test norm(exactsol.(tv, x0+disp, tv[1])-xvTN_disp, Inf) < 1E-12 #analytical vs jet transport
         @test norm(xv_disp-xvTN_disp, Inf) < 1E-12 # integration vs jet transport
@@ -280,9 +294,13 @@ end
     xv1 = taylorinteg(harmosc!, x0T1, tv, _order, _abstol, maxsteps=1)
     @test length(tv) == 201
     @test size(xv1) == (201, 3)
-    # @test size(tv1) == (2,)
-    # @test size(xv1) == (2, 3)
+    ta = collect(tv)
+    xv1 = taylorinteg(harmosc!, x0T1, ta, _order, _abstol, maxsteps=1)
+    @test length(ta) == 201
+    @test size(xv1) == (201, 3)
     xv1 = taylorinteg(harmosc!, x0T1, tv, _order, _abstol, maxsteps=2000)
+    xv1_ = taylorinteg(harmosc!, x0T1, ta, _order, _abstol, maxsteps=2000)
+    @test xv1 == xv1_
     y0 = evaluate.(xv1)
     x1(t,δω) = sin((ω0+δω)*t)
     x2(t,δω) = (ω0+δω)*cos((ω0+δω)*t)
@@ -292,6 +310,8 @@ end
         δω=0.001*rand()
         x0_disp = x0+[0.0,δω,δω]
         xv = taylorinteg(harmosc!, x0_disp, tv, _order, _abstol, maxsteps=2000)
+        xv_ = taylorinteg(harmosc!, x0_disp, ta, _order, _abstol, maxsteps=2000)
+        @test xv == xv_
         y1 = evaluate.(xv1, δω)
         @test norm(y1[:,1]-x1.(tv,δω), Inf) < 1E-11
         @test norm(y1[:,2]-x2.(tv,δω), Inf) < 1E-11
@@ -343,8 +363,8 @@ end
     p = set_variables("ξ", numvars=2, order=varorder) #TaylorN steup
     q0 = [1.3, 0.0] #the initial conditions
     q0TN = q0 + p #parametrization of a small neighbourhood around the initial conditions
-    # T is the librational period == 4Elliptic.K(sin(q0[1]/2)^2) # this is an explicit value that will be used until Elliptic.K works with julia 0.6
-    T = 7.019250311844546
+    # T is the librational period == 4Elliptic.K(sin(q0[1]/2)^2)
+    T = 4Elliptic.K(sin(q0[1]/2)^2) # equals 7.019250311844546
     t0 = 0.0 #the initial time
     tmax = T #the final time
     integstep = 0.25*T #the time interval between successive evaluations of the solution vector
