@@ -13,7 +13,7 @@ const _HEAD_PARSEDFN_SCALAR = sanitize(:(
 function jetcoeffs!(__tT::Taylor1{T}, __x::Taylor1{S}, ::Type{Val{__fn}}) where
         {T<:Real, S<:Number}
 
-    order = __x.order
+    order = __tT.order
     nothing
 end)
 );
@@ -22,7 +22,7 @@ const _HEAD_PARSEDFN_VECTOR = sanitize(:(
 function jetcoeffs!(__tT::Taylor1{T}, __x::Vector{Taylor1{S}},
         __dx::Vector{Taylor1{S}}, ::Type{Val{__fn}}) where {T<:Real, S<:Number}
 
-    order = __x[1].order
+    order = __tT.order
     nothing
 end)
 );
@@ -74,10 +74,10 @@ function _make_parsed_jetcoeffs( ex, debug=false )
     push!(newfunction.args[2].args, forloopblock, parse("return nothing"))
 
     # Rename variables of the body of the new function
-    newfunction = subs(newfunction, Dict(fnargs[1] => :(__tT),
-        fnargs[2] => :(__x), :(__fn) => fn ))
+    newfunction = subs(newfunction, Dict(:__tT => fnargs[1],
+        :(__x) => fnargs[2], :(__fn) => fn ))
     if length(fnargs) == 3
-        newfunction = subs(newfunction, Dict(fnargs[3] => :(__dx)))
+        newfunction = subs(newfunction, Dict(:(__dx) => fnargs[3]))
     end
 
     return newfunction
@@ -596,7 +596,7 @@ function _defs_preamble!(preamble::Expr, fnargs,
 
                     vars_indexed = findex(:(_X[_i...]), arhs)
 
-                    # NOTE: Use the length of the first indexed var of
+                    # NOTE: Use the size of the first indexed var of
                     # `arhs` to define the declaration of the new array.
                     var1 = vars_indexed[1].args[1]
                     indx1 = vars_indexed[1].args[2:end]
@@ -604,7 +604,7 @@ function _defs_preamble!(preamble::Expr, fnargs,
                     push!(d_indx, alhs => :($alhs[$(indx1...)]) )
                     push!(d_decl, alhs => :($alhs[$exx_indx...]))
                     exx = subs(_DECL_ARRAY, Dict(:__var1 => :($alhs),
-                        :__var2 => :(length($var1)) ))
+                        :__var2 => :(size($var1)) ))
                     push!(defspreamble, exx.args...)
                     push!(v_preamb, alhs)
                     continue
@@ -617,7 +617,7 @@ function _defs_preamble!(preamble::Expr, fnargs,
 
                     # indices of var1
                     indx1 = alhs.args[2:end]
-                    exx_indx = :($(ones(Int, length(indx1))...))
+                    exx_indx = :($(ones(Int, size(indx1))...))
                     vars_arhs = find_vars(arhs)
                     # Uses the first var in `arhs` to define the `eltype`
                     # in the declaration of `var1`
@@ -631,7 +631,7 @@ function _defs_preamble!(preamble::Expr, fnargs,
                         for veexx in ex_aux.args)
                     ex_tuple = :( [$(indx1...)] )
                     ex_tuple = subs(ex_tuple, d_subs)
-                    ex_tuple = :( length.( $(Expr(:tuple, ex_tuple.args...)) ))
+                    ex_tuple = :( size( $(Expr(:tuple, ex_tuple.args...)) ))
                     exx = subs(_DECL_ARRAY, Dict(:__var1 => :($var1),
                         :__var2 => :($ex_tuple)) )
                     push!(defspreamble, exx.args...)
