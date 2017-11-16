@@ -1,12 +1,12 @@
 # Detect if the solution crossed a root of event function g
 surfacecrossing(g_old::Taylor1{T}, g::Taylor1{T}, eventorder::Int) where {T <: Real} = g_old[eventorder]*g[eventorder] < zero(T)
 surfacecrossing(g_old::Taylor1{Taylor1{T}}, g::Taylor1{Taylor1{T}}, eventorder::Int) where {T <: Real} = g_old[eventorder][0]*g[eventorder][0] < zero(T)
-surfacecrossing(g_old::Taylor1{TaylorN{T}}, g::Taylor1{TaylorN{T}}, eventorder::Int) where {T <: Real} = g_old[eventorder][0][0]*g[eventorder][0][0] < zero(T)
+surfacecrossing(g_old::Taylor1{TaylorN{T}}, g::Taylor1{TaylorN{T}}, eventorder::Int) where {T <: Real} = g_old[eventorder][0][1]*g[eventorder][0][1] < zero(T)
 
 # An rudimentary convergence criterion for the Newton-Raphson root-finding process
 nrconvergencecriterion(g_val::T, nrabstol::T, nriter::Int, maxnriters::Int) where {T<:Real} = abs(g_val) > nrabstol && nriter ≤ maxnriters
 nrconvergencecriterion(g_val::Taylor1{T}, nrabstol::T, nriter::Int, maxnriters::Int) where {T<:Real} = abs(g_val[0]) > nrabstol && nriter ≤ maxnriters
-nrconvergencecriterion(g_val::TaylorN{T}, nrabstol::T, nriter::Int, maxnriters::Int) where {T<:Real} = abs(g_val[0][0]) > nrabstol && nriter ≤ maxnriters
+nrconvergencecriterion(g_val::TaylorN{T}, nrabstol::T, nriter::Int, maxnriters::Int) where {T<:Real} = abs(g_val[0][1]) > nrabstol && nriter ≤ maxnriters
 
 # This function should be moved to TaylorSeries.jl, but the definitive implementation still should be discussed
 function deriv(n::Int, a::Taylor1{T}) where {T <: Number}
@@ -74,8 +74,8 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
         if surfacecrossing(g_val_old, g_val, eventorder)
 
             #first guess: linear interpolation
-            slope = (g_val[nextevord]-g_val_old[nextevord])/δt_old
-            dt_li = -(g_val[nextevord]/slope)
+            slope = (g_val[eventorder]-g_val_old[eventorder])/δt_old
+            dt_li = -(g_val[eventorder]/slope)
 
             x_dx[1:dof] = x
             x_dx[dof+1:2dof] = dx
