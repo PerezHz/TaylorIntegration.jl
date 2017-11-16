@@ -1,12 +1,12 @@
 # Detect if the solution crossed a root of event function g
-surfacecrossing(g_old::Taylor1{T}, g::Taylor1{T}, eventorder::Int) where {T <: Real} = g_old[eventorder+1]*g[eventorder+1] < zero(T)
-surfacecrossing(g_old::Taylor1{Taylor1{T}}, g::Taylor1{Taylor1{T}}, eventorder::Int) where {T <: Real} = g_old[eventorder+1][1]*g[eventorder+1][1] < zero(T)
-surfacecrossing(g_old::Taylor1{TaylorN{T}}, g::Taylor1{TaylorN{T}}, eventorder::Int) where {T <: Real} = g_old[eventorder+1][1][1]*g[eventorder+1][1][1] < zero(T)
+surfacecrossing(g_old::Taylor1{T}, g::Taylor1{T}, eventorder::Int) where {T <: Real} = g_old[eventorder]*g[eventorder] < zero(T)
+surfacecrossing(g_old::Taylor1{Taylor1{T}}, g::Taylor1{Taylor1{T}}, eventorder::Int) where {T <: Real} = g_old[eventorder][0]*g[eventorder][0] < zero(T)
+surfacecrossing(g_old::Taylor1{TaylorN{T}}, g::Taylor1{TaylorN{T}}, eventorder::Int) where {T <: Real} = g_old[eventorder][0][0]*g[eventorder][0][0] < zero(T)
 
 # An rudimentary convergence criterion for the Newton-Raphson root-finding process
 nrconvergencecriterion(g_val::T, nrabstol::T, nriter::Int, maxnriters::Int) where {T<:Real} = abs(g_val) > nrabstol && nriter ≤ maxnriters
-nrconvergencecriterion(g_val::Taylor1{T}, nrabstol::T, nriter::Int, maxnriters::Int) where {T<:Real} = abs(g_val[1]) > nrabstol && nriter ≤ maxnriters
-nrconvergencecriterion(g_val::TaylorN{T}, nrabstol::T, nriter::Int, maxnriters::Int) where {T<:Real} = abs(g_val[1][1]) > nrabstol && nriter ≤ maxnriters
+nrconvergencecriterion(g_val::Taylor1{T}, nrabstol::T, nriter::Int, maxnriters::Int) where {T<:Real} = abs(g_val[0]) > nrabstol && nriter ≤ maxnriters
+nrconvergencecriterion(g_val::TaylorN{T}, nrabstol::T, nriter::Int, maxnriters::Int) where {T<:Real} = abs(g_val[0][0]) > nrabstol && nriter ≤ maxnriters
 
 # This function should be moved to TaylorSeries.jl, but the definitive implementation still should be discussed
 function deriv(n::Int, a::Taylor1{T}) where {T <: Number}
@@ -36,7 +36,7 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
     const xaux = Array{Taylor1{U}}(dof)
 
     # Initial conditions
-    @inbounds t[1] = t0
+    @inbounds t[0] = t0
     x0 = deepcopy(q0)
     x .= Taylor1.(q0, order)
     @inbounds tv[1] = t0
@@ -105,10 +105,10 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
         end
         g_val_old = deepcopy(g_val)
         for i in eachindex(x0)
-            @inbounds x[i][1] = x0[i]
+            @inbounds x[i][0] = x0[i]
         end
         t0 += δt
-        @inbounds t[1] = t0
+        @inbounds t[0] = t0
         nsteps += 1
         @inbounds tv[nsteps] = t0
         @inbounds xv[:,nsteps] .= x0
