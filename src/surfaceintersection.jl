@@ -20,6 +20,48 @@ function deriv(n::Int, a::Taylor1{T}) where {T <: Number}
     end
 end
 
+function rootfind!(g, t, x, dx, g_val_old, g_val, eventorder, tvS, xvS, gvS,
+        t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val, nrabstol,
+        newtoniter, nevents)
+
+    if surfacecrossing(g_val_old, g_val, eventorder)
+        #auxiliary variables
+        const nriter = 1
+        const dof = length(x)
+
+        #first guess: linear interpolation
+        slope = (g_val[eventorder]-g_val_old[eventorder])/δt_old
+        dt_li = -(g_val[eventorder]/slope)
+
+        x_dx[1:dof] = x
+        x_dx[dof+1:2dof] = dx
+        g_dg[1] = deriv(eventorder, g_val)
+        g_dg[2] = derivative(g_dg[1])
+
+        #Newton-Raphson iterations
+        dt_nr = dt_li
+        evaluate!(g_dg, dt_nr, view(g_dg_val,:))
+
+        while nrconvergencecriterion(g_dg_val[1], nrabstol, nriter, newtoniter)
+            dt_nr = dt_nr-g_dg_val[1]/g_dg_val[2]
+            evaluate!(g_dg, dt_nr, view(g_dg_val,:))
+            nriter += 1
+        end
+        nriter == newtoniter+1 && warn("""
+        Newton-Raphson did not converge for prescribed tolerance and maximum allowed iterations.
+        """)
+        evaluate!(x_dx, dt_nr, view(x_dx_val,:))
+
+        tvS[nevents] = t0+dt_nr
+        xvS[:,nevents] .= view(x_dx_val,1:dof)
+        gvS[nevents] = g_dg_val[1]
+
+        nevents += 1
+    end
+
+    return nevents
+end
+
 function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
         order::Int, abstol::T; maxsteps::Int=500, eventorder::Int=0,
         newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
@@ -60,49 +102,16 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
     const xvS = similar(xv)
     const gvS = similar(tvS)
 
-    #auxiliary Int for Newton-Raphson iterations
-    const nriter = 1
-
     # Integration
     const nsteps = 1
     const nevents = 1 #number of detected events
-    const nextevord = eventorder+1
     while t0 < tmax
         δt_old = δt
         δt = taylorstep!(f!, t, x, dx, xaux, t0, tmax, x0, order, abstol)
         g_val = g(t, x, dx)
-        if surfacecrossing(g_val_old, g_val, eventorder)
-
-            #first guess: linear interpolation
-            slope = (g_val[eventorder]-g_val_old[eventorder])/δt_old
-            dt_li = -(g_val[eventorder]/slope)
-
-            x_dx[1:dof] = x
-            x_dx[dof+1:2dof] = dx
-            g_dg[1] = deriv(eventorder, g_val)
-            g_dg[2] = derivative(g_dg[1])
-
-            #Newton-Raphson iterations
-            dt_nr = dt_li
-            evaluate!(g_dg, dt_nr, view(g_dg_val,:))
-
-            while nrconvergencecriterion(g_dg_val[1], nrabstol, nriter, newtoniter)
-                dt_nr = dt_nr-g_dg_val[1]/g_dg_val[2]
-                evaluate!(g_dg, dt_nr, view(g_dg_val,:))
-                nriter += 1
-            end
-            nriter == newtoniter+1 && warn("""
-            Newton-Raphson did not converge for prescribed tolerance and maximum allowed iterations.
-            """)
-            nriter = 1
-            evaluate!(x_dx, dt_nr, view(x_dx_val,:))
-
-            tvS[nevents] = t0+dt_nr
-            xvS[:,nevents] .= view(x_dx_val,1:dof)
-            gvS[nevents] = g_dg_val[1]
-
-            nevents += 1
-        end
+        nevents = rootfind!(g, t, x, dx, g_val_old, g_val, eventorder,
+            tvS, xvS, gvS, t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val,
+            nrabstol, newtoniter, nevents)
         g_val_old = deepcopy(g_val)
         for i in eachindex(x0)
             @inbounds x[i][0] = x0[i]
