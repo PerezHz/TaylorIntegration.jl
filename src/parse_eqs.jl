@@ -32,6 +32,9 @@ const _DECL_ARRAY = Expr(:block,
     :(__var1 = Array{Taylor1{S}}(__var2)),
     :(@__dot__  __var1 = Taylor1( zero(S), order )) )
 
+const _INIT_ARRAY = Expr(:block,
+    :(@__dot__  __var1 = Taylor1( zero(S), order )) )
+
 
 """
 `_make_parsed_jetcoeffs( ex, debug=false )`
@@ -56,9 +59,9 @@ function _make_parsed_jetcoeffs( ex, debug=false )
         Expr(:block, :(ordnext = ord + 1)) )
 
     # Transform graph representation of the body of the function
-    debug && println("****** _preamble_body ******")
     defspreamble, fnbody, retvar = _preamble_body(fnbody, fnargs, debug)
-    debug && (@show(defspreamble); println())
+    debug && (println("****** _preamble_body ******");
+        @show(defspreamble); println(); @show(fnbody); println();)
 
     # Recursion relation
     debug && println("****** _recursionloop ******")
@@ -194,16 +197,19 @@ function _preamble_body(fnbody, fnargs, debug=false)
     debug && (println("------ _rename_indexedvars ------");
         @show(fnbody); println(); @show(d_indx); println())
 
-    # Create newfnbody; v_newindx contains symbols of auxiliary indexed vars
-    newfnbody, v_newindx = _newfnbody(fnbody, d_indx)
+    # Create newfnbody
+    #    v_newindx: symbols of auxiliary indexed vars
+    #    v_arraydecl: symbols which are explicitly declared as Array or Vector
+    newfnbody, v_newindx, v_arraydecl = _newfnbody(fnbody, d_indx)
     debug && (println("------ _newfnbody ------");
-        @show(v_newindx); println(); @show(newfnbody); println())
+        @show(v_newindx); println(); @show(v_arraydecl); println();
+        @show(newfnbody); println())
 
     # Parse `newfnbody!` and create `prepreamble`, updating the
     # bookkeeping vectors.
     prepreamble = Expr(:block,)
-    _parse_newfnbody!(newfnbody, prepreamble,
-        v_vars, v_assign, d_indx, v_newindx)
+    _parse_newfnbody!(newfnbody, prepreamble, v_vars, v_assign, d_indx,
+        v_newindx, v_arraydecl)
     preamble = prepreamble.args[1]
 
     # Substitute numeric assignments in new function's body
@@ -215,9 +221,8 @@ function _preamble_body(fnbody, fnargs, debug=false)
         @show(v_newindx); println())
 
     # Include the assignement of indexed auxiliary variables
-    # @show(v_newindx, d_indx)
     defspreamble = _defs_preamble!(preamble, fnargs,
-        d_indx, v_newindx, Union{Symbol,Expr}[], similar(d_indx))
+        d_indx, v_newindx, v_arraydecl, Union{Symbol,Expr}[], similar(d_indx))
     # preamble = subs(preamble, d_indx)
 
     # Bring back substitutions
@@ -227,7 +232,6 @@ function _preamble_body(fnbody, fnargs, debug=false)
     retvar = length(fnargs) == 2 ? subs(v_vars[end], d_indx) : fnargs[end]
 
     debug && (println("------ _defs_preamble! ------");
-        @show(assig_preamble); println();
         @show(d_indx); println(); @show(v_newindx); println();
         @show(newfnbody); println(); @show(retvar); println())
 
@@ -268,6 +272,7 @@ function _newfnbody(fnbody, d_indx)
     # `fnbody` is assumed to be a `:block` `Expr`
     newfnbody = Expr(:block,)
     v_newindx = Symbol[]
+    v_arraydecl = Symbol[]
 
     for (i, ex) in enumerate(fnbody.args)
         if isa(ex, Expr)
@@ -276,46 +281,73 @@ function _newfnbody(fnbody, d_indx)
             (ex.head == :line || ex.head == :return) && continue
 
             # Treat `for` loops separately
-            if (ex.head == :block)
-                newblock, tmp_indx = _newfnbody(ex, d_indx)
+            if ex.head == :block
+                newblock, tmp_newindx, tmp_arraydecl = _newfnbody(ex, d_indx)
                 push!(newfnbody.args, newblock )
-                append!(v_newindx, tmp_indx)
-            elseif (ex.head == :for)
+                append!(v_newindx, tmp_newindx)
+                append!(v_arraydecl, tmp_arraydecl)
+            elseif ex.head == :for
                 push!(newfnbody.args, Expr(:for, ex.args[1]))
-                loopbody, tmp_indx = _newfnbody( ex.args[2], d_indx )
+                loopbody, tmp_newindx, tmp_arraydecl =
+                    _newfnbody( ex.args[2], d_indx )
                 push!(newfnbody.args[end].args, loopbody)
-                append!(v_newindx, tmp_indx)
-            elseif (ex.head == :if)
+                append!(v_newindx, tmp_newindx)
+                append!(v_arraydecl, tmp_arraydecl)
+            elseif ex.head == :if
                 push!(newfnbody.args, Expr(:if, ex.args[1]))
                 for exx in ex.args[2:end]
-                    ifbody, tmp_indx = _newfnbody( exx, d_indx)
+                    ifbody, tmp_newindx, tmp_arraydecl = _newfnbody( exx, d_indx)
                     push!(newfnbody.args[end].args, ifbody)
-                    append!(v_newindx, tmp_indx)
+                    append!(v_newindx, tmp_newindx)
+                    append!(v_arraydecl, tmp_arraydecl)
                 end
-            else # Assumes ex.head == :(:=)
+            elseif ex.head == :(=) || ex.head == :call
 
                 # Unfold AST graph
                 nex = deepcopy(ex)
+                ex_lhs = ex.args[1]
+                ex_rhs = ex.args[2]
                 try
                     nex = to_expr(ExGraph(simplify(ex)))
                 catch
                     push!(newfnbody.args, ex)
+
+                    # Explicit declaration
+                    if ex_rhs.head == :call &&
+                        ex_rhs.args[1].head == :curly &&
+                        (ex_rhs.args[1].args[1] == :Array ||
+                            ex_rhs.args[1].args[1] == :Vector)
+                        push!(v_arraydecl, ex_lhs)
+                    end
                     continue
                 end
+
                 push!(newfnbody.args, nex.args[2:end]...)
 
                 # Bookkeeping of indexed vars, to define assignements
-                ex_lhs = ex.args[1]
                 isindx_lhs = haskey(d_indx, ex_lhs)
                 for nexargs in nex.args
                     (nexargs.head == :line ||
                         haskey(d_indx, nexargs.args[1])) && continue
                     vars_nex = find_vars(nexargs)
+
+                    # This corresponds to an explicit declaration
+                    # !in(vars_nex[1], v_newindx) &&
+                    #     nexargs.args[2].head == :call &&
+                    #     nexargs.args[2].args[1].head == :curly &&
+                    #     (nexargs.args[2].args[1].args[1] == :Array ||
+                    #         nexargs.args[2].args[1].args[1] == :Vector) &&
+                    #     push!(v_arraydecl, vars_nex[1])
+
                     any(haskey.(d_indx, vars_nex[:])) &&
                         !in(vars_nex[1], v_newindx) &&
-                        (isindx_lhs || vars_nex[1] != ex.args[1]) &&
+                        (isindx_lhs || vars_nex[1] != ex_lhs) &&
                             push!(v_newindx, vars_nex[1])
+
                 end
+            else
+                @show(typeof(ex), ex.head)
+                throw(ArgumentError("$ex.head is not yet implemented"))
             end
             #
         else
@@ -330,13 +362,14 @@ function _newfnbody(fnbody, d_indx)
         newfnbody = Expr(:block, newfnbody)
     end
 
-    return newfnbody, v_newindx
+    return newfnbody, v_newindx, v_arraydecl
 end
 
 
 
 """
-`_parse_newfnbody!(ex, preex, v_vars, v_assign, d_indx, v_newindx)`
+`_parse_newfnbody!(ex, preex, v_vars, v_assign, d_indx, v_newindx, v_arraydecl,
+    [inloop=false])`
 
 Parses `ex` (the new body of the function) replacing the expressions
 to use the mutating functions of TaylorSeries, and building the preamble
@@ -346,7 +379,7 @@ used to substitute back the explicit indexed variables.
 
 """
 function _parse_newfnbody!(ex::Expr, preex::Expr,
-        v_vars, v_assign, d_indx, v_newindx, inloop=false)
+        v_vars, v_assign, d_indx, v_newindx, v_arraydecl, inloop=false)
 
     # Numeric assignements to be deleted
     indx_rm = Int[]
@@ -357,20 +390,20 @@ function _parse_newfnbody!(ex::Expr, preex::Expr,
         if (aa.head == :for)
             push!(preex.args, Expr(:for, aa.args[1]))
             _parse_newfnbody!(aa, preex.args[end],
-                v_vars, v_assign, d_indx, v_newindx, true)
+                v_vars, v_assign, d_indx, v_newindx, v_arraydecl, true)
             #
         elseif (aa.head == :block)
 
             push!(preex.args, Expr(:block))
             _parse_newfnbody!(aa, preex.args[end],
-                v_vars, v_assign, d_indx, v_newindx)
+                v_vars, v_assign, d_indx, v_newindx, v_arraydecl)
             #
         elseif (aa.head == :if)
             push!(preex.args, Expr(:if, aa.args[1]))
             for exx in aa.args[2:end]
                 push!(preex.args[end].args, Expr(:block))
                 _parse_newfnbody!(exx, preex.args[end].args[end],
-                    v_vars, v_assign, d_indx, v_newindx)
+                    v_vars, v_assign, d_indx, v_newindx, v_arraydecl)
             end
             #
         elseif (aa.head == :(=))
@@ -386,6 +419,11 @@ function _parse_newfnbody!(ex::Expr, preex::Expr,
                 (aa_rhs.args[1] == :eachindex || aa_rhs.head == :(:)) && continue
                 _replace_expr!(ex, preex, i,
                     aa_lhs, aa_rhs, v_vars, d_indx, v_newindx)
+                if in(aa_lhs, v_arraydecl)
+                    # exx = subs(_INIT_ARRAY, Dict(:__var1 => aa_lhs))
+                    # push!(preex.args, exx.args...)
+                    push!(indx_rm, i) # remove declaration from `ex` (newfnbody)
+                end
                 #
             elseif isa(aa_rhs, Symbol) # occurs when there is a simple assignment
 
@@ -441,7 +479,6 @@ function _replace_expr!(ex::Expr, preex::Expr, i::Int,
     auxfnexpr = subs(auxfnexpr, d_indx)
 
     # Update `ex` and `preex`
-    # nvar = def_fnexpr.args[1]
     push!(preex.args, def_fnexpr)
     ex.args[i] = fnexpr
 
@@ -536,16 +573,16 @@ end
 
 
 """
-`_defs_preamble!(preamble, fnargs, d_indx, v_newindx, v_preamb,
+`_defs_preamble!(preamble, fnargs, d_indx, v_newindx, v_arraydecl, v_preamb,
     d_decl, [inloop=false])`
 
-Returns a vector with the expressions defining the auxiliary variables
+Returns a vector with expressions defining the auxiliary variables
 in the preamble; it may modify `d_indx` if new variables are introduced.
 `v_preamb` is for bookkeeping the introduced variables
 
 """
 function _defs_preamble!(preamble::Expr, fnargs,
-        d_indx, v_newindx, v_preamb, d_decl, inloop::Bool=false,
+        d_indx, v_newindx, v_arraydecl, v_preamb, d_decl, inloop::Bool=false,
         ex_aux::Expr = Expr(:block,))
 
     # Initializations
@@ -557,20 +594,20 @@ function _defs_preamble!(preamble::Expr, fnargs,
 
             # Treat :block and :for separately
             if (ex.head == :block)
-                newblock = _defs_preamble!(ex, fnargs,
-                    d_indx, v_newindx, v_preamb, d_decl, inloop, ex_aux)
-                append!(defspreamble, newblock)
+                newdefspr = _defs_preamble!(ex, fnargs, d_indx,
+                    v_newindx, v_arraydecl, v_preamb, d_decl, inloop, ex_aux)
+                append!(defspreamble, newdefspr)
             elseif (ex.head == :for)
                 push!(ex_aux.args, ex.args[1])
-                loopbody = _defs_preamble!(ex.args[2], fnargs,
-                        d_indx, v_newindx, v_preamb, d_decl, true, ex_aux)
-                append!(defspreamble, loopbody)
+                newdefspr = _defs_preamble!(ex.args[2], fnargs, d_indx,
+                    v_newindx, v_arraydecl, v_preamb, d_decl, true, ex_aux)
+                append!(defspreamble, newdefspr)
                 pop!(ex_aux.args)
             elseif (ex.head == :if)
                 for exx in ex.args[2:end]
-                    ifassignments = _defs_preamble!(exx, fnargs,
-                        d_indx, v_newindx, v_preamb, d_decl, inloop, ex_aux)
-                    append!(defspreamble, ifassignments)
+                    newdefspr = _defs_preamble!(exx, fnargs, d_indx,
+                        v_newindx, v_arraydecl, v_preamb, d_decl, inloop, ex_aux)
+                    append!(defspreamble, newdefspr)
                 end
                 continue
             elseif (ex.head == :(=))
@@ -588,36 +625,16 @@ function _defs_preamble!(preamble::Expr, fnargs,
                 end
 
                 # So we are inside a loop
-                if in(alhs, v_newindx)
-                    # `alhs` is an aux indexed var, so something in `arhs`
-                    # is indexed. Declaring `alhs` here assumes it is a vector
-
-                    in(alhs, v_preamb) && continue
-
-                    vars_indexed = findex(:(_X[_i...]), arhs)
-
-                    # NOTE: Use the size of the first indexed var of
-                    # `arhs` to define the declaration of the new array.
-                    var1 = vars_indexed[1].args[1]
-                    indx1 = vars_indexed[1].args[2:end]
-                    exx_indx = ones(Int, length(indx1))
-                    push!(d_indx, alhs => :($alhs[$(indx1...)]) )
-                    push!(d_decl, alhs => :($alhs[$exx_indx...]))
-                    exx = subs(_DECL_ARRAY, Dict(:__var1 => :($alhs),
-                        :__var2 => :(size($var1)) ))
-                    push!(defspreamble, exx.args...)
-                    push!(v_preamb, alhs)
-                    continue
-                    #
-                elseif isindexed(alhs)
+                if isindexed(alhs)
 
                     # `var1` may be a vector or a matrix; so declaring it is subtle
                     var1 = alhs.args[1]
-                    (in(var1, fnargs) || in(alhs, v_preamb)) && continue
+                    (in(var1, fnargs) || in(var1, v_arraydecl) ||
+                        in(alhs, v_preamb)) && continue
 
                     # indices of var1
                     indx1 = alhs.args[2:end]
-                    exx_indx = :($(ones(Int, size(indx1))...))
+                    # exx_indx = :($(ones(Int, size(indx1))...))
                     vars_arhs = find_vars(arhs)
                     # Uses the first var in `arhs` to define the `eltype`
                     # in the declaration of `var1`
@@ -636,6 +653,27 @@ function _defs_preamble!(preamble::Expr, fnargs,
                         :__var2 => :($ex_tuple)) )
                     push!(defspreamble, exx.args...)
                     push!(v_preamb, var1)
+                    continue
+                    #
+                elseif in(alhs, v_newindx)
+                    # `alhs` is an aux indexed var, so something in `arhs`
+                    # is indexed. Declaring `alhs` here assumes it is a vector
+
+                    in(alhs, v_preamb) && continue
+
+                    vars_indexed = findex(:(_X[_i...]), arhs)
+
+                    # NOTE: Use the size of the first indexed var of
+                    # `arhs` to define the declaration of the new array.
+                    var1 = vars_indexed[1].args[1]
+                    indx1 = vars_indexed[1].args[2:end]
+                    exx_indx = ones(Int, length(indx1))
+                    push!(d_indx, alhs => :($alhs[$(indx1...)]) )
+                    push!(d_decl, alhs => :($alhs[$exx_indx...]))
+                    exx = subs(_DECL_ARRAY, Dict(:__var1 => :($alhs),
+                        :__var2 => :(size($var1)) ))
+                    push!(defspreamble, exx.args...)
+                    push!(v_preamb, alhs)
                     continue
                     #
                 else
