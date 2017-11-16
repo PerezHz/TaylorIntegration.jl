@@ -4,9 +4,9 @@ surfacecrossing(g_old::Taylor1{Taylor1{T}}, g::Taylor1{Taylor1{T}}, eventorder::
 surfacecrossing(g_old::Taylor1{TaylorN{T}}, g::Taylor1{TaylorN{T}}, eventorder::Int) where {T <: Real} = g_old[eventorder][0][1]*g[eventorder][0][1] < zero(T)
 
 # An rudimentary convergence criterion for the Newton-Raphson root-finding process
-nrconvergencecriterion(g_val::T, nrabstol::T, nriter::Int, maxnriters::Int) where {T<:Real} = abs(g_val) > nrabstol && nriter ≤ maxnriters
-nrconvergencecriterion(g_val::Taylor1{T}, nrabstol::T, nriter::Int, maxnriters::Int) where {T<:Real} = abs(g_val[0]) > nrabstol && nriter ≤ maxnriters
-nrconvergencecriterion(g_val::TaylorN{T}, nrabstol::T, nriter::Int, maxnriters::Int) where {T<:Real} = abs(g_val[0][1]) > nrabstol && nriter ≤ maxnriters
+nrconvergencecriterion(g_val::T, nrabstol::T, nriter::Int, newtoniter::Int) where {T<:Real} = abs(g_val) > nrabstol && nriter ≤ newtoniter
+nrconvergencecriterion(g_val::Taylor1{T}, nrabstol::T, nriter::Int, newtoniter::Int) where {T<:Real} = abs(g_val[0]) > nrabstol && nriter ≤ newtoniter
+nrconvergencecriterion(g_val::TaylorN{T}, nrabstol::T, nriter::Int, newtoniter::Int) where {T<:Real} = abs(g_val[0][1]) > nrabstol && nriter ≤ newtoniter
 
 # This function should be moved to TaylorSeries.jl, but the definitive implementation still should be discussed
 function deriv(n::Int, a::Taylor1{T}) where {T <: Number}
@@ -22,7 +22,7 @@ end
 
 function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
         order::Int, abstol::T; maxsteps::Int=500, eventorder::Int=0,
-        maxnriters::Int=5, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
+        newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
 
     # Allocation
     const tv = Array{T}(maxsteps+1)
@@ -86,12 +86,12 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
             dt_nr = dt_li
             evaluate!(g_dg, dt_nr, view(g_dg_val,:))
 
-            while nrconvergencecriterion(g_dg_val[1], nrabstol, nriter, maxnriters)
+            while nrconvergencecriterion(g_dg_val[1], nrabstol, nriter, newtoniter)
                 dt_nr = dt_nr-g_dg_val[1]/g_dg_val[2]
                 evaluate!(g_dg, dt_nr, view(g_dg_val,:))
                 nriter += 1
             end
-            nriter == maxnriters+1 && warn("""
+            nriter == newtoniter+1 && warn("""
             Newton-Raphson did not converge for prescribed tolerance and maximum allowed iterations.
             """)
             nriter = 1

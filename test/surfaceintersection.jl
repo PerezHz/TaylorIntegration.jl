@@ -87,7 +87,7 @@ g(t, x, dx) = x[2]
     @test norm(evaluate.(xvS1)-xvS, Inf) < 1E-15
 
     #testing surface higher order crossing detections and root-finding
-    tv, xv, tvS, xvS, gvS = taylorinteg(pendulum!, g, x0, t0, 3T, _order, _abstol, maxsteps=1000, eventorder=2, maxnriters=2)
+    tv, xv, tvS, xvS, gvS = taylorinteg(pendulum!, g, x0, t0, 3T, _order, _abstol, maxsteps=1000, eventorder=2, newtoniter=2)
     @test tv[1] == t0
     @test xv[1,:] == x0
     @test size(tvS) == (5,)
