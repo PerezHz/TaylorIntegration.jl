@@ -32,9 +32,6 @@ const _DECL_ARRAY = Expr(:block,
     :(__var1 = Array{Taylor1{S}}(__var2)),
     :(@__dot__  __var1 = Taylor1( zero(S), order )) )
 
-const _INIT_ARRAY = Expr(:block,
-    :(@__dot__  __var1 = Taylor1( zero(S), order )) )
-
 
 """
 `_make_parsed_jetcoeffs( ex, debug=false )`
@@ -303,47 +300,40 @@ function _newfnbody(fnbody, d_indx)
                 end
             elseif ex.head == :(=) || ex.head == :call
 
-                # Unfold AST graph
-                nex = deepcopy(ex)
                 ex_lhs = ex.args[1]
                 ex_rhs = ex.args[2]
+
+                # Case of explicit declaration of Array or Vector
+                if !isempty(findex(:(_Array{_TT...}), ex)) ||
+                        !isempty(findex(:(Vector{_TT...}), ex))
+                    push!(v_arraydecl, ex_lhs)
+                    push!(newfnbody.args, ex)
+                    continue
+                end
+
+                # Unfold AST graph
+                nex = deepcopy(ex)
                 try
                     nex = to_expr(ExGraph(simplify(ex)))
                 catch
                     push!(newfnbody.args, ex)
-
-                    # Explicit declaration
-                    if ex_rhs.head == :call &&
-                        ex_rhs.args[1].head == :curly &&
-                        (ex_rhs.args[1].args[1] == :Array ||
-                            ex_rhs.args[1].args[1] == :Vector)
-                        push!(v_arraydecl, ex_lhs)
-                    end
                     continue
                 end
-
+                # @show(ex, nex)
                 push!(newfnbody.args, nex.args[2:end]...)
 
                 # Bookkeeping of indexed vars, to define assignements
                 isindx_lhs = haskey(d_indx, ex_lhs)
-                for nexargs in nex.args
-                    (nexargs.head == :line ||
-                        haskey(d_indx, nexargs.args[1])) && continue
+                for nexargs in nex.args[2:end]
+                    # (nexargs.head == :line ||
+                    #     haskey(d_indx, nexargs.args[1])) && continue
+                    haskey(d_indx, nexargs.args[1]) && continue
                     vars_nex = find_vars(nexargs)
 
-                    # This corresponds to an explicit declaration
-                    # !in(vars_nex[1], v_newindx) &&
-                    #     nexargs.args[2].head == :call &&
-                    #     nexargs.args[2].args[1].head == :curly &&
-                    #     (nexargs.args[2].args[1].args[1] == :Array ||
-                    #         nexargs.args[2].args[1].args[1] == :Vector) &&
-                    #     push!(v_arraydecl, vars_nex[1])
-
-                    any(haskey.(d_indx, vars_nex[:])) &&
-                        !in(vars_nex[1], v_newindx) &&
-                        (isindx_lhs || vars_nex[1] != ex_lhs) &&
-                            push!(v_newindx, vars_nex[1])
-
+                    # any(haskey.(d_indx, vars_nex[:])) &&
+                    #     !in(vars_nex[1], v_newindx) &&
+                    (isindx_lhs || vars_nex[1] != ex_lhs) &&
+                        push!(v_newindx, vars_nex[1])
                 end
             else
                 @show(typeof(ex), ex.head)
@@ -419,11 +409,9 @@ function _parse_newfnbody!(ex::Expr, preex::Expr,
                 (aa_rhs.args[1] == :eachindex || aa_rhs.head == :(:)) && continue
                 _replace_expr!(ex, preex, i,
                     aa_lhs, aa_rhs, v_vars, d_indx, v_newindx)
-                if in(aa_lhs, v_arraydecl)
-                    # exx = subs(_INIT_ARRAY, Dict(:__var1 => aa_lhs))
-                    # push!(preex.args, exx.args...)
-                    push!(indx_rm, i) # remove declaration from `ex` (newfnbody)
-                end
+
+                # Remove new aa_lhs declaration from `ex`; it is already declared
+                in(aa_lhs, v_arraydecl) && push!(indx_rm, i)
                 #
             elseif isa(aa_rhs, Symbol) # occurs when there is a simple assignment
 
@@ -614,7 +602,7 @@ function _defs_preamble!(preamble::Expr, fnargs,
 
                 # `ex.head` is a :(=) of some kind
                 alhs = ex.args[1]
-                arhs = ex.args[2]
+                arhs = subs(ex.args[2], d_indx) # substitute updated vars in rhs
 
                 # Outside of a loop
                 if !inloop
@@ -624,28 +612,18 @@ function _defs_preamble!(preamble::Expr, fnargs,
                     continue
                 end
 
-                # So we are inside a loop
+                # Inside a loop
                 if isindexed(alhs)
 
-                    # `var1` may be a vector or a matrix; so declaring it is subtle
+                    # `var1` may be a vector or a matrix; declaring it is subtle
                     var1 = alhs.args[1]
                     (in(var1, fnargs) || in(var1, v_arraydecl) ||
                         in(alhs, v_preamb)) && continue
 
                     # indices of var1
-                    indx1 = alhs.args[2:end]
-                    # exx_indx = :($(ones(Int, size(indx1))...))
-                    vars_arhs = find_vars(arhs)
-                    # Uses the first var in `arhs` to define the `eltype`
-                    # in the declaration of `var1`
-                    var2 = isa(vars_arhs[1], Symbol) ? vars_arhs[1] :
-                        isa(vars_arhs[1], Expr) ? vars_arhs[1].args[1] :
-                        throw(ArgumentError(
-                            "$vars_arhs[1] is neithe `Symbol` nor `Expr`"))
-                    # push!(d_indx, var1 => :($var1[$(indx1...)]) )
-                    # push!(d_decl, var1 => :($var1[$(exx_indx...)]))
                     d_subs = Dict(veexx.args[1] => veexx.args[2]
                         for veexx in ex_aux.args)
+                    indx1 = alhs.args[2:end]
                     ex_tuple = :( [$(indx1...)] )
                     ex_tuple = subs(ex_tuple, d_subs)
                     ex_tuple = :( size( $(Expr(:tuple, ex_tuple.args...)) ))
@@ -655,23 +633,26 @@ function _defs_preamble!(preamble::Expr, fnargs,
                     push!(v_preamb, var1)
                     continue
                     #
-                elseif in(alhs, v_newindx)
+                elseif in(alhs, v_newindx) || isindexed(arhs)
                     # `alhs` is an aux indexed var, so something in `arhs`
-                    # is indexed. Declaring `alhs` here assumes it is a vector
+                    # is indexed.
 
                     in(alhs, v_preamb) && continue
 
                     vars_indexed = findex(:(_X[_i...]), arhs)
 
-                    # NOTE: Use the size of the first indexed var of
-                    # `arhs` to define the declaration of the new array.
-                    var1 = vars_indexed[1].args[1]
-                    indx1 = vars_indexed[1].args[2:end]
+                    # NOTE: Use the size of the var with more indices
+                    # to define the declaration of the new array.
+                    iimax, ii_indx = findmax(
+                        [length(find_indices(aa)[1]) for aa in vars_indexed] )
+                    var1 = vars_indexed[ii_indx].args[1]
+                    indx1 = vars_indexed[ii_indx].args[2:end]
+
                     exx_indx = ones(Int, length(indx1))
                     push!(d_indx, alhs => :($alhs[$(indx1...)]) )
                     push!(d_decl, alhs => :($alhs[$exx_indx...]))
-                    exx = subs(_DECL_ARRAY, Dict(:__var1 => :($alhs),
-                        :__var2 => :(size($var1)) ))
+                    exx = subs(_DECL_ARRAY,
+                        Dict(:__var1 => :($alhs), :__var2 => :(size($var1))) )
                     push!(defspreamble, exx.args...)
                     push!(v_preamb, alhs)
                     continue
@@ -682,7 +663,7 @@ function _defs_preamble!(preamble::Expr, fnargs,
                     in(alhs, v_preamb) && continue
                     vars_indexed = findex(:(_X[_i...]), arhs)
                     if !isempty(vars_indexed)
-                        ex = subs(ex, Dict(vv => 1 for vv in vars_indexed))
+                        ex = subs(ex, Dict(vv => :(one(S)) for vv in vars_indexed))
                     end
                     ex = subs(ex, d_decl)
                     push!(defspreamble, ex)
