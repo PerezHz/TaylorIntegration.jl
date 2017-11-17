@@ -1,4 +1,3 @@
-# Detect if the solution crossed a root of event function g
 doc"""
     surfacecrossing(g_old, g, eventorder::Int)
 
