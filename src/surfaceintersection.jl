@@ -31,18 +31,6 @@ nrconvergencecriterion(g_val::Taylor1{T}, nrabstol::T, nriter::Int, newtoniter::
 
 nrconvergencecriterion(g_val::TaylorN{T}, nrabstol::T, nriter::Int, newtoniter::Int) where {T<:Real} = abs(g_val[0][1]) > nrabstol && nriter ≤ newtoniter
 
-# This function should be moved to TaylorSeries.jl, but the definitive implementation still should be discussed
-function deriv(n::Int, a::Taylor1{T}) where {T <: Number}
-    @assert a.order ≥ n ≥ 0
-    if n==0
-        return a
-    elseif n==1
-        return derivative(a)
-    else
-        return deriv(n-1, derivative(a))
-    end
-end
-
 doc"""
     rootfind!(g, t, x, dx, g_val_old, g_val, eventorder, tvS, xvS, gvS,
         t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val, nrabstol,
