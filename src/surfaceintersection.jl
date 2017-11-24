@@ -68,7 +68,7 @@ function rootfind!(g, t, x, dx, g_val_old, g_val, eventorder, tvS, xvS, gvS,
 
         x_dx[1:dof] = x
         x_dx[dof+1:2dof] = dx
-        g_dg[1] = deriv(eventorder, g_val)
+        g_dg[1] = derivative(g_val, eventorder)
         g_dg[2] = derivative(g_dg[1])
 
         #Newton-Raphson iterations
