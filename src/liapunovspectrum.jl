@@ -105,24 +105,24 @@ function liap_jetcoeffs!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
     nx = length(x)
     dof = round(Int, (-1+sqrt(1+4*nx))/2)
 
-    for ord in 1:order
+    for ord in 0:order-1
         ordnext = ord+1
 
         # Set `taux`, auxiliary Taylor1 variable to order `ord`
-        taux = Taylor1(t.coeffs[1:ord])
+        taux = Taylor1(t.coeffs[1:ordnext])
         # Set `xaux`, auxiliary vector of Taylor1 to order `ord`
         for j in eachindex(x)
-            @inbounds xaux[j] = Taylor1( x[j].coeffs[1:ord] )
+            @inbounds xaux[j] = Taylor1( x[j].coeffs[1:ordnext] )
         end
 
         # Equations of motion
         eqsdiff!(taux, xaux, dx)
-        stabilitymatrix!( eqsdiff!, t[1], view(xaux,1:dof), δx, dδx, jac )
+        stabilitymatrix!( eqsdiff!, t[0], view(xaux,1:dof), δx, dδx, jac )
         @inbounds dx[dof+1:nx] = jac * reshape( xaux[dof+1:nx], (dof,dof) )
 
         # Recursion relations
         for j in eachindex(x)
-            @inbounds x[j][ordnext] = dx[j][ord]/ord
+            @inbounds x[j][ordnext] = dx[j][ord]/ordnext
         end
     end
     nothing
@@ -187,7 +187,7 @@ function liap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
     # Initialize the vector of Taylor1 expansions
     const t = Taylor1(T, order)
     const x = Array{Taylor1{U}}(nx0)
-    @inbounds t[1] = t0
+    @inbounds t[0] = t0
     for i in eachindex(x0)
         @inbounds x[i] = Taylor1( x0[i], order )
     end
@@ -214,7 +214,7 @@ function liap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
         end
         modifiedGS!( jt, QH, RH, aⱼ, qᵢ, vⱼ )
         t0 += δt
-        @inbounds t[1] = t0
+        @inbounds t[0] = t0
         tspan = t0-t00
         nsteps += 1
         @inbounds tv[nsteps] = t0
@@ -269,7 +269,7 @@ function liap_taylorinteg(f, q0::Array{U,1}, trange::Union{Range{T},Vector{T}},
     for i in eachindex(x0)
         @inbounds x[i] = Taylor1( x0[i], order )
     end
-    @inbounds t[1] = trange[1]
+    @inbounds t[0] = trange[1]
     t00 = trange[1]
     tspan = zero(T)
 
@@ -298,7 +298,7 @@ function liap_taylorinteg(f, q0::Array{U,1}, trange::Union{Range{T},Vector{T}},
             end
             modifiedGS!( jt, QH, RH, aⱼ, qᵢ, vⱼ )
             t0 += δt
-            @inbounds t[1] = t0
+            @inbounds t[0] = t0
             nsteps += 1
             @inbounds for ind in 1:dof
                 λtsum[ind] += log(RH[ind,ind])
