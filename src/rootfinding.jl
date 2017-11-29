@@ -32,7 +32,7 @@ nrconvergencecriterion(g_val::Taylor1{T}, nrabstol::T, nriter::Int, newtoniter::
 nrconvergencecriterion(g_val::TaylorN{T}, nrabstol::T, nriter::Int, newtoniter::Int) where {T<:Real} = abs(g_val[0][1]) > nrabstol && nriter ≤ newtoniter
 
 doc"""
-    rootfind!(g, t, x, dx, g_val_old, g_val, eventorder, tvS, xvS, gvS,
+    findroot!(g, t, x, dx, g_val_old, g_val, eventorder, tvS, xvS, gvS,
         t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val, nrabstol,
         newtoniter, nevents) -> nevents
 
@@ -53,7 +53,7 @@ current time; `δt_old` is the last time-step size; `x_dx`, `x_dx_val`, `g_dg`,
 tolerance; `newtoniter` is the maximum allowed number of Newton-Raphson
 iteration; `nevents` is the current number of detected events/crossings.
 """
-function rootfind!(g, t, x, dx, g_val_old, g_val, eventorder, tvS, xvS, gvS,
+function findroot!(g, t, x, dx, g_val_old, g_val, eventorder, tvS, xvS, gvS,
         t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val, nrabstol,
         newtoniter, nevents)
 
@@ -181,7 +181,7 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
         δt_old = δt
         δt = taylorstep!(f!, t, x, dx, xaux, t0, tmax, x0, order, abstol)
         g_val = g(t, x, dx)
-        nevents = rootfind!(g, t, x, dx, g_val_old, g_val, eventorder,
+        nevents = findroot!(g, t, x, dx, g_val_old, g_val, eventorder,
             tvS, xvS, gvS, t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val,
             nrabstol, newtoniter, nevents)
         g_val_old = deepcopy(g_val)
