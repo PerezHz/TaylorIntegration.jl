@@ -356,8 +356,7 @@ doc"""
 General-purpose Taylor integrator for the explicit ODE
 $\dot{x}=f(t,x)$ with initial condition specified by `x0::{T<:Number}`
 or `x0::Vector{T}` at time `t0`.
-It returns a vector with the values of time (independent variable),
-and a vector (of type `typeof(x0)`) with the computed values of
+It returns a vector (of type `typeof(x0)`) with the computed values of
 the dependent variable(s), evaluated *only* at the times specified by
 the range `trange`. The integration stops at `tmax=trange[end]`
 (in which case the last returned values are `t_max`, `x(t_max)`), or
