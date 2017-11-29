@@ -8,7 +8,7 @@ testfiles = (
     "lyapunov.jl",
     "bigfloats.jl",
     "common.jl",
-    "surfaceintersection.jl"
+    "rootfinding.jl"
     )
 
 for file in testfiles
