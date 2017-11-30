@@ -699,9 +699,9 @@ function _recursionloop(fnargs, retvar)
     ll = length(fnargs)
     if ll == 2
 
-        rec_preamb = sanitize( :( $(fnargs[2])[2] = $(retvar)[1] ) )
+        rec_preamb = sanitize( :( $(fnargs[2])[1] = $(retvar)[0] ) )
         rec_fnbody = sanitize(
-            :( $(fnargs[2])[ordnext+1] = $(retvar)[ordnext]/ordnext ) )
+            :( $(fnargs[2])[ordnext] = $(retvar)[ord]/ordnext ) )
         #
     elseif ll == 3
 
