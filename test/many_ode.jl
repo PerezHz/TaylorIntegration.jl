@@ -59,8 +59,8 @@ end
 
 @testset "Test non-autonomous ODE (2): dot{x}=cos(t)" begin
     function f!(t, x, Dx)
-        Dx[1] = one(x[1])
-        Dx[2] = cos(x[1])
+        Dx[1] = one(t)
+        Dx[2] = cos(t)
         nothing
     end
     t0 = 0//1
