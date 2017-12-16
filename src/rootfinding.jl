@@ -1,5 +1,5 @@
 doc"""
-    surfacecrossing(g_old, g, eventorder::Int)
+    surfacecrossing(g_old, g_now, eventorder::Int)
 
 Detect if the solution crossed a root of event function `g`. `g_old` represents
 the last-before-current value of event function `g`; `g_now` represents the
