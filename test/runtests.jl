@@ -6,7 +6,8 @@ testfiles = (
     "complex.jl",
     "jettransport.jl",
     "lyapunov.jl",
-    "bigfloats.jl"
+    "bigfloats.jl",
+    "common.jl"
     )
 
 for file in testfiles
