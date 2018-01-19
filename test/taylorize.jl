@@ -139,7 +139,7 @@ function kepler1!(t, q, dq)
 
     return nothing
 end
-@taylorize_ode function kepler1_parsed!(t, q, dq)
+@taylorize_ode function kepler1_parsed1!(t, q, dq)
     r_p3d2 = (q[1]^2+q[2]^2)^1.5
 
     dq[1] = q[3]
@@ -149,7 +149,7 @@ end
 
     return nothing
 end
-@taylorize_ode function kepler2_parsed!(t, q, dq)
+@taylorize_ode function kepler1_parsed2!(t, q, dq)
     ll = 2
     r2 = zero(q[1])
     for i = 1:ll
@@ -165,19 +165,81 @@ end
     nothing
 end
 
-@testset "Kepler problem (two implementations)" begin
-    @test isdefined(:kepler1_parsed!)
-    @test isdefined(:kepler2_parsed!)
+@testset "Kepler problem (using `^`)" begin
+    @test isdefined(:kepler1_parsed1!)
+    @test isdefined(:kepler1_parsed2!)
     q0 = [0.2, 0.0, 0.0, 3.0]
     tv5, xv5 = taylorinteg(kepler1!, q0, t0, tf, _order, _abstol,
         maxsteps=500000)
-    tv5p, xv5p = taylorinteg(kepler1_parsed!, q0, t0, tf, _order, _abstol,
+    tv5p, xv5p = taylorinteg(kepler1_parsed1!, q0, t0, tf, _order, _abstol,
         maxsteps=500000)
-    tv6p, xv6p = taylorinteg(kepler2_parsed!, q0, t0, tf, _order, _abstol,
+    tv6p, xv6p = taylorinteg(kepler1_parsed2!, q0, t0, tf, _order, _abstol,
         maxsteps=500000)
     @test length(tv5) == length(tv5p) == length(tv6p)
     @test iszero( norm(tv5-tv5p, Inf) )
     @test iszero( norm(xv5-xv5p, Inf) )
     @test iszero( norm(tv5-tv6p, Inf) )
     @test iszero( norm(xv5-xv6p, Inf) )
+end
+
+function kepler2!(t, q, dq)
+    r = sqrt(q[1]^2+q[2]^2)
+    r_p3d2 = r^3
+
+    dq[1] = q[3]
+    dq[2] = q[4]
+    dq[3] = mμ*q[1]/r_p3d2
+    dq[4] = mμ*q[2]/r_p3d2
+
+    return nothing
+end
+@taylorize_ode function kepler2_parsed1!(t, q, dq)
+    r = sqrt(q[1]^2+q[2]^2)
+    r_p3d2 = r^3
+
+    dq[1] = q[3]
+    dq[2] = q[4]
+    dq[3] = mμ*q[1]/r_p3d2
+    dq[4] = mμ*q[2]/r_p3d2
+
+    return nothing
+end
+@taylorize_ode function kepler2_parsed2!(t, q, dq)
+    ll = 2
+    r2 = zero(q[1])
+    for i = 1:ll
+        r2_aux = r2 + q[i]^2
+        r2 = r2_aux
+    end
+    r = sqrt(r2)
+    r_p3d2 = r^3
+    for j = 1:ll
+        dq[j] = q[ll+j]
+        dq[ll+j] = mμ*q[j]/r_p3d2
+    end
+
+    nothing
+end
+
+@testset "Kepler problem (using `sqrt`)" begin
+    @test isdefined(:kepler2_parsed1!)
+    @test isdefined(:kepler2_parsed2!)
+    q0 = [0.2, 0.0, 0.0, 3.0]
+    tv5, xv5 = taylorinteg(kepler2!, q0, t0, tf, _order, _abstol,
+        maxsteps=500000)
+    tv5p, xv5p = taylorinteg(kepler2_parsed1!, q0, t0, tf, _order, _abstol,
+        maxsteps=500000)
+    tv6p, xv6p = taylorinteg(kepler2_parsed2!, q0, t0, tf, _order, _abstol,
+        maxsteps=500000)
+    @test length(tv5) == length(tv5p) == length(tv6p)
+    @show(norm(tv5-tv5p, Inf))
+    # @test iszero( norm(tv5-tv5p, Inf) )
+    @show(norm(xv5-xv5p, Inf))
+    # @test iszero( norm(xv5-xv5p, Inf) )
+    @show(norm(tv5-tv6p, Inf))
+    # @test iszero( norm(tv5-tv6p, Inf) )
+    @show(norm(xv5-xv6p, Inf))
+    # @test iszero( norm(xv5-xv6p, Inf) )
+    @test iszero( norm(tv5p-tv6p, Inf) )
+    @test iszero( norm(xv5p-xv6p, Inf) )
 end
