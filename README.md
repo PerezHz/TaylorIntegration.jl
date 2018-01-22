@@ -1,6 +1,6 @@
 # TaylorIntegration.jl
 
-[![TaylorIntegration](http://pkg.julialang.org/badges/TaylorIntegration_0.5.svg)](http://pkg.julialang.org/?pkg=TaylorIntegration) [![TaylorIntegration](http://pkg.julialang.org/badges/TaylorIntegration_0.6.svg)](http://pkg.julialang.org/?pkg=TaylorIntegration)
+[![TaylorIntegration](http://pkg.julialang.org/badges/TaylorIntegration_0.6.svg)](http://pkg.julialang.org/?pkg=TaylorIntegration) [![TaylorIntegration](http://pkg.julialang.org/badges/TaylorIntegration_0.7.svg)](http://pkg.julialang.org/detail/TaylorIntegration)
 
 [![Build Status](https://travis-ci.org/PerezHz/TaylorIntegration.jl.svg?branch=master)](https://travis-ci.org/PerezHz/TaylorIntegration.jl) [![Build status](https://ci.appveyor.com/api/projects/status/21kovkl598vbbt85/branch/master?svg=true)](https://ci.appveyor.com/project/PerezHz/taylorintegration-jl/branch/master)
 
