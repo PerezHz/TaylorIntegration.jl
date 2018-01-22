@@ -24,7 +24,6 @@ export taylorinteg, liap_taylorinteg
 include("explicitode.jl")
 include("liapunovspectrum.jl")
 include("common.jl")
-
 include("rootfinding.jl")
 
 end #module
