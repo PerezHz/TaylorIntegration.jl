@@ -70,7 +70,7 @@ function jetcoeffs!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
 
         # Set `taux`, auxiliary Taylor1 variable to order `ord`
         @inbounds taux = Taylor1( t.coeffs[1:ordnext] )
-        # Set xaux`, auxiliary vector of Taylor1 to order `ord`
+        # Set `xaux`, auxiliary vector of Taylor1 to order `ord`
         for j in eachindex(x)
             @inbounds xaux[j] = Taylor1( x[j].coeffs[1:ordnext] )
         end

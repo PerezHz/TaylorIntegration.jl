@@ -98,28 +98,24 @@ function liap_jetcoeffs!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
         dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}},
         δx::Array{TaylorN{Taylor1{U}},1}, dδx::Array{TaylorN{Taylor1{U}},1},
         jac::Array{Taylor1{U},2}) where {T<:Real, U<:Number}
-
     order = x[1].order
-
     # Dimensions of phase-space: dof
     nx = length(x)
     dof = round(Int, (-1+sqrt(1+4*nx))/2)
-
     for ord in 0:order-1
         ordnext = ord+1
 
         # Set `taux`, auxiliary Taylor1 variable to order `ord`
-        taux = Taylor1(t.coeffs[1:ordnext])
+        @inbounds taux = Taylor1( t.coeffs[1:ordnext] )
         # Set `xaux`, auxiliary vector of Taylor1 to order `ord`
         for j in eachindex(x)
             @inbounds xaux[j] = Taylor1( x[j].coeffs[1:ordnext] )
         end
 
         # Equations of motion
-        # eqsdiff!(taux, xaux, dx)
         # stabilitymatrix!( eqsdiff!, t, view(xaux,1:dof), δx, dδx, jac )
         for ind in 1:dof
-            @inbounds δx[ind] = xaux[ind] + TaylorN(Taylor1{U},ind,order=1)
+            @inbounds δx[ind] = xaux[ind] + _δv[ind]
         end
         eqsdiff!(taux, δx, dδx)
         jacobian!(jac, dδx)
@@ -178,7 +174,7 @@ function liap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
     const jt = eye(U, dof)
 
     # NOTE: This changes GLOBALLY internal parameters of TaylorN
-    global _δv = set_variables("δ", order=1, numvars=dof)
+    global _δv = set_variables(Taylor1{U}, "δ", order=1, numvars=dof)
 
     # Initial conditions
     @inbounds tv[1] = t0
@@ -259,7 +255,7 @@ function liap_taylorinteg(f, q0::Array{U,1}, trange::Union{Range{T},Vector{T}},
     const jt = eye(U, dof)
 
     # NOTE: This changes GLOBALLY internal parameters of TaylorN
-    global _δv = set_variables("δ", order=1, numvars=dof)
+    global _δv = set_variables(Taylor1{U}, "δ", order=1, numvars=dof)
 
     # Initial conditions
     @inbounds for ind in 1:dof
