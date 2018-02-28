@@ -116,8 +116,15 @@ function liap_jetcoeffs!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
         end
 
         # Equations of motion
-        eqsdiff!(taux, xaux, dx)
-        stabilitymatrix!( eqsdiff!, t, view(xaux,1:dof), δx, dδx, jac )
+        # eqsdiff!(taux, xaux, dx)
+        # stabilitymatrix!( eqsdiff!, t, view(xaux,1:dof), δx, dδx, jac )
+        for ind in 1:dof
+            @inbounds δx[ind] = xaux[ind] + TaylorN(Taylor1{U},ind,order=1)
+        end
+        eqsdiff!(taux, δx, dδx)
+        jacobian!(jac, dδx)
+        @inbounds dx[1:dof] .= constant_term.(dδx)
+        #############
         @inbounds dx[dof+1:nx] = jac * reshape( xaux[dof+1:nx], (dof,dof) )
 
         # Recursion relations
