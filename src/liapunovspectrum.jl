@@ -114,7 +114,7 @@ function liap_jetcoeffs!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
 
         # Equations of motion
         # stabilitymatrix!( eqsdiff!, t, view(xaux,1:dof), δx, dδx, jac )
-        for ind in 1:dof
+        for ind in eachindex(δx)
             @inbounds δx[ind] = xaux[ind] + _δv[ind]
         end
         eqsdiff!(taux, δx, dδx)
