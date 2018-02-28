@@ -1,4 +1,4 @@
-using TaylorSeries, TaylorIntegration, Elliptic
+using TaylorIntegration, Elliptic
 using Base.Test
 
 const _order = 90
