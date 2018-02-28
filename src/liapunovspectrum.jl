@@ -9,13 +9,13 @@ at `x`; `x` is of type `Vector{T<:Number}`. `δx` and `dδx` are two
 auxiliary arrays of type `Vector{TaylorN{T}}` to avoid allocations.
 
 """
-function stabilitymatrix!(eqsdiff!, t0::T,
-        x::SubArray{U,1}, δx::Array{TaylorN{U},1},
-        dδx::Array{TaylorN{U},1}, jac::Array{U,2}) where {T<:Real, U<:Number}
+function stabilitymatrix!(eqsdiff!, t::Taylor1{T},
+        x::SubArray{Taylor1{U},1}, δx::Array{TaylorN{Taylor1{U}},1},
+        dδx::Array{TaylorN{Taylor1{U}},1}, jac::Array{Taylor1{U},2}) where {T<:Real, U<:Number}
     for ind in eachindex(x)
-        @inbounds δx[ind] = x[ind] + TaylorN(U,ind,order=1)
+        @inbounds δx[ind] = x[ind] + TaylorN(Taylor1{U},ind,order=1)
     end
-    eqsdiff!(t0, δx, dδx)
+    eqsdiff!(t, δx, dδx)
     jacobian!( jac, dδx )
     nothing
 end
@@ -117,7 +117,7 @@ function liap_jetcoeffs!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
 
         # Equations of motion
         eqsdiff!(taux, xaux, dx)
-        stabilitymatrix!( eqsdiff!, t[0], view(xaux,1:dof), δx, dδx, jac )
+        stabilitymatrix!( eqsdiff!, t, view(xaux,1:dof), δx, dδx, jac )
         @inbounds dx[dof+1:nx] = jac * reshape( xaux[dof+1:nx], (dof,dof) )
 
         # Recursion relations
