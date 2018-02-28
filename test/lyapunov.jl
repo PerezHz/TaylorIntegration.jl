@@ -15,17 +15,16 @@ const _abstol = 1.0E-20
     end
     σ = 16.0; β = 4.0; ρ = 45.92 #Lorenz system parameters
     t0 = rand() #the initial time
+    xi = set_variables("δ", order=1, numvars=3)
+    t_ = Taylor1([t0,1],_order)
+    δx = Array{TaylorN{Taylor1{Float64}}}(3)
+    dδx = similar(δx)
+    lorenzjac = Array{Taylor1{Float64}}(3,3)
     for i in 1:10
         x0 = 10rand(3) #the initial condition
         x0T = Taylor1.(x0,_order)
-        xi = set_variables("δ", order=1, numvars=length(x0))
-        t_ = Taylor1([t0,1],_order)
-        δx = Array{TaylorN{Taylor1{eltype(x0)}}}(length(x0))
-        # @show δx
-        dδx = similar(δx)
-        lorenzjac = Array{eltype(x0T)}(3,3)
         TaylorIntegration.stabilitymatrix!(lorenz!, t_, view(x0T,:), δx, dδx, lorenzjac)
-        @test trace(lorenzjac.()) == -(σ+one(Float64)+β)
+        @test trace(constant_term.(lorenzjac)) == -(σ+one(Float64)+β)
     end
 end
 
