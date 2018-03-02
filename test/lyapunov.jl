@@ -1,6 +1,6 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
-using TaylorSeries, TaylorIntegration
+using TaylorIntegration
 using Base.Test
 
 const _order = 28
@@ -14,15 +14,17 @@ const _abstol = 1.0E-20
         nothing
     end
     σ = 16.0; β = 4.0; ρ = 45.92 #Lorenz system parameters
-    t0 = 0.0 #the initial time
+    t0 = rand() #the initial time
+    xi = set_variables("δ", order=1, numvars=3)
+    t_ = Taylor1([t0,1],_order)
+    δx = Array{TaylorN{Taylor1{Float64}}}(3)
+    dδx = similar(δx)
+    lorenzjac = Array{Taylor1{Float64}}(3,3)
     for i in 1:10
         x0 = 10rand(3) #the initial condition
-        xi = set_variables("δ", order=1, numvars=length(x0))
-        δx = [ x0[1]+xi[1], x0[2]+xi[2], x0[3]+xi[3] ]
-        dδx = similar(δx)
-        lorenzjac = Array{eltype(x0)}(3,3)
-        TaylorIntegration.stabilitymatrix!(lorenz!, t0, view(x0,:), δx, dδx, lorenzjac)
-        @test trace(lorenzjac) == -(σ+one(Float64)+β)
+        x0T = Taylor1.(x0,_order)
+        TaylorIntegration.stabilitymatrix!(lorenz!, t_, view(x0T,:), δx, dδx, lorenzjac)
+        @test trace(lorenzjac.()) == -(σ+one(Float64)+β)
     end
 end
 
@@ -77,6 +79,11 @@ end
 
     @test lorenztr == -(σ+one(Float64)+β)
 
+    # Number of TaylorN variables should be equal to length of vector of initial conditions
+    xi = set_variables("δ", order=1, numvars=length(x0)-1)
+    @test_throws AssertionError liap_taylorinteg(lorenz!, x0, t0, tmax, 28, _abstol; maxsteps=2)
+
+    xi = set_variables("δ", order=1, numvars=length(x0))
     tv, xv, λv = liap_taylorinteg(lorenz!, x0, t0, tmax, 28, _abstol; maxsteps=2)
 
     @test size(tv) == (3,)

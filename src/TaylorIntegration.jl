@@ -2,10 +2,8 @@
 
 module TaylorIntegration
 
-using TaylorSeries
-
 using Reexport
-@reexport using DiffEqBase
+@reexport using TaylorSeries, DiffEqBase
 
 const warnkeywords =
     (:save_idxs, :d_discontinuities, :unstable_check, :save_everystep,

@@ -1,6 +1,6 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
-using TaylorSeries, TaylorIntegration, Elliptic
+using TaylorIntegration, Elliptic
 using Base.Test
 
 const _order = 28
