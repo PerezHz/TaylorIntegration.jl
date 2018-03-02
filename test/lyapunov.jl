@@ -24,7 +24,7 @@ const _abstol = 1.0E-20
         x0 = 10rand(3) #the initial condition
         x0T = Taylor1.(x0,_order)
         TaylorIntegration.stabilitymatrix!(lorenz!, t_, view(x0T,:), δx, dδx, lorenzjac)
-        @test trace(constant_term.(lorenzjac)) == -(σ+one(Float64)+β)
+        @test trace(lorenzjac.()) == -(σ+one(Float64)+β)
     end
 end
 
