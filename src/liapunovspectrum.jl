@@ -160,8 +160,11 @@ end
     liap_taylorinteg(f, q0, t0, tmax, order, abstol; maxsteps::Int=500)
 
 Similar to [`taylorinteg!`](@ref) for the calculation of the Liapunov
-spectrum. Whenever `length(q0) != TaylorSeries.get_numvars()`, then
-`liap_taylorinteg` changes globally some internal parameters of TaylorN.
+spectrum. Note that the number of `TaylorN` variables should be set
+previously by the user (e.g., by means of `TaylorSeries.set_variables`) and
+should be equal to the length of the vector of initial conditions `q0`.
+Otherwise, whenever `length(q0) != TaylorSeries.get_numvars()`, then
+`liap_taylorinteg` throws an `AssertionError`.
 
 """
 function liap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
@@ -175,13 +178,10 @@ function liap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
     const jt = eye(U, dof)
     const _δv = Array{TaylorN{Taylor1{U}}}(dof)
 
-    if get_numvars() == dof
-        for ind in eachindex(q0)
-            _δv[ind] = TaylorN(Taylor1{U},ind,order=1)
-        end
-    else
-        # NOTE: This changes GLOBALLY internal parameters of TaylorN
-        _δv = set_variables(Taylor1{U}, "δ", order=1, numvars=dof)
+    @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
+
+    for ind in eachindex(q0)
+        _δv[ind] = TaylorN(Taylor1{U},ind,order=1)
     end
 
     # Initial conditions
@@ -263,13 +263,10 @@ function liap_taylorinteg(f, q0::Array{U,1}, trange::Union{Range{T},Vector{T}},
     const jt = eye(U, dof)
     const _δv = Array{TaylorN{Taylor1{U}}}(dof)
 
-    if get_numvars() == dof
-        for ind in eachindex(q0)
-            _δv[ind] = TaylorN(Taylor1{U},ind,order=1)
-        end
-    else
-        # NOTE: This changes GLOBALLY internal parameters of TaylorN
-        _δv = set_variables(Taylor1{U}, "δ", order=1, numvars=dof)
+    @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
+
+    for ind in eachindex(q0)
+        _δv[ind] = TaylorN(Taylor1{U},ind,order=1)
     end
 
     # Initial conditions

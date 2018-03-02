@@ -79,6 +79,11 @@ end
 
     @test lorenztr == -(σ+one(Float64)+β)
 
+    # Number of TaylorN variables should be equal to length of vector of initial conditions
+    xi = set_variables("δ", order=1, numvars=length(x0)-1)
+    @test_throws AssertionError liap_taylorinteg(lorenz!, x0, t0, tmax, 28, _abstol; maxsteps=2)
+
+    xi = set_variables("δ", order=1, numvars=length(x0))
     tv, xv, λv = liap_taylorinteg(lorenz!, x0, t0, tmax, 28, _abstol; maxsteps=2)
 
     @test size(tv) == (3,)
