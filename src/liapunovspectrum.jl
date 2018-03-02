@@ -97,7 +97,7 @@ and `xaux`, `δx` and `dδx` are auxiliary vectors.
 function liap_jetcoeffs!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
         dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}},
         δx::Array{TaylorN{Taylor1{U}},1}, dδx::Array{TaylorN{Taylor1{U}},1},
-        jac::Array{Taylor1{U},2}) where {T<:Real, U<:Number}
+        jac::Array{Taylor1{U},2}, _δv::Array{TaylorN{Taylor1{U}}}) where {T<:Real, U<:Number}
     order = x[1].order
     # Dimensions of phase-space: dof
     nx = length(x)
@@ -111,11 +111,12 @@ function liap_jetcoeffs!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
         for j in eachindex(x)
             @inbounds xaux[j] = Taylor1( x[j].coeffs[1:ordnext] )
         end
-
-        # Equations of motion
+        # Set δx equal to current value of xaux plus 1st-order variations
         for ind in eachindex(δx)
             @inbounds δx[ind] = xaux[ind] + _δv[ind]
         end
+
+        # Equations of motion
         eqsdiff!(taux, δx, dδx)
         @inbounds dx[1:dof] .= constant_term.(dδx)
         # Stability matrix
@@ -141,10 +142,10 @@ and `xaux`, `δx`, `dδx` and `vT` are auxiliary vectors.
 function liap_taylorstep!(f, t::Taylor1{T}, x::Vector{Taylor1{U}}, dx::Vector{Taylor1{U}},
         xaux::Vector{Taylor1{U}}, δx::Array{TaylorN{Taylor1{U}},1},
         dδx::Array{TaylorN{Taylor1{U}},1}, jac::Array{Taylor1{U},2}, t0::T, t1::T, x0::Array{U,1},
-        order::Int, abstol::T) where {T<:Real, U<:Number}
+        order::Int, abstol::T, _δv::Array{TaylorN{Taylor1{U}}}) where {T<:Real, U<:Number}
 
     # Compute the Taylor coefficients
-    liap_jetcoeffs!(f, t, x, dx, xaux, δx, dδx, jac)
+    liap_jetcoeffs!(f, t, x, dx, xaux, δx, dδx, jac, _δv)
 
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(x, abstol)
@@ -171,9 +172,16 @@ function liap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
     const λ = similar(xv)
     const λtsum = similar(q0)
     const jt = eye(U, dof)
+    const _δv = Array{TaylorN{Taylor1{U}}}(dof)
 
-    # NOTE: This changes GLOBALLY internal parameters of TaylorN
-    global _δv = set_variables(Taylor1{U}, "δ", order=1, numvars=dof)
+    if get_numvars() == dof
+        for ind in eachindex(q0)
+            _δv[ind] = TaylorN(Taylor1{U},ind,order=1)
+        end
+    else
+        # NOTE: This changes GLOBALLY internal parameters of TaylorN
+        _δv = set_variables(Taylor1{U}, "δ", order=1, numvars=dof)
+    end
 
     # Initial conditions
     @inbounds tv[1] = t0
@@ -210,7 +218,7 @@ function liap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
     # Integration
     nsteps = 1
     while t0 < tmax
-        δt = liap_taylorstep!(f, t, x, dx, xaux, δx, dδx, jac, t0, tmax, x0, order, abstol)
+        δt = liap_taylorstep!(f, t, x, dx, xaux, δx, dδx, jac, t0, tmax, x0, order, abstol, _δv)
         for ind in eachindex(jt)
             @inbounds jt[ind] = x0[dof+ind]
         end
@@ -252,9 +260,16 @@ function liap_taylorinteg(f, q0::Array{U,1}, trange::Union{Range{T},Vector{T}},
     const λ = similar(xv)
     const λtsum = similar(q0)
     const jt = eye(U, dof)
+    const _δv = Array{TaylorN{Taylor1{U}}}(dof)
 
-    # NOTE: This changes GLOBALLY internal parameters of TaylorN
-    global _δv = set_variables(Taylor1{U}, "δ", order=1, numvars=dof)
+    if get_numvars() == dof
+        for ind in eachindex(q0)
+            _δv[ind] = TaylorN(Taylor1{U},ind,order=1)
+        end
+    else
+        # NOTE: This changes GLOBALLY internal parameters of TaylorN
+        _δv = set_variables(Taylor1{U}, "δ", order=1, numvars=dof)
+    end
 
     # Initial conditions
     @inbounds for ind in 1:dof
@@ -294,7 +309,7 @@ function liap_taylorinteg(f, q0::Array{U,1}, trange::Union{Range{T},Vector{T}},
         t0, t1 = trange[iter], trange[iter+1]
         nsteps = 0
         while nsteps < maxsteps
-            δt = liap_taylorstep!(f, t, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol)
+            δt = liap_taylorstep!(f, t, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol, _δv)
             for ind in eachindex(jt)
                 @inbounds jt[ind] = x0[dof+ind]
             end
