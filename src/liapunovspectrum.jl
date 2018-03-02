@@ -160,7 +160,8 @@ end
     liap_taylorinteg(f, q0, t0, tmax, order, abstol; maxsteps::Int=500)
 
 Similar to [`taylorinteg!`](@ref) for the calculation of the Liapunov
-spectrum.
+spectrum. Whenever `length(q0) != TaylorSeries.get_numvars()`, then
+`liap_taylorinteg` changes globally some internal parameters of TaylorN.
 
 """
 function liap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
