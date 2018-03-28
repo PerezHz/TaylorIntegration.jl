@@ -232,14 +232,10 @@ end
     tv6p, xv6p = taylorinteg(kepler2_parsed2!, q0, t0, tf, _order, _abstol,
         maxsteps=500000)
     @test length(tv5) == length(tv5p) == length(tv6p)
-    @show(norm(tv5-tv5p, Inf))
-    # @test iszero( norm(tv5-tv5p, Inf) )
-    @show(norm(xv5-xv5p, Inf))
-    # @test iszero( norm(xv5-xv5p, Inf) )
-    @show(norm(tv5-tv6p, Inf))
-    # @test iszero( norm(tv5-tv6p, Inf) )
-    @show(norm(xv5-xv6p, Inf))
-    # @test iszero( norm(xv5-xv6p, Inf) )
+    @test iszero( norm(tv5-tv5p, Inf) )
+    @test iszero( norm(xv5-xv5p, Inf) )
+    @test iszero( norm(tv5-tv6p, Inf) )
+    @test iszero( norm(xv5-xv6p, Inf) )
     @test iszero( norm(tv5p-tv6p, Inf) )
     @test iszero( norm(xv5p-xv6p, Inf) )
 end
