@@ -31,15 +31,16 @@ function DiffEqBase.solve{uType,tType,isinplace,AlgType<:TaylorAlgorithm}(
     end
 
     sizeu = size(prob.u0)
+    p = prob.p
 
     if !isinplace && (typeof(prob.u0)<:Vector{Float64} || typeof(prob.u0)<:Number)
-        f! = (t, u, du) -> (du .= prob.f(t, u); 0)
+        f! = (t, u, du) -> (du .= prob.f(u, p, t); 0)
     elseif !isinplace && typeof(prob.u0)<:AbstractArray
-        f! = (t, u, du) -> (du .= vec(prob.f(t, reshape(u, sizeu))); 0)
+        f! = (t, u, du) -> (du .= vec(prob.f(reshape(u, sizeu), p, t)); 0)
     elseif typeof(prob.u0)<:Vector{Float64}
-        f! = prob.f
+        f! = (t, u, du) -> prob.f(du, u, p, t)
     else # Then it's an in-place function on an abstract array
-        f! = (t, u, du) -> (prob.f(t, reshape(u, sizeu),reshape(du, sizeu));
+        f! = (t, u, du) -> (prob.f(reshape(du, sizeu), reshape(u, sizeu), p, t);
                             u = vec(u); du=vec(du); 0)
     end
 
