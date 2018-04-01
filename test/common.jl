@@ -1,7 +1,7 @@
 using TaylorIntegration, Base.Test
 
 @testset "Test integration of ODE with numbers in common interface" begin
-    f(t,u) = u
+    f(u,p,t) = u
     u0 = 0.5
     tspan = (0.0,1.0)
     prob = ODEProblem(f,u0,tspan)
@@ -11,7 +11,7 @@ using TaylorIntegration, Base.Test
 end
 
 @testset "Test integration of ODE with abstract arrays in common interface" begin
-    f(t,u,du) = (du .= u)
+    f(du,u,p,t) = (du .= u)
     u0 = rand(4,2)
     tspan = (0.0,1.0)
     prob = ODEProblem(f,u0,tspan)
