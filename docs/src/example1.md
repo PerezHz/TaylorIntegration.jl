@@ -159,4 +159,4 @@ tT[indx-1], exactsol(tT[indx-1],3.0)
 ```
 Note that, the accuracy imposed in terms of the actual value
 of the exact solution means that the difference between the computed
-and the exact solutions is essentially in the last significant digit.
+and the exact solutions is essentially in the last three figures.
