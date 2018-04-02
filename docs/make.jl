@@ -7,8 +7,9 @@ makedocs(
     sitename = "TaylorIntegration.jl",
     pages    = [
         "Home" => "index.md",
-        "Taylor's method" => "taylor_method.md",
-        "Tutorial" => ["example1.md"],
+        "Background" => "taylor_method.md",
+        "Tutorial" => ["example1.md",
+            "kepler.md"],
         "API"  => "api.md",
     ]
 )
