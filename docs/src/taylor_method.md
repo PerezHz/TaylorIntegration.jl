@@ -1,4 +1,4 @@
-# Integration of ODEs using Taylor's method
+# [Integration of ODEs using Taylor's method](@id taylormethod)
 
 Taylor's integration method is a quite powerful method to integrate ODEs
 which are smooth enough, allowing to reach a precision comparable
@@ -9,7 +9,7 @@ the validity of the series; this is used to sum up the Taylor
 expansion to obtain an approximation of the solution at later time.
 
 
-## The recurrence relation
+## [The recurrence relation](@id rec_rel)
 
 Let us consider the following
 ```math
@@ -66,7 +66,7 @@ Therefore, the coefficients of the Taylor expansion (\ref{eq-solution})
 are obtained *recursively* using Eq. (\ref{eq-recursion}).
 
 
-## Time step
+## [Time step](@id time-step)
 
 In the computer, the expansion (\ref{eq-solution}) has to be computed
 to a finite *order*. Clearly, a more accurate solution is obtained

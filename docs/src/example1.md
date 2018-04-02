@@ -1,12 +1,13 @@
-# Examples
+# [Infinity in finite time](@id example1)
 
-Here, we shall illustrate first with a simple example how the method
-explicitly constructs the solution, and then how to use the package
-itself.
 
 ## Illustration of the method
 
-To illustrate the method, we shall consider the differential equation
+We shall illustrate first with a simple example how the method
+explicitly constructs the solution, and how to use the package
+to obtain it.
+
+We consider the differential equation given by
 ```math
 \begin{equation}
 \label{eq-example1}
@@ -47,35 +48,37 @@ where we kept all terms up to order 1. We thus have
 ``f_{[1]}=2 x_0 x_{[1]} = 2 x_0^3``, which then yields ``x_{[2]} = x_0^3``.
 Repeating this calculation, we obtain
 ```math
-\begin{eqnarray*}
-x(t) & = & x_0 + x_0^2 t + x_0^3 t^2 + \cdots + x_0^{k+1} t^k + \cdots \\
-& = & \frac{x_0}{1-x_0 t}.
-\end{eqnarray*}
+\begin{equation}
+\label{eq-solTaylor}
+x(t) = x_0 + x_0^2 t + x_0^3 t^2 + \cdots + x_0^{k+1} t^k + \cdots.
+\end{equation}
 ```
 
-We note that the solution computed is identical to the exact solution,
-Eq. (\ref{eq-sol1}), recognizing that the series is the geometric series.
-
-We note that the solution written as a series does not manifest in an
-that the solution is only defined for ``t<1/x_0``. Yet, considering the
-actual formulation of the Picard-Lindelöf theorem for ordinary
-differential equations (existence and uniqueness of the solution), we
-can actually learn about this. The theorem imposes that the RHS of the
-differential equation must satisfy a Lipschitz condition. In this case,
-considering ``A>0``, the RHS ``f(x) = x^2`` over the interval
-``I_A=(-A,A)`` satisfies the Lipschitz condition
-``|f(x)-f(y)|=|x^2-y^2|=|x+y|\cdot|x-y| \leq 2A|x-y|``
-for every ``x, y \in I_A``. Therefore, the theorem guarantees the
-existence and uniqueness of the solution for $t \in [0,\delta]$, for any
-$x_0 \in I_A$. Notice that in this case, it is necessary to restrict the
-function to a bounded interval in order to fulfill a Lipschitz condition.
-
-
-# Infinity in finite time
-
-```@meta
-CurrentModule = TaylorIntegration
+The solution given by Eq. (\ref{eq-solTaylor}) is a geometrical
+series, which is identical to the exact solution, Eq. (\ref{eq-sol1}).
+Yet, it is not obvious from the solution that it is only defined
+for ``t<1/x_0``. To see this, we obtain the step size, as described
+previously, for the series truncated to order ``k``.
+The Taylor coefficient of order ``k`` is ``x_{[k]}=x_0^{k+1}``,
+so the time step is
+```math
+h < \Big(\frac{\epsilon_\textrm{tol}}{|x_0^{k+1}|}\Big)^{1/k} =
+\frac{\epsilon_\textrm{tol}^{1/k}}{|x_0|^{1+1/k}}.
 ```
+
+In the limit ``k\to\infty`` we obtain ``h < h_\textrm{max}=1/x_0``,
+which is the domain of existence of the exact solution.
+
+Below, we shall fix a maximum order for the expansion. This entails
+a truncation error which is somewhat controlled through the
+absolute tolerance ``\epsilon_\textrm{tol}``. The key to a correct
+use of Taylor's method is to impose a quite small value of
+``\epsilon_\textrm{tol}`` *together* with a large enough order
+of the expansion.
+
+
+## Implementation
+
 We shall illustrate how to use `TaylorIntegration.jl` to integrate
 Eq. (\ref{eq-example1}) for the initial condition ``x(0)=3``. Notice
 that according to the exact solution Eq. (\ref{eq-sol1}), the solution
@@ -85,505 +88,75 @@ this number can not be represented exactly as a floating-point.
 We first load the required packages and define a function which
 represents the equation of motion.
 
-```@repl example1
+```@example example1
 using TaylorIntegration, Plots, LaTeXStrings
-diffeq(t, x) = x.^2
+pyplot();
+diffeq(t, x) = x^2;
 ```
 
-In `TaylorIntegration.jl` we follow the convention to write the
-argument of the function with the equations of motion using first
-the independent variable (``t``), then the dependent variables (``x``)
-and then the derivatives defining the equations of motion.
+!!! note
+    In `TaylorIntegration.jl`, the convention for writing the
+    function representing the equations of motion is to use first the
+    independent variable (`t`), followed by the dependent variables (`x`)
+    and then the derivatives defining the equations of motion (`dx`).
+    For a single ODE, as in the present case, we omit the last argument
+    which is returned; for more ODEs, both `x` and `dx` are preallocated
+    vectors and the function mutates (modifies) `dx`.
 
-Now, we integrate the equations of motion using [`taylorinteg`](@ref); despite
-of the fact that the solution only exists for ``t<t\mathrm{max}``, below
-we *try* to compute up to ``t_\mathrm{end}=0.34``. For the integration
-presented below, we use a 28-th series expansion, with
-``\epsilon_\textrm{tol} = 10^{-20}``
+Now, we integrate the equations of motion using [`taylorinteg`](@ref);
+despite of the fact that the solution only exists for ``t<t_\textrm{max}``,
+below we shall compute the solution up to ``t_\textrm{end}=0.34``. For
+the integration presented below, we use a 28-th series expansion, with
+``\epsilon_\textrm{tol} = 10^{-20}``.
 
-```@repl example1
-tT, xT = taylorinteg(diffeq, 3.0, 0.0, 0.34, 28, 1e-20, maxsteps=200);
+```@example example1
+tT, xT = taylorinteg(diffeq, 3.0, 0.0, 0.34, 28, 1e-20, maxsteps=150);
 ```
 
-With this parameters, we first note that the end points of the
-calculation did not exceed ``t_\textrm{max}``
-```@repl example1
-tT[end], xT[end]
+With this parameters, we first note that the last point of the
+calculation does not exceed ``t_\textrm{max}``.
+```@example example1
+tT[end]
 ```
 
-~~~~
-Error: UndefVarError: tT not defined
-~~~~
-
-
-
-
-How many steps did the Taylor integrator perform?
-
-~~~~{.julia}
-length(xT)-1
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: xT not defined
-~~~~
-
-
-
-
-Below, we show the $x$ vs $t$ plot (log-log):
-
-~~~~{.julia}
-plot(log10(tT[2:end]), log10(xT[2:end]))
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: plot not defined
-~~~~
-
-
-
-~~~~{.julia}
-title!("x vs t (log-log)")
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: title! not defined
-~~~~
-
-
-
-~~~~{.julia}
-xlabel!(L"\log_{10}(t)")
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: @L_str not defined
-~~~~
-
-
-
-~~~~{.julia}
+The following figures displays the computed solution as a function of
+time, in log scale.
+```@example example1
+plot(tT, log10.(xT), shape=:circle)
+xlabel!(L"t")
 ylabel!(L"\log_{10}(x(t))")
-~~~~~~~~~~~~~
+xlims!(0,0.4)
+savefig("fig1.png");
+```
 
+![fig1](fig1.png)
 
-~~~~
-Error: UndefVarError: @L_str not defined
-~~~~
+Clearly, the solution diverges without bound when
+``t\to t_\textrm{max} = 1/3``, i.e., ``x(t)`` approaches infinity in
+finite time.
 
+The next figure shows the relative difference between the numerical
+and the analytical solution in terms of time.
 
-
-
-Does the integrator get past the singularity?
-
-~~~~{.julia}
-tT[end] > 1/3
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: tT not defined
-~~~~
-
-
-
-
-The answer is no! Even if we increase the value of the `maxsteps` keyword in `taylorinteg`, it doesn't get past the singularity!
-
-
-Now, the relative difference between the numerical and analytical solution, $\delta x$, is:
-
-~~~~{.julia}
-δxT = (xT.-exactsol(tT, 3.0))./exactsol(tT, 3.0);
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: tT not defined
-~~~~
-
-
-
-
-The $\delta x$ vs $t$ plot (logscale):
-
-~~~~{.julia}
-plot(tT[6:end], log10(abs(δxT[6:end])))
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: plot not defined
-~~~~
-
-
-
-~~~~{.julia}
-title!("Relative error (semi-log)")
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: title! not defined
-~~~~
-
-
-
-~~~~{.julia}
+```@example example1
+exactsol(t, x0) = x0 / (1 - x0 * t)
+δxT = abs.(xT .- exactsol.(tT, 3.0)) ./ exactsol.(tT, 3.0);
+plot(tT[6:end], log10.(δxT[6:end]), shape=:circle)
 xlabel!(L"t")
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: @L_str not defined
-~~~~
-
-
-
-~~~~{.julia}
 ylabel!(L"\log_{10}(\delta x(t))")
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: @L_str not defined
-~~~~
-
-
-
-
-We observe that, while the execution time is ~10 times longer wrt 4th-order RK, the numerical solution obtained by the Taylor integrator stays within $10^{-12}$ of the analytical solution, for a same number of steps.
-
-Now, that happens if we use a higher order Runge Kutta method to integrate this problem?
-
-
-## 3. Runge-Kutta-Fehlberg 7/8 method
-
-
-Here we use the Runge-Kutta-Fehlberg 7/8 method, included in `ODE.jl`, to integrate the same problem as before.
-
-~~~~{.julia}
-@time t78, x78 = ode78(diffeq, 3.0, [0.0, 0.34]); #warmup lap
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: ode78 not defined
-~~~~
-
-
-
-~~~~{.julia}
-@time t78, x78 = ode78(diffeq, 3.0, [0.0, 0.34]);
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: ode78 not defined
-~~~~
-
-
-
-
-Plot $x$ vs $t$ (log-log):
-
-~~~~{.julia}
-plot(log10(t78[2:end]), log10(x78[2:end]))
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: plot not defined
-~~~~
-
-
-
-~~~~{.julia}
-title!("x vs t (log-log)")
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: title! not defined
-~~~~
-
-
-
-~~~~{.julia}
-xlabel!(L"\log_{10}(t)")
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: @L_str not defined
-~~~~
-
-
-
-~~~~{.julia}
-ylabel!(L"\log_{10}(x(t))")
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: @L_str not defined
-~~~~
-
-
-
-
-What is the final state of the system?
-
-~~~~{.julia}
-t78[end], x78[end]
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: t78 not defined
-~~~~
-
-
-
-
-Does the integrator get past the singularity?
-
-~~~~{.julia}
-t78[end]>1/3
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: t78 not defined
-~~~~
-
-
-
-
-The answer is yes! So the last value of the solution is meaningless:
-
-~~~~{.julia}
-x78[end] #this value is meaningless
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: x78 not defined
-~~~~
-
-
-
-
-How many steps did the RK integrator perform?
-
-~~~~{.julia}
-length(x78)-1
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: x78 not defined
-~~~~
-
-
-
-
-The relative difference between the numerical and analytical solution, $\delta x$, is:
-
-~~~~{.julia}
-δx78 = (x78-exactsol(t78, 3.0))./exactsol(t78, 3.0) #error relative to analytical solution
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: x78 not defined
-~~~~
-
-
-
-~~~~{.julia}
-;
-~~~~~~~~~~~~~
-
-
-
-
-The $\delta x$ vs $t$ plot (semilog):
-
-~~~~{.julia}
-plot(t78[2:end], log10(abs(δx78[2:end])))
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: plot not defined
-~~~~
-
-
-
-~~~~{.julia}
-title!("Relative error (semi-log)")
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: title! not defined
-~~~~
-
-
-
-~~~~{.julia}
-xlabel!(L"t")
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: @L_str not defined
-~~~~
-
-
-
-~~~~{.julia}
-ylabel!(L"\log_{10}(\delta x(t))")
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: @L_str not defined
-~~~~
-
-
-
-
-This time, the RKF 7/8 integrator is "only" twice as fast as the Taylor integrator, but the error continues to be greater than the error from the latter by several orders of magnitude.
-
-
-## 4. Adaptive 4th-order RK, stringer tolerance
-
-
-As a last example, we will integrate once again our problem using a 4th-order adaptive RK integrator, but imposing a stringer tolerance:
-
-~~~~{.julia}
-@time tRK_, xRK_ = ode45(diffeq, 3.0, [0.0, 0.34], abstol=1e-8, reltol=1e-8 ); #warmup lap
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: ode45 not defined
-~~~~
-
-
-
-~~~~{.julia}
-@time tRK_, xRK_ = ode45(diffeq, 3.0, [0.0, 0.34], abstol=1e-8, reltol=1e-8 );
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: ode45 not defined
-~~~~
-
-
-
-~~~~{.julia}
-;
-~~~~~~~~~~~~~
-
-
-
-
-Now, the integrator takes 10 times longer to complete the integration than the Taylor method.
-
-
-Does it get past the singularity?
-
-~~~~{.julia}
-tRK_[end] > 1/3
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: tRK_ not defined
-~~~~
-
-
-
-
-Yes! So, once again, the last value reported by the integrator is completely meaningless. But, has it attained a higher precision than the Taylor method? Well, let's calculate once again the numerical error relative to the analytical solution:
-
-~~~~{.julia}
-δxRK_ = (xRK_-exactsol(tRK_, 3.0))./exactsol(tRK_, 3.0);
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: xRK_ not defined
-~~~~
-
-
-
-
-And now, let's plot this relative error vs time:
-
-~~~~{.julia}
-plot(tRK_[2:end], log10(abs(δxRK_[2:end])))
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: plot not defined
-~~~~
-
-
-
-~~~~{.julia}
-title!("Relative error (semi-log)")
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: title! not defined
-~~~~
-
-
-
-~~~~{.julia}
-xlabel!(L"t")
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: @L_str not defined
-~~~~
-
-
-
-~~~~{.julia}
-ylabel!(L"\log_{10}(\delta x(t))")
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: @L_str not defined
-~~~~
-
-
-
-~~~~{.julia}
-ylims!(-20,20)
-~~~~~~~~~~~~~
-
-
-~~~~
-Error: UndefVarError: ylims! not defined
-~~~~
-
-
-
-
-The numerical error has actually gotten worse! `TaylorIntegration.jl` is indeed a really competitive package to integrate ODEs.
+xlims!(0, 0.4)
+savefig("fig2.png");
+```
+
+![fig2](fig2.png)
+
+To put in perspective how good is the constructed solution, we
+impose (arbitrarily) a relative accuracy of ``10^{-13}``; the time until
+such accuracy is satisfied is given by:
+```@example example1
+indx = findfirst(δxT .> 1.0e-13)
+tT[indx-1], exactsol(tT[indx-1],3.0)
+```
+Note that, the accuracy imposed in terms of the actual value
+of the exact solution means that the difference between the computed
+and the exact solutions is essentially in the last significant digit.
