@@ -730,14 +730,14 @@ end
 
 
 """
-`@taylorize_ode ex`
+`@taylorize ex`
 
 Used only when `ex` is the definition of a function. It
 evaluates `ex` and also the parsed function corresponding
 to `ex` in terms of the mutating functions of TaylorSeries.
 
 """
-macro taylorize_ode( ex )
+macro taylorize( ex )
     nex = _make_parsed_jetcoeffs(ex)
     # @show(ex)
     println()

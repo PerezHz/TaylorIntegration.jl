@@ -19,7 +19,7 @@ const tf = 1000.0
 const b1 = 3.0
 xdot1(t, x) = b1-x^2
 ll = length(methods(TaylorIntegration.jetcoeffs!))
-@taylorize_ode xdot1_parsed(t, x) = b1-x^2
+@taylorize xdot1_parsed(t, x) = b1-x^2
 
 @testset "Scalar case: xdot(t,x) = b-x^2" begin
     @test length(methods(TaylorIntegration.jetcoeffs!)) == ll+1
@@ -35,7 +35,7 @@ ll = length(methods(TaylorIntegration.jetcoeffs!))
 end
 
 xdot2(t, x) = -9.81 + zero(t)
-@taylorize_ode xdot2_parsed(t, x) = -9.81
+@taylorize xdot2_parsed(t, x) = -9.81
 
 @testset "Scalar case: xdot(t,x) = -9.81" begin
     @test isdefined(:xdot2_parsed)
@@ -55,7 +55,7 @@ function pendulum!(t, x, dx)
     dx[2] = -sin( x[1] )
     nothing
 end
-@taylorize_ode function pendulum_parsed!(t, x, dx)
+@taylorize function pendulum_parsed!(t, x, dx)
     dx[1] = x[2]
     dx[2] = -sin( x[1] )
     nothing  # `return` is needed at the end, for the vectorial case
@@ -76,7 +76,7 @@ end
 # Complex dependent variables
 const cc = complex(0.0,1.0)
 eqscmplx(t,x) = cc*x
-@taylorize_ode eqscmplx_parsed(t,x) = cc*x
+@taylorize eqscmplx_parsed(t,x) = cc*x
 
 @testset "Complex dependent variable" begin
     @test isdefined(:eqscmplx_parsed)
@@ -103,7 +103,7 @@ function multpendula!(t, x, dx)
     end
     return nothing
 end
-@taylorize_ode function multpendula_parsed!(t, x, dx)
+@taylorize function multpendula_parsed!(t, x, dx)
     for i in nnrange
         dx[i] = x[NN+i]
         dx[i+NN] = -sin( x[i] )
@@ -139,7 +139,7 @@ function kepler1!(t, q, dq)
 
     return nothing
 end
-@taylorize_ode function kepler1_parsed1!(t, q, dq)
+@taylorize function kepler1_parsed1!(t, q, dq)
     r_p3d2 = (q[1]^2+q[2]^2)^1.5
 
     dq[1] = q[3]
@@ -149,7 +149,7 @@ end
 
     return nothing
 end
-@taylorize_ode function kepler1_parsed2!(t, q, dq)
+@taylorize function kepler1_parsed2!(t, q, dq)
     ll = 2
     r2 = zero(q[1])
     for i = 1:ll
@@ -193,7 +193,7 @@ function kepler2!(t, q, dq)
 
     return nothing
 end
-@taylorize_ode function kepler2_parsed1!(t, q, dq)
+@taylorize function kepler2_parsed1!(t, q, dq)
     r = sqrt(q[1]^2+q[2]^2)
     r_p3d2 = r^3
 
@@ -204,7 +204,7 @@ end
 
     return nothing
 end
-@taylorize_ode function kepler2_parsed2!(t, q, dq)
+@taylorize function kepler2_parsed2!(t, q, dq)
     ll = 2
     r2 = zero(q[1])
     for i = 1:ll
