@@ -24,7 +24,6 @@ include("explicitode.jl")
 include("lyapunovspectrum.jl")
 include("common.jl")
 include("rootfinding.jl")
-
 include("parse_eqs.jl")
 
 end #module
