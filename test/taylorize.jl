@@ -239,3 +239,12 @@ end
     @test iszero( norm(tv5p-tv6p, Inf) )
     @test iszero( norm(xv5p-xv6p, Inf) )
 end
+
+@testset "Test for wrong number of function arguments" begin
+    ex = :(@taylorize function f_parsed!(t, x, dx, y)
+        dx[1] = x[2]
+        dx[2] = -sin( x[1] )
+        nothing  # `return` is needed at the end, for the vectorial case
+    end)
+    @test_throws ArgumentError eval(ex)
+end

@@ -100,7 +100,7 @@ function _extract_parts(ex)
     @capture( shortdef(ex), ffn_(ffnargs__) = fnbody_ ) ||
         throw(ArgumentError("It must be a function call:\n $ex"))
 
-    # Cleam-up `ffn`
+    # Clean-up `ffn`
     fn = isa(ffn, Symbol) ? ffn : ffn.args[1]
 
     # Clean-up (from declarations) `ffnargs`
@@ -122,7 +122,7 @@ function _extract_parts(ex)
     end
 
     # Special case: the last arg of the function is a simple
-    # assignement (symbol), a numerical value or simply `noting`
+    # assignement (symbol), a numerical value or simply `nothing`
     if isa(fnbody.args[1].args[end], Symbol)
         # This accouns the case of having `nothing` at the end of the function
         if fnbody.args[1].args[end] == :nothing
