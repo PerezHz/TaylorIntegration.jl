@@ -240,7 +240,7 @@ end
     @test iszero( norm(xv5p-xv6p, Inf) )
 end
 
-@testset "Test for wrong number of function arguments" begin
+@testset "Test macro for wrong number of function arguments" begin
     ex = :(@taylorize function f_p!(t, x, dx, y)
         dx[1] = x[2]
         dx[2] = -sin( x[1] )
@@ -249,17 +249,22 @@ end
     @test_throws ArgumentError eval(ex)
 end
 
-@testset "Test for not-yet-implemented features" begin
+@testset "Test macro for not-yet-implemented features" begin
     ex = :(@taylorize function f_p!(t, x)
         true && x
     end)
     @test_throws ArgumentError eval(ex)
 end
 
-@testset "Test for not an `Expr`" begin
+@testset "Test macro for not an `Expr`" begin
     ex = :(@taylorize function f_p!(t, x)
         "a"
     end)
+    @test_throws ArgumentError eval(ex)
+end
+
+@testset "Test macro for not a function call" begin
+    ex = :(@taylorize begin x=1; x+x end)
     @test_throws ArgumentError eval(ex)
 end
 
