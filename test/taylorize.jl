@@ -256,4 +256,11 @@ end
     @test_throws ArgumentError eval(ex)
 end
 
+@testset "Test for not an `Expr`" begin
+    ex = :(@taylorize function f_p!(t, x)
+        "a"
+    end)
+    @test_throws ArgumentError eval(ex)
+end
+
 
