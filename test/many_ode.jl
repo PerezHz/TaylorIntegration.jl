@@ -2,6 +2,7 @@
 
 using TaylorIntegration
 using Test
+using LinearAlgebra: Transpose
 
 const _order = 28
 const _abstol = 1.0E-20
@@ -29,6 +30,7 @@ const tT = Taylor1(_order)
 
     tv, xv = taylorinteg(eqs_mov!, q0, 0.0, 0.5, _order, _abstol)
     @test length(tv) == 501
+    @test isa(xv, SubArray)
     @test xv[1,:] == q0
     @test tv[end] < 1/3
 
@@ -36,7 +38,7 @@ const tT = Taylor1(_order)
     xv = taylorinteg(eqs_mov!, q0, trange, _order, _abstol)
     @test size(xv) == (9,2)
     @test q0 == [3.0, 1.0]
-    # @test typeof(xv) == Array{eltype(q0),2}
+    @test typeof(xv) == Transpose{eltype(q0), Array{eltype(q0),2}}
     @test xv[1,1:end] == q0
     @test (isnan(xv[4,1]) && isnan(xv[4,2]))
     @test (isnan(xv[end,1]) && isnan(xv[end,2]))
@@ -49,7 +51,7 @@ const tT = Taylor1(_order)
     @test xv2[1:3,:] ≈ xv[1:3,:] atol=eps() rtol=0.0
     @test size(xv2) == (9,2)
     @test q0 == [3.0, 1.0]
-    # @test typeof(xv2) == Array{eltype(q0),2}
+    @test typeof(xv2) == Transpose{eltype(q0), Array{eltype(q0),2}}
     @test xv2[1,1:end] == q0
     @test (isnan(xv2[4,1]) && isnan(xv2[4,2]))
     @test (isnan(xv2[end,1]) && isnan(xv2[end,2]))

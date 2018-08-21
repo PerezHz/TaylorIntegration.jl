@@ -10,9 +10,11 @@ one is negative); otherwise returns `false`.
 """
 surfacecrossing(g_old::Taylor1{T}, g_now::Taylor1{T}, eventorder::Int) where {T <: Real} = g_old[eventorder]*g_now[eventorder] < zero(T)
 
-surfacecrossing(g_old::Taylor1{Taylor1{T}}, g_now::Taylor1{Taylor1{T}}, eventorder::Int) where {T <: Real} = g_old[eventorder][0]*g_now[eventorder][0] < zero(T)
+surfacecrossing(g_old::Taylor1{Taylor1{T}}, g_now::Taylor1{Taylor1{T}},
+        eventorder::Int) where {T <: Real} = g_old[eventorder][0] * g_now[eventorder][0] < zero(T)
 
-surfacecrossing(g_old::Taylor1{TaylorN{T}}, g_now::Taylor1{TaylorN{T}}, eventorder::Int) where {T <: Real} = g_old[eventorder][0][1]*g_now[eventorder][0][1] < zero(T)
+surfacecrossing(g_old::Taylor1{TaylorN{T}}, g_now::Taylor1{TaylorN{T}},
+        eventorder::Int) where {T <: Real} = g_old[eventorder][0][1] * g_now[eventorder][0][1] < zero(T)
 
 """
     nrconvergencecriterion(g_val, nrabstol::T, nriter::Int, newtoniter::Int) where {T<:Real}
@@ -25,11 +27,14 @@ tolerance; and 2) the number of iterations `nriter` of the Newton-Raphson proces
 is less than the maximum allowed number of iterations, `newtoniter`; otherwise,
 returns `false`.
 """
-nrconvergencecriterion(g_val::T, nrabstol::T, nriter::Int, newtoniter::Int) where {T<:Real} = abs(g_val) > nrabstol && nriter ≤ newtoniter
+nrconvergencecriterion(g_val::T, nrabstol::T, nriter::Int,
+        newtoniter::Int) where {T<:Real} = abs(g_val) > nrabstol && nriter ≤ newtoniter
 
-nrconvergencecriterion(g_val::Taylor1{T}, nrabstol::T, nriter::Int, newtoniter::Int) where {T<:Real} = abs(g_val[0]) > nrabstol && nriter ≤ newtoniter
+nrconvergencecriterion(g_val::Taylor1{T}, nrabstol::T, nriter::Int,
+        newtoniter::Int) where {T<:Real} = abs(g_val[0]) > nrabstol && nriter ≤ newtoniter
 
-nrconvergencecriterion(g_val::TaylorN{T}, nrabstol::T, nriter::Int, newtoniter::Int) where {T<:Real} = abs(g_val[0][1]) > nrabstol && nriter ≤ newtoniter
+nrconvergencecriterion(g_val::TaylorN{T}, nrabstol::T, nriter::Int,
+        newtoniter::Int) where {T<:Real} = abs(g_val[0][1]) > nrabstol && nriter ≤ newtoniter
 
 """
     findroot!(g, t, x, dx, g_val_old, g_val, eventorder, tvS, xvS, gvS,
