@@ -170,13 +170,13 @@ Otherwise, whenever `length(q0) != TaylorSeries.get_numvars()`, then
 function liap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
         order::Int, abstol::T; maxsteps::Int=500) where {T<:Real, U<:Number}
     # Allocation
-    tv = Array{T}(maxsteps+1)
+    tv = Array{T}(undef, maxsteps+1)
     dof = length(q0)
-    xv = Array{U}(dof, maxsteps+1)
+    xv = Array{U}(undef, dof, maxsteps+1)
     λ = similar(xv)
     λtsum = similar(q0)
     jt = eye(U, dof)
-    _δv = Array{TaylorN{Taylor1{U}}}(dof)
+    _δv = Array{TaylorN{Taylor1{U}}}(undef, dof)
 
     @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
 
@@ -197,22 +197,22 @@ function liap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
 
     # Initialize the vector of Taylor1 expansions
     t = Taylor1(T, order)
-    x = Array{Taylor1{U}}(nx0)
+    x = Array{Taylor1{U}}(undef, nx0)
     @inbounds t[0] = t0
     for i in eachindex(x0)
         @inbounds x[i] = Taylor1( x0[i], order )
     end
 
     #Allocate auxiliary arrays
-    dx = Array{Taylor1{U}}(nx0)
-    xaux = Array{Taylor1{U}}(nx0)
-    δx = Array{TaylorN{Taylor1{U}}}(dof)
-    dδx = Array{TaylorN{Taylor1{U}}}(dof)
-    jac = Array{Taylor1{U}}(dof,dof)
+    dx = Array{Taylor1{U}}(undef, nx0)
+    xaux = Array{Taylor1{U}}(undef, nx0)
+    δx = Array{TaylorN{Taylor1{U}}}(undef, dof)
+    dδx = Array{TaylorN{Taylor1{U}}}(undef, dof)
+    jac = Array{Taylor1{U}}(undef, dof,dof)
     fill!(jac, zero(x[1]))
-    QH = Array{U}(dof,dof)
-    RH = Array{U}(dof,dof)
-    aⱼ = Array{U}( dof )
+    QH = Array{U}(undef, dof,dof)
+    RH = Array{U}(undef, dof,dof)
+    aⱼ = Array{U}(undef, dof )
     qᵢ = similar(aⱼ)
     vⱼ = similar(aⱼ)
 
@@ -280,7 +280,7 @@ function liap_taylorinteg(f, q0::Array{U,1}, trange::Union{AbstractRange{T},Vect
     t = Taylor1(T, order)
     x0 = vcat(q0, reshape(jt, dof*dof))
     nx0 = length(x0)
-    x = Array{Taylor1{U}}(nx0)
+    x = Array{Taylor1{U}}(undef, nx0)
     for i in eachindex(x0)
         @inbounds x[i] = Taylor1( x0[i], order )
     end
@@ -289,15 +289,15 @@ function liap_taylorinteg(f, q0::Array{U,1}, trange::Union{AbstractRange{T},Vect
     tspan = zero(T)
 
     #Allocate auxiliary arrays
-    dx = Array{Taylor1{U}}(nx0)
-    xaux = Array{Taylor1{U}}(nx0)
-    δx = Array{TaylorN{Taylor1{U}}}(dof)
-    dδx = Array{TaylorN{Taylor1{U}}}(dof)
-    jac = Array{Taylor1{U}}(dof,dof)
+    dx = Array{Taylor1{U}}(undef, nx0)
+    xaux = Array{Taylor1{U}}(undef, nx0)
+    δx = Array{TaylorN{Taylor1{U}}}(undef, dof)
+    dδx = Array{TaylorN{Taylor1{U}}}(undef, dof)
+    jac = Array{Taylor1{U}}(undef, dof,dof)
     fill!(jac, zero(x[1]))
-    QH = Array{U}(dof,dof)
-    RH = Array{U}(dof,dof)
-    aⱼ = Array{U}( dof )
+    QH = Array{U}(undef, dof,dof)
+    RH = Array{U}(undef, dof,dof)
+    aⱼ = Array{U}(undef, dof )
     qᵢ = similar(aⱼ)
     vⱼ = similar(aⱼ)
 

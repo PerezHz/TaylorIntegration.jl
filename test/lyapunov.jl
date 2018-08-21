@@ -17,9 +17,9 @@ const _abstol = 1.0E-20
     t0 = rand() #the initial time
     xi = set_variables("δ", order=1, numvars=3)
     t_ = Taylor1([t0,1],_order)
-    δx = Array{TaylorN{Taylor1{Float64}}}(3)
+    δx = Array{TaylorN{Taylor1{Float64}}}(undef, 3)
     dδx = similar(δx)
-    lorenzjac = Array{Taylor1{Float64}}(3,3)
+    lorenzjac = Array{Taylor1{Float64}}(undef, 3, 3)
     for i in 1:10
         x0 = 10rand(3) #the initial condition
         x0T = Taylor1.(x0,_order)
@@ -31,9 +31,9 @@ end
 @testset "Test `classicalGS!`" begin
     dof = 3
     jt = rand(dof,dof)
-    QH = Array{eltype(jt)}(dof,dof)
-    RH = Array{eltype(jt)}(dof,dof)
-    aⱼ = Array{eltype(jt)}(dof)
+    QH = Array{eltype(jt)}(undef, dof, dof)
+    RH = Array{eltype(jt)}(undef, dof, dof)
+    aⱼ = Array{eltype(jt)}(undef, dof)
     qᵢ = similar(aⱼ)
     vⱼ = similar(aⱼ)
     TaylorIntegration.classicalGS!( jt, QH, RH, aⱼ, qᵢ, vⱼ )

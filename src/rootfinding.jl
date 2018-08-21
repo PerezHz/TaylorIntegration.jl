@@ -139,15 +139,15 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
         newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
 
     # Allocation
-    tv = Array{T}(maxsteps+1)
+    tv = Array{T}(undef, maxsteps+1)
     dof = length(q0)
-    xv = Array{U}(dof, maxsteps+1)
+    xv = Array{U}(undef, dof, maxsteps+1)
 
     # Initialize the vector of Taylor1 expansions
     t = Taylor1(T, order)
-    x = Array{Taylor1{U}}(dof)
-    dx = Array{Taylor1{U}}(dof)
-    xaux = Array{Taylor1{U}}(dof)
+    x = Array{Taylor1{U}}(undef, dof)
+    dx = Array{Taylor1{U}}(undef, dof)
+    xaux = Array{Taylor1{U}}(undef, dof)
 
     # Initial conditions
     @inbounds t[0] = t0
@@ -167,10 +167,10 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
 
     x_dx = vcat(x, dx)
     g_dg = vcat(g_val, g_val_old)
-    x_dx_val = Array{U}( length(x_dx) )
+    x_dx_val = Array{U}(undef, length(x_dx) )
     g_dg_val = vcat(evaluate(g_val), evaluate(g_val_old))
 
-    tvS = Array{U}(maxsteps+1)
+    tvS = Array{U}(undef, maxsteps+1)
     xvS = similar(xv)
     gvS = similar(tvS)
 
