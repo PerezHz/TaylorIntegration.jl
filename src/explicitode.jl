@@ -1,7 +1,7 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
 # jetcoeffs!
-doc"""
+"""
     jetcoeffs!(eqsdiff, t, x, vT)
 
 Returns an updated `x` using the recursion relation of the
@@ -41,7 +41,7 @@ function jetcoeffs!(eqsdiff, t::Taylor1{T},
     nothing
 end
 
-doc"""
+"""
     jetcoeffs!(eqsdiff!, t, x, dx, xaux, vT)
 
 Mutates `x` in-place using the recursion relation of the
@@ -88,7 +88,7 @@ function jetcoeffs!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
 end
 
 # stepsize
-doc"""
+"""
     stepsize(x, epsilon) -> h
 
 Returns a maximum time-step for a the Taylor expansion `x`
@@ -123,7 +123,7 @@ function stepsize(q::Array{Taylor1{U},1}, epsilon::T) where {T<:Real, U<:Number}
 end
 
 #taylorstep
-doc"""
+"""
     taylorstep!(f, t, x, t0, t1, x0, order, abstol) -> δt, x0
 
 One-step Taylor integration for the ODE $\dot{x}=dx/dt=f(t, x)$
@@ -157,7 +157,7 @@ function taylorstep!(f, t::Taylor1{T}, x::Taylor1{U},
     return δt, x0
 end
 
-doc"""
+"""
     taylorstep!(f!, t, x, dx, xaux, t0, t1, x0, order, abstol) -> δt
 
 One-step Taylor integration for the ODE $\dot{x}=dx/dt=f(t, x)$
@@ -195,7 +195,7 @@ function taylorstep!(f!, t::Taylor1{T},
 end
 
 # taylorinteg
-doc"""
+"""
     taylorinteg(f, x0, t0, tmax, order, abstol; keyword... )
 
 General-purpose Taylor integrator for the explicit ODE
@@ -350,7 +350,7 @@ function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
 end
 
 # Integrate and return results evaluated at given time
-doc"""
+"""
     taylorinteg(f, x0, t0, trange, order, abstol; keyword... )
 
 General-purpose Taylor integrator for the explicit ODE
