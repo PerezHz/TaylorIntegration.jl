@@ -4,7 +4,7 @@ module TaylorIntegration
 
 using Reexport
 @reexport using TaylorSeries, DiffEqBase
-using LinearAlgebra: norm, dot, I
+using LinearAlgebra
 
 const warnkeywords =
     (:save_idxs, :d_discontinuities, :unstable_check, :save_everystep,
