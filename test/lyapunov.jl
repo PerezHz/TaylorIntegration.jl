@@ -1,7 +1,7 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
 using TaylorIntegration
-using Base.Test
+using Test
 
 const _order = 28
 const _abstol = 1.0E-20

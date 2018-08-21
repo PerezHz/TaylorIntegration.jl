@@ -1,5 +1,5 @@
 using TaylorIntegration, Elliptic
-using Base.Test
+using Test
 
 const _order = 90
 const _abstol = 1.0E-77
