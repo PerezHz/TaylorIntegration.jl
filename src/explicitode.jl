@@ -256,8 +256,8 @@ function taylorinteg(f, x0::S,
     taylorinteg(f, x0, t0, tmax, order, abstol, maxsteps=maxsteps)
 end
 
-function taylorinteg(f,
-        q0::Array{S,1}, t0::T, tmax::U, order::Int, abstol::V; maxsteps::Int=500) where {S<:Number, T<:Real, U<:Real, V<:Real}
+function taylorinteg(f, q0::Array{S,1}, t0::T, tmax::U, order::Int,
+        abstol::V; maxsteps::Int=500) where {S<:Number, T<:Real, U<:Real, V<:Real}
 
     #promote to common type before integrating:
     elq0, t0, tmax, abstol, afloat = promote(q0[1], t0, tmax, abstol, one(Float64))
@@ -271,8 +271,8 @@ function taylorinteg(f, x0::U, t0::T, tmax::T, order::Int,
         abstol::T; maxsteps::Int=500) where {T<:Real, U<:Number}
 
     # Allocation
-    tv = Array{T}(maxsteps+1)
-    xv = Array{U}(maxsteps+1)
+    tv = Array{T}(undef, maxsteps+1)
+    xv = Array{U}(undef, maxsteps+1)
 
     # Initialize the Taylor1 expansions
     t = Taylor1( T, order )
@@ -305,19 +305,19 @@ function taylorinteg(f, x0::U, t0::T, tmax::T, order::Int,
     return view(tv,1:nsteps), view(xv,1:nsteps)
 end
 
-function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
-        order::Int, abstol::T; maxsteps::Int=500) where {T<:Real, U<:Number}
+function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T, order::Int,
+        abstol::T; maxsteps::Int=500) where {T<:Real, U<:Number}
 
     # Allocation
-    tv = Array{T}(maxsteps+1)
+    tv = Array{T}(undef, maxsteps+1)
     dof = length(q0)
-    xv = Array{U}(dof, maxsteps+1)
+    xv = Array{U}(undef, dof, maxsteps+1)
 
     # Initialize the vector of Taylor1 expansions
     t = Taylor1(T, order)
-    x = Array{Taylor1{U}}(dof)
-    dx = Array{Taylor1{U}}(dof)
-    xaux = Array{Taylor1{U}}(dof)
+    x = Array{Taylor1{U}}(undef, dof)
+    dx = Array{Taylor1{U}}(undef, dof)
+    xaux = Array{Taylor1{U}}(undef, dof)
 
     # Initial conditions
     @inbounds t[0] = t0
@@ -422,7 +422,7 @@ function taylorinteg(f, x0::U, trange::Union{AbstractRange{T},Vector{T}},
 
     # Allocation
     nn = length(trange)
-    xv = Array{U}(nn)
+    xv = Array{U}(undef, nn)
     fill!(xv, T(NaN))
 
     # Initialize the Taylor1 expansions
@@ -467,16 +467,16 @@ function taylorinteg(f!, q0::Array{U,1}, trange::Union{AbstractRange{T},Vector{T
     dof = length(q0)
     x0 = similar(q0, eltype(q0), dof)
     fill!(x0, T(NaN))
-    xv = Array{eltype(q0)}(dof, nn)
+    xv = Array{eltype(q0)}(undef, dof, nn)
     for ind in 1:nn
         @inbounds xv[:,ind] .= x0
     end
 
     # Initialize the vector of Taylor1 expansions
     t = Taylor1( T, order )
-    x = Array{Taylor1{U}}(dof)
-    dx = Array{Taylor1{U}}(dof)
-    xaux = Array{Taylor1{U}}(dof)
+    x = Array{Taylor1{U}}(undef, dof)
+    dx = Array{Taylor1{U}}(undef, dof)
+    xaux = Array{Taylor1{U}}(undef, dof)
 
     # Initial conditions
     @inbounds t[0] = trange[1]

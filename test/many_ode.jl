@@ -18,8 +18,8 @@ const tT = Taylor1(_order)
     t0 = 0.0
     q0 = [3.0, 1.0]
     q0T = [Taylor1(q0[1], _order), Taylor1(q0[2], _order)]
-    xdotT = Array{Taylor1{Float64}}(length(q0))
-    xaux = Array{Taylor1{Float64}}(length(q0))
+    xdotT = Array{Taylor1{Float64}}(undef, length(q0))
+    xaux = Array{Taylor1{Float64}}(undef, length(q0))
     tT[1] = t0
     TaylorIntegration.jetcoeffs!(eqs_mov!, tT, q0T, xdotT, xaux)
     @test q0T[1].coeffs[end] == 3.0^(_order+1)
