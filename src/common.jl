@@ -7,13 +7,13 @@ TaylorMethod() = error("Maximum order must be specified for the Taylor method")
 
 export TaylorMethod
 
-function DiffEqBase.solve{uType,tType,isinplace,AlgType<:TaylorAlgorithm}(
+function DiffEqBase.solve(
     prob::AbstractODEProblem{uType,tType,isinplace},
     alg::AlgType,
     timeseries=[],ts=[],ks=[];
     verbose=true, abstol = 1e-6, save_start = true,
     timeseries_errors=true, maxiters = 1000000,
-    callback=nothing, kwargs...)
+    callback=nothing, kwargs...) where {uType,tType,isinplace,AlgType<:TaylorAlgorithm}
 
     if verbose
         warned = !isempty(kwargs) && check_keywords(alg, kwargs, warnlist)

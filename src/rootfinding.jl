@@ -59,8 +59,8 @@ function findroot!(g, t, x, dx, g_val_old, g_val, eventorder, tvS, xvS, gvS,
 
     if surfacecrossing(g_val_old, g_val, eventorder)
         #auxiliary variables
-        const nriter = 1
-        const dof = length(x)
+        nriter = 1
+        dof = length(x)
 
         #first guess: linear interpolation
         slope = (g_val[eventorder]-g_val_old[eventorder])/δt_old
@@ -139,15 +139,15 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
         newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
 
     # Allocation
-    const tv = Array{T}(maxsteps+1)
+    tv = Array{T}(maxsteps+1)
     dof = length(q0)
-    const xv = Array{U}(dof, maxsteps+1)
+    xv = Array{U}(dof, maxsteps+1)
 
     # Initialize the vector of Taylor1 expansions
-    const t = Taylor1(T, order)
-    const x = Array{Taylor1{U}}(dof)
-    const dx = Array{Taylor1{U}}(dof)
-    const xaux = Array{Taylor1{U}}(dof)
+    t = Taylor1(T, order)
+    x = Array{Taylor1{U}}(dof)
+    dx = Array{Taylor1{U}}(dof)
+    xaux = Array{Taylor1{U}}(dof)
 
     # Initial conditions
     @inbounds t[0] = t0
@@ -157,26 +157,26 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
     @inbounds xv[:,1] .= q0
 
     #Some auxiliary arrays for root-finding/event detection/Poincaré surface of section evaluation
-    const g_val = zero(g(t,x,x))
-    const g_val_old = zero(g_val)
-    const slope = zero(U)
-    const dt_li = zero(U)
-    const dt_nr = zero(U)
-    const δt = zero(U)
-    const δt_old = zero(U)
+    g_val = zero(g(t,x,x))
+    g_val_old = zero(g_val)
+    slope = zero(U)
+    dt_li = zero(U)
+    dt_nr = zero(U)
+    δt = zero(U)
+    δt_old = zero(U)
 
-    const x_dx = vcat(x, dx)
-    const g_dg = vcat(g_val, g_val_old)
-    const x_dx_val = Array{U}( length(x_dx) )
-    const g_dg_val = vcat(evaluate(g_val), evaluate(g_val_old))
+    x_dx = vcat(x, dx)
+    g_dg = vcat(g_val, g_val_old)
+    x_dx_val = Array{U}( length(x_dx) )
+    g_dg_val = vcat(evaluate(g_val), evaluate(g_val_old))
 
-    const tvS = Array{U}(maxsteps+1)
-    const xvS = similar(xv)
-    const gvS = similar(tvS)
+    tvS = Array{U}(maxsteps+1)
+    xvS = similar(xv)
+    gvS = similar(tvS)
 
     # Integration
-    const nsteps = 1
-    const nevents = 1 #number of detected events
+    nsteps = 1
+    nevents = 1 #number of detected events
     while t0 < tmax
         δt_old = δt
         δt = taylorstep!(f!, t, x, dx, xaux, t0, tmax, x0, order, abstol)
