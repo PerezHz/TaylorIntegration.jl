@@ -14,7 +14,7 @@ const warnkeywords =
      :calck, :progress, :timeseries_steps, :tstops, :saveat, :dense)
 
 function __init__()
-    const global warnlist = Set(warnkeywords)
+    global warnlist = Set(warnkeywords)
 end
 
 export taylorinteg, liap_taylorinteg

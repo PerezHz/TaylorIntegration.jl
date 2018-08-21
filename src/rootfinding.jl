@@ -1,4 +1,4 @@
-doc"""
+"""
     surfacecrossing(g_old, g_now, eventorder::Int)
 
 Detect if the solution crossed a root of event function `g`. `g_old` represents
@@ -14,7 +14,7 @@ surfacecrossing(g_old::Taylor1{Taylor1{T}}, g_now::Taylor1{Taylor1{T}}, eventord
 
 surfacecrossing(g_old::Taylor1{TaylorN{T}}, g_now::Taylor1{TaylorN{T}}, eventorder::Int) where {T <: Real} = g_old[eventorder][0][1]*g_now[eventorder][0][1] < zero(T)
 
-doc"""
+"""
     nrconvergencecriterion(g_val, nrabstol::T, nriter::Int, newtoniter::Int) where {T<:Real}
 
 A rudimentary convergence criterion for the Newton-Raphson root-finding process.
@@ -31,7 +31,7 @@ nrconvergencecriterion(g_val::Taylor1{T}, nrabstol::T, nriter::Int, newtoniter::
 
 nrconvergencecriterion(g_val::TaylorN{T}, nrabstol::T, nriter::Int, newtoniter::Int) where {T<:Real} = abs(g_val[0][1]) > nrabstol && nriter ≤ newtoniter
 
-doc"""
+"""
     findroot!(g, t, x, dx, g_val_old, g_val, eventorder, tvS, xvS, gvS,
         t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val, nrabstol,
         newtoniter, nevents) -> nevents
@@ -95,7 +95,7 @@ function findroot!(g, t, x, dx, g_val_old, g_val, eventorder, tvS, xvS, gvS,
     return nevents
 end
 
-doc"""
+"""
     taylorinteg(f, g, x0, t0, tmax, order, abstol; kwargs... )
 
 Root-finding method of `taylorinteg`. Given a function `g(t, x, dx)`,
