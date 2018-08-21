@@ -1,4 +1,4 @@
-using TaylorIntegration, Base.Test
+using TaylorIntegration, Test
 
 @testset "Test integration of ODE with numbers in common interface" begin
     f(u,p,t) = u
