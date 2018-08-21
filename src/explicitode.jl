@@ -6,7 +6,7 @@
 
 Returns an updated `x` using the recursion relation of the
 derivatives obtained from the differential equations
-$\dot{x}=dx/dt=f(t,x)$.
+\$\\dot{x}=dx/dt=f(t,x)\$.
 
 `eqsdiff` is the function defining the RHS of the ODE,
 `x` contains the Taylor1 expansion of the dependent variable(s) and
@@ -46,7 +46,7 @@ end
 
 Mutates `x` in-place using the recursion relation of the
 derivatives obtained from the differential equations
-$\dot{x}=dx/dt=f(t,x)$.
+\$\\dot{x}=dx/dt=f(t,x)\$.
 
 `eqsdiff!` is the function defining the RHS of the ODE,
 `x` contains the Taylor1 expansion of the dependent variables and
@@ -126,8 +126,8 @@ end
 """
     taylorstep!(f, t, x, t0, t1, x0, order, abstol) -> δt, x0
 
-One-step Taylor integration for the ODE $\dot{x}=dx/dt=f(t, x)$
-with initial conditions $x(t_0)=x_0$, computed from `t0` up to
+One-step Taylor integration for the ODE \$\\dot{x}=dx/dt=f(t, x)\$
+with initial conditions \$x(t_0)=x_0\$, computed from `t0` up to
 `t1`. Returns the time-step of the actual integration carried out
 and the updated value of `x0`.
 
@@ -160,8 +160,8 @@ end
 """
     taylorstep!(f!, t, x, dx, xaux, t0, t1, x0, order, abstol) -> δt
 
-One-step Taylor integration for the ODE $\dot{x}=dx/dt=f(t, x)$
-with initial conditions $x(t_0)=x_0$, computed from `t0` up to
+One-step Taylor integration for the ODE \$\\dot{x}=dx/dt=f(t, x)\$
+with initial conditions \$x(t_0)=x_0\$, computed from `t0` up to
 `t1`, returning the time-step of the actual integration carried out
 and updating (in-place) `x0`.
 
@@ -199,7 +199,7 @@ end
     taylorinteg(f, x0, t0, tmax, order, abstol; keyword... )
 
 General-purpose Taylor integrator for the explicit ODE
-$\dot{x}=f(t,x)$ with initial condition specified by `x0`
+\$\\dot{x}=f(t,x)\$ with initial condition specified by `x0`
 at time `t0`. The initial condition `x0` may be of type `T<:Number`
 or a `Vector{T}`, with `T` including `TaylorN{T}`; the latter case
 is of interest for jet transport applications.
@@ -354,7 +354,7 @@ end
     taylorinteg(f, x0, t0, trange, order, abstol; keyword... )
 
 General-purpose Taylor integrator for the explicit ODE
-$\dot{x}=f(t,x)$ with initial condition specified by `x0::{T<:Number}`
+\$\\dot{x}=f(t,x)\$ with initial condition specified by `x0::{T<:Number}`
 or `x0::Vector{T}` at time `t0`.
 It returns a vector (of type `typeof(x0)`) with the computed values of
 the dependent variable(s), evaluated *only* at the times specified by
