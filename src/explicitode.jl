@@ -271,12 +271,12 @@ function taylorinteg(f, x0::U, t0::T, tmax::T, order::Int,
         abstol::T; maxsteps::Int=500) where {T<:Real, U<:Number}
 
     # Allocation
-    const tv = Array{T}(maxsteps+1)
-    const xv = Array{U}(maxsteps+1)
+    tv = Array{T}(maxsteps+1)
+    xv = Array{U}(maxsteps+1)
 
     # Initialize the Taylor1 expansions
-    const t = Taylor1( T, order )
-    const x = Taylor1( x0, order )
+    t = Taylor1( T, order )
+    x = Taylor1( x0, order )
 
     # Initial conditions
     nsteps = 1
@@ -309,15 +309,15 @@ function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
         order::Int, abstol::T; maxsteps::Int=500) where {T<:Real, U<:Number}
 
     # Allocation
-    const tv = Array{T}(maxsteps+1)
+    tv = Array{T}(maxsteps+1)
     dof = length(q0)
-    const xv = Array{U}(dof, maxsteps+1)
+    xv = Array{U}(dof, maxsteps+1)
 
     # Initialize the vector of Taylor1 expansions
-    const t = Taylor1(T, order)
-    const x = Array{Taylor1{U}}(dof)
-    const dx = Array{Taylor1{U}}(dof)
-    const xaux = Array{Taylor1{U}}(dof)
+    t = Taylor1(T, order)
+    x = Array{Taylor1{U}}(dof)
+    dx = Array{Taylor1{U}}(dof)
+    xaux = Array{Taylor1{U}}(dof)
 
     # Initial conditions
     @inbounds t[0] = t0
@@ -422,12 +422,12 @@ function taylorinteg(f, x0::U, trange::Union{Range{T},Vector{T}},
 
     # Allocation
     nn = length(trange)
-    const xv = Array{U}(nn)
+    xv = Array{U}(nn)
     fill!(xv, T(NaN))
 
     # Initialize the Taylor1 expansions
-    const t = Taylor1( T, order )
-    const x = Taylor1( x0, order )
+    t = Taylor1( T, order )
+    x = Taylor1( x0, order )
 
     # Initial conditions
     @inbounds t[0] = trange[1]
@@ -465,18 +465,18 @@ function taylorinteg(f!, q0::Array{U,1}, trange::Union{Range{T},Vector{T}},
     # Allocation
     nn = length(trange)
     dof = length(q0)
-    const x0 = similar(q0, eltype(q0), dof)
+    x0 = similar(q0, eltype(q0), dof)
     fill!(x0, T(NaN))
-    const xv = Array{eltype(q0)}(dof, nn)
+    xv = Array{eltype(q0)}(dof, nn)
     for ind in 1:nn
         @inbounds xv[:,ind] .= x0
     end
 
     # Initialize the vector of Taylor1 expansions
-    const t = Taylor1( T, order )
-    const x = Array{Taylor1{U}}(dof)
-    const dx = Array{Taylor1{U}}(dof)
-    const xaux = Array{Taylor1{U}}(dof)
+    t = Taylor1( T, order )
+    x = Array{Taylor1{U}}(dof)
+    dx = Array{Taylor1{U}}(dof)
+    xaux = Array{Taylor1{U}}(dof)
 
     # Initial conditions
     @inbounds t[0] = trange[1]
