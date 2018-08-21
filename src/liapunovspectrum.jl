@@ -175,7 +175,7 @@ function liap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
     xv = Array{U}(undef, dof, maxsteps+1)
     λ = similar(xv)
     λtsum = similar(q0)
-    jt = eye(U, dof)
+    jt = Matrix{U}(I, dof, dof)
     _δv = Array{TaylorN{Taylor1{U}}}(undef, dof)
 
     @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
@@ -256,12 +256,13 @@ function liap_taylorinteg(f, q0::Array{U,1}, trange::Union{AbstractRange{T},Vect
     # Allocation
     nn = length(trange)
     dof = length(q0)
-    xv = Array{U}(dof, nn)
+    xv = Array{U}(undef, dof, nn)
     fill!(xv, U(NaN))
     λ = similar(xv)
     λtsum = similar(q0)
-    jt = eye(U, dof)
-    _δv = Array{TaylorN{Taylor1{U}}}(dof)
+    # jt = eye(U, dof)
+    jt = Matrix{U}(I, dof, dof)#eye(U, dof)
+    _δv = Array{TaylorN{Taylor1{U}}}(undef, dof)
 
     @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
 

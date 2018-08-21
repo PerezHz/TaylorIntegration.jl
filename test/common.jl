@@ -1,4 +1,5 @@
 using TaylorIntegration, Test
+using LinearAlgebra: norm
 
 @testset "Test integration of ODE with numbers in common interface" begin
     f(u,p,t) = u
