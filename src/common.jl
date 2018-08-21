@@ -56,7 +56,7 @@ function DiffEqBase.solve(
       _t = t[2:end]
     end
     if typeof(prob.u0) <: AbstractArray
-      _timeseries = Vector{uType}(0)
+      _timeseries = Vector{uType}(undef, 0)
       for i=start_idx:size(vectimeseries, 1)
           push!(_timeseries, reshape(view(vectimeseries, i, :, )', sizeu))
       end
