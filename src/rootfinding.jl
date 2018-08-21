@@ -80,7 +80,7 @@ function findroot!(g, t, x, dx, g_val_old, g_val, eventorder, tvS, xvS, gvS,
             evaluate!(g_dg, dt_nr, view(g_dg_val,:))
             nriter += 1
         end
-        nriter == newtoniter+1 && warn("""
+        nriter == newtoniter+1 && @warn("""
         Newton-Raphson did not converge for prescribed tolerance and maximum allowed iterations.
         """)
         evaluate!(x_dx, dt_nr, view(x_dx_val,:))
@@ -194,7 +194,7 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
         @inbounds tv[nsteps] = t0
         @inbounds xv[:,nsteps] .= x0
         if nsteps > maxsteps
-            warn("""
+            @warn("""
             Maximum number of integration steps reached; exiting.
             """)
             break
