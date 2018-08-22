@@ -1,5 +1,6 @@
 using TaylorIntegration, Elliptic
 using Test
+using LinearAlgebra: norm
 
 const _order = 90
 const _abstol = 1.0E-77
