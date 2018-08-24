@@ -170,13 +170,13 @@ Otherwise, whenever `length(q0) != TaylorSeries.get_numvars()`, then
 function liap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
         order::Int, abstol::T; maxsteps::Int=500) where {T<:Real, U<:Number}
     # Allocation
-    const tv = Array{T}(maxsteps+1)
+    tv = Array{T}(maxsteps+1)
     dof = length(q0)
-    const xv = Array{U}(dof, maxsteps+1)
-    const λ = similar(xv)
-    const λtsum = similar(q0)
-    const jt = eye(U, dof)
-    const _δv = Array{TaylorN{Taylor1{U}}}(dof)
+    xv = Array{U}(dof, maxsteps+1)
+    λ = similar(xv)
+    λtsum = similar(q0)
+    jt = eye(U, dof)
+    _δv = Array{TaylorN{Taylor1{U}}}(dof)
 
     @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
 
@@ -191,30 +191,30 @@ function liap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
         @inbounds λ[ind,1] = zero(U)
         @inbounds λtsum[ind] = zero(U)
     end
-    const x0 = vcat(q0, reshape(jt, dof*dof))
+    x0 = vcat(q0, reshape(jt, dof*dof))
     nx0 = dof*(dof+1)
     t00 = t0
 
     # Initialize the vector of Taylor1 expansions
-    const t = Taylor1(T, order)
-    const x = Array{Taylor1{U}}(nx0)
+    t = Taylor1(T, order)
+    x = Array{Taylor1{U}}(nx0)
     @inbounds t[0] = t0
     for i in eachindex(x0)
         @inbounds x[i] = Taylor1( x0[i], order )
     end
 
     #Allocate auxiliary arrays
-    const dx = Array{Taylor1{U}}(nx0)
-    const xaux = Array{Taylor1{U}}(nx0)
-    const δx = Array{TaylorN{Taylor1{U}}}(dof)
-    const dδx = Array{TaylorN{Taylor1{U}}}(dof)
-    const jac = Array{Taylor1{U}}(dof,dof)
+    dx = Array{Taylor1{U}}(nx0)
+    xaux = Array{Taylor1{U}}(nx0)
+    δx = Array{TaylorN{Taylor1{U}}}(dof)
+    dδx = Array{TaylorN{Taylor1{U}}}(dof)
+    jac = Array{Taylor1{U}}(dof,dof)
     fill!(jac, zero(x[1]))
-    const QH = Array{U}(dof,dof)
-    const RH = Array{U}(dof,dof)
-    const aⱼ = Array{U}( dof )
-    const qᵢ = similar(aⱼ)
-    const vⱼ = similar(aⱼ)
+    QH = Array{U}(dof,dof)
+    RH = Array{U}(dof,dof)
+    aⱼ = Array{U}( dof )
+    qᵢ = similar(aⱼ)
+    vⱼ = similar(aⱼ)
 
     # Integration
     nsteps = 1
@@ -256,12 +256,12 @@ function liap_taylorinteg(f, q0::Array{U,1}, trange::Union{Range{T},Vector{T}},
     # Allocation
     nn = length(trange)
     dof = length(q0)
-    const xv = Array{U}(dof, nn)
+    xv = Array{U}(dof, nn)
     fill!(xv, U(NaN))
-    const λ = similar(xv)
-    const λtsum = similar(q0)
-    const jt = eye(U, dof)
-    const _δv = Array{TaylorN{Taylor1{U}}}(dof)
+    λ = similar(xv)
+    λtsum = similar(q0)
+    jt = eye(U, dof)
+    _δv = Array{TaylorN{Taylor1{U}}}(dof)
 
     @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
 
@@ -277,10 +277,10 @@ function liap_taylorinteg(f, q0::Array{U,1}, trange::Union{Range{T},Vector{T}},
     end
 
     # Initialize the vector of Taylor1 expansions
-    const t = Taylor1(T, order)
-    const x0 = vcat(q0, reshape(jt, dof*dof))
+    t = Taylor1(T, order)
+    x0 = vcat(q0, reshape(jt, dof*dof))
     nx0 = length(x0)
-    const x = Array{Taylor1{U}}(nx0)
+    x = Array{Taylor1{U}}(nx0)
     for i in eachindex(x0)
         @inbounds x[i] = Taylor1( x0[i], order )
     end
@@ -289,17 +289,17 @@ function liap_taylorinteg(f, q0::Array{U,1}, trange::Union{Range{T},Vector{T}},
     tspan = zero(T)
 
     #Allocate auxiliary arrays
-    const dx = Array{Taylor1{U}}(nx0)
-    const xaux = Array{Taylor1{U}}(nx0)
-    const δx = Array{TaylorN{Taylor1{U}}}(dof)
-    const dδx = Array{TaylorN{Taylor1{U}}}(dof)
-    const jac = Array{Taylor1{U}}(dof,dof)
+    dx = Array{Taylor1{U}}(nx0)
+    xaux = Array{Taylor1{U}}(nx0)
+    δx = Array{TaylorN{Taylor1{U}}}(dof)
+    dδx = Array{TaylorN{Taylor1{U}}}(dof)
+    jac = Array{Taylor1{U}}(dof,dof)
     fill!(jac, zero(x[1]))
-    const QH = Array{U}(dof,dof)
-    const RH = Array{U}(dof,dof)
-    const aⱼ = Array{U}( dof )
-    const qᵢ = similar(aⱼ)
-    const vⱼ = similar(aⱼ)
+    QH = Array{U}(dof,dof)
+    RH = Array{U}(dof,dof)
+    aⱼ = Array{U}( dof )
+    qᵢ = similar(aⱼ)
+    vⱼ = similar(aⱼ)
 
     # Integration
     iter = 1
