@@ -134,9 +134,9 @@ independent variable, `x` contains the Taylor expansion of the dependent
 variable,`x0` is the initial value of the dependent variable, `order` is
 the degree  used for the `Taylor1` polynomials during the integration
 and `abstol` is the absolute tolerance used to determine the time step
-of the integration. Note that `x0` is of type `Taylor1{T<:Number}`. If the
-time step is larger than `t1-t0`, that difference is used as the time
-step.
+of the integration. Note that `x0` is of type `Taylor1{T<:Number}` or
+`Taylor1{TaylorN{T}}`. If the time step is larger than `t1-t0`, that
+difference is used as the time step.
 
 """
 function taylorstep!(f, t::Taylor1{T}, x::Taylor1{U},
@@ -144,7 +144,11 @@ function taylorstep!(f, t::Taylor1{T}, x::Taylor1{U},
     @assert t1 > t0
 
     # Compute the Taylor coefficients
-    jetcoeffs!(f, t, x)
+    if applicable( jetcoeffs!, t, x, Val(f))
+        jetcoeffs!(t, x, Val(f))
+    else
+        jetcoeffs!(f, t, x)
+    end
 
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(x, abstol)
@@ -169,9 +173,9 @@ variables, `x0` corresponds to the initial (and updated) dependent
 variables and is of type `Vector{Taylor1{T<:Number}}`, `order`
 is the degree used for the `Taylor1` polynomials during the integration
 and `abstol` is the absolute tolerance used to determine the time step
-of the integration. `dx` is of the same type as `x` and represents the
-LHS of the ODE, whereas `xaux` is of the same type as `x0`; both are needed
-to avoid allocations.
+of the integration.  `dx` and `xaux`, both of the same type as `x0`,
+are needed to avoid allocations.
+
 
 """
 function taylorstep!(f!, t::Taylor1{T},
@@ -181,7 +185,11 @@ function taylorstep!(f!, t::Taylor1{T},
     @assert t1 > t0
 
     # Compute the Taylor coefficients
-    jetcoeffs!(f!, t, x, dx, xaux)
+    if applicable( jetcoeffs!, t, x, dx, Val(f!))
+        jetcoeffs!(t, x, dx, Val(f!))
+    else
+        jetcoeffs!(f!, t, x, dx, xaux)
+    end
 
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(x, abstol)
@@ -315,6 +323,10 @@ function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T, order::Int,
     x = Array{Taylor1{U}}(undef, dof)
     dx = Array{Taylor1{U}}(undef, dof)
     xaux = Array{Taylor1{U}}(undef, dof)
+    for i in eachindex(q0)
+        @inbounds x[i] = Taylor1( q0[i], order )
+        @inbounds dx[i] = Taylor1( zero(q0[i]), order )
+    end
 
     # Initial conditions
     @inbounds t[0] = t0
@@ -329,6 +341,7 @@ function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T, order::Int,
         δt = taylorstep!(f!, t, x, dx, xaux, t0, tmax, x0, order, abstol)
         for i in eachindex(x0)
             @inbounds x[i][0] = x0[i]
+            @inbounds dx[i] = Taylor1( zero(x0[i]), order )
         end
         t0 += δt
         @inbounds t[0] = t0
@@ -469,11 +482,16 @@ function taylorinteg(f!, q0::Array{U,1}, trange::Union{AbstractRange{T},Vector{T
         @inbounds xv[:,ind] .= x0
     end
 
+
     # Initialize the vector of Taylor1 expansions
     t = Taylor1( T, order )
     x = Array{Taylor1{U}}(undef, dof)
     dx = Array{Taylor1{U}}(undef, dof)
     xaux = Array{Taylor1{U}}(undef, dof)
+    for i in eachindex(q0)
+        @inbounds x[i] = Taylor1( q0[i], order )
+        @inbounds dx[i] = Taylor1( zero(q0[i]), order )
+    end
 
     # Initial conditions
     @inbounds t[0] = trange[1]
@@ -490,6 +508,7 @@ function taylorinteg(f!, q0::Array{U,1}, trange::Union{AbstractRange{T},Vector{T
             δt = taylorstep!(f!, t, x, dx, xaux, t0, t1, x0, order, abstol)
             for i in eachindex(x0)
                 @inbounds x[i][0] = x0[i]
+                @inbounds dx[i] = Taylor1( zero(x0[i]), order )
             end
             t0 += δt
             t0 ≥ t1 && break
