@@ -2,7 +2,7 @@
 
 # jetcoeffs!
 """
-    jetcoeffs!(eqsdiff, t, x, vT)
+    jetcoeffs!(eqsdiff, t, x)
 
 Returns an updated `x` using the recursion relation of the
 derivatives obtained from the differential equations
@@ -11,10 +11,8 @@ derivatives obtained from the differential equations
 `eqsdiff` is the function defining the RHS of the ODE,
 `x` contains the Taylor1 expansion of the dependent variable(s) and
 `t` is the independent variable. See [`taylorinteg`](@ref) for examples
-and structure of `eqsdiff`.
-Note that `x` is of type `Taylor1{T}` or `Taylor1{TaylorN{T}}`.
-`vT::Vector{T}` is a pre-allocated
-vector used for time-dependent differential equations.
+and structure of `eqsdiff`. Note that `x` is of type `Taylor1{U}` where
+`U<:Number`; `t` is of type `Taylor1{T}` where `T<:Real`.
 
 Initially, `x` contains only the 0-th order Taylor coefficient of
 the current system state (the initial conditions), and `jetcoeffs!`
@@ -42,7 +40,7 @@ function jetcoeffs!(eqsdiff, t::Taylor1{T},
 end
 
 """
-    jetcoeffs!(eqsdiff!, t, x, dx, xaux, vT)
+    jetcoeffs!(eqsdiff!, t, x, dx, xaux)
 
 Mutates `x` in-place using the recursion relation of the
 derivatives obtained from the differential equations
@@ -51,11 +49,10 @@ derivatives obtained from the differential equations
 `eqsdiff!` is the function defining the RHS of the ODE,
 `x` contains the Taylor1 expansion of the dependent variables and
 `t` is the independent variable. See [`taylorinteg`](@ref) for examples
-and structure of `eqsdiff!`. Note that `x` is of type `Vector{Taylor1{T}}`
-or `Vector{Taylor1{TaylorN{T}}}`. In this case, two auxiliary containers
-`dx` and `xaux` (both of the same type as `x`) are needed to avoid
-allocations. `vT::Vector{T}` is a pre-allocated
-vector used for time-dependent differential equations.
+and structure of `eqsdiff!`. Note that `x` is of type `Vector{Taylor1{U}}`
+where `U<:Number`; `t` is of type `Taylor1{T}` where `T<:Real`. In this case,
+two auxiliary containers `dx` and `xaux` (both of the same type as `x`) are
+needed to avoid allocations.
 
 Initially, `x` contains only the 0-th order Taylor coefficient of
 the current system state (the initial conditions), and `jetcoeffs!`
