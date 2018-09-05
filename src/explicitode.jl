@@ -144,11 +144,11 @@ function taylorstep!(f, t::Taylor1{T}, x::Taylor1{U},
     @assert t1 > t0
 
     # Compute the Taylor coefficients
-    if applicable( jetcoeffs!, t, x, Val{f})
-        jetcoeffs!(t, x, Val{f})
-    else
+    # if applicable( jetcoeffs!, t, x, typeof(Val(f)))
+    #     jetcoeffs!(t, x, typeof(Val(f)))
+    # else
         jetcoeffs!(f, t, x)
-    end
+    # end
 
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(x, abstol)
@@ -185,11 +185,11 @@ function taylorstep!(f!, t::Taylor1{T},
     @assert t1 > t0
 
     # Compute the Taylor coefficients
-    if applicable( jetcoeffs!, t, x, dx, Val{f!})
-        jetcoeffs!(t, x, dx, Val{f!})
-    else
+    # if applicable( jetcoeffs!, t, x, dx, typeof(Val(f!)))
+    #     jetcoeffs!(t, x, dx, typeof(Val(f!)))
+    # else
         jetcoeffs!(f!, t, x, dx, xaux)
-    end
+    # end
 
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(x, abstol)
