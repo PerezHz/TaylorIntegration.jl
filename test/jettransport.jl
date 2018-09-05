@@ -247,17 +247,18 @@ end
     end
 end
 
+function harmosc!(t, x, dx) #the harmonic oscillator ODE
+    dx[1] = x[2]
+    dx[2] = -x[1]*x[3]^2
+    dx[3] = zero(x[1])
+    nothing
+end
+
 @testset "Test Taylor1 jet transport (t0,tmax): harmonic oscillator" begin
     t = Taylor1([0.0, 1.0], 10)
     ω0 = 1.0
     x0 = [0.0,ω0,ω0]
     x0T1 = x0+[0t,t,t]
-    function harmosc!(t, x, dx) #the harmonic oscillator ODE
-        dx[1] = x[2]
-        dx[2] = -x[1]*x[3]^2
-        dx[3] = zero(x[1])
-        nothing
-    end
     tv1, xv1 = taylorinteg(harmosc!, x0T1, 0.0, 100pi, _order, _abstol, maxsteps=1)
     @test size(tv1) == (2,)
     @test size(xv1) == (2, 3)
@@ -285,12 +286,6 @@ end
     ω0 = 1.0
     x0 = [0.0,ω0,ω0]
     x0T1 = x0+[0t,t,t]
-    function harmosc!(t, x, dx) #the harmonic oscillator ODE
-        dx[1] = x[2]
-        dx[2] = -x[1]*x[3]^2
-        dx[3] = zero(x[1])
-        nothing
-    end
     tv = 0.0:0.25*(2pi):100pi
     xv1 = taylorinteg(harmosc!, x0T1, tv, _order, _abstol, maxsteps=1)
     @test length(tv) == 201
@@ -320,12 +315,13 @@ end
     end
 end
 
+function harmosc!(t, x, dx) #the harmonic oscillator ODE
+    dx[1] = x[2]
+    dx[2] = -x[1]
+    nothing
+end
+
 @testset "Test TaylorN jet transport (t0,tmax): harmonic oscillator" begin
-    function harmosc!(t, x, dx) #the harmonic oscillator ODE
-        dx[1] = x[2]
-        dx[2] = -x[1]
-        nothing
-    end
     p = set_variables("ξ", numvars=2, order=5)
     x0 = [-1.0,0.45]
     x0TN = x0 + p
@@ -352,14 +348,13 @@ end
     @test isapprox(xvTN_0[1,:], xvTN_0[end,:]) # end point must coincide with a full period
 end
 
+function pendulum!(t, x, dx) #the simple pendulum ODE
+    dx[1] = x[2]
+    dx[2] = -sin(x[1])
+    nothing
+end
+
 @testset "Test TaylorN jet transport (trange): simple pendulum" begin
-
-    function pendulum!(t, x, dx) #the simple pendulum ODE
-        dx[1] = x[2]
-        dx[2] = -sin(x[1])
-        nothing
-    end
-
     varorder = 2 #the order of the variational expansion
     p = set_variables("ξ", numvars=2, order=varorder) #TaylorN steup
     q0 = [1.3, 0.0] #the initial conditions

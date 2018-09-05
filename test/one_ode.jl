@@ -116,24 +116,25 @@ end
 end
 
 @testset "Test non-autonomous ODE (1): dot{x}=cos(t)" begin
-    f(t, x) = cos(t)
-    t0 = 0//1
-    tmax = 10.25*(2pi)
-    abstol = 1e-20
-    order = 25
-    x0 = 0.0 #initial conditions such that x(t)=sin(t)
-    tv, xv = taylorinteg(f, x0, t0, tmax, order, abstol)
-    @test length(tv) < 501
-    @test length(xv) < 501
-    # @test length(xT[:,2]) < 501
-    @test xv[1] == x0
-    @test tv[1] == t0
-    @test abs(sin(tmax)-xv[end]) < 1e-14
+    let f(t, x) = cos(t)
+        t0 = 0//1
+        tmax = 10.25*(2pi)
+        abstol = 1e-20
+        order = 25
+        x0 = 0.0 #initial conditions such that x(t)=sin(t)
+        tv, xv = taylorinteg(f, x0, t0, tmax, order, abstol)
+        @test length(tv) < 501
+        @test length(xv) < 501
+        # @test length(xT[:,2]) < 501
+        @test xv[1] == x0
+        @test tv[1] == t0
+        @test abs(sin(tmax)-xv[end]) < 1e-14
 
-    tmax = 15*(2pi)
-    tv, xv = taylorinteg(f, x0, t0, tmax, order, abstol)
-    @test length(tv) < 501
-    @test length(xv) < 501
-    @test xv[1] == x0
-    @test abs(sin(tmax)-xv[end]) < 1e-14
+        tmax = 15*(2pi)
+        tv, xv = taylorinteg(f, x0, t0, tmax, order, abstol)
+        @test length(tv) < 501
+        @test length(xv) < 501
+        @test xv[1] == x0
+        @test abs(sin(tmax)-xv[end]) < 1e-14
+    end
 end
