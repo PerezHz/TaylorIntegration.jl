@@ -144,8 +144,8 @@ function taylorstep!(f, t::Taylor1{T}, x::Taylor1{U},
     @assert t1 > t0
 
     # Compute the Taylor coefficients
-    if applicable( jetcoeffs!, t, x, Val(f))
-        jetcoeffs!(t, x, Val(f))
+    if applicable( jetcoeffs!, t, x, Val{f})
+        jetcoeffs!(t, x, Val{f})
     else
         jetcoeffs!(f, t, x)
     end
@@ -185,8 +185,8 @@ function taylorstep!(f!, t::Taylor1{T},
     @assert t1 > t0
 
     # Compute the Taylor coefficients
-    if applicable( jetcoeffs!, t, x, dx, Val(f!))
-        jetcoeffs!(t, x, dx, Val(f!))
+    if applicable( jetcoeffs!, t, x, dx, Val{f!})
+        jetcoeffs!(t, x, dx, Val{f!})
     else
         jetcoeffs!(f!, t, x, dx, xaux)
     end
@@ -299,7 +299,7 @@ function taylorinteg(f, x0::U, t0::T, tmax::T, order::Int,
         @inbounds tv[nsteps] = t0
         @inbounds xv[nsteps] = x0
         if nsteps > maxsteps
-            @warn("""
+            @info("""
             Maximum number of integration steps reached; exiting.
             """)
             break
@@ -349,7 +349,7 @@ function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T, order::Int,
         @inbounds tv[nsteps] = t0
         @inbounds xv[:,nsteps] .= x0
         if nsteps > maxsteps
-            @warn("""
+            @info("""
             Maximum number of integration steps reached; exiting.
             """)
             break
@@ -457,7 +457,7 @@ function taylorinteg(f, x0::U, trange::Union{AbstractRange{T},Vector{T}},
             nsteps += 1
         end
         if nsteps ≥ maxsteps && t0 != t1
-            @warn("""
+            @info("""
             Maximum number of integration steps reached; exiting.
             """)
             break
@@ -515,7 +515,7 @@ function taylorinteg(f!, q0::Array{U,1}, trange::Union{AbstractRange{T},Vector{T
             nsteps += 1
         end
         if nsteps ≥ maxsteps && t0 != t1
-            @warn("""
+            @info("""
             Maximum number of integration steps reached; exiting.
             """)
             break

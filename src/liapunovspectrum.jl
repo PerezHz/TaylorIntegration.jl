@@ -241,7 +241,7 @@ function liap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
             @inbounds x[i] = Taylor1( x0[i], order )
         end
         if nsteps > maxsteps
-            @warn("""
+            @info("""
             Maximum number of integration steps reached; exiting.
             """)
             break
@@ -328,7 +328,7 @@ function liap_taylorinteg(f, q0::Array{U,1}, trange::Union{AbstractRange{T},Vect
             t0 ≥ t1 && break
         end
         if nsteps ≥ maxsteps && t0 != t1
-            @warn("""
+            @info("""
             Maximum number of integration steps reached; exiting.
             """)
             break
