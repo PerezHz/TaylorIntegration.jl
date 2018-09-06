@@ -1,7 +1,7 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
 using TaylorIntegration
-using LinearAlgebra: norm, tr, dot, istriu, diag, I
+using LinearAlgebra: norm, tr, dot, istriu, diag
 using Test
 
 const _order = 28
