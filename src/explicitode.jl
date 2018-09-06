@@ -144,8 +144,8 @@ function taylorstep!(f, t::Taylor1{T}, x::Taylor1{U},
     @assert t1 > t0
 
     # Compute the Taylor coefficients
-    if applicable( jetcoeffs!, t, x, Val{f} )
-        jetcoeffs!(t, x, Val{f})
+    if applicable( jetcoeffs!, t, x, Val(f) )
+        jetcoeffs!(t, x, Val(f))
     else
         jetcoeffs!(f, t, x)
     end
@@ -185,8 +185,8 @@ function taylorstep!(f!, t::Taylor1{T},
     @assert t1 > t0
 
     # Compute the Taylor coefficients
-    if applicable( jetcoeffs!, t, x, dx, Val{f!} )
-        jetcoeffs!(t, x, dx, Val{f!})
+    if applicable( jetcoeffs!, t, x, dx, Val(f!) )
+        jetcoeffs!(t, x, dx, Val(f!))
     else
         jetcoeffs!(f!, t, x, dx, xaux)
     end
