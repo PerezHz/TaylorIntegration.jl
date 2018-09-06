@@ -708,13 +708,13 @@ function _recursionloop(fnargs, retvar)
         retvar = fnargs[end]
         rec_preamb = sanitize(:(
             for __idx in eachindex($(fnargs[2]))
-                @inbounds $(fnargs[2])[__idx].coeffs[2] =
+                $(fnargs[2])[__idx].coeffs[2] =
                     $(retvar)[__idx].coeffs[1]
             end
         ))
         rec_fnbody = sanitize(:(
             for __idx in eachindex($(fnargs[2]))
-                @inbounds $(fnargs[2])[__idx].coeffs[ordnext+1] =
+                $(fnargs[2])[__idx].coeffs[ordnext+1] =
                     $(retvar)[__idx].coeffs[ordnext]/ordnext
             end
         ))
