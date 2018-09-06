@@ -1,4 +1,4 @@
-doc"""
+"""
     surfacecrossing(g_old, g_now, eventorder::Int)
 
 Detect if the solution crossed a root of event function `g`. `g_old` represents
@@ -10,11 +10,13 @@ one is negative); otherwise returns `false`.
 """
 surfacecrossing(g_old::Taylor1{T}, g_now::Taylor1{T}, eventorder::Int) where {T <: Real} = g_old[eventorder]*g_now[eventorder] < zero(T)
 
-surfacecrossing(g_old::Taylor1{Taylor1{T}}, g_now::Taylor1{Taylor1{T}}, eventorder::Int) where {T <: Real} = g_old[eventorder][0]*g_now[eventorder][0] < zero(T)
+surfacecrossing(g_old::Taylor1{Taylor1{T}}, g_now::Taylor1{Taylor1{T}},
+        eventorder::Int) where {T <: Real} = g_old[eventorder][0] * g_now[eventorder][0] < zero(T)
 
-surfacecrossing(g_old::Taylor1{TaylorN{T}}, g_now::Taylor1{TaylorN{T}}, eventorder::Int) where {T <: Real} = g_old[eventorder][0][1]*g_now[eventorder][0][1] < zero(T)
+surfacecrossing(g_old::Taylor1{TaylorN{T}}, g_now::Taylor1{TaylorN{T}},
+        eventorder::Int) where {T <: Real} = g_old[eventorder][0][1] * g_now[eventorder][0][1] < zero(T)
 
-doc"""
+"""
     nrconvergencecriterion(g_val, nrabstol::T, nriter::Int, newtoniter::Int) where {T<:Real}
 
 A rudimentary convergence criterion for the Newton-Raphson root-finding process.
@@ -25,13 +27,16 @@ tolerance; and 2) the number of iterations `nriter` of the Newton-Raphson proces
 is less than the maximum allowed number of iterations, `newtoniter`; otherwise,
 returns `false`.
 """
-nrconvergencecriterion(g_val::T, nrabstol::T, nriter::Int, newtoniter::Int) where {T<:Real} = abs(g_val) > nrabstol && nriter ≤ newtoniter
+nrconvergencecriterion(g_val::T, nrabstol::T, nriter::Int,
+        newtoniter::Int) where {T<:Real} = abs(g_val) > nrabstol && nriter ≤ newtoniter
 
-nrconvergencecriterion(g_val::Taylor1{T}, nrabstol::T, nriter::Int, newtoniter::Int) where {T<:Real} = abs(g_val[0]) > nrabstol && nriter ≤ newtoniter
+nrconvergencecriterion(g_val::Taylor1{T}, nrabstol::T, nriter::Int,
+        newtoniter::Int) where {T<:Real} = abs(g_val[0]) > nrabstol && nriter ≤ newtoniter
 
-nrconvergencecriterion(g_val::TaylorN{T}, nrabstol::T, nriter::Int, newtoniter::Int) where {T<:Real} = abs(g_val[0][1]) > nrabstol && nriter ≤ newtoniter
+nrconvergencecriterion(g_val::TaylorN{T}, nrabstol::T, nriter::Int,
+        newtoniter::Int) where {T<:Real} = abs(g_val[0][1]) > nrabstol && nriter ≤ newtoniter
 
-doc"""
+"""
     findroot!(g, t, x, dx, g_val_old, g_val, eventorder, tvS, xvS, gvS,
         t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val, nrabstol,
         newtoniter, nevents) -> nevents
@@ -59,8 +64,8 @@ function findroot!(g, t, x, dx, g_val_old, g_val, eventorder, tvS, xvS, gvS,
 
     if surfacecrossing(g_val_old, g_val, eventorder)
         #auxiliary variables
-        const nriter = 1
-        const dof = length(x)
+        nriter = 1
+        dof = length(x)
 
         #first guess: linear interpolation
         slope = (g_val[eventorder]-g_val_old[eventorder])/δt_old
@@ -80,7 +85,7 @@ function findroot!(g, t, x, dx, g_val_old, g_val, eventorder, tvS, xvS, gvS,
             evaluate!(g_dg, dt_nr, view(g_dg_val,:))
             nriter += 1
         end
-        nriter == newtoniter+1 && warn("""
+        nriter == newtoniter+1 && @info("""
         Newton-Raphson did not converge for prescribed tolerance and maximum allowed iterations.
         """)
         evaluate!(x_dx, dt_nr, view(x_dx_val,:))
@@ -95,7 +100,7 @@ function findroot!(g, t, x, dx, g_val_old, g_val, eventorder, tvS, xvS, gvS,
     return nevents
 end
 
-doc"""
+"""
     taylorinteg(f, g, x0, t0, tmax, order, abstol; kwargs... )
 
 Root-finding method of `taylorinteg`. Given a function `g(t, x, dx)`,
@@ -139,15 +144,15 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
         newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
 
     # Allocation
-    const tv = Array{T}(maxsteps+1)
+    tv = Array{T}(undef, maxsteps+1)
     dof = length(q0)
-    const xv = Array{U}(dof, maxsteps+1)
+    xv = Array{U}(undef, dof, maxsteps+1)
 
     # Initialize the vector of Taylor1 expansions
-    const t = Taylor1(T, order)
-    const x = Array{Taylor1{U}}(dof)
-    const dx = Array{Taylor1{U}}(dof)
-    const xaux = Array{Taylor1{U}}(dof)
+    t = Taylor1(T, order)
+    x = Array{Taylor1{U}}(undef, dof)
+    dx = Array{Taylor1{U}}(undef, dof)
+    xaux = Array{Taylor1{U}}(undef, dof)
 
     # Initial conditions
     @inbounds t[0] = t0
@@ -157,26 +162,26 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
     @inbounds xv[:,1] .= q0
 
     #Some auxiliary arrays for root-finding/event detection/Poincaré surface of section evaluation
-    const g_val = zero(g(t,x,x))
-    const g_val_old = zero(g_val)
-    const slope = zero(U)
-    const dt_li = zero(U)
-    const dt_nr = zero(U)
-    const δt = zero(U)
-    const δt_old = zero(U)
+    g_val = zero(g(t,x,x))
+    g_val_old = zero(g_val)
+    slope = zero(U)
+    dt_li = zero(U)
+    dt_nr = zero(U)
+    δt = zero(U)
+    δt_old = zero(U)
 
-    const x_dx = vcat(x, dx)
-    const g_dg = vcat(g_val, g_val_old)
-    const x_dx_val = Array{U}( length(x_dx) )
-    const g_dg_val = vcat(evaluate(g_val), evaluate(g_val_old))
+    x_dx = vcat(x, dx)
+    g_dg = vcat(g_val, g_val_old)
+    x_dx_val = Array{U}(undef, length(x_dx) )
+    g_dg_val = vcat(evaluate(g_val), evaluate(g_val_old))
 
-    const tvS = Array{U}(maxsteps+1)
-    const xvS = similar(xv)
-    const gvS = similar(tvS)
+    tvS = Array{U}(undef, maxsteps+1)
+    xvS = similar(xv)
+    gvS = similar(tvS)
 
     # Integration
-    const nsteps = 1
-    const nevents = 1 #number of detected events
+    nsteps = 1
+    nevents = 1 #number of detected events
     while t0 < tmax
         δt_old = δt
         δt = taylorstep!(f!, t, x, dx, xaux, t0, tmax, x0, order, abstol)
@@ -194,7 +199,7 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
         @inbounds tv[nsteps] = t0
         @inbounds xv[:,nsteps] .= x0
         if nsteps > maxsteps
-            warn("""
+            @info("""
             Maximum number of integration steps reached; exiting.
             """)
             break

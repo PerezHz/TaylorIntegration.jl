@@ -1,20 +1,18 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
 # jetcoeffs!
-doc"""
-    jetcoeffs!(eqsdiff, t, x, vT)
+"""
+    jetcoeffs!(eqsdiff, t, x)
 
 Returns an updated `x` using the recursion relation of the
 derivatives obtained from the differential equations
-$\dot{x}=dx/dt=f(t,x)$.
+\$\\dot{x}=dx/dt=f(t,x)\$.
 
 `eqsdiff` is the function defining the RHS of the ODE,
 `x` contains the Taylor1 expansion of the dependent variable(s) and
 `t` is the independent variable. See [`taylorinteg`](@ref) for examples
-and structure of `eqsdiff`.
-Note that `x` is of type `Taylor1{T}` or `Taylor1{TaylorN{T}}`.
-`vT::Vector{T}` is a pre-allocated
-vector used for time-dependent differential equations.
+and structure of `eqsdiff`. Note that `x` is of type `Taylor1{U}` where
+`U<:Number`; `t` is of type `Taylor1{T}` where `T<:Real`.
 
 Initially, `x` contains only the 0-th order Taylor coefficient of
 the current system state (the initial conditions), and `jetcoeffs!`
@@ -41,21 +39,20 @@ function jetcoeffs!(eqsdiff, t::Taylor1{T},
     nothing
 end
 
-doc"""
-    jetcoeffs!(eqsdiff!, t, x, dx, xaux, vT)
+"""
+    jetcoeffs!(eqsdiff!, t, x, dx, xaux)
 
 Mutates `x` in-place using the recursion relation of the
 derivatives obtained from the differential equations
-$\dot{x}=dx/dt=f(t,x)$.
+\$\\dot{x}=dx/dt=f(t,x)\$.
 
 `eqsdiff!` is the function defining the RHS of the ODE,
 `x` contains the Taylor1 expansion of the dependent variables and
 `t` is the independent variable. See [`taylorinteg`](@ref) for examples
-and structure of `eqsdiff!`. Note that `x` is of type `Vector{Taylor1{T}}`
-or `Vector{Taylor1{TaylorN{T}}}`. In this case, two auxiliary containers
-`dx` and `xaux` (both of the same type as `x`) are needed to avoid
-allocations. `vT::Vector{T}` is a pre-allocated
-vector used for time-dependent differential equations.
+and structure of `eqsdiff!`. Note that `x` is of type `Vector{Taylor1{U}}`
+where `U<:Number`; `t` is of type `Taylor1{T}` where `T<:Real`. In this case,
+two auxiliary containers `dx` and `xaux` (both of the same type as `x`) are
+needed to avoid allocations.
 
 Initially, `x` contains only the 0-th order Taylor coefficient of
 the current system state (the initial conditions), and `jetcoeffs!`
@@ -88,7 +85,7 @@ function jetcoeffs!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
 end
 
 # stepsize
-doc"""
+"""
     stepsize(x, epsilon) -> h
 
 Returns a maximum time-step for a the Taylor expansion `x`
@@ -123,11 +120,11 @@ function stepsize(q::Array{Taylor1{U},1}, epsilon::T) where {T<:Real, U<:Number}
 end
 
 #taylorstep
-doc"""
+"""
     taylorstep!(f, t, x, t0, t1, x0, order, abstol) -> δt, x0
 
-One-step Taylor integration for the ODE $\dot{x}=dx/dt=f(t, x)$
-with initial conditions $x(t_0)=x_0$, computed from `t0` up to
+One-step Taylor integration for the ODE \$\\dot{x}=dx/dt=f(t, x)\$
+with initial conditions \$x(t_0)=x_0\$, computed from `t0` up to
 `t1`. Returns the time-step of the actual integration carried out
 and the updated value of `x0`.
 
@@ -137,9 +134,9 @@ independent variable, `x` contains the Taylor expansion of the dependent
 variable,`x0` is the initial value of the dependent variable, `order` is
 the degree  used for the `Taylor1` polynomials during the integration
 and `abstol` is the absolute tolerance used to determine the time step
-of the integration. Note that `x0` is of type `Taylor1{T<:Number}`. If the
-time step is larger than `t1-t0`, that difference is used as the time
-step.
+of the integration. Note that `x0` is of type `Taylor1{T<:Number}` or
+`Taylor1{TaylorN{T}}`. If the time step is larger than `t1-t0`, that
+difference is used as the time step.
 
 """
 function taylorstep!(f, t::Taylor1{T}, x::Taylor1{U},
@@ -147,7 +144,11 @@ function taylorstep!(f, t::Taylor1{T}, x::Taylor1{U},
     @assert t1 > t0
 
     # Compute the Taylor coefficients
-    jetcoeffs!(f, t, x)
+    # if applicable( jetcoeffs!, t, x, typeof(Val(f)))
+    #     jetcoeffs!(t, x, typeof(Val(f)))
+    # else
+        jetcoeffs!(f, t, x)
+    # end
 
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(x, abstol)
@@ -157,11 +158,11 @@ function taylorstep!(f, t::Taylor1{T}, x::Taylor1{U},
     return δt, x0
 end
 
-doc"""
+"""
     taylorstep!(f!, t, x, dx, xaux, t0, t1, x0, order, abstol) -> δt
 
-One-step Taylor integration for the ODE $\dot{x}=dx/dt=f(t, x)$
-with initial conditions $x(t_0)=x_0$, computed from `t0` up to
+One-step Taylor integration for the ODE \$\\dot{x}=dx/dt=f(t, x)\$
+with initial conditions \$x(t_0)=x_0\$, computed from `t0` up to
 `t1`, returning the time-step of the actual integration carried out
 and updating (in-place) `x0`.
 
@@ -172,9 +173,9 @@ variables, `x0` corresponds to the initial (and updated) dependent
 variables and is of type `Vector{Taylor1{T<:Number}}`, `order`
 is the degree used for the `Taylor1` polynomials during the integration
 and `abstol` is the absolute tolerance used to determine the time step
-of the integration. `dx` is of the same type as `x` and represents the
-LHS of the ODE, whereas `xaux` is of the same type as `x0`; both are needed
-to avoid allocations.
+of the integration.  `dx` and `xaux`, both of the same type as `x0`,
+are needed to avoid allocations.
+
 
 """
 function taylorstep!(f!, t::Taylor1{T},
@@ -184,7 +185,11 @@ function taylorstep!(f!, t::Taylor1{T},
     @assert t1 > t0
 
     # Compute the Taylor coefficients
-    jetcoeffs!(f!, t, x, dx, xaux)
+    # if applicable( jetcoeffs!, t, x, dx, typeof(Val(f!)))
+    #     jetcoeffs!(t, x, dx, typeof(Val(f!)))
+    # else
+        jetcoeffs!(f!, t, x, dx, xaux)
+    # end
 
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(x, abstol)
@@ -195,11 +200,11 @@ function taylorstep!(f!, t::Taylor1{T},
 end
 
 # taylorinteg
-doc"""
+"""
     taylorinteg(f, x0, t0, tmax, order, abstol; keyword... )
 
 General-purpose Taylor integrator for the explicit ODE
-$\dot{x}=f(t,x)$ with initial condition specified by `x0`
+\$\\dot{x}=f(t,x)\$ with initial condition specified by `x0`
 at time `t0`. The initial condition `x0` may be of type `T<:Number`
 or a `Vector{T}`, with `T` including `TaylorN{T}`; the latter case
 is of interest for jet transport applications.
@@ -256,8 +261,8 @@ function taylorinteg(f, x0::S,
     taylorinteg(f, x0, t0, tmax, order, abstol, maxsteps=maxsteps)
 end
 
-function taylorinteg(f,
-        q0::Array{S,1}, t0::T, tmax::U, order::Int, abstol::V; maxsteps::Int=500) where {S<:Number, T<:Real, U<:Real, V<:Real}
+function taylorinteg(f, q0::Array{S,1}, t0::T, tmax::U, order::Int,
+        abstol::V; maxsteps::Int=500) where {S<:Number, T<:Real, U<:Real, V<:Real}
 
     #promote to common type before integrating:
     elq0, t0, tmax, abstol, afloat = promote(q0[1], t0, tmax, abstol, one(Float64))
@@ -271,12 +276,12 @@ function taylorinteg(f, x0::U, t0::T, tmax::T, order::Int,
         abstol::T; maxsteps::Int=500) where {T<:Real, U<:Number}
 
     # Allocation
-    const tv = Array{T}(maxsteps+1)
-    const xv = Array{U}(maxsteps+1)
+    tv = Array{T}(undef, maxsteps+1)
+    xv = Array{U}(undef, maxsteps+1)
 
     # Initialize the Taylor1 expansions
-    const t = Taylor1( T, order )
-    const x = Taylor1( x0, order )
+    t = Taylor1( T, order )
+    x = Taylor1( x0, order )
 
     # Initial conditions
     nsteps = 1
@@ -294,7 +299,7 @@ function taylorinteg(f, x0::U, t0::T, tmax::T, order::Int,
         @inbounds tv[nsteps] = t0
         @inbounds xv[nsteps] = x0
         if nsteps > maxsteps
-            warn("""
+            @info("""
             Maximum number of integration steps reached; exiting.
             """)
             break
@@ -305,19 +310,23 @@ function taylorinteg(f, x0::U, t0::T, tmax::T, order::Int,
     return view(tv,1:nsteps), view(xv,1:nsteps)
 end
 
-function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
-        order::Int, abstol::T; maxsteps::Int=500) where {T<:Real, U<:Number}
+function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T, order::Int,
+        abstol::T; maxsteps::Int=500) where {T<:Real, U<:Number}
 
     # Allocation
-    const tv = Array{T}(maxsteps+1)
+    tv = Array{T}(undef, maxsteps+1)
     dof = length(q0)
-    const xv = Array{U}(dof, maxsteps+1)
+    xv = Array{U}(undef, dof, maxsteps+1)
 
     # Initialize the vector of Taylor1 expansions
-    const t = Taylor1(T, order)
-    const x = Array{Taylor1{U}}(dof)
-    const dx = Array{Taylor1{U}}(dof)
-    const xaux = Array{Taylor1{U}}(dof)
+    t = Taylor1(T, order)
+    x = Array{Taylor1{U}}(undef, dof)
+    dx = Array{Taylor1{U}}(undef, dof)
+    xaux = Array{Taylor1{U}}(undef, dof)
+    for i in eachindex(q0)
+        @inbounds x[i] = Taylor1( q0[i], order )
+        @inbounds dx[i] = Taylor1( zero(q0[i]), order )
+    end
 
     # Initial conditions
     @inbounds t[0] = t0
@@ -332,6 +341,7 @@ function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
         δt = taylorstep!(f!, t, x, dx, xaux, t0, tmax, x0, order, abstol)
         for i in eachindex(x0)
             @inbounds x[i][0] = x0[i]
+            @inbounds dx[i] = Taylor1( zero(x0[i]), order )
         end
         t0 += δt
         @inbounds t[0] = t0
@@ -339,7 +349,7 @@ function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
         @inbounds tv[nsteps] = t0
         @inbounds xv[:,nsteps] .= x0
         if nsteps > maxsteps
-            warn("""
+            @info("""
             Maximum number of integration steps reached; exiting.
             """)
             break
@@ -350,11 +360,11 @@ function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
 end
 
 # Integrate and return results evaluated at given time
-doc"""
+"""
     taylorinteg(f, x0, t0, trange, order, abstol; keyword... )
 
 General-purpose Taylor integrator for the explicit ODE
-$\dot{x}=f(t,x)$ with initial condition specified by `x0::{T<:Number}`
+\$\\dot{x}=f(t,x)\$ with initial condition specified by `x0::{T<:Number}`
 or `x0::Vector{T}` at time `t0`.
 It returns a vector (of type `typeof(x0)`) with the computed values of
 the dependent variable(s), evaluated *only* at the times specified by
@@ -417,17 +427,17 @@ Note that f! updates (mutates) the pre-allocated vector dx.
 Note that the initial conditions `q0TN` are of type `TaylorN{Float64}`.
 
 """
-function taylorinteg(f, x0::U, trange::Union{Range{T},Vector{T}},
+function taylorinteg(f, x0::U, trange::Union{AbstractRange{T},Vector{T}},
         order::Int, abstol::T; maxsteps::Int=500) where {T<:Real, U<:Number}
 
     # Allocation
     nn = length(trange)
-    const xv = Array{U}(nn)
+    xv = Array{U}(undef, nn)
     fill!(xv, T(NaN))
 
     # Initialize the Taylor1 expansions
-    const t = Taylor1( T, order )
-    const x = Taylor1( x0, order )
+    t = Taylor1( T, order )
+    x = Taylor1( x0, order )
 
     # Initial conditions
     @inbounds t[0] = trange[1]
@@ -447,7 +457,7 @@ function taylorinteg(f, x0::U, trange::Union{Range{T},Vector{T}},
             nsteps += 1
         end
         if nsteps ≥ maxsteps && t0 != t1
-            warn("""
+            @info("""
             Maximum number of integration steps reached; exiting.
             """)
             break
@@ -459,24 +469,29 @@ function taylorinteg(f, x0::U, trange::Union{Range{T},Vector{T}},
     return xv
 end
 
-function taylorinteg(f!, q0::Array{U,1}, trange::Union{Range{T},Vector{T}},
+function taylorinteg(f!, q0::Array{U,1}, trange::Union{AbstractRange{T},Vector{T}},
         order::Int, abstol::T; maxsteps::Int=500) where {T<:Real, U<:Number}
 
     # Allocation
     nn = length(trange)
     dof = length(q0)
-    const x0 = similar(q0, eltype(q0), dof)
+    x0 = similar(q0, eltype(q0), dof)
     fill!(x0, T(NaN))
-    const xv = Array{eltype(q0)}(dof, nn)
+    xv = Array{eltype(q0)}(undef, dof, nn)
     for ind in 1:nn
         @inbounds xv[:,ind] .= x0
     end
 
+
     # Initialize the vector of Taylor1 expansions
-    const t = Taylor1( T, order )
-    const x = Array{Taylor1{U}}(dof)
-    const dx = Array{Taylor1{U}}(dof)
-    const xaux = Array{Taylor1{U}}(dof)
+    t = Taylor1( T, order )
+    x = Array{Taylor1{U}}(undef, dof)
+    dx = Array{Taylor1{U}}(undef, dof)
+    xaux = Array{Taylor1{U}}(undef, dof)
+    for i in eachindex(q0)
+        @inbounds x[i] = Taylor1( q0[i], order )
+        @inbounds dx[i] = Taylor1( zero(q0[i]), order )
+    end
 
     # Initial conditions
     @inbounds t[0] = trange[1]
@@ -493,13 +508,14 @@ function taylorinteg(f!, q0::Array{U,1}, trange::Union{Range{T},Vector{T}},
             δt = taylorstep!(f!, t, x, dx, xaux, t0, t1, x0, order, abstol)
             for i in eachindex(x0)
                 @inbounds x[i][0] = x0[i]
+                @inbounds dx[i] = Taylor1( zero(x0[i]), order )
             end
             t0 += δt
             t0 ≥ t1 && break
             nsteps += 1
         end
         if nsteps ≥ maxsteps && t0 != t1
-            warn("""
+            @info("""
             Maximum number of integration steps reached; exiting.
             """)
             break

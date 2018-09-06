@@ -1,4 +1,4 @@
-abstract type TaylorAlgorithm <: DEAlgorithm end
+abstract type TaylorAlgorithm <: DiffEqBase.DEAlgorithm end
 struct TaylorMethod <: TaylorAlgorithm
     order::Int
 end
@@ -7,13 +7,13 @@ TaylorMethod() = error("Maximum order must be specified for the Taylor method")
 
 export TaylorMethod
 
-function DiffEqBase.solve{uType,tType,isinplace,AlgType<:TaylorAlgorithm}(
-    prob::AbstractODEProblem{uType,tType,isinplace},
+function DiffEqBase.solve(
+    prob::DiffEqBase.AbstractODEProblem{uType,tType,isinplace},
     alg::AlgType,
     timeseries=[],ts=[],ks=[];
     verbose=true, abstol = 1e-6, save_start = true,
     timeseries_errors=true, maxiters = 1000000,
-    callback=nothing, kwargs...)
+    callback=nothing, kwargs...) where {uType, tType, isinplace, AlgType <: TaylorAlgorithm}
 
     if verbose
         warned = !isempty(kwargs) && check_keywords(alg, kwargs, warnlist)
@@ -56,7 +56,7 @@ function DiffEqBase.solve{uType,tType,isinplace,AlgType<:TaylorAlgorithm}(
       _t = t[2:end]
     end
     if typeof(prob.u0) <: AbstractArray
-      _timeseries = Vector{uType}(0)
+      _timeseries = Vector{uType}(undef, 0)
       for i=start_idx:size(vectimeseries, 1)
           push!(_timeseries, reshape(view(vectimeseries, i, :, )', sizeu))
       end
@@ -64,7 +64,7 @@ function DiffEqBase.solve{uType,tType,isinplace,AlgType<:TaylorAlgorithm}(
       _timeseries = vec(vectimeseries)
     end
 
-    build_solution(prob,  alg, _t, _timeseries,
+    DiffEqBase.build_solution(prob,  alg, _t, _timeseries,
                    timeseries_errors = timeseries_errors,
                    retcode = :Success)
 end

@@ -1,7 +1,8 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
 using TaylorIntegration
-using Base.Test
+using Test
+using LinearAlgebra: norm
 
 const _order = 28
 const _abstol = 1.0E-20
@@ -15,14 +16,14 @@ end
 g(t, x, dx) = x[2]
 
 @testset "Test intersection of surfaces and root-finding: simple pendulum" begin
-    const t0 = 0.0
-    const x0 = [1.3, 0.0]
-    const T = 7.019250311844546
+    t0 = 0.0
+    x0 = [1.3, 0.0]
+    T = 7.019250311844546
 
     p = set_variables("ξ", numvars=length(x0), order=2)
     x0N = x0 + p
     ξ = Taylor1(2)
-    x01 = x0 + ξ
+    x01 = x0 + [ξ, ξ]
 
     #warm-up lap and preliminary tests
     tv, xv, tvS, xvS, gvS = taylorinteg(pendulum!, g, x0, t0, T, _order, _abstol, maxsteps=1)
@@ -33,6 +34,7 @@ g(t, x, dx) = x[2]
     @test size(tvS) == (0,)
     @test size(xvS) == (0,2)
     @test size(gvS) == (0,)
+
     tvN, xvN, tvSN, xvSN, gvSN = taylorinteg(pendulum!, g, x0N, t0, 3T, _order, _abstol, maxsteps=1)
     @test eltype(tvN) == Float64
     @test eltype(xvN) == TaylorN{Float64}
@@ -46,6 +48,7 @@ g(t, x, dx) = x[2]
     @test size(tvSN) == (0,)
     @test size(xvSN) == (0,2)
     @test size(gvSN) == (0,)
+
     tv1, xv1, tvS1, xvS1, gvS1 = taylorinteg(pendulum!, g, x01, t0, 3T, _order, _abstol, maxsteps=1)
     @test eltype(tv1) == Float64
     @test eltype(xv1) == Taylor1{Float64}
@@ -59,6 +62,7 @@ g(t, x, dx) = x[2]
     @test size(tvS1) == (0,)
     @test size(xvS1) == (0,2)
     @test size(gvS1) == (0,)
+
 
     #testing 0-th order root-finding
     tv, xv, tvS, xvS, gvS = taylorinteg(pendulum!, g, x0, t0, 3T, _order, _abstol, maxsteps=1000)

@@ -4,6 +4,7 @@ module TaylorIntegration
 
 using Reexport
 @reexport using TaylorSeries, DiffEqBase
+using LinearAlgebra
 
 const warnkeywords =
     (:save_idxs, :d_discontinuities, :unstable_check, :save_everystep,
@@ -14,7 +15,7 @@ const warnkeywords =
      :calck, :progress, :timeseries_steps, :tstops, :saveat, :dense)
 
 function __init__()
-    const global warnlist = Set(warnkeywords)
+    global warnlist = Set(warnkeywords)
 end
 
 export taylorinteg, liap_taylorinteg

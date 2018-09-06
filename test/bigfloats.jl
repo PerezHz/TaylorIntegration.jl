@@ -1,20 +1,21 @@
 using TaylorIntegration, Elliptic
-using Base.Test
+using Test
+using LinearAlgebra: norm
 
 const _order = 90
 const _abstol = 1.0E-77
 
-@testset "Test ODE integration with BigFloats: simple pendulum" begin
-    function pendulum!(t, x, dx) #the simple pendulum ODE
-        dx[1] = x[2]
-        dx[2] = -sin(x[1])
-        nothing
-    end
+function pendulum!(t, x, dx) #the simple pendulum ODE
+    dx[1] = x[2]
+    dx[2] = -sin(x[1])
+    nothing
+end
 
+@testset "Test ODE integration with BigFloats: simple pendulum" begin
     q0 = [big"1.3", 0.0] #the initial condition as a Vector{BigFloat}
     # T is the pendulum's librational period == 4Elliptic.K(sin(q0[1]/2)^2)
     # we will evaluate the elliptic integral K using TaylorIntegration.jl:
-    G(t,x) = 1/sqrt(1-((sin(q0[1]/2))^2)*(sin(t)^2)) # K elliptic integral kernel
+    G(t,x) = 1/sqrt(1-((sin(big"1.3"/2))^2)*(sin(t)^2)) # K elliptic integral kernel
     tvk, xvk = taylorinteg(G, 0.0, 0.0, BigFloat(π)/2, _order, _abstol)
     @test eltype(tvk) == BigFloat
     @test eltype(xvk) == BigFloat
