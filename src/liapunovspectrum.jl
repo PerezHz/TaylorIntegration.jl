@@ -147,8 +147,12 @@ function liap_taylorstep!(f, t::Taylor1{T}, x::Vector{Taylor1{U}}, dx::Vector{Ta
     # Compute the Taylor coefficients
     liap_jetcoeffs!(f, t, x, dx, xaux, δx, dδx, jac, _δv)
 
+    # Dimensions of phase-space: dof
+    nx = length(x)
+    dof = round(Int, (-1+sqrt(1+4*nx))/2)
+
     # Compute the step-size of the integration using `abstol`
-    δt = stepsize(x, abstol)
+    δt = stepsize(view(x, 1:dof), abstol)
     δt = min(δt, t1-t0)
 
     # Update x0

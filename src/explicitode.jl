@@ -110,7 +110,7 @@ function stepsize(x::Taylor1{U}, epsilon::T) where {T<:Real, U<:Number}
     return h
 end
 
-function stepsize(q::Array{Taylor1{U},1}, epsilon::T) where {T<:Real, U<:Number}
+function stepsize(q::AbstractArray{Taylor1{U},1}, epsilon::T) where {T<:Real, U<:Number}
     h = convert(T, Inf)
     for i in eachindex(q)
         @inbounds hi = stepsize( q[i], epsilon )
