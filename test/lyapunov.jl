@@ -82,16 +82,16 @@ end
 
     # Number of TaylorN variables should be equal to length of vector of initial conditions
     xi = set_variables("δ", order=1, numvars=length(x0)-1)
-    @test_throws AssertionError liap_taylorinteg(lorenz!, x0, t0, tmax, 28, _abstol; maxsteps=2)
+    @test_throws AssertionError lyap_taylorinteg(lorenz!, x0, t0, tmax, 28, _abstol; maxsteps=2)
 
     xi = set_variables("δ", order=1, numvars=length(x0))
-    tv, xv, λv = liap_taylorinteg(lorenz!, x0, t0, tmax, 28, _abstol; maxsteps=2)
+    tv, xv, λv = lyap_taylorinteg(lorenz!, x0, t0, tmax, 28, _abstol; maxsteps=2)
 
     @test size(tv) == (3,)
     @test size(xv) == (3,3)
     @test size(λv) == (3,3)
 
-    tv, xv, λv = liap_taylorinteg(lorenz!, x0, t0, tmax, 28, _abstol; maxsteps=2000)
+    tv, xv, λv = lyap_taylorinteg(lorenz!, x0, t0, tmax, 28, _abstol; maxsteps=2000)
 
     @test xv[1,:] == x0
     @test tv[1] == t0
@@ -132,13 +132,13 @@ end
 
     @test lorenztr == -(σ+one(Float64)+β)
 
-    xw, λw = liap_taylorinteg(lorenz!, x0, t0:1.0:tmax, 28, _abstol; maxsteps=2)
+    xw, λw = lyap_taylorinteg(lorenz!, x0, t0:1.0:tmax, 28, _abstol; maxsteps=2)
 
     @test size(xw) == (length(t0:1.0:tmax), 3)
     @test size(λw) == (length(t0:1.0:tmax), 3)
     @test prod(isnan.(xw[2:end,:]))
 
-    xw, λw = liap_taylorinteg(lorenz!, x0, t0:1.0:tmax, 28, _abstol; maxsteps=2000)
+    xw, λw = lyap_taylorinteg(lorenz!, x0, t0:1.0:tmax, 28, _abstol; maxsteps=2000)
 
     @test xw[1,:] == x0
     @test size(xw) == size(λw)
@@ -149,7 +149,7 @@ end
     @test isapprox(λw[end,2], -0.00830, rtol=mytol, atol=mytol)
     @test isapprox(λw[end,3], -22.46336, rtol=mytol, atol=mytol)
 
-    xw2, λw2 = liap_taylorinteg(lorenz!, x0, collect(t0:1.0:tmax), 28, _abstol; maxsteps=2000)
+    xw2, λw2 = lyap_taylorinteg(lorenz!, x0, collect(t0:1.0:tmax), 28, _abstol; maxsteps=2000)
 
     @test xw2 == xw
     @test λw2 == λw

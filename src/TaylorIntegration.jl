@@ -18,10 +18,10 @@ function __init__()
     global warnlist = Set(warnkeywords)
 end
 
-export taylorinteg, liap_taylorinteg
+export taylorinteg, lyap_taylorinteg
 
 include("explicitode.jl")
-include("liapunovspectrum.jl")
+include("lyapunovspectrum.jl")
 include("common.jl")
 include("rootfinding.jl")
 

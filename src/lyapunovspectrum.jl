@@ -87,14 +87,14 @@ function modifiedGS!(A, Q, R, aⱼ, qᵢ, vⱼ)
 end
 
 """
-    liap_jetcoeffs!(eqsdiff!, t0, x, dx, xaux, δx, dδx, jac, vT)
+    lyap_jetcoeffs!(eqsdiff!, t0, x, dx, xaux, δx, dδx, jac, vT)
 
-Similar to [`jetcoeffs!`](@ref) for the calculation of the Liapunov
+Similar to [`jetcoeffs!`](@ref) for the calculation of the Lyapunov
 spectrum. `jac` is the linearization of the equations of motion,
 and `xaux`, `δx` and `dδx` are auxiliary vectors.
 
 """
-function liap_jetcoeffs!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
+function lyap_jetcoeffs!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
         dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}},
         δx::Array{TaylorN{Taylor1{U}},1}, dδx::Array{TaylorN{Taylor1{U}},1},
         jac::Array{Taylor1{U},2}, _δv::Array{TaylorN{Taylor1{U}}}) where {T<:Real, U<:Number}
@@ -132,20 +132,20 @@ function liap_jetcoeffs!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
 end
 
 """
-    liap_taylorstep!(f, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol, vT)
+    lyap_taylorstep!(f, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol, vT)
 
-Similar to [`taylorstep!`](@ref) for the calculation of the Liapunov
+Similar to [`taylorstep!`](@ref) for the calculation of the Lyapunov
 spectrum. `jac` is the linearization of the equations of motion,
 and `xaux`, `δx`, `dδx` and `vT` are auxiliary vectors.
 
 """
-function liap_taylorstep!(f, t::Taylor1{T}, x::Vector{Taylor1{U}}, dx::Vector{Taylor1{U}},
+function lyap_taylorstep!(f, t::Taylor1{T}, x::Vector{Taylor1{U}}, dx::Vector{Taylor1{U}},
         xaux::Vector{Taylor1{U}}, δx::Array{TaylorN{Taylor1{U}},1},
         dδx::Array{TaylorN{Taylor1{U}},1}, jac::Array{Taylor1{U},2}, t0::T, t1::T, x0::Array{U,1},
         order::Int, abstol::T, _δv::Array{TaylorN{Taylor1{U}}}) where {T<:Real, U<:Number}
 
     # Compute the Taylor coefficients
-    liap_jetcoeffs!(f, t, x, dx, xaux, δx, dδx, jac, _δv)
+    lyap_jetcoeffs!(f, t, x, dx, xaux, δx, dδx, jac, _δv)
 
     # Dimensions of phase-space: dof
     nx = length(x)
@@ -161,17 +161,17 @@ function liap_taylorstep!(f, t::Taylor1{T}, x::Vector{Taylor1{U}}, dx::Vector{Ta
 end
 
 """
-    liap_taylorinteg(f, q0, t0, tmax, order, abstol; maxsteps::Int=500)
+    lyap_taylorinteg(f, q0, t0, tmax, order, abstol; maxsteps::Int=500)
 
-Similar to [`taylorinteg!`](@ref) for the calculation of the Liapunov
+Similar to [`taylorinteg!`](@ref) for the calculation of the Lyapunov
 spectrum. Note that the number of `TaylorN` variables should be set
 previously by the user (e.g., by means of `TaylorSeries.set_variables`) and
 should be equal to the length of the vector of initial conditions `q0`.
 Otherwise, whenever `length(q0) != TaylorSeries.get_numvars()`, then
-`liap_taylorinteg` throws an `AssertionError`.
+`lyap_taylorinteg` throws an `AssertionError`.
 
 """
-function liap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
+function lyap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
         order::Int, abstol::T; maxsteps::Int=500) where {T<:Real, U<:Number}
     # Allocation
     tv = Array{T}(undef, maxsteps+1)
@@ -223,7 +223,7 @@ function liap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
     # Integration
     nsteps = 1
     while t0 < tmax
-        δt = liap_taylorstep!(f, t, x, dx, xaux, δx, dδx, jac, t0, tmax, x0, order, abstol, _δv)
+        δt = lyap_taylorstep!(f, t, x, dx, xaux, δx, dδx, jac, t0, tmax, x0, order, abstol, _δv)
         for ind in eachindex(jt)
             @inbounds jt[ind] = x0[dof+ind]
         end
@@ -255,7 +255,7 @@ function liap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
     return view(tv,1:nsteps),  view(transpose(xv),1:nsteps,:),  view(transpose(λ),1:nsteps,:)
 end
 
-function liap_taylorinteg(f, q0::Array{U,1}, trange::Union{AbstractRange{T},Vector{T}},
+function lyap_taylorinteg(f, q0::Array{U,1}, trange::Union{AbstractRange{T},Vector{T}},
         order::Int, abstol::T; maxsteps::Int=500) where {T<:Real, U<:Number}
     # Allocation
     nn = length(trange)
@@ -312,7 +312,7 @@ function liap_taylorinteg(f, q0::Array{U,1}, trange::Union{AbstractRange{T},Vect
         t0, t1 = trange[iter], trange[iter+1]
         nsteps = 0
         while nsteps < maxsteps
-            δt = liap_taylorstep!(f, t, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol, _δv)
+            δt = lyap_taylorstep!(f, t, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol, _δv)
             for ind in eachindex(jt)
                 @inbounds jt[ind] = x0[dof+ind]
             end
