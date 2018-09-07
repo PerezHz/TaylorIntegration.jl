@@ -29,7 +29,7 @@ end)
 
 # Constants for the initial declaration and initialization of arrays
 const _DECL_ARRAY = Expr(:block,
-    :(__var1 = Array{Taylor1{S}}(__var2)),
+    :(__var1 = Array{Taylor1{S}}(undef, __var2)),
     :(@__dot__  __var1 = Taylor1( zero(S), order )) )
 
 
@@ -71,7 +71,7 @@ function _make_parsed_jetcoeffs( ex, debug=false )
     push!(forloopblock.args[2].args, fnbody.args[1].args..., rec_fnbody)
 
     # Push preamble and forloopblock to newfunction
-    push!(newfunction.args[2].args, forloopblock, parse("return nothing"))
+    push!(newfunction.args[2].args, forloopblock, Meta.parse("return nothing"))
 
     # Rename variables of the body of the new function
     newfunction = subs(newfunction, Dict(:__tT => fnargs[1],
@@ -219,7 +219,7 @@ function _preamble_body(fnbody, fnargs, debug=false)
 
     # Include the assignement of indexed auxiliary variables
     defspreamble = _defs_preamble!(preamble, fnargs,
-        d_indx, v_newindx, v_arraydecl, Union{Symbol,Expr}[], similar(d_indx))
+        d_indx, v_newindx, v_arraydecl, Union{Symbol,Expr}[], empty(d_indx))
     # preamble = subs(preamble, d_indx)
 
     # Bring back substitutions
@@ -275,7 +275,7 @@ function _newfnbody(fnbody, d_indx)
         if isa(ex, Expr)
 
             # Ignore the following cases
-            (ex.head == :line || ex.head == :return) && continue
+            (ex.head == :return) && continue
 
             # Treat `for` loops separately
             if ex.head == :block
@@ -340,6 +340,8 @@ function _newfnbody(fnbody, d_indx)
                 throw(ArgumentError("$ex.head is not yet implemented"))
             end
             #
+        elseif isa(ex, LineNumberNode)
+            continue
         else
             @show(typeof(ex))
             throw(ArgumentError("$ex is not an `Expr`"))
@@ -700,8 +702,7 @@ function _recursionloop(fnargs, retvar)
     if ll == 2
 
         rec_preamb = sanitize( :( $(fnargs[2])[1] = $(retvar)[0] ) )
-        rec_fnbody = sanitize(
-            :( $(fnargs[2])[ordnext] = $(retvar)[ord]/ordnext ) )
+        rec_fnbody = sanitize( :( $(fnargs[2])[ordnext] = $(retvar)[ord]/ordnext ) )
         #
     elseif ll == 3
 
@@ -740,7 +741,7 @@ to `ex` in terms of the mutating functions of TaylorSeries.
 macro taylorize( ex )
     nex = _make_parsed_jetcoeffs(ex)
     # @show(ex)
-    println()
+    # println()
     # @show(nex)
     quote
         eval( $(esc(ex)) )  # evals to calling scope the passed function
