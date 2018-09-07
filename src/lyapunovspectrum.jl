@@ -239,9 +239,6 @@ function lyap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
             @inbounds x0[dof+ind] = QH[ind]
         end
         x .= Taylor1.( x0, order )
-        # for i in eachindex(x0)
-        #     @inbounds x[i] = Taylor1( x0[i], order )
-        # end
         if nsteps > maxsteps
             @info("""
             Maximum number of integration steps reached; exiting.
@@ -323,9 +320,6 @@ function lyap_taylorinteg(f, q0::Array{U,1}, trange::Union{AbstractRange{T},Vect
                 @inbounds x0[dof+ind] = QH[ind]
             end
             x .= Taylor1.( x0, order )
-            # for i in eachindex(x0)
-            #     @inbounds x[i] = Taylor1( x0[i], order )
-            # end
             t0 ≥ t1 && break
         end
         if nsteps ≥ maxsteps && t0 != t1
