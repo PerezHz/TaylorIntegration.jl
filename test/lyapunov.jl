@@ -31,7 +31,7 @@ end
         x0 = 10rand(3) #the initial condition
         x0T = Taylor1.(x0,_order)
         TaylorIntegration.stabilitymatrix!(lorenz!, t_, view(x0T,:), δx, dδx, lorenzjac)
-        @test tr(lorenzjac.()) == -(σ+one(Float64)+β)
+        @test tr(lorenzjac.()) == -(1+σ+β)
     end
 end
 
@@ -71,7 +71,7 @@ end
     lorenz!(t0, x0TN, dx0TN)
     lorenztr = tr(jacobian(dx0TN)) #trace of Lorenz system Jacobian matrix
 
-    @test lorenztr == -(σ+one(Float64)+β)
+    @test lorenztr == -(1+σ+β)
 
     # Number of TaylorN variables should be equal to length of vector of initial conditions
     xi = set_variables("δ", order=1, numvars=length(x0)-1)
@@ -106,7 +106,6 @@ end
     #Calculate trace of Lorenz system Jacobian via TaylorSeries.jacobian:
     xi = set_variables("δ", order=1, numvars=length(x0))
     x0TN = x0+xi
-    # x0TN = [ x0[1]+xi[1], x0[2]+xi[2], x0[3]+xi[3] ]
     dx0TN = similar(x0TN)
     lorenz!(t0, x0TN, dx0TN)
     lorenztr = tr(jacobian(dx0TN)) #trace of Lorenz system Jacobian matrix
