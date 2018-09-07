@@ -201,10 +201,11 @@ function lyap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
     # Initialize the vector of Taylor1 expansions
     t = Taylor1(T, order)
     x = Array{Taylor1{U}}(undef, nx0)
+    x .= Taylor1.( x0, order )
     @inbounds t[0] = t0
-    for i in eachindex(x0)
-        @inbounds x[i] = Taylor1( x0[i], order )
-    end
+    # for i in eachindex(x0)
+    #     @inbounds x[i] = Taylor1( x0[i], order )
+    # end
 
     #Allocate auxiliary arrays
     dx = Array{Taylor1{U}}(undef, nx0)
@@ -285,9 +286,10 @@ function lyap_taylorinteg(f, q0::Array{U,1}, trange::Union{AbstractRange{T},Vect
     x0 = vcat(q0, reshape(jt, dof*dof))
     nx0 = length(x0)
     x = Array{Taylor1{U}}(undef, nx0)
-    for i in eachindex(x0)
-        @inbounds x[i] = Taylor1( x0[i], order )
-    end
+    x .= Taylor1.( x0, order )
+    # for i in eachindex(x0)
+    #     @inbounds x[i] = Taylor1( x0[i], order )
+    # end
     @inbounds t[0] = trange[1]
     t00 = trange[1]
     tspan = zero(T)
