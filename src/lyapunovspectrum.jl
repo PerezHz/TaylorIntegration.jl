@@ -259,8 +259,7 @@ function lyap_taylorinteg(f, q0::Array{U,1}, trange::Union{AbstractRange{T},Vect
     fill!(xv, U(NaN))
     λ = similar(xv)
     λtsum = similar(q0)
-    # jt = eye(U, dof)
-    jt = Matrix{U}(I, dof, dof)#eye(U, dof)
+    jt = Matrix{U}(I, dof, dof)
     _δv = Array{TaylorN{Taylor1{U}}}(undef, dof)
 
     @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
@@ -319,7 +318,7 @@ function lyap_taylorinteg(f, q0::Array{U,1}, trange::Union{AbstractRange{T},Vect
             for ind in eachindex(QH)
                 @inbounds x0[dof+ind] = QH[ind]
             end
-            x .= Taylor1.( x0, order )
+            @inbounds x .= Taylor1.( x0, order )
             t0 ≥ t1 && break
         end
         if nsteps ≥ maxsteps && t0 != t1
