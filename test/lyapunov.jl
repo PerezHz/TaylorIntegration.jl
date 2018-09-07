@@ -75,16 +75,16 @@ end
 
     # Number of TaylorN variables should be equal to length of vector of initial conditions
     xi = set_variables("δ", order=1, numvars=length(x0)-1)
-    @test_throws AssertionError lyap_taylorinteg(lorenz!, x0, t0, tmax, 28, _abstol; maxsteps=2)
+    @test_throws AssertionError lyap_taylorinteg(lorenz!, x0, t0, tmax, _order, _abstol; maxsteps=2)
 
     xi = set_variables("δ", order=1, numvars=length(x0))
-    tv, xv, λv = lyap_taylorinteg(lorenz!, x0, t0, tmax, 28, _abstol; maxsteps=2)
+    tv, xv, λv = lyap_taylorinteg(lorenz!, x0, t0, tmax, _order, _abstol; maxsteps=2)
 
     @test size(tv) == (3,)
     @test size(xv) == (3,3)
     @test size(λv) == (3,3)
 
-    tv, xv, λv = lyap_taylorinteg(lorenz!, x0, t0, tmax, 28, _abstol; maxsteps=2000)
+    tv, xv, λv = lyap_taylorinteg(lorenz!, x0, t0, tmax, _order, _abstol; maxsteps=2000)
 
     @test xv[1,:] == x0
     @test tv[1] == t0
@@ -95,10 +95,14 @@ end
     @test isapprox(λv[end,1], 1.47167, rtol=mytol, atol=mytol)
     @test isapprox(λv[end,2], -0.00830, rtol=mytol, atol=mytol)
     @test isapprox(λv[end,3], -22.46336, rtol=mytol, atol=mytol)
+
+    # Check integration consistency (orbit should not depend on variational eqs)
+    t_, x_ = taylorinteg(lorenz!, x0, t0, tmax, _order, _abstol; maxsteps=2000)
+    @test t_ == tv
+    @test x_ == xv
 end
 
 @testset "Test Lyapunov spectrum integrator (trange): Lorenz system" begin
-
     x0 = [19.0, 20.0, 50.0] #the initial condition
     t0 = 0.0 #the initial time
     tmax = t0+20.0 #final time of integration
@@ -112,13 +116,13 @@ end
 
     @test lorenztr == -(1+σ+β)
 
-    xw, λw = lyap_taylorinteg(lorenz!, x0, t0:1.0:tmax, 28, _abstol; maxsteps=2)
+    xw, λw = lyap_taylorinteg(lorenz!, x0, t0:1.0:tmax, _order, _abstol; maxsteps=2)
 
     @test size(xw) == (length(t0:1.0:tmax), 3)
     @test size(λw) == (length(t0:1.0:tmax), 3)
     @test prod(isnan.(xw[2:end,:]))
 
-    xw, λw = lyap_taylorinteg(lorenz!, x0, t0:1.0:tmax, 28, _abstol; maxsteps=2000)
+    xw, λw = lyap_taylorinteg(lorenz!, x0, t0:1.0:tmax, _order, _abstol; maxsteps=2000)
 
     @test xw[1,:] == x0
     @test size(xw) == size(λw)
@@ -129,7 +133,7 @@ end
     @test isapprox(λw[end,2], -0.00830, rtol=mytol, atol=mytol)
     @test isapprox(λw[end,3], -22.46336, rtol=mytol, atol=mytol)
 
-    xw2, λw2 = lyap_taylorinteg(lorenz!, x0, collect(t0:1.0:tmax), 28, _abstol; maxsteps=2000)
+    xw2, λw2 = lyap_taylorinteg(lorenz!, x0, collect(t0:1.0:tmax), _order, _abstol; maxsteps=2000)
 
     @test xw2 == xw
     @test λw2 == λw
@@ -142,4 +146,13 @@ end
     @test isapprox(λw2[end,1], 1.47167, rtol=mytol, atol=mytol)
     @test isapprox(λw2[end,2], -0.00830, rtol=mytol, atol=mytol)
     @test isapprox(λw2[end,3], -22.46336, rtol=mytol, atol=mytol)
+
+    # Check integration consistency (orbit should not depend on variational eqs)
+    x_ = taylorinteg(lorenz!, x0, collect(t0:1.0:tmax), _order, _abstol; maxsteps=2000)
+    @test x_ == xw2
 end
+
+# t, x = taylorinteg(lorenz!, x0, t0, tmax, _order, _abstol; maxsteps=100000)
+# tL, xL, λL = lyap_taylorinteg(lorenz!, x0, t0, tmax, _order, _abstol; maxsteps=100000)
+# @assert t == tL
+# @assert x == xL
