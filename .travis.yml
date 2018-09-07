@@ -24,7 +24,7 @@ matrix:
 
 script:
  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
- - julia --project --check-bounds=yes -e 'using Pkg; Pkg.add(pwd()); Pkg.build("TaylorIntegration"); Pkg.test("TaylorIntegration"; coverage=true)'
+ - julia --project --check-bounds=yes -e 'using Pkg; Pkg.clone(pwd()); Pkg.build("TaylorIntegration"); Pkg.test("TaylorIntegration"; coverage=true)'
 
 after_success:
   - julia -e 'using Pkg'
