@@ -151,8 +151,3 @@ end
     x_ = taylorinteg(lorenz!, x0, collect(t0:1.0:tmax), _order, _abstol; maxsteps=2000)
     @test x_ == xw2
 end
-
-# t, x = taylorinteg(lorenz!, x0, t0, tmax, _order, _abstol; maxsteps=100000)
-# tL, xL, λL = lyap_taylorinteg(lorenz!, x0, t0, tmax, _order, _abstol; maxsteps=100000)
-# @assert t == tL
-# @assert x == xL
