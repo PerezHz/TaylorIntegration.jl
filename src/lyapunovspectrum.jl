@@ -189,7 +189,7 @@ function lyap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
 
     # Initial conditions
     @inbounds tv[1] = t0
-    for ind in 1:dof
+    for ind in eachindex(q0)
         @inbounds xv[ind,1] = q0[ind]
         @inbounds λ[ind,1] = zero(U)
         @inbounds λtsum[ind] = zero(U)
@@ -232,7 +232,7 @@ function lyap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
         tspan = t0-t00
         nsteps += 1
         @inbounds tv[nsteps] = t0
-        @inbounds for ind in 1:dof
+        @inbounds for ind in eachindex(q0)
             xv[ind,nsteps] = x0[ind]
             λtsum[ind] += log(RH[ind,ind])
             λ[ind,nsteps] = λtsum[ind]/tspan
@@ -274,7 +274,7 @@ function lyap_taylorinteg(f, q0::Array{U,1}, trange::Union{AbstractRange{T},Vect
     end
 
     # Initial conditions
-    @inbounds for ind in 1:dof
+    @inbounds for ind in eachindex(q0)
         xv[ind,1] = q0[ind]
         λ[ind,1] = zero(U)
         λtsum[ind] = zero(U)
@@ -319,7 +319,7 @@ function lyap_taylorinteg(f, q0::Array{U,1}, trange::Union{AbstractRange{T},Vect
             t0 += δt
             @inbounds t[0] = t0
             nsteps += 1
-            @inbounds for ind in 1:dof
+            @inbounds for ind in eachindex(q0)
                 λtsum[ind] += log(RH[ind,ind])
             end
             for ind in eachindex(QH)
@@ -338,7 +338,7 @@ function lyap_taylorinteg(f, q0::Array{U,1}, trange::Union{AbstractRange{T},Vect
         end
         iter += 1
         tspan = t0-t00
-        @inbounds for ind in 1:dof
+        @inbounds for ind in eachindex(q0)
             xv[ind,iter] = x0[ind]
             λ[ind,iter] = λtsum[ind]/tspan
         end
