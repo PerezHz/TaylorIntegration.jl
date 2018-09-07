@@ -101,7 +101,7 @@ function lyap_jetcoeffs!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
     order = x[1].order
     # Dimensions of phase-space: dof
     nx = length(x)
-    dof = round(Int, (-1+sqrt(1+4*nx))/2)
+    dof = length(δx) #round(Int, (-1+sqrt(1+4*nx))/2)
     for ord in 0:order-1
         ordnext = ord+1
 
@@ -148,8 +148,7 @@ function lyap_taylorstep!(f, t::Taylor1{T}, x::Vector{Taylor1{U}}, dx::Vector{Ta
     lyap_jetcoeffs!(f, t, x, dx, xaux, δx, dδx, jac, _δv)
 
     # Dimensions of phase-space: dof
-    nx = length(x)
-    dof = round(Int, (-1+sqrt(1+4*nx))/2)
+    dof = length(δx)
 
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(view(x, 1:dof), abstol)
