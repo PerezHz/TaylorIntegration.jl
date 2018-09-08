@@ -106,6 +106,16 @@ end
     @test size(tv) == (3,)
     @test size(xv) == (3,3)
     @test size(λv) == (3,3)
+    #Test lyap_taylorinteg with user-defined Jacobian
+    tv2, xv2, λv2 = lyap_taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol, lorenz_jac!; maxsteps=2)
+    @test size(tv2) == (3,)
+    @test size(xv2) == (3,3)
+    @test size(λv2) == (3,3)
+    @test tv == tv2
+    @test xv == xv2
+    @test λv == λv2
+
+    #Test lyap_taylorinteg with autodiff-computed Jacobian
     tv, xv, λv = lyap_taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol; maxsteps=2000)
     @time tv, xv, λv = lyap_taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol; maxsteps=2000)
     @test xv[1,:] == q0
@@ -123,25 +133,21 @@ end
     @test x_ == xv
 
     #Test lyap_taylorinteg with user-defined Jacobian
-    tv, xv, λv = lyap_taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol, lorenz_jac!; maxsteps=2)
-    @test size(tv) == (3,)
-    @test size(xv) == (3,3)
-    @test size(λv) == (3,3)
-    tv, xv, λv = lyap_taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol, lorenz_jac!; maxsteps=2000)
-    @time tv, xv, λv = lyap_taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol, lorenz_jac!; maxsteps=2000)
-    @test xv[1,:] == q0
-    @test tv[1] == t0
-    @test size(xv) == size(λv)
-    @test isapprox(sum(λv[1,:]), lorenztr) == false
-    @test isapprox(sum(λv[end,:]), lorenztr)
+    tv2, xv2, λv2 = lyap_taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol, lorenz_jac!; maxsteps=2000)
+    @time tv2, xv2, λv2 = lyap_taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol, lorenz_jac!; maxsteps=2000)
+    @test xv2[1,:] == q0
+    @test tv2[1] == t0
+    @test size(xv2) == size(λv2)
+    @test isapprox(sum(λv2[1,:]), lorenztr) == false
+    @test isapprox(sum(λv2[end,:]), lorenztr)
     mytol = 1e-4
-    @test isapprox(λv[end,1], 1.47167, rtol=mytol, atol=mytol)
-    @test isapprox(λv[end,2], -0.00830, rtol=mytol, atol=mytol)
-    @test isapprox(λv[end,3], -22.46336, rtol=mytol, atol=mytol)
+    @test isapprox(λv2[end,1], 1.47167, rtol=mytol, atol=mytol)
+    @test isapprox(λv2[end,2], -0.00830, rtol=mytol, atol=mytol)
+    @test isapprox(λv2[end,3], -22.46336, rtol=mytol, atol=mytol)
     # Check integration consistency (orbit should not depend on variational eqs)
     # t_, x_ = taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol; maxsteps=2000)
-    @test t_ == tv
-    @test x_ == xv
+    @test t_ == tv2
+    @test x_ == xv2
 end
 
 @testset "Test Lyapunov spectrum integrator (trange): Lorenz system" begin
