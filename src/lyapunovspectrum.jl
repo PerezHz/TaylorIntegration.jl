@@ -87,17 +87,23 @@ function modifiedGS!(A, Q, R, aⱼ, qᵢ, vⱼ)
 end
 
 """
-    lyap_jetcoeffs!(eqsdiff!, t, x, dx, xaux, δx, dδx, jac, _δv)
+    lyap_jetcoeffs!(eqsdiff!, t, x, dx, xaux, δx, dδx, jac, _δv[, eqsdiff_jac!])
 
-Similar to [`jetcoeffs!`](@ref) for the calculation of the Lyapunov
-spectrum. `jac` is the linearization of the equations of motion,
-and `xaux`, `δx` and `dδx` are auxiliary vectors.
+Similar to [`jetcoeffs!`](@ref) for the calculation of the Lyapunov spectrum.
+`jac` is the current value of the linearization of the equations of motion
+(i.e., the Jacobian), and `xaux`, `δx`, `dδx` and `_δv` are auxiliary vectors.
+Optionally, the user may provide an Jacobian function `eqsdiff_jac!` to
+evaluate in-place the Jacobian; the user-defined Jacobian function must have the
+call signature `eqsdiff_jac!(jac, t, x, dx) -> nothing`. Otherwise, the current
+value of the Jacobian is computed via automatic differentiation using
+`TaylorSeries.jl`.
 
 """
 function lyap_jetcoeffs!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
         dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}},
         δx::Array{TaylorN{Taylor1{U}},1}, dδx::Array{TaylorN{Taylor1{U}},1},
-        jac::Array{Taylor1{U},2}, _δv::Array{TaylorN{Taylor1{U}}}, eqsdiff_jac! =Nothing) where {T<:Real, U<:Number}
+        jac::Array{Taylor1{U},2}, _δv::Array{TaylorN{Taylor1{U}}},
+        eqsdiff_jac! =Nothing) where {T<:Real, U<:Number}
     order = x[1].order
     # Dimensions of phase-space: dof
     nx = length(x)
@@ -139,53 +145,14 @@ function lyap_jetcoeffs!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
     nothing
 end
 
-# """
-#     lyap_jetcoeffs!(eqsdiff!, eqsdiff_jac!, t, x, dx, xaux, jac)
-
-# Similar to [`jetcoeffs!`](@ref) for the calculation of the Lyapunov
-# spectrum. This method takes as input the equations of motion `eqsdiff!`, as well
-# as their Jacobian `eqsdiff_jac!`, an in-place function. `xaux`, and `jac` are
-# auxiliary vectors.
-
-# """
-# function lyap_jetcoeffs!(eqsdiff!, eqsdiff_jac!, t::Taylor1{T},
-#         x::Vector{Taylor1{U}}, dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}},
-#         jac::Array{Taylor1{U},2}) where {T<:Real, U<:Number}
-#     # Dimensions of phase-space: dof
-#     nx = length(x)
-#     dof = size(jac, 1)
-#     order = x[1].order
-#     for ord in 0:order-1
-#         ordnext = ord+1
-
-#         # Set `taux`, auxiliary Taylor1 variable to order `ord`
-#         @inbounds taux = Taylor1( t.coeffs[1:ordnext] )
-#         # Set `xaux`, auxiliary vector of Taylor1 to order `ord`
-#         for j in eachindex(x)
-#             @inbounds xaux[j] = Taylor1( x[j].coeffs[1:ordnext] )
-#         end
-
-#         # Equations of motion
-#         # TODO! define a macro to optimize the eqsdiff
-#         eqsdiff!(taux, xaux, dx)
-#         # Stability matrix
-#         eqsdiff_jac!(jac, taux, xaux, dx)
-
-#         @inbounds dx[dof+1:nx] = jac * reshape( xaux[dof+1:nx], (dof,dof) )
-#         # Recursion relations
-#         for j in eachindex(x)
-#             @inbounds x[j][ordnext] = dx[j][ord]/ordnext
-#         end
-#     end
-#     nothing
-# end
-
 """
-    lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol, _δv)
+    lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol, _δv[, f])
 
-Similar to [`taylorstep!`](@ref) for the calculation of the Lyapunov
-spectrum. `jac` is the linearization of the equations of motion,
-and `xaux`, `δx`, `dδx` and `vT` are auxiliary vectors.
+Similar to [`taylorstep!`](@ref) for the calculation of the Lyapunov spectrum.
+`jac` is the current value of the linearization of the equations of motion, i.e,
+the Jacobian. `xaux`, `δx`, `dδx` and `vT` are auxiliary vectors. Optionally, the
+user may provide an Jacobian function `f!` to evaluate the current value of the
+Jacobian. For more details on `f!`, see [`lyap_jetcoeffs!`](@ref).
 
 """
 function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
@@ -215,14 +182,18 @@ function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
 end
 
 """
-    lyap_taylorinteg(f!, q0, t0, tmax, order, abstol; maxsteps::Int=500)
+    lyap_taylorinteg(f!, q0, t0, tmax, order, abstol[, f!]; maxsteps::Int=500)
 
 Similar to [`taylorinteg!`](@ref) for the calculation of the Lyapunov
 spectrum. Note that the number of `TaylorN` variables should be set
 previously by the user (e.g., by means of `TaylorSeries.set_variables`) and
 should be equal to the length of the vector of initial conditions `q0`.
 Otherwise, whenever `length(q0) != TaylorSeries.get_numvars()`, then
-`lyap_taylorinteg` throws an `AssertionError`.
+`lyap_taylorinteg` throws an `AssertionError`.  Optionally, the user may provide
+an Jacobian function `f!` to evaluate the current value of the Jacobian.
+Otherwise, the current value of the Jacobian is computed via automatic
+differentiation using `TaylorSeries.jl`. For more details on `f!`, see
+[`lyap_jetcoeffs!`](@ref).
 
 """
 function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
