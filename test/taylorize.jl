@@ -260,7 +260,7 @@ end
 #     @test_throws ArgumentError eval(ex)
 # end
 
-@testset "Test macro for not a function call" begin
-    ex = :(@taylorize begin x=1; x+x end)
-    # @test_throws ArgumentError eval(ex)
-end
+# @testset "Test macro for not a function call" begin
+#     ex = :(@taylorize begin x=1; x+x end)
+#     # @test_throws ArgumentError eval(ex)
+# end

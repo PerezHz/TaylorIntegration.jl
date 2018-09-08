@@ -1,9 +1,7 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
-# Load necessary components of MacroTools and Espresso
-using MacroTools: @capture, shortdef
-
-using Espresso: subs, simplify, ExGraph, to_expr, sanitize, genname,
+# Load necessary components of Espresso
+using Espresso: subs, simplify, ExGraph, ExH, to_expr, sanitize, genname,
     find_vars, findex, find_indices, isindexed
 
 
@@ -41,7 +39,7 @@ differential equations, which exploits the mutating functions
 of TaylorSeries.jl.
 
 """
-function _make_parsed_jetcoeffs( ex, debug=false )
+function _make_parsed_jetcoeffs(ex::Expr, debug=false)
 
     # Extract the name, args and body of the function
     fn, fnargs, fnbody = _extract_parts(ex)
@@ -94,11 +92,14 @@ a one-line function, or in the long form (anonymous functions
 do not work).
 
 """
-function _extract_parts(ex)
+function _extract_parts(ex::Expr)
 
     # Capture name, args and body
-    @capture( shortdef(ex), ffn_(ffnargs__) = fnbody_ ) ||
-        throw(ArgumentError("It must be a function call:\n $ex"))
+    # @capture( shortdef(ex), ffn_(ffnargs__) = fnbody_ ) ||
+    #     throw(ArgumentError("It must be a function call:\n $ex"))
+    dd = Dict{Symbol, Any}()
+    _capture_fn_args_body!(ex, dd)
+    ffn, ffnargs, fnbody = dd[:fname], dd[:fnargs], dd[:fnbody]
 
     # Clean-up `ffn`
     fn = isa(ffn, Symbol) ? ffn : ffn.args[1]
@@ -128,15 +129,41 @@ function _extract_parts(ex)
         if fnbody.args[1].args[end] == :nothing
             pop!(fnbody.args[1].args)
         else
-            fnbody.args[1].args[end] = :(identity($(fnbody.args[1].args[end])))
+            fnbody.args[1].args[end] = :( identity($(fnbody.args[1].args[end])) )
         end
     elseif isa(fnbody.args[1].args[end], Number)
-        fnbody.args[1].args[end] =
-            :( $(fnbody.args[1].args[end])+zero($(fnargs[1])) )
+        fnbody.args[1].args[end] = :( $(fnbody.args[1].args[end])+zero($(fnargs[1])) )
     end
 
     return fn, fnargs, fnbody
 end
+
+
+
+"""
+`_capture_fn_args_body!(ex, vout::Dict{Symbol, Any})`
+
+Captures the name of a function, arguments, body and other properties,
+returning them as the values of the dictionary `dd`, which is updated
+in place.
+
+"""
+function _capture_fn_args_body!(ex::Expr, vout::Dict{Symbol, Any} = Dict())
+    exh = ExH(ex)
+    if exh.head == :(=) || exh.head == :function
+        _capture_fn_args_body!.(ex.args, Ref(vout))
+    elseif exh.head == :call
+        push!(vout, Pair(:fname, exh.args[1]))
+        push!(vout, Pair(:fnargs, exh.args[2:end]))
+    elseif exh.head == :block
+        push!(vout, Pair(:fnbody, ex))
+    elseif exh.head == :where
+        push!(vout, Pair(:where, ex.args[2:end]))
+        _capture_fn_args_body!(ex.args[1], vout)
+    end
+    vout
+end
+
 
 
 """
