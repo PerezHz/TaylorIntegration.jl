@@ -145,7 +145,6 @@ end
     @test isapprox(λv2[end,2], -0.00830, rtol=mytol, atol=mytol)
     @test isapprox(λv2[end,3], -22.46336, rtol=mytol, atol=mytol)
     # Check integration consistency (orbit should not depend on variational eqs)
-    # t_, x_ = taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol; maxsteps=2000)
     @test t_ == tv2
     @test x_ == xv2
 end
