@@ -97,33 +97,40 @@ and `xaux`, `δx` and `dδx` are auxiliary vectors.
 function lyap_jetcoeffs!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
         dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}},
         δx::Array{TaylorN{Taylor1{U}},1}, dδx::Array{TaylorN{Taylor1{U}},1},
-        jac::Array{Taylor1{U},2}, _δv::Array{TaylorN{Taylor1{U}}}) where {T<:Real, U<:Number}
+        jac::Array{Taylor1{U},2}, _δv::Array{TaylorN{Taylor1{U}}}, eqsdiff_jac! =Nothing) where {T<:Real, U<:Number}
     order = x[1].order
     # Dimensions of phase-space: dof
     nx = length(x)
     dof = length(δx)
     for ord in 0:order-1
         ordnext = ord+1
-
         # Set `taux`, auxiliary Taylor1 variable to order `ord`
         @inbounds taux = Taylor1( t.coeffs[1:ordnext] )
         # Set `xaux`, auxiliary vector of Taylor1 to order `ord`
         for j in eachindex(x)
             @inbounds xaux[j] = Taylor1( x[j].coeffs[1:ordnext] )
         end
-        # Set δx equal to current value of xaux plus 1st-order variations
-        for ind in eachindex(δx)
-            @inbounds δx[ind] = xaux[ind] + _δv[ind]
+
+        if eqsdiff_jac! == Nothing
+            # Set δx equal to current value of xaux plus 1st-order variations
+            for ind in eachindex(δx)
+                @inbounds δx[ind] = xaux[ind] + _δv[ind]
+            end
+            # Equations of motion
+            # TODO! define a macro to optimize the eqsdiff
+            eqsdiff!(taux, δx, dδx)
+            @inbounds dx[1:dof] .= constant_term.(dδx)
+            # Stability matrix
+            jacobian!(jac, dδx)
+        else
+            # Equations of motion
+            # TODO! define a macro to optimize the eqsdiff
+            eqsdiff!(taux, xaux, dx)
+            # Stability matrix
+            eqsdiff_jac!(jac, taux, xaux, dx)
         end
 
-        # Equations of motion
-        # TODO! define a macro to optimize the eqsdiff
-        eqsdiff!(taux, δx, dδx)
-        @inbounds dx[1:dof] .= constant_term.(dδx)
-        # Stability matrix
-        jacobian!(jac, dδx)
         @inbounds dx[dof+1:nx] = jac * reshape( xaux[dof+1:nx], (dof,dof) )
-
         # Recursion relations
         for j in eachindex(x)
             @inbounds x[j][ordnext] = dx[j][ord]/ordnext
@@ -132,46 +139,46 @@ function lyap_jetcoeffs!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
     nothing
 end
 
-"""
-    lyap_jetcoeffs!(eqsdiff!, eqsdiff_jac!, t, x, dx, xaux, jac)
+# """
+#     lyap_jetcoeffs!(eqsdiff!, eqsdiff_jac!, t, x, dx, xaux, jac)
 
-Similar to [`jetcoeffs!`](@ref) for the calculation of the Lyapunov
-spectrum. This method takes as input the equations of motion `eqsdiff!`, as well
-as their Jacobian `eqsdiff_jac!`, an in-place function. `xaux`, and `jac` are
-auxiliary vectors.
+# Similar to [`jetcoeffs!`](@ref) for the calculation of the Lyapunov
+# spectrum. This method takes as input the equations of motion `eqsdiff!`, as well
+# as their Jacobian `eqsdiff_jac!`, an in-place function. `xaux`, and `jac` are
+# auxiliary vectors.
 
-"""
-function lyap_jetcoeffs!(eqsdiff!, eqsdiff_jac!, t::Taylor1{T},
-        x::Vector{Taylor1{U}}, dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}},
-        jac::Array{Taylor1{U},2}) where {T<:Real, U<:Number}
-    # Dimensions of phase-space: dof
-    nx = length(x)
-    dof = size(jac, 1)
-    order = x[1].order
-    for ord in 0:order-1
-        ordnext = ord+1
+# """
+# function lyap_jetcoeffs!(eqsdiff!, eqsdiff_jac!, t::Taylor1{T},
+#         x::Vector{Taylor1{U}}, dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}},
+#         jac::Array{Taylor1{U},2}) where {T<:Real, U<:Number}
+#     # Dimensions of phase-space: dof
+#     nx = length(x)
+#     dof = size(jac, 1)
+#     order = x[1].order
+#     for ord in 0:order-1
+#         ordnext = ord+1
 
-        # Set `taux`, auxiliary Taylor1 variable to order `ord`
-        @inbounds taux = Taylor1( t.coeffs[1:ordnext] )
-        # Set `xaux`, auxiliary vector of Taylor1 to order `ord`
-        for j in eachindex(x)
-            @inbounds xaux[j] = Taylor1( x[j].coeffs[1:ordnext] )
-        end
+#         # Set `taux`, auxiliary Taylor1 variable to order `ord`
+#         @inbounds taux = Taylor1( t.coeffs[1:ordnext] )
+#         # Set `xaux`, auxiliary vector of Taylor1 to order `ord`
+#         for j in eachindex(x)
+#             @inbounds xaux[j] = Taylor1( x[j].coeffs[1:ordnext] )
+#         end
 
-        # Equations of motion
-        # TODO! define a macro to optimize the eqsdiff
-        eqsdiff!(taux, xaux, dx)
-        # Stability matrix
-        eqsdiff_jac!(jac, taux, xaux, dx)
-        @inbounds dx[dof+1:nx] = jac * reshape( xaux[dof+1:nx], (dof,dof) )
+#         # Equations of motion
+#         # TODO! define a macro to optimize the eqsdiff
+#         eqsdiff!(taux, xaux, dx)
+#         # Stability matrix
+#         eqsdiff_jac!(jac, taux, xaux, dx)
 
-        # Recursion relations
-        for j in eachindex(x)
-            @inbounds x[j][ordnext] = dx[j][ord]/ordnext
-        end
-    end
-    nothing
-end
+#         @inbounds dx[dof+1:nx] = jac * reshape( xaux[dof+1:nx], (dof,dof) )
+#         # Recursion relations
+#         for j in eachindex(x)
+#             @inbounds x[j][ordnext] = dx[j][ord]/ordnext
+#         end
+#     end
+#     nothing
+# end
 
 """
     lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol, _δv)
@@ -187,12 +194,13 @@ function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
         jac::Array{Taylor1{U},2}, t0::T, t1::T, x0::Array{U,1}, order::Int,
         abstol::T, _δv::Array{TaylorN{Taylor1{U}}}, df! =Nothing) where {T<:Real, U<:Number}
 
-    # Compute the Taylor coefficients
-    if df! == Nothing
-        lyap_jetcoeffs!(f!, t, x, dx, xaux, δx, dδx, jac, _δv)
-    else
-        lyap_jetcoeffs!(f!, df!, t, x, dx, xaux, jac)
-    end
+    # # Compute the Taylor coefficients
+    # if df! == Nothing
+    #     lyap_jetcoeffs!(f!, t, x, dx, xaux, δx, dδx, jac, _δv)
+    # else
+    #     lyap_jetcoeffs!(f!, df!, t, x, dx, xaux, jac)
+    # end
+    lyap_jetcoeffs!(f!, t, x, dx, xaux, δx, dδx, jac, _δv, df!)
 
     # Dimensions of phase-space: dof
     dof = length(δx)
