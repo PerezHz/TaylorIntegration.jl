@@ -181,11 +181,11 @@ spectrum. `jac` is the linearization of the equations of motion,
 and `xaux`, `δx`, `dδx` and `vT` are auxiliary vectors.
 
 """
-function lyap_taylorstep!(f!, df! = Nothing, t::Taylor1{T}, x::Vector{Taylor1{U}},
+function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
         dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}},
         δx::Array{TaylorN{Taylor1{U}},1}, dδx::Array{TaylorN{Taylor1{U}},1},
         jac::Array{Taylor1{U},2}, t0::T, t1::T, x0::Array{U,1}, order::Int,
-        abstol::T, _δv::Array{TaylorN{Taylor1{U}}}) where {T<:Real, U<:Number}
+        abstol::T, _δv::Array{TaylorN{Taylor1{U}}}, df! =Nothing) where {T<:Real, U<:Number}
 
     # Compute the Taylor coefficients
     if df! == Nothing
@@ -205,26 +205,6 @@ function lyap_taylorstep!(f!, df! = Nothing, t::Taylor1{T}, x::Vector{Taylor1{U}
     evaluate!(x, δt, x0)
     return δt
 end
-
-# function lyap_taylorstep!(f!, df!, t::Taylor1{T}, x::Vector{Taylor1{U}},
-#         dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}},
-#         jac::Array{Taylor1{U},2}, t0::T, t1::T, x0::Array{U,1},
-#         order::Int, abstol::T) where {T<:Real, U<:Number}
-
-#     # Compute the Taylor coefficients
-#     lyap_jetcoeffs!(f!, df!, t, x, dx, xaux, jac)
-
-#     # Dimensions of phase-space: dof
-#     dof = length(δx)
-
-#     # Compute the step-size of the integration using `abstol`
-#     δt = stepsize(view(x, 1:dof), abstol)
-#     δt = min(δt, t1-t0)
-
-#     # Update x0
-#     evaluate!(x, δt, x0)
-#     return δt
-# end
 
 """
     lyap_taylorinteg(f!, q0, t0, tmax, order, abstol; maxsteps::Int=500)
