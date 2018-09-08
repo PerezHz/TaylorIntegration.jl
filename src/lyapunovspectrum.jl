@@ -146,7 +146,7 @@ function lyap_jetcoeffs!(eqsdiff!, eqsdiff_jac!, t::Taylor1{T},
         jac::Array{Taylor1{U},2}) where {T<:Real, U<:Number}
     # Dimensions of phase-space: dof
     nx = length(x)
-    dof = length(δx)
+    dof = size(jac, 1)
     order = x[1].order
     for ord in 0:order-1
         ordnext = ord+1
@@ -218,7 +218,7 @@ Otherwise, whenever `length(q0) != TaylorSeries.get_numvars()`, then
 
 """
 function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
-        order::Int, abstol::T; maxsteps::Int=500, df!=Nothing) where {T<:Real, U<:Number}
+        order::Int, abstol::T, df! =Nothing; maxsteps::Int=500) where {T<:Real, U<:Number}
     # Allocation
     tv = Array{T}(undef, maxsteps+1)
     dof = length(q0)
@@ -228,7 +228,10 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
     jt = Matrix{U}(I, dof, dof)
     _δv = Array{TaylorN{Taylor1{U}}}(undef, dof)
 
-    @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
+    # Check only if user does not provide Jacobian
+    if df! == Nothing
+        @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
+    end
 
     for ind in eachindex(q0)
         _δv[ind] = TaylorN(Taylor1{U},ind,order=1)
@@ -267,7 +270,7 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
     # Integration
     nsteps = 1
     while t0 < tmax
-        δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, tmax, x0, order, abstol, _δv)
+        δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, tmax, x0, order, abstol, _δv, df!)
         for ind in eachindex(jt)
             @inbounds jt[ind] = x0[dof+ind]
         end
@@ -298,7 +301,7 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
 end
 
 function lyap_taylorinteg(f!, q0::Array{U,1}, trange::Union{AbstractRange{T},Vector{T}},
-        order::Int, abstol::T; maxsteps::Int=500) where {T<:Real, U<:Number}
+        order::Int, abstol::T, df! =Nothing; maxsteps::Int=500) where {T<:Real, U<:Number}
     # Allocation
     nn = length(trange)
     dof = length(q0)
@@ -309,7 +312,10 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, trange::Union{AbstractRange{T},Vec
     jt = Matrix{U}(I, dof, dof)
     _δv = Array{TaylorN{Taylor1{U}}}(undef, dof)
 
-    @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
+    # Check only if user does not provide Jacobian
+    if df! == Nothing
+        @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
+    end
 
     for ind in eachindex(q0)
         _δv[ind] = TaylorN(Taylor1{U},ind,order=1)
@@ -351,7 +357,7 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, trange::Union{AbstractRange{T},Vec
         t0, t1 = trange[iter], trange[iter+1]
         nsteps = 0
         while nsteps < maxsteps
-            δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol, _δv)
+            δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol, _δv, df!)
             for ind in eachindex(jt)
                 @inbounds jt[ind] = x0[dof+ind]
             end
