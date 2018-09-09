@@ -59,8 +59,8 @@ the current system state (the initial conditions), and `jetcoeffs!`
 computes recursively the high-order derivates back into `x`.
 
 """
-function jetcoeffs!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
-        dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}}) where {T<:Real, U<:Number}
+function jetcoeffs!(eqsdiff!, t::Taylor1{T}, x::AbstractVector{Taylor1{U}},
+        dx::AbstractVector{Taylor1{U}}, xaux::AbstractVector{Taylor1{U}}) where {T<:Real, U<:Number}
     order = x[1].order
     for ord in 0:order-1
         ordnext = ord+1
