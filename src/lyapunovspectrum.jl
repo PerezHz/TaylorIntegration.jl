@@ -224,7 +224,7 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
     # Initialize the vector of Taylor1 expansions
     t = Taylor1(T, order)
     x = Array{Taylor1{U}}(undef, nx0)
-    @inbounds x .= Taylor1.( x0, order )
+    x .= Taylor1.( x0, order )
     @inbounds t[0] = t0
 
     #Allocate auxiliary arrays
@@ -261,7 +261,7 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
         for ind in eachindex(QH)
             @inbounds x0[dof+ind] = QH[ind]
         end
-        @inbounds x .= Taylor1.( x0, order )
+        x .= Taylor1.( x0, order )
         if nsteps > maxsteps
             @info("""
             Maximum number of integration steps reached; exiting.
@@ -306,7 +306,7 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, trange::Union{AbstractRange{T},Vec
     x0 = vcat(q0, reshape(jt, dof*dof))
     nx0 = length(x0)
     x = Array{Taylor1{U}}(undef, nx0)
-    @inbounds x .= Taylor1.( x0, order )
+    x .= Taylor1.( x0, order )
     @inbounds t[0] = trange[1]
     t00 = trange[1]
     tspan = zero(T)
@@ -344,7 +344,7 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, trange::Union{AbstractRange{T},Vec
             for ind in eachindex(QH)
                 @inbounds x0[dof+ind] = QH[ind]
             end
-            @inbounds x .= Taylor1.( x0, order )
+            x .= Taylor1.( x0, order )
             t0 ≥ t1 && break
         end
         if nsteps ≥ maxsteps && t0 != t1
