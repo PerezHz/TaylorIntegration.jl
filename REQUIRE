@@ -2,4 +2,4 @@ julia 0.7
 TaylorSeries v0.8.0
 Reexport v0.2.0
 DiffEqBase v4.21.3
-Espresso v0.5.0
+Espresso v0.5.1
