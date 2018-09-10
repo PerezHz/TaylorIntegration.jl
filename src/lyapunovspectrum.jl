@@ -122,7 +122,6 @@ function lyap_jetcoeffs!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
         # Equations of motion
         # TODO! define a macro to optimize the eqsdiff
         eqsdiff!(taux, δx, dδx)
-        @inbounds dx[1:dof] .= constant_term.(dδx)
         # Stability matrix
         jacobian!(jac, dδx)
         @inbounds dx[dof+1:nx] = jac * reshape( xaux[dof+1:nx], (dof,dof) )
@@ -163,10 +162,10 @@ function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
     # Dimensions of phase-space: dof
     nx = length(x)
     dof = length(δx)
+    jetcoeffs!(f!, t, view(x, 1:dof), view(dx, 1:dof), view(xaux, 1:dof))
     if jac! == Nothing
         lyap_jetcoeffs!(f!, t, x, dx, xaux, δx, dδx, jac, _δv)
     else
-        jetcoeffs!(f!, t, view(x, 1:dof), view(dx, 1:dof), view(xaux, 1:dof))
         jetcoeffs!((t, x, dx)->variational_eqs!(t, x, dx, jac, jac!), t, x, dx, xaux)
     end
     # Compute the step-size of the integration using `abstol`
