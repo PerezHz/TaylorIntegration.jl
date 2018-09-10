@@ -176,10 +176,8 @@ function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
         f!(t, δx, dδx)
         # Stability matrix
         jacobian!(jac, dδx)
-        jetcoeffs!((t, x, dx)->variational_eqs!(t, x, dx, jac), t, x, dx, xaux)
-    else
-        jetcoeffs!((t, x, dx)->variational_eqs!(t, x, dx, jac, jac!), t, x, dx, xaux)
     end
+    jetcoeffs!((t, x, dx)->variational_eqs!(t, x, dx, jac, jac!), t, x, dx, xaux)
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(view(x, 1:dof), abstol)
     δt = min(δt, t1-t0)
