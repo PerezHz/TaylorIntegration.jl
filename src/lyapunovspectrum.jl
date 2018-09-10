@@ -134,12 +134,14 @@ function lyap_jetcoeffs!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
 end
 
 function variational_eqs!(t::Taylor1{T}, x::Vector{Taylor1{U}},
-        dx::Vector{Taylor1{U}}, jac::Array{Taylor1{U},2}, eqsdiff_jac!) where {T<:Real, U<:Number}
+        dx::Vector{Taylor1{U}}, jac::Array{Taylor1{U},2}, eqsdiff_jac! =Nothing) where {T<:Real, U<:Number}
     # Dimensions of phase-space: dof
     nx = length(x)
     dof = size(jac, 1)
-    # Stability matrix
-    eqsdiff_jac!(jac, t, x, dx)
+    if eqsdiff_jac! != Nothing
+        # Stability matrix
+        eqsdiff_jac!(jac, t, x, dx)
+    end
     @inbounds dx[dof+1:nx] = jac * reshape( x[dof+1:nx], (dof,dof) )
     return nothing
 end
@@ -164,7 +166,17 @@ function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
     dof = length(δx)
     jetcoeffs!(f!, t, view(x, 1:dof), view(dx, 1:dof), view(xaux, 1:dof))
     if jac! == Nothing
-        lyap_jetcoeffs!(f!, t, x, dx, xaux, δx, dδx, jac, _δv)
+        # lyap_jetcoeffs!(f!, t, x, dx, xaux, δx, dδx, jac, _δv)
+        # Set δx equal to current value of xaux plus 1st-order variations
+        for ind in eachindex(δx)
+            @inbounds δx[ind] = x[ind] + _δv[ind]
+        end
+        # Equations of motion
+        # TODO! define a macro to optimize the eqsdiff
+        f!(t, δx, dδx)
+        # Stability matrix
+        jacobian!(jac, dδx)
+        jetcoeffs!((t, x, dx)->variational_eqs!(t, x, dx, jac), t, x, dx, xaux)
     else
         jetcoeffs!((t, x, dx)->variational_eqs!(t, x, dx, jac, jac!), t, x, dx, xaux)
     end
