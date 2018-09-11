@@ -87,15 +87,12 @@ function modifiedGS!(A, Q, R, aⱼ, qᵢ, vⱼ)
 end
 
 """
-    lyap_jetcoeffs!(eqsdiff!, t, x, dx, xaux, δx, dδx, jac, _δv[, eqsdiff_jac!])
+    lyap_jetcoeffs!(eqsdiff!, t, x, dx, xaux, δx, dδx, jac, _δv)
 
 Similar to [`jetcoeffs!`](@ref) for the calculation of the Lyapunov spectrum.
 `jac` is the current value of the linearization of the equations of motion
 (i.e., the Jacobian), and `xaux`, `δx`, `dδx` and `_δv` are auxiliary vectors.
-Optionally, the user may provide an Jacobian function `eqsdiff_jac!` to
-evaluate in-place the Jacobian; the user-defined Jacobian function must have the
-call signature `eqsdiff_jac!(jac, t, x, dx) -> nothing`. Otherwise, the current
-value of the Jacobian is computed via automatic differentiation using
+The current value of the Jacobian is computed via automatic differentiation using
 `TaylorSeries.jl`.
 
 """
@@ -140,7 +137,7 @@ function variational_eqs!(t::Taylor1{T}, x::Vector{Taylor1{U}},
     dof = size(jac, 1)
     if eqsdiff_jac! != Nothing
         # Stability matrix
-        eqsdiff_jac!(jac, t, x, dx)
+        eqsdiff_jac!(jac, t, x)
     end
     @inbounds dx[dof+1:nx] = jac * reshape( x[dof+1:nx], (dof,dof) )
     return nothing

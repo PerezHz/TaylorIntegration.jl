@@ -21,7 +21,7 @@ function lorenz!(t, x, dx)
 end
 
 #Lorenz system Jacobian (in-place):
-function lorenz_jac!(jac, t, x, dx)
+function lorenz_jac!(jac, t, x)
     jac[1,1] = -σ+0.0*x[1]; jac[1,2] = σ+0.0*x[1]; jac[1,3] = 0.0*x[1]
     jac[2,1] = ρ-x[3]; jac[2,2] = -1.0+0.0*x[1]; jac[2,3] = -x[1]
     jac[3,1] = x[2]; jac[3,2] = x[1]; jac[3,3] = -β+0.0*x[1]
@@ -91,7 +91,7 @@ end
 
     # Compute Jacobian using previously defined `lorenz_jac!` function
     jac = Matrix{Taylor1{eltype(q0)}}(undef, dof, dof)
-    lorenz_jac!(jac, t, x, dx)
+    lorenz_jac!(jac, t, x)
 
     # Jacobian values should be equal
     @test constant_term.(jac) == jac_autodiff
