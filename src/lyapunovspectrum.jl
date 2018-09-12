@@ -86,89 +86,75 @@ function modifiedGS!(A, Q, R, aⱼ, qᵢ, vⱼ)
     return nothing
 end
 
-"""
-    liap_jetcoeffs!(eqsdiff!, t0, x, dx, xaux, δx, dδx, jac, vT)
-
-Similar to [`jetcoeffs!`](@ref) for the calculation of the Liapunov
-spectrum. `jac` is the linearization of the equations of motion,
-and `xaux`, `δx` and `dδx` are auxiliary vectors.
-
-"""
-function liap_jetcoeffs!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
-        dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}},
-        δx::Array{TaylorN{Taylor1{U}},1}, dδx::Array{TaylorN{Taylor1{U}},1},
-        jac::Array{Taylor1{U},2}, _δv::Array{TaylorN{Taylor1{U}}}) where {T<:Real, U<:Number}
-    order = x[1].order
+function variational_eqs!(t::Taylor1{T}, x::Vector{Taylor1{U}},
+        dx::Vector{Taylor1{U}}, jac::Array{Taylor1{U},2}, jacobianfunc! =Nothing) where {T<:Real, U<:Number}
     # Dimensions of phase-space: dof
     nx = length(x)
-    dof = round(Int, (-1+sqrt(1+4*nx))/2)
-    for ord in 0:order-1
-        ordnext = ord+1
-
-        # Set `taux`, auxiliary Taylor1 variable to order `ord`
-        @inbounds taux = Taylor1( t.coeffs[1:ordnext] )
-        # Set `xaux`, auxiliary vector of Taylor1 to order `ord`
-        for j in eachindex(x)
-            @inbounds xaux[j] = Taylor1( x[j].coeffs[1:ordnext] )
-        end
-        # Set δx equal to current value of xaux plus 1st-order variations
-        for ind in eachindex(δx)
-            @inbounds δx[ind] = xaux[ind] + _δv[ind]
-        end
-
-        # Equations of motion
-        eqsdiff!(taux, δx, dδx)
-        @inbounds dx[1:dof] .= constant_term.(dδx)
+    dof = size(jac, 1)
+    if jacobianfunc! != Nothing
         # Stability matrix
-        jacobian!(jac, dδx)
-        @inbounds dx[dof+1:nx] = jac * reshape( xaux[dof+1:nx], (dof,dof) )
-
-        # Recursion relations
-        for j in eachindex(x)
-            @inbounds x[j][ordnext] = dx[j][ord]/ordnext
-        end
+        jacobianfunc!(jac, t, x)
     end
-    nothing
+    @inbounds dx[dof+1:nx] = jac * reshape( x[dof+1:nx], (dof,dof) )
+    return nothing
 end
 
 """
-    liap_taylorstep!(f, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol, vT)
+    lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol, _δv[, jacobianfunc!])
 
-Similar to [`taylorstep!`](@ref) for the calculation of the Liapunov
-spectrum. `jac` is the linearization of the equations of motion,
-and `xaux`, `δx`, `dδx` and `vT` are auxiliary vectors.
+Similar to [`taylorstep!`](@ref) for the calculation of the Lyapunov spectrum.
+`jac` is the Taylor expansion (wrt the independent variable) of the
+linearization of the equations of motion, i.e, the Jacobian. `xaux`, `δx`, `dδx`
+and `_δv` are auxiliary vectors. Optionally, the user may provide a Jacobian
+function `jacobianfunc!` to compute `jac`. Otherwise, `jac` is computed via
+automatic differentiation using `TaylorSeries.jl`.
 
 """
-function liap_taylorstep!(f, t::Taylor1{T}, x::Vector{Taylor1{U}}, dx::Vector{Taylor1{U}},
-        xaux::Vector{Taylor1{U}}, δx::Array{TaylorN{Taylor1{U}},1},
-        dδx::Array{TaylorN{Taylor1{U}},1}, jac::Array{Taylor1{U},2}, t0::T, t1::T, x0::Array{U,1},
-        order::Int, abstol::T, _δv::Array{TaylorN{Taylor1{U}}}) where {T<:Real, U<:Number}
-
-    # Compute the Taylor coefficients
-    liap_jetcoeffs!(f, t, x, dx, xaux, δx, dδx, jac, _δv)
-
+function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
+        dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}},
+        δx::Array{TaylorN{Taylor1{U}},1}, dδx::Array{TaylorN{Taylor1{U}},1},
+        jac::Array{Taylor1{U},2}, t0::T, t1::T, x0::Array{U,1}, order::Int,
+        abstol::T, _δv::Array{TaylorN{Taylor1{U}}}, jacobianfunc! =Nothing) where {T<:Real, U<:Number}
+    # Dimensions of phase-space: dof
+    nx = length(x)
+    dof = length(δx)
+    jetcoeffs!(f!, t, view(x, 1:dof), view(dx, 1:dof), view(xaux, 1:dof))
+    if jacobianfunc! == Nothing
+        # Set δx equal to current value of xaux plus 1st-order variations
+        for ind in eachindex(δx)
+            @inbounds δx[ind] = x[ind] + _δv[ind]
+        end
+        # Equations of motion
+        # TODO! define a macro to optimize the eqsdiff
+        f!(t, δx, dδx)
+        # Stability matrix
+        jacobian!(jac, dδx)
+    end
+    jetcoeffs!((t, x, dx)->variational_eqs!(t, x, dx, jac, jacobianfunc!), t, x, dx, xaux)
     # Compute the step-size of the integration using `abstol`
-    δt = stepsize(x, abstol)
+    δt = stepsize(view(x, 1:dof), abstol)
     δt = min(δt, t1-t0)
-
     # Update x0
     evaluate!(x, δt, x0)
     return δt
 end
 
 """
-    liap_taylorinteg(f, q0, t0, tmax, order, abstol; maxsteps::Int=500)
+    lyap_taylorinteg(f!, q0, t0, tmax, order, abstol[, f!]; maxsteps::Int=500)
 
-Similar to [`taylorinteg!`](@ref) for the calculation of the Liapunov
+Similar to [`taylorinteg!`](@ref) for the calculation of the Lyapunov
 spectrum. Note that the number of `TaylorN` variables should be set
 previously by the user (e.g., by means of `TaylorSeries.set_variables`) and
 should be equal to the length of the vector of initial conditions `q0`.
 Otherwise, whenever `length(q0) != TaylorSeries.get_numvars()`, then
-`liap_taylorinteg` throws an `AssertionError`.
+`lyap_taylorinteg` throws an `AssertionError`. Optionally, the user may provide
+a Jacobian function `jacobianfunc!` to evaluate the current value of the Jacobian.
+Otherwise, the current value of the Jacobian is computed via automatic
+differentiation using `TaylorSeries.jl`.
 
 """
-function liap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
-        order::Int, abstol::T; maxsteps::Int=500) where {T<:Real, U<:Number}
+function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
+        order::Int, abstol::T, jacobianfunc! =Nothing; maxsteps::Int=500) where {T<:Real, U<:Number}
     # Allocation
     tv = Array{T}(undef, maxsteps+1)
     dof = length(q0)
@@ -178,7 +164,10 @@ function liap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
     jt = Matrix{U}(I, dof, dof)
     _δv = Array{TaylorN{Taylor1{U}}}(undef, dof)
 
-    @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
+    # Check only if user does not provide Jacobian
+    if jacobianfunc! == Nothing
+        @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
+    end
 
     for ind in eachindex(q0)
         _δv[ind] = TaylorN(Taylor1{U},ind,order=1)
@@ -186,7 +175,7 @@ function liap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
 
     # Initial conditions
     @inbounds tv[1] = t0
-    for ind in 1:dof
+    for ind in eachindex(q0)
         @inbounds xv[ind,1] = q0[ind]
         @inbounds λ[ind,1] = zero(U)
         @inbounds λtsum[ind] = zero(U)
@@ -198,10 +187,8 @@ function liap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
     # Initialize the vector of Taylor1 expansions
     t = Taylor1(T, order)
     x = Array{Taylor1{U}}(undef, nx0)
+    x .= Taylor1.( x0, order )
     @inbounds t[0] = t0
-    for i in eachindex(x0)
-        @inbounds x[i] = Taylor1( x0[i], order )
-    end
 
     #Allocate auxiliary arrays
     dx = Array{Taylor1{U}}(undef, nx0)
@@ -219,7 +206,7 @@ function liap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
     # Integration
     nsteps = 1
     while t0 < tmax
-        δt = liap_taylorstep!(f, t, x, dx, xaux, δx, dδx, jac, t0, tmax, x0, order, abstol, _δv)
+        δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, tmax, x0, order, abstol, _δv, jacobianfunc!)
         for ind in eachindex(jt)
             @inbounds jt[ind] = x0[dof+ind]
         end
@@ -229,7 +216,7 @@ function liap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
         tspan = t0-t00
         nsteps += 1
         @inbounds tv[nsteps] = t0
-        @inbounds for ind in 1:dof
+        @inbounds for ind in eachindex(q0)
             xv[ind,nsteps] = x0[ind]
             λtsum[ind] += log(RH[ind,ind])
             λ[ind,nsteps] = λtsum[ind]/tspan
@@ -237,9 +224,7 @@ function liap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
         for ind in eachindex(QH)
             @inbounds x0[dof+ind] = QH[ind]
         end
-        for i in eachindex(x0)
-            @inbounds x[i] = Taylor1( x0[i], order )
-        end
+        x .= Taylor1.( x0, order )
         if nsteps > maxsteps
             @info("""
             Maximum number of integration steps reached; exiting.
@@ -251,8 +236,8 @@ function liap_taylorinteg(f, q0::Array{U,1}, t0::T, tmax::T,
     return view(tv,1:nsteps),  view(transpose(xv),1:nsteps,:),  view(transpose(λ),1:nsteps,:)
 end
 
-function liap_taylorinteg(f, q0::Array{U,1}, trange::Union{AbstractRange{T},Vector{T}},
-        order::Int, abstol::T; maxsteps::Int=500) where {T<:Real, U<:Number}
+function lyap_taylorinteg(f!, q0::Array{U,1}, trange::Union{AbstractRange{T},Vector{T}},
+        order::Int, abstol::T, jacobianfunc! =Nothing; maxsteps::Int=500) where {T<:Real, U<:Number}
     # Allocation
     nn = length(trange)
     dof = length(q0)
@@ -260,18 +245,20 @@ function liap_taylorinteg(f, q0::Array{U,1}, trange::Union{AbstractRange{T},Vect
     fill!(xv, U(NaN))
     λ = similar(xv)
     λtsum = similar(q0)
-    # jt = eye(U, dof)
-    jt = Matrix{U}(I, dof, dof)#eye(U, dof)
+    jt = Matrix{U}(I, dof, dof)
     _δv = Array{TaylorN{Taylor1{U}}}(undef, dof)
 
-    @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
+    # Check only if user does not provide Jacobian
+    if jacobianfunc! == Nothing
+        @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
+    end
 
     for ind in eachindex(q0)
         _δv[ind] = TaylorN(Taylor1{U},ind,order=1)
     end
 
     # Initial conditions
-    @inbounds for ind in 1:dof
+    @inbounds for ind in eachindex(q0)
         xv[ind,1] = q0[ind]
         λ[ind,1] = zero(U)
         λtsum[ind] = zero(U)
@@ -282,9 +269,7 @@ function liap_taylorinteg(f, q0::Array{U,1}, trange::Union{AbstractRange{T},Vect
     x0 = vcat(q0, reshape(jt, dof*dof))
     nx0 = length(x0)
     x = Array{Taylor1{U}}(undef, nx0)
-    for i in eachindex(x0)
-        @inbounds x[i] = Taylor1( x0[i], order )
-    end
+    x .= Taylor1.( x0, order )
     @inbounds t[0] = trange[1]
     t00 = trange[1]
     tspan = zero(T)
@@ -308,7 +293,7 @@ function liap_taylorinteg(f, q0::Array{U,1}, trange::Union{AbstractRange{T},Vect
         t0, t1 = trange[iter], trange[iter+1]
         nsteps = 0
         while nsteps < maxsteps
-            δt = liap_taylorstep!(f, t, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol, _δv)
+            δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol, _δv, jacobianfunc!)
             for ind in eachindex(jt)
                 @inbounds jt[ind] = x0[dof+ind]
             end
@@ -316,15 +301,13 @@ function liap_taylorinteg(f, q0::Array{U,1}, trange::Union{AbstractRange{T},Vect
             t0 += δt
             @inbounds t[0] = t0
             nsteps += 1
-            @inbounds for ind in 1:dof
+            @inbounds for ind in eachindex(q0)
                 λtsum[ind] += log(RH[ind,ind])
             end
             for ind in eachindex(QH)
                 @inbounds x0[dof+ind] = QH[ind]
             end
-            for i in eachindex(x0)
-                @inbounds x[i] = Taylor1( x0[i], order )
-            end
+            x .= Taylor1.( x0, order )
             t0 ≥ t1 && break
         end
         if nsteps ≥ maxsteps && t0 != t1
@@ -335,7 +318,7 @@ function liap_taylorinteg(f, q0::Array{U,1}, trange::Union{AbstractRange{T},Vect
         end
         iter += 1
         tspan = t0-t00
-        @inbounds for ind in 1:dof
+        @inbounds for ind in eachindex(q0)
             xv[ind,iter] = x0[ind]
             λ[ind,iter] = λtsum[ind]/tspan
         end
