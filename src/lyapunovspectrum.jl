@@ -86,84 +86,40 @@ function modifiedGS!(A, Q, R, aⱼ, qᵢ, vⱼ)
     return nothing
 end
 
-"""
-    lyap_jetcoeffs!(eqsdiff!, t, x, dx, xaux, δx, dδx, jac, _δv)
-
-Similar to [`jetcoeffs!`](@ref) for the calculation of the Lyapunov spectrum.
-`jac` is the current value of the linearization of the equations of motion
-(i.e., the Jacobian), and `xaux`, `δx`, `dδx` and `_δv` are auxiliary vectors.
-The current value of the Jacobian is computed via automatic differentiation using
-`TaylorSeries.jl`.
-
-"""
-function lyap_jetcoeffs!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
-        dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}},
-        δx::Array{TaylorN{Taylor1{U}},1}, dδx::Array{TaylorN{Taylor1{U}},1},
-        jac::Array{Taylor1{U},2}, _δv::Array{TaylorN{Taylor1{U}}}) where {T<:Real, U<:Number}
-    order = x[1].order
-    # Dimensions of phase-space: dof
-    nx = length(x)
-    dof = length(δx)
-    for ord in 0:order-1
-        ordnext = ord+1
-        # Set `taux`, auxiliary Taylor1 variable to order `ord`
-        @inbounds taux = Taylor1( t.coeffs[1:ordnext] )
-        # Set `xaux`, auxiliary vector of Taylor1 to order `ord`
-        for j in eachindex(x)
-            @inbounds xaux[j] = Taylor1( x[j].coeffs[1:ordnext] )
-        end
-        # Set δx equal to current value of xaux plus 1st-order variations
-        for ind in eachindex(δx)
-            @inbounds δx[ind] = xaux[ind] + _δv[ind]
-        end
-        # Equations of motion
-        # TODO! define a macro to optimize the eqsdiff
-        eqsdiff!(taux, δx, dδx)
-        # Stability matrix
-        jacobian!(jac, dδx)
-        @inbounds dx[dof+1:nx] = jac * reshape( xaux[dof+1:nx], (dof,dof) )
-        # Recursion relations
-        for j in eachindex(x)
-            @inbounds x[j][ordnext] = dx[j][ord]/ordnext
-        end
-    end
-    nothing
-end
-
 function variational_eqs!(t::Taylor1{T}, x::Vector{Taylor1{U}},
-        dx::Vector{Taylor1{U}}, jac::Array{Taylor1{U},2}, eqsdiff_jac! =Nothing) where {T<:Real, U<:Number}
+        dx::Vector{Taylor1{U}}, jac::Array{Taylor1{U},2}, jacobianfunc! =Nothing) where {T<:Real, U<:Number}
     # Dimensions of phase-space: dof
     nx = length(x)
     dof = size(jac, 1)
-    if eqsdiff_jac! != Nothing
+    if jacobianfunc! != Nothing
         # Stability matrix
-        eqsdiff_jac!(jac, t, x)
+        jacobianfunc!(jac, t, x)
     end
     @inbounds dx[dof+1:nx] = jac * reshape( x[dof+1:nx], (dof,dof) )
     return nothing
 end
 
 """
-    lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol, _δv[, f])
+    lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol, _δv[, jacobianfunc!])
 
 Similar to [`taylorstep!`](@ref) for the calculation of the Lyapunov spectrum.
-`jac` is the current value of the linearization of the equations of motion, i.e,
-the Jacobian. `xaux`, `δx`, `dδx` and `vT` are auxiliary vectors. Optionally, the
-user may provide an Jacobian function `f!` to evaluate the current value of the
-Jacobian. For more details on `f!`, see [`lyap_jetcoeffs!`](@ref).
+`jac` is the Taylor expansion (wrt the independent variable) of the
+linearization of the equations of motion, i.e, the Jacobian. `xaux`, `δx`, `dδx`
+and `_δv` are auxiliary vectors. Optionally, the user may provide a Jacobian
+function `jacobianfunc!` to compute `jac`. Otherwise, `jac` is computed via
+automatic differentiation using `TaylorSeries.jl`.
 
 """
 function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
         dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}},
         δx::Array{TaylorN{Taylor1{U}},1}, dδx::Array{TaylorN{Taylor1{U}},1},
         jac::Array{Taylor1{U},2}, t0::T, t1::T, x0::Array{U,1}, order::Int,
-        abstol::T, _δv::Array{TaylorN{Taylor1{U}}}, jac! =Nothing) where {T<:Real, U<:Number}
+        abstol::T, _δv::Array{TaylorN{Taylor1{U}}}, jacobianfunc! =Nothing) where {T<:Real, U<:Number}
     # Dimensions of phase-space: dof
     nx = length(x)
     dof = length(δx)
     jetcoeffs!(f!, t, view(x, 1:dof), view(dx, 1:dof), view(xaux, 1:dof))
-    if jac! == Nothing
-        # lyap_jetcoeffs!(f!, t, x, dx, xaux, δx, dδx, jac, _δv)
+    if jacobianfunc! == Nothing
         # Set δx equal to current value of xaux plus 1st-order variations
         for ind in eachindex(δx)
             @inbounds δx[ind] = x[ind] + _δv[ind]
@@ -174,7 +130,7 @@ function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
         # Stability matrix
         jacobian!(jac, dδx)
     end
-    jetcoeffs!((t, x, dx)->variational_eqs!(t, x, dx, jac, jac!), t, x, dx, xaux)
+    jetcoeffs!((t, x, dx)->variational_eqs!(t, x, dx, jac, jacobianfunc!), t, x, dx, xaux)
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(view(x, 1:dof), abstol)
     δt = min(δt, t1-t0)
@@ -191,15 +147,14 @@ spectrum. Note that the number of `TaylorN` variables should be set
 previously by the user (e.g., by means of `TaylorSeries.set_variables`) and
 should be equal to the length of the vector of initial conditions `q0`.
 Otherwise, whenever `length(q0) != TaylorSeries.get_numvars()`, then
-`lyap_taylorinteg` throws an `AssertionError`.  Optionally, the user may provide
-an Jacobian function `f!` to evaluate the current value of the Jacobian.
+`lyap_taylorinteg` throws an `AssertionError`. Optionally, the user may provide
+a Jacobian function `jacobianfunc!` to evaluate the current value of the Jacobian.
 Otherwise, the current value of the Jacobian is computed via automatic
-differentiation using `TaylorSeries.jl`. For more details on `f!`, see
-[`lyap_jetcoeffs!`](@ref).
+differentiation using `TaylorSeries.jl`.
 
 """
 function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
-        order::Int, abstol::T, jac! =Nothing; maxsteps::Int=500) where {T<:Real, U<:Number}
+        order::Int, abstol::T, jacobianfunc! =Nothing; maxsteps::Int=500) where {T<:Real, U<:Number}
     # Allocation
     tv = Array{T}(undef, maxsteps+1)
     dof = length(q0)
@@ -210,7 +165,7 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
     _δv = Array{TaylorN{Taylor1{U}}}(undef, dof)
 
     # Check only if user does not provide Jacobian
-    if jac! == Nothing
+    if jacobianfunc! == Nothing
         @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
     end
 
@@ -251,7 +206,7 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
     # Integration
     nsteps = 1
     while t0 < tmax
-        δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, tmax, x0, order, abstol, _δv, jac!)
+        δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, tmax, x0, order, abstol, _δv, jacobianfunc!)
         for ind in eachindex(jt)
             @inbounds jt[ind] = x0[dof+ind]
         end
@@ -282,7 +237,7 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
 end
 
 function lyap_taylorinteg(f!, q0::Array{U,1}, trange::Union{AbstractRange{T},Vector{T}},
-        order::Int, abstol::T, jac! =Nothing; maxsteps::Int=500) where {T<:Real, U<:Number}
+        order::Int, abstol::T, jacobianfunc! =Nothing; maxsteps::Int=500) where {T<:Real, U<:Number}
     # Allocation
     nn = length(trange)
     dof = length(q0)
@@ -294,7 +249,7 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, trange::Union{AbstractRange{T},Vec
     _δv = Array{TaylorN{Taylor1{U}}}(undef, dof)
 
     # Check only if user does not provide Jacobian
-    if jac! == Nothing
+    if jacobianfunc! == Nothing
         @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
     end
 
@@ -338,7 +293,7 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, trange::Union{AbstractRange{T},Vec
         t0, t1 = trange[iter], trange[iter+1]
         nsteps = 0
         while nsteps < maxsteps
-            δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol, _δv, jac!)
+            δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol, _δv, jacobianfunc!)
             for ind in eachindex(jt)
                 @inbounds jt[ind] = x0[dof+ind]
             end
