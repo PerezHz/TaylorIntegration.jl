@@ -17,8 +17,8 @@ end)
 );
 
 const _HEAD_PARSEDFN_VECTOR = sanitize(:(
-function jetcoeffs!(__tT::Taylor1{T}, __x::Vector{Taylor1{S}},
-        __dx::Vector{Taylor1{S}}, ::Val{__fn}) where {T<:Real, S<:Number}
+function jetcoeffs!(__tT::Taylor1{T}, __x::AbstractVector{Taylor1{S}},
+        __dx::AbstractVector{Taylor1{S}}, ::Val{__fn}) where {T<:Real, S<:Number}
 
     order = __tT.order
     nothing
