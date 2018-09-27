@@ -166,8 +166,11 @@ function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
     # Dimensions of phase-space: dof
     nx = length(x)
     dof = length(δx)
+    # Compute the Taylor coefficients associated to trajectory
     jetcoeffs!(f!, t, view(x, 1:dof), view(dx, 1:dof), view(xaux, 1:dof))
+    # Compute stability matrix
     stabilitymatrix!(f!, t, x, δx, dδx, jac, _δv, jacobianfunc!)
+    # Compute the Taylor coefficients associated to variational equations
     lyap_jetcoeffs!(t, view(x, dof+1:nx), view(dx, dof+1:nx), jac)
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(view(x, 1:dof), abstol)
