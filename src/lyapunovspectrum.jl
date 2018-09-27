@@ -104,7 +104,8 @@ Updates *only* the elements of `x` which correspond to the solution of the 1st-o
 variational equations \$\\dot{\\xi}=J \\cdot \\xi\$, where \$J\$ is the Jacobian
 matrix, i.e., the linearization of the equations of motion. `jac` is the Taylor
 expansion of \$J\$ wrt the independent variable, around the current initial
-condition. Use of this method assumes that `jac` has been computed previously.
+condition. Calling this method assumes that `jac` has been computed previously
+using [`stabilitymatrix!`](@ref).
 
 """
 function lyap_jetcoeffs!(t::Taylor1{T}, x::AbstractVector{Taylor1{S}},
