@@ -86,16 +86,15 @@ function modifiedGS!(A, Q, R, aⱼ, qᵢ, vⱼ)
     return nothing
 end
 
-# `@taylorize`'d version of TaylorIntegration.jetcoeffs! for 1st order variational equations
 """
     lyap_jetcoeffs!(t, x, dx, jac)
 
 Similar to [`jetcoeffs!`](@ref) for the calculation of the Lyapunov spectrum.
-Returns an updated `x` using the recursion relation of the derivatives obtained
-from the 1st-order variational equations \$\\dot{\\xi}=J \\cdot \\xi\$, where
-\$J\$ is the Jacobian matrix, i.e., the linearization of the equations of motion.
-`jac` is the Taylor expansion of \$J\$ wrt the independent variable, around the
-current initial condition.
+Updates *only* the elements of `x` which correspond to the solution of the 1st-order
+variational equations \$\\dot{\\xi}=J \\cdot \\xi\$, where \$J\$ is the Jacobian
+matrix, i.e., the linearization of the equations of motion. `jac` is the Taylor
+expansion of \$J\$ wrt the independent variable, around the current initial
+condition. Use of this method assumes that `jac` has been computed previously.
 """
 function lyap_jetcoeffs!(t::Taylor1{T}, x::AbstractVector{Taylor1{S}},
         dx::AbstractVector{Taylor1{S}}, jac::Matrix{Taylor1{S}}) where {T <: Real, S <: Number}
