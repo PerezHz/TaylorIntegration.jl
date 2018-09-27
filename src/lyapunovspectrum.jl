@@ -209,15 +209,6 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
     jt = Matrix{U}(I, dof, dof)
     _δv = Array{TaylorN{Taylor1{U}}}(undef, dof)
 
-    # Check only if user does not provide Jacobian
-    if jacobianfunc! == Nothing
-        @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
-    end
-
-    for ind in eachindex(q0)
-        _δv[ind] = TaylorN(Taylor1{U},ind,order=1)
-    end
-
     # Initial conditions
     @inbounds tv[1] = t0
     for ind in eachindex(q0)
@@ -234,6 +225,14 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
     x = Array{Taylor1{U}}(undef, nx0)
     x .= Taylor1.( x0, order )
     @inbounds t[0] = t0
+
+    # If user does not provide Jacobian, check number of TaylorN variables and initialize _δv
+    if jacobianfunc! == Nothing
+        @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
+        for ind in eachindex(q0)
+            _δv[ind] = one(x[1])*TaylorN(Taylor1{U}, ind, order=1)
+        end
+    end
 
     #Allocate auxiliary arrays
     dx = Array{Taylor1{U}}(undef, nx0)
