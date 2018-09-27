@@ -211,13 +211,13 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
 
     # Initial conditions
     @inbounds tv[1] = t0
-    for ind in eachindex(q0)
-        @inbounds xv[ind,1] = q0[ind]
-        @inbounds λ[ind,1] = zero(U)
-        @inbounds λtsum[ind] = zero(U)
+    @inbounds for ind in eachindex(q0)
+        xv[ind,1] = q0[ind]
+        λ[ind,1] = zero(U)
+        λtsum[ind] = zero(U)
     end
     x0 = vcat(q0, reshape(jt, dof*dof))
-    nx0 = dof*(dof+1)
+    nx0 = length(x0)
     t00 = t0
 
     # Initialize the vector of Taylor1 expansions
