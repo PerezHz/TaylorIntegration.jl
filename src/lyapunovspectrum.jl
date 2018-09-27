@@ -115,11 +115,12 @@ function lyap_jetcoeffs!(t::Taylor1{T}, x::AbstractVector{Taylor1{S}},
     order = t.order
     # number of Lyapunov exponents
     nlyaps = size(jac, 1)
+    inds = axes(jac, 1)
     # 0-th order evaluation of variational equations
-    for j = 1:nlyaps
-        for i = 1:nlyaps
+    for j in inds
+        for i in inds
             dx[nlyaps * (j - 1) + i] = Taylor1(zero(constant_term(x[1])), order)
-            for k = 1:nlyaps
+            for k in inds
                 varsaux[k, i, j] = Taylor1(constant_term(jac[i, k]) * constant_term(x[nlyaps * (j - 1) + k]), order)
                 dx[nlyaps * (j - 1) + i] = Taylor1(constant_term(dx[nlyaps * (j - 1) + i]) + constant_term(varsaux[k, i, j]), order)
             end
@@ -132,10 +133,10 @@ function lyap_jetcoeffs!(t::Taylor1{T}, x::AbstractVector{Taylor1{S}},
     # Compute Taylor coefficients of variational equations up to order `order`
     for ord = 1:order - 1
         ordnext = ord + 1
-        for j = 1:nlyaps
-            for i = 1:nlyaps
+        for j in inds
+            for i in inds
                 TaylorSeries.zero!(dx[nlyaps * (j - 1) + i], x[1], ord)
-                for k = 1:nlyaps
+                for k in inds
                     TaylorSeries.mul!(varsaux[k, i, j], jac[i, k], x[nlyaps * (j - 1) + k], ord)
                     TaylorSeries.add!(dx[nlyaps * (j - 1) + i], dx[nlyaps * (j - 1) + i], varsaux[k, i, j], ord)
                 end
