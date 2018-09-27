@@ -86,20 +86,17 @@ function modifiedGS!(A, Q, R, aⱼ, qᵢ, vⱼ)
     return nothing
 end
 
-function variational_eqs!(t::Taylor1{T}, x::Vector{Taylor1{U}},
-        dx::Vector{Taylor1{U}}, jac::Array{Taylor1{U},2}, jacobianfunc! =Nothing) where {T<:Real, U<:Number}
-    # Dimensions of phase-space: dof
-    nx = length(x)
-    dof = size(jac, 1)
-    if jacobianfunc! != Nothing
-        # Stability matrix
-        jacobianfunc!(jac, t, x)
-    end
-    @inbounds dx[dof+1:nx] = jac * reshape( x[dof+1:nx], (dof,dof) )
-    return nothing
-end
-
 # `@taylorize`'d version of TaylorIntegration.jetcoeffs! for 1st order variational equations
+"""
+    lyap_jetcoeffs!(t, x, dx, jac)
+
+Similar to [`jetcoeffs!`](@ref) for the calculation of the Lyapunov spectrum.
+Returns an updated `x` using the recursion relation of the derivatives obtained
+from the 1st-order variational equations \$\\dot{\\xi}=dx/dt=J \\cdot \\xi\$, where
+\$J\$ is the Jacobian matrix, i.e., the linearization of the equations of motion.
+`jac` is Taylor expansion of \$J\$ wrt the independent variable, around the
+current initial condition.
+"""
 function lyap_jetcoeffs!(t::Taylor1{T}, x::AbstractVector{Taylor1{S}},
         dx::AbstractVector{Taylor1{S}}, jac::Matrix{Taylor1{S}}) where {T <: Real, S <: Number}
     order = t.order
@@ -169,8 +166,6 @@ function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
         f!(t, δx, dδx)
         # Stability matrix
         jacobian!(jac, dδx)
-    # end
-    # jetcoeffs!((t, x, dx)->variational_eqs!(t, x, dx, jac, jacobianfunc!), t, x, dx, xaux)
     else
         # Stability matrix
         jacobianfunc!(jac, t, x)
