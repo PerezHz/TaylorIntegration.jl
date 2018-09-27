@@ -1,26 +1,6 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
 """
-    stabilitymatrix!(eqsdiff!, t, x, δx, dδx, jac)
-
-Updates the matrix `jac::Matrix{Taylor1{U}}` (linearized equations of motion)
-computed from the equations of motion (`eqsdiff!`), at time `t` at `x`; `x` is
-of type `Vector{Taylor1{U}}`, where `U<:Number`. `δx` and `dδx` are two
-auxiliary arrays of type `Vector{TaylorN{Taylor1{U}}}` to avoid allocations.
-
-"""
-function stabilitymatrix!(eqsdiff!, t::Taylor1{T},
-        x::SubArray{Taylor1{U},1}, δx::Array{TaylorN{Taylor1{U}},1},
-        dδx::Array{TaylorN{Taylor1{U}},1}, jac::Array{Taylor1{U},2}) where {T<:Real, U<:Number}
-    for ind in eachindex(x)
-        @inbounds δx[ind] = x[ind] + TaylorN(Taylor1{U},ind,order=1)
-    end
-    eqsdiff!(t, δx, dδx)
-    jacobian!( jac, dδx )
-    nothing
-end
-
-"""
     stabilitymatrix!(eqsdiff!, t, x, δx, dδx, jac, _δv[, jacobianfunc!])
 
 Updates the matrix `jac::Matrix{Taylor1{U}}` (linearized equations of motion)

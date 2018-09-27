@@ -35,10 +35,14 @@ end
     δx = Array{TaylorN{Taylor1{Float64}}}(undef, 3)
     dδx = similar(δx)
     lorenzjac = Array{Taylor1{Float64}}(undef, 3, 3)
+    _δv = Array{TaylorN{Taylor1{Float64}}}(undef, 3)
+    for ind in 1:3
+        _δv[ind] = one(t_)*TaylorN(Taylor1{Float64}, ind, order=1)
+    end
     for i in 1:10
         x0 = 10rand(3) #the initial condition
         x0T = Taylor1.(x0,_order)
-        TaylorIntegration.stabilitymatrix!(lorenz!, t_, view(x0T,:), δx, dδx, lorenzjac)
+        TaylorIntegration.stabilitymatrix!(lorenz!, t_, view(x0T,:), δx, dδx, lorenzjac, _δv)
         @test tr(lorenzjac.()) == -(1+σ+β)
     end
 end
@@ -212,5 +216,5 @@ end
     # Check integration consistency (orbit should not depend on variational eqs)
     x_ = taylorinteg(lorenz!, q0, collect(t0:1.0:tmax), _order, _abstol; maxsteps=2000)
     @test x_ == xw2
-    
+
 end
