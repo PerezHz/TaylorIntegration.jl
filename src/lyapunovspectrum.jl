@@ -97,31 +97,31 @@ function modifiedGS!(A, Q, R, aⱼ, qᵢ, vⱼ)
 end
 
 """
-    lyap_jetcoeffs!(t, x, dx, jac)
+    lyap_jetcoeffs!(t, x, dx, jac, varsaux)
 
 Similar to [`jetcoeffs!`](@ref) for the calculation of the Lyapunov spectrum.
 Updates *only* the elements of `x` which correspond to the solution of the 1st-order
 variational equations \$\\dot{\\xi}=J \\cdot \\xi\$, where \$J\$ is the Jacobian
 matrix, i.e., the linearization of the equations of motion. `jac` is the Taylor
 expansion of \$J\$ wrt the independent variable, around the current initial
-condition. Calling this method assumes that `jac` has been computed previously
-using [`stabilitymatrix!`](@ref).
+condition. `varsaux` is an auxiliary array of type `Array{eltype(jac),3}` to
+avoid allocations. Calling this method assumes that `jac` has been computed
+previously using [`stabilitymatrix!`](@ref).
 
 """
 function lyap_jetcoeffs!(t::Taylor1{T}, x::AbstractVector{Taylor1{S}},
-        dx::AbstractVector{Taylor1{S}}, jac::Matrix{Taylor1{S}}) where {T <: Real, S <: Number}
+        dx::AbstractVector{Taylor1{S}}, jac::Matrix{Taylor1{S}},
+        varsaux::Array{Taylor1{S},3}) where {T <: Real, S <: Number}
     order = t.order
     # number of Lyapunov exponents
     nlyaps = size(jac, 1)
-    # Auxiliary arrays
-    temp_001 = Array{eltype(x)}(undef, nlyaps, nlyaps, nlyaps)
     # 0-th order evaluation of variational equations
     for j = 1:nlyaps
         for i = 1:nlyaps
             dx[nlyaps * (j - 1) + i] = Taylor1(zero(constant_term(x[1])), order)
             for k = 1:nlyaps
-                temp_001[k, i, j] = Taylor1(constant_term(jac[i, k]) * constant_term(x[nlyaps * (j - 1) + k]), order)
-                dx[nlyaps * (j - 1) + i] = Taylor1(constant_term(dx[nlyaps * (j - 1) + i]) + constant_term(temp_001[k, i, j]), order)
+                varsaux[k, i, j] = Taylor1(constant_term(jac[i, k]) * constant_term(x[nlyaps * (j - 1) + k]), order)
+                dx[nlyaps * (j - 1) + i] = Taylor1(constant_term(dx[nlyaps * (j - 1) + i]) + constant_term(varsaux[k, i, j]), order)
             end
         end
     end
@@ -136,8 +136,8 @@ function lyap_jetcoeffs!(t::Taylor1{T}, x::AbstractVector{Taylor1{S}},
             for i = 1:nlyaps
                 TaylorSeries.zero!(dx[nlyaps * (j - 1) + i], x[1], ord)
                 for k = 1:nlyaps
-                    TaylorSeries.mul!(temp_001[k, i, j], jac[i, k], x[nlyaps * (j - 1) + k], ord)
-                    TaylorSeries.add!(dx[nlyaps * (j - 1) + i], dx[nlyaps * (j - 1) + i], temp_001[k, i, j], ord)
+                    TaylorSeries.mul!(varsaux[k, i, j], jac[i, k], x[nlyaps * (j - 1) + k], ord)
+                    TaylorSeries.add!(dx[nlyaps * (j - 1) + i], dx[nlyaps * (j - 1) + i], varsaux[k, i, j], ord)
                 end
             end
         end
@@ -150,21 +150,22 @@ function lyap_jetcoeffs!(t::Taylor1{T}, x::AbstractVector{Taylor1{S}},
 end
 
 """
-    lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol, _δv[, jacobianfunc!])
+    lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol, _δv, varsaux[, jacobianfunc!])
 
 Similar to [`taylorstep!`](@ref) for the calculation of the Lyapunov spectrum.
 `jac` is the Taylor expansion (wrt the independent variable) of the
-linearization of the equations of motion, i.e, the Jacobian. `xaux`, `δx`, `dδx`
-and `_δv` are auxiliary vectors. Optionally, the user may provide a Jacobian
-function `jacobianfunc!` to compute `jac`. Otherwise, `jac` is computed via
-automatic differentiation using `TaylorSeries.jl`.
+linearization of the equations of motion, i.e, the Jacobian. `xaux`, `δx`, `dδx`,
+`varsaux` and `_δv` are auxiliary vectors. Optionally, the user may provide a
+Jacobian function `jacobianfunc!` to compute `jac`. Otherwise, `jac` is computed
+via automatic differentiation using `TaylorSeries.jl`.
 
 """
 function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
         dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}},
         δx::Array{TaylorN{Taylor1{U}},1}, dδx::Array{TaylorN{Taylor1{U}},1},
         jac::Array{Taylor1{U},2}, t0::T, t1::T, x0::Array{U,1}, order::Int,
-        abstol::T, _δv::Vector{TaylorN{Taylor1{U}}}, jacobianfunc! =Nothing) where {T<:Real, U<:Number}
+        abstol::T, _δv::Vector{TaylorN{Taylor1{U}}}, varsaux::Array{Taylor1{U},3},
+        jacobianfunc! =Nothing) where {T<:Real, U<:Number}
     # Dimensions of phase-space: dof
     nx = length(x)
     dof = length(δx)
@@ -173,7 +174,7 @@ function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
     # Compute stability matrix
     stabilitymatrix!(f!, t, x, δx, dδx, jac, _δv, jacobianfunc!)
     # Compute the Taylor coefficients associated to variational equations
-    lyap_jetcoeffs!(t, view(x, dof+1:nx), view(dx, dof+1:nx), jac)
+    lyap_jetcoeffs!(t, view(x, dof+1:nx), view(dx, dof+1:nx), jac, varsaux)
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(view(x, 1:dof), abstol)
     δt = min(δt, t1-t0)
@@ -237,10 +238,11 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
     xaux = Array{Taylor1{U}}(undef, nx0)
     δx = Array{TaylorN{Taylor1{U}}}(undef, dof)
     dδx = Array{TaylorN{Taylor1{U}}}(undef, dof)
-    jac = Array{Taylor1{U}}(undef, dof,dof)
+    jac = Array{Taylor1{U}}(undef, dof, dof)
+    varsaux = Array{Taylor1{U}}(undef, dof, dof, dof)
     fill!(jac, zero(x[1]))
-    QH = Array{U}(undef, dof,dof)
-    RH = Array{U}(undef, dof,dof)
+    QH = Array{U}(undef, dof, dof)
+    RH = Array{U}(undef, dof, dof)
     aⱼ = Array{U}(undef, dof )
     qᵢ = similar(aⱼ)
     vⱼ = similar(aⱼ)
@@ -248,7 +250,7 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
     # Integration
     nsteps = 1
     while t0 < tmax
-        δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, tmax, x0, order, abstol, _δv, jacobianfunc!)
+        δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, tmax, x0, order, abstol, _δv, varsaux, jacobianfunc!)
         for ind in eachindex(jt)
             @inbounds jt[ind] = x0[dof+ind]
         end
@@ -320,10 +322,11 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, trange::Union{AbstractRange{T},Vec
     xaux = Array{Taylor1{U}}(undef, nx0)
     δx = Array{TaylorN{Taylor1{U}}}(undef, dof)
     dδx = Array{TaylorN{Taylor1{U}}}(undef, dof)
-    jac = Array{Taylor1{U}}(undef, dof,dof)
+    jac = Array{Taylor1{U}}(undef, dof, dof)
+    varsaux = Array{Taylor1{U}}(undef, dof, dof, dof)
     fill!(jac, zero(x[1]))
-    QH = Array{U}(undef, dof,dof)
-    RH = Array{U}(undef, dof,dof)
+    QH = Array{U}(undef, dof, dof)
+    RH = Array{U}(undef, dof, dof)
     aⱼ = Array{U}(undef, dof )
     qᵢ = similar(aⱼ)
     vⱼ = similar(aⱼ)
@@ -334,7 +337,7 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, trange::Union{AbstractRange{T},Vec
         t0, t1 = trange[iter], trange[iter+1]
         nsteps = 0
         while nsteps < maxsteps
-            δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol, _δv, jacobianfunc!)
+            δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol, _δv, varsaux, jacobianfunc!)
             for ind in eachindex(jt)
                 @inbounds jt[ind] = x0[dof+ind]
             end
