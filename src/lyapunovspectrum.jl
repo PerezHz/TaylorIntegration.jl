@@ -117,9 +117,9 @@ function lyap_jetcoeffs!(t::Taylor1{T}, x::AbstractVector{Taylor1{S}},
     nlyaps = size(jac, 1)
     inds = axes(jac, 1)
     # 0-th order evaluation of variational equations
+    dx .= zero(x[1])
     for j in inds
         for i in inds
-            dx[nlyaps * (j - 1) + i] = Taylor1(zero(constant_term(x[1])), order)
             for k in inds
                 varsaux[k, i, j] = Taylor1(constant_term(jac[i, k]) * constant_term(x[nlyaps * (j - 1) + k]), order)
                 dx[nlyaps * (j - 1) + i] = Taylor1(constant_term(dx[nlyaps * (j - 1) + i]) + constant_term(varsaux[k, i, j]), order)
