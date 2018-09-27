@@ -92,9 +92,9 @@ end
 
 Similar to [`jetcoeffs!`](@ref) for the calculation of the Lyapunov spectrum.
 Returns an updated `x` using the recursion relation of the derivatives obtained
-from the 1st-order variational equations \$\\dot{\\xi}=dx/dt=J \\cdot \\xi\$, where
+from the 1st-order variational equations \$\\dot{\\xi}=J \\cdot \\xi\$, where
 \$J\$ is the Jacobian matrix, i.e., the linearization of the equations of motion.
-`jac` is Taylor expansion of \$J\$ wrt the independent variable, around the
+`jac` is the Taylor expansion of \$J\$ wrt the independent variable, around the
 current initial condition.
 """
 function lyap_jetcoeffs!(t::Taylor1{T}, x::AbstractVector{Taylor1{S}},
