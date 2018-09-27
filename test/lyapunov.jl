@@ -42,7 +42,7 @@ end
     for i in 1:10
         x0 = 10rand(3) #the initial condition
         x0T = Taylor1.(x0,_order)
-        TaylorIntegration.stabilitymatrix!(lorenz!, t_, view(x0T,:), δx, dδx, lorenzjac, _δv)
+        TaylorIntegration.stabilitymatrix!(lorenz!, t_, x0T, δx, dδx, lorenzjac, _δv)
         @test tr(lorenzjac.()) == -(1+σ+β)
     end
 end
