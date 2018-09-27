@@ -1,12 +1,12 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
 """
-    stabilitymatrix!(eqsdiff!, t0, x, δx, dδx, jac)
+    stabilitymatrix!(eqsdiff!, t, x, δx, dδx, jac)
 
-Updates the matrix `jac::Array{T,2}` (linearized equations of motion)
-computed from the equations of motion (`eqsdiff!`), at time `t0`
-at `x`; `x` is of type `Vector{T<:Number}`. `δx` and `dδx` are two
-auxiliary arrays of type `Vector{TaylorN{T}}` to avoid allocations.
+Updates the matrix `jac::Matrix{Taylor1{U}}` (linearized equations of motion)
+computed from the equations of motion (`eqsdiff!`), at time `t` at `x`; `x` is
+of type `Vector{Taylor1{U}}`, where `U<:Number`. `δx` and `dδx` are two
+auxiliary arrays of type `Vector{TaylorN{Taylor1{U}}}` to avoid allocations.
 
 """
 function stabilitymatrix!(eqsdiff!, t::Taylor1{T},
@@ -17,6 +17,36 @@ function stabilitymatrix!(eqsdiff!, t::Taylor1{T},
     end
     eqsdiff!(t, δx, dδx)
     jacobian!( jac, dδx )
+    nothing
+end
+
+"""
+    stabilitymatrix!(eqsdiff!, t, x, δx, dδx, jac, _δv[, jacobianfunc!])
+
+Updates the matrix `jac::Matrix{Taylor1{U}}` (linearized equations of motion)
+computed from the equations of motion (`eqsdiff!`), at time `t` at `x`; `x` is
+of type `Vector{Taylor1{U}}`, where `U<:Number`. `δx`, `dδx` and `_δv` are
+auxiliary arrays of type `Vector{TaylorN{Taylor1{U}}}` to avoid allocations.
+Optionally, the user may provide a Jacobian function `jacobianfunc!` to compute
+`jac`. Otherwise, `jac` is computed via automatic differentiation using
+`TaylorSeries.jl`.
+
+"""
+function stabilitymatrix!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
+        δx::Vector{TaylorN{Taylor1{U}}}, dδx::Vector{TaylorN{Taylor1{U}}},
+        jac::Matrix{Taylor1{U}}, _δv::Vector{TaylorN{Taylor1{U}}},
+        jacobianfunc! =Nothing) where {T<:Real, U<:Number}
+    if jacobianfunc! == Nothing
+        # Set δx equal to current value of xaux plus 1st-order variations
+        for ind in eachindex(δx)
+            @inbounds δx[ind] = x[ind] + _δv[ind]
+        end
+        # Equations of motion
+        eqsdiff!(t, δx, dδx)
+        jacobian!(jac, dδx)
+    else
+        jacobianfunc!(jac, t, x)
+    end
     nothing
 end
 
@@ -95,6 +125,7 @@ variational equations \$\\dot{\\xi}=J \\cdot \\xi\$, where \$J\$ is the Jacobian
 matrix, i.e., the linearization of the equations of motion. `jac` is the Taylor
 expansion of \$J\$ wrt the independent variable, around the current initial
 condition. Use of this method assumes that `jac` has been computed previously.
+
 """
 function lyap_jetcoeffs!(t::Taylor1{T}, x::AbstractVector{Taylor1{S}},
         dx::AbstractVector{Taylor1{S}}, jac::Matrix{Taylor1{S}}) where {T <: Real, S <: Number}
@@ -150,25 +181,12 @@ function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
         dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}},
         δx::Array{TaylorN{Taylor1{U}},1}, dδx::Array{TaylorN{Taylor1{U}},1},
         jac::Array{Taylor1{U},2}, t0::T, t1::T, x0::Array{U,1}, order::Int,
-        abstol::T, _δv::Array{TaylorN{Taylor1{U}}}, jacobianfunc! =Nothing) where {T<:Real, U<:Number}
+        abstol::T, _δv::Vector{TaylorN{Taylor1{U}}}, jacobianfunc! =Nothing) where {T<:Real, U<:Number}
     # Dimensions of phase-space: dof
     nx = length(x)
     dof = length(δx)
     jetcoeffs!(f!, t, view(x, 1:dof), view(dx, 1:dof), view(xaux, 1:dof))
-    if jacobianfunc! == Nothing
-        # Set δx equal to current value of xaux plus 1st-order variations
-        for ind in eachindex(δx)
-            @inbounds δx[ind] = x[ind] + _δv[ind]
-        end
-        # Equations of motion
-        # TODO! define a macro to optimize the eqsdiff
-        f!(t, δx, dδx)
-        # Stability matrix
-        jacobian!(jac, dδx)
-    else
-        # Stability matrix
-        jacobianfunc!(jac, t, x)
-    end
+    stabilitymatrix!(eqsdiff!, t, x,δx, dδx, jac, _δv, jacobianfunc!)
     lyap_jetcoeffs!(t, view(x, dof+1:nx), view(dx, dof+1:nx), jac)
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(view(x, 1:dof), abstol)
