@@ -111,35 +111,37 @@ using [`stabilitymatrix!`](@ref).
 function lyap_jetcoeffs!(t::Taylor1{T}, x::AbstractVector{Taylor1{S}},
         dx::AbstractVector{Taylor1{S}}, jac::Matrix{Taylor1{S}}) where {T <: Real, S <: Number}
     order = t.order
-    nlyaps = size(jac, 1) # number of Lyapunov exponents
-    temp_002 = Array{eltype(x)}(undef, nlyaps, nlyaps, nlyaps)
-    temp_001 = Array{Taylor1{S}}(undef, size(temp_002))
-    @__dot__ temp_001 = Taylor1(zero(S), order)
+    # number of Lyapunov exponents
+    nlyaps = size(jac, 1)
+    # Auxiliary arrays
+    temp_001 = Array{eltype(x)}(undef, nlyaps, nlyaps, nlyaps)
+    # 0-th order evaluation of variational equations
     for j = 1:nlyaps
         for i = 1:nlyaps
             dx[nlyaps * (j - 1) + i] = Taylor1(zero(constant_term(x[1])), order)
             for k = 1:nlyaps
-                temp_002[k, i, j] = Taylor1(constant_term(jac[i, k]) * constant_term(x[nlyaps * (j - 1) + k]), order)
-                temp_001[k, i, j] = Taylor1(constant_term(dx[nlyaps * (j - 1) + i]) + constant_term(temp_002[k, i, j]), order)
-                dx[nlyaps * (j - 1) + i] = Taylor1(identity(constant_term(temp_001[k, i, j])), order)
+                temp_001[k, i, j] = Taylor1(constant_term(jac[i, k]) * constant_term(x[nlyaps * (j - 1) + k]), order)
+                dx[nlyaps * (j - 1) + i] = Taylor1(constant_term(dx[nlyaps * (j - 1) + i]) + constant_term(temp_001[k, i, j]), order)
             end
         end
     end
+    # Recursion relations, 0-th order
     for __idx = eachindex(x)
         (x[__idx]).coeffs[2] = (dx[__idx]).coeffs[1]
     end
+    # Compute Taylor coefficients of variational equations up to order `order`
     for ord = 1:order - 1
         ordnext = ord + 1
         for j = 1:nlyaps
             for i = 1:nlyaps
                 TaylorSeries.zero!(dx[nlyaps * (j - 1) + i], x[1], ord)
                 for k = 1:nlyaps
-                    TaylorSeries.mul!(temp_002[k, i, j], jac[i, k], x[nlyaps * (j - 1) + k], ord)
-                    TaylorSeries.add!(temp_001[k, i, j], dx[nlyaps * (j - 1) + i], temp_002[k, i, j], ord)
-                    TaylorSeries.identity!(dx[nlyaps * (j - 1) + i], temp_001[k, i, j], ord)
+                    TaylorSeries.mul!(temp_001[k, i, j], jac[i, k], x[nlyaps * (j - 1) + k], ord)
+                    TaylorSeries.add!(dx[nlyaps * (j - 1) + i], dx[nlyaps * (j - 1) + i], temp_001[k, i, j], ord)
                 end
             end
         end
+        # Recursion relations, `ord`-th order
         for __idx = eachindex(x)
             (x[__idx]).coeffs[ordnext + 1] = (dx[__idx]).coeffs[ordnext] / ordnext
         end
