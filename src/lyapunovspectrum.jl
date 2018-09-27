@@ -99,6 +99,46 @@ function variational_eqs!(t::Taylor1{T}, x::Vector{Taylor1{U}},
     return nothing
 end
 
+# `@taylorize`'d version of TaylorIntegration.jetcoeffs! for 1st order variational equations
+function lyap_jetcoeffs!(t::Taylor1{T}, x::AbstractVector{Taylor1{S}},
+        dx::AbstractVector{Taylor1{S}}, jac::Matrix{Taylor1{S}}) where {T <: Real, S <: Number}
+    order = t.order
+    nlyaps = size(jac, 1) # number of Lyapunov exponents
+    temp_002 = Array{eltype(x)}(undef, nlyaps, nlyaps, nlyaps)
+    temp_001 = Array{Taylor1{S}}(undef, size(temp_002))
+    @__dot__ temp_001 = Taylor1(zero(S), order)
+    for j = 1:nlyaps
+        for i = 1:nlyaps
+            dx[nlyaps * (j - 1) + i] = Taylor1(zero(constant_term(x[1])), order)
+            for k = 1:nlyaps
+                temp_002[k, i, j] = Taylor1(constant_term(jac[i, k]) * constant_term(x[nlyaps * (j - 1) + k]), order)
+                temp_001[k, i, j] = Taylor1(constant_term(dx[nlyaps * (j - 1) + i]) + constant_term(temp_002[k, i, j]), order)
+                dx[nlyaps * (j - 1) + i] = Taylor1(identity(constant_term(temp_001[k, i, j])), order)
+            end
+        end
+    end
+    for __idx = eachindex(x)
+        (x[__idx]).coeffs[2] = (dx[__idx]).coeffs[1]
+    end
+    for ord = 1:order - 1
+        ordnext = ord + 1
+        for j = 1:nlyaps
+            for i = 1:nlyaps
+                TaylorSeries.zero!(dx[nlyaps * (j - 1) + i], x[1], ord)
+                for k = 1:nlyaps
+                    TaylorSeries.mul!(temp_002[k, i, j], jac[i, k], x[nlyaps * (j - 1) + k], ord)
+                    TaylorSeries.add!(temp_001[k, i, j], dx[nlyaps * (j - 1) + i], temp_002[k, i, j], ord)
+                    TaylorSeries.identity!(dx[nlyaps * (j - 1) + i], temp_001[k, i, j], ord)
+                end
+            end
+        end
+        for __idx = eachindex(x)
+            (x[__idx]).coeffs[ordnext + 1] = (dx[__idx]).coeffs[ordnext] / ordnext
+        end
+    end
+    return nothing
+end
+
 """
     lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol, _δv[, jacobianfunc!])
 
@@ -129,8 +169,13 @@ function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
         f!(t, δx, dδx)
         # Stability matrix
         jacobian!(jac, dδx)
+    # end
+    # jetcoeffs!((t, x, dx)->variational_eqs!(t, x, dx, jac, jacobianfunc!), t, x, dx, xaux)
+    else
+        # Stability matrix
+        jacobianfunc!(jac, t, x)
     end
-    jetcoeffs!((t, x, dx)->variational_eqs!(t, x, dx, jac, jacobianfunc!), t, x, dx, xaux)
+    lyap_jetcoeffs!(t, view(x, dof+1:nx), view(dx, dof+1:nx), jac)
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(view(x, 1:dof), abstol)
     δt = min(δt, t1-t0)
@@ -248,15 +293,6 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, trange::Union{AbstractRange{T},Vec
     jt = Matrix{U}(I, dof, dof)
     _δv = Array{TaylorN{Taylor1{U}}}(undef, dof)
 
-    # Check only if user does not provide Jacobian
-    if jacobianfunc! == Nothing
-        @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
-    end
-
-    for ind in eachindex(q0)
-        _δv[ind] = TaylorN(Taylor1{U},ind,order=1)
-    end
-
     # Initial conditions
     @inbounds for ind in eachindex(q0)
         xv[ind,1] = q0[ind]
@@ -273,6 +309,14 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, trange::Union{AbstractRange{T},Vec
     @inbounds t[0] = trange[1]
     t00 = trange[1]
     tspan = zero(T)
+
+    # If user does not provide Jacobian, check number of TaylorN variables and initialize _δv
+    if jacobianfunc! == Nothing
+        @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
+        for ind in eachindex(q0)
+            _δv[ind] = one(x[1])*TaylorN(Taylor1{U}, ind, order=1)
+        end
+    end
 
     #Allocate auxiliary arrays
     dx = Array{Taylor1{U}}(undef, nx0)
