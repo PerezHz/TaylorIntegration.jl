@@ -34,18 +34,27 @@ end
     t_ = Taylor1([t0,1],_order)
     δx = Array{TaylorN{Taylor1{Float64}}}(undef, 3)
     dδx = similar(δx)
-    lorenzjac = Array{Taylor1{Float64}}(undef, 3, 3)
+    jac_auto = Array{Taylor1{Float64}}(undef, 3, 3)
+    jac_user = Array{Taylor1{Float64}}(undef, 3, 3)
+    _δv = Array{TaylorN{Taylor1{Float64}}}(undef, 3)
+    for ind in 1:3
+        _δv[ind] = one(t_)*TaylorN(Taylor1{Float64}, ind, order=1)
+    end
+    # test computation of jac via: autodiff and user-provided Jacobian function
     for i in 1:10
         x0 = 10rand(3) #the initial condition
         x0T = Taylor1.(x0,_order)
-        TaylorIntegration.stabilitymatrix!(lorenz!, t_, view(x0T,:), δx, dδx, lorenzjac)
-        @test tr(lorenzjac.()) == -(1+σ+β)
+        TaylorIntegration.stabilitymatrix!(lorenz!, t_, x0T, δx, dδx, jac_auto, _δv)
+        @test tr(constant_term.(jac_auto)) == -(1+σ+β)
+        TaylorIntegration.stabilitymatrix!(lorenz!, t_, x0T, δx, dδx, jac_user, _δv, lorenz_jac!)
+        @test tr(constant_term.(jac_user)) == -(1+σ+β)
+        @test jac_user == jac_auto
     end
 end
 
 @testset "Test `classicalGS!`" begin
     dof = 3
-    jt = rand(dof,dof)
+    jt = rand(dof, dof)
     QH = Array{eltype(jt)}(undef, dof, dof)
     RH = Array{eltype(jt)}(undef, dof, dof)
     aⱼ = Array{eltype(jt)}(undef, dof)
@@ -212,5 +221,5 @@ end
     # Check integration consistency (orbit should not depend on variational eqs)
     x_ = taylorinteg(lorenz!, q0, collect(t0:1.0:tmax), _order, _abstol; maxsteps=2000)
     @test x_ == xw2
-    
+
 end
