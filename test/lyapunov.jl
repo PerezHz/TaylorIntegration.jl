@@ -49,10 +49,10 @@ end
         TaylorIntegration.jetcoeffs!(lorenz!, t_, x0T, dx0T, xaux)
         TaylorIntegration.stabilitymatrix!(lorenz!, t_, x0T, δx, dδx, jac_auto, _δv)
         @test tr(constant_term.(jac_auto)) == -(1+σ+β)
-        @test jac_auto == TaylorIntegration.stabilitymatrix(lorenz!, t0, x0, _order)
+        @test jac_auto == TaylorIntegration.stabilitymatrix(lorenz!, t_, x0T)
         TaylorIntegration.stabilitymatrix!(lorenz!, t_, x0T, δx, dδx, jac_user, _δv, lorenz_jac!)
         @test tr(constant_term.(jac_user)) == -(1+σ+β)
-        @test jac_user == TaylorIntegration.stabilitymatrix(lorenz!, t0, x0, _order, lorenz_jac!)
+        @test jac_user == TaylorIntegration.stabilitymatrix(lorenz!, t_, x0T, lorenz_jac!)
         @test jac_user == jac_auto
     end
 end

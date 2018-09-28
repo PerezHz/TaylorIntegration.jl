@@ -31,43 +31,30 @@ function stabilitymatrix!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
 end
 
 """
-    stabilitymatrix(eqsdiff!, t0, q0, order[, jacobianfunc!]) -> jac
+    stabilitymatrix(eqsdiff!, t, x[, jacobianfunc!]) -> jac
 
-Standalone, out-of-place version of [`stabilitymatrix!`](@ref). Returns the
+Out-of-place version of [`stabilitymatrix!`](@ref). Returns the
 matrix `jac::Matrix{Taylor1{U}}` (linearized equations of motion), computed from
 the equations of motion (`eqsdiff!`), at time `t0` at `q0`; `q0` is of type
-`Vector{U}`, where `U<:Number`. Optionally, the user may provide a Jacobian
+`AbstractVector{Taylor1{U}}`, where `U<:Number`. Optionally, the user may provide a Jacobian
 function `jacobianfunc!` to compute `jac`. Otherwise, `jac` is computed via
 automatic differentiation using `TaylorSeries.jl`.
 
 """
-function stabilitymatrix(eqsdiff!, t0::T, q0::Vector{U}, order::Int,
+function stabilitymatrix(eqsdiff!, t::Taylor1{T}, x::AbstractVector{Taylor1{U}},
         jacobianfunc! =Nothing) where {T<:Real, U<:Number}
-    dof = length(q0)
-    t = t0+Taylor1(order)
-    x = Taylor1.(q0, order)
-    dx = similar(x)
-    xaux = similar(x)
-    # Compute the Taylor coefficients associated to trajectory
-    try
-        jetcoeffs!(t, x, dx, Val(eqsdiff!))
-    catch
-        jetcoeffs!(eqsdiff!, t, x, dx, xaux)
-    end
-
+    dof = length(x)
     _δv = Array{TaylorN{Taylor1{Float64}}}(undef, dof)
     # If user does not provide Jacobian, check number of TaylorN variables and initialize _δv
     if jacobianfunc! == Nothing
         @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
-        for ind in eachindex(q0)
+        for ind in 1:dof
             _δv[ind] = one(t)*TaylorN(Taylor1{U}, ind, order=1)
         end
     end
     δx = Array{TaylorN{Taylor1{Float64}}}(undef, dof)
     dδx = similar(δx)
     jac = Array{Taylor1{U}}(undef, dof, dof)
-    fill!(jac, zero(x[1]))
-
     stabilitymatrix!(eqsdiff!, t, x, δx, dδx, jac, _δv, jacobianfunc!)
 
     return jac
@@ -287,7 +274,6 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
     dδx = Array{TaylorN{Taylor1{U}}}(undef, dof)
     jac = Array{Taylor1{U}}(undef, dof, dof)
     varsaux = Array{Taylor1{U}}(undef, dof, dof, dof)
-    fill!(jac, zero(x[1]))
     QH = Array{U}(undef, dof, dof)
     RH = Array{U}(undef, dof, dof)
     aⱼ = Array{U}(undef, dof )
@@ -371,7 +357,6 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, trange::Union{AbstractRange{T},Vec
     dδx = Array{TaylorN{Taylor1{U}}}(undef, dof)
     jac = Array{Taylor1{U}}(undef, dof, dof)
     varsaux = Array{Taylor1{U}}(undef, dof, dof, dof)
-    fill!(jac, zero(x[1]))
     QH = Array{U}(undef, dof, dof)
     RH = Array{U}(undef, dof, dof)
     aⱼ = Array{U}(undef, dof )
