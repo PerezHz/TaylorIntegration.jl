@@ -41,13 +41,18 @@ end
         _δv[ind] = one(t_)*TaylorN(Taylor1{Float64}, ind, order=1)
     end
     # test computation of jac via: autodiff and user-provided Jacobian function
-    for i in 1:10
+    for i in 1:5
         x0 = 10rand(3) #the initial condition
-        x0T = Taylor1.(x0,_order)
+        x0T = Taylor1.(x0, _order)
+        dx0T = similar(x0T)
+        xaux = similar(x0T)
+        TaylorIntegration.jetcoeffs!(lorenz!, t_, x0T, dx0T, xaux)
         TaylorIntegration.stabilitymatrix!(lorenz!, t_, x0T, δx, dδx, jac_auto, _δv)
         @test tr(constant_term.(jac_auto)) == -(1+σ+β)
+        @test jac_auto == TaylorIntegration.stabilitymatrix(lorenz!, t0, x0, _order)
         TaylorIntegration.stabilitymatrix!(lorenz!, t_, x0T, δx, dδx, jac_user, _δv, lorenz_jac!)
         @test tr(constant_term.(jac_user)) == -(1+σ+β)
+        @test jac_user == TaylorIntegration.stabilitymatrix(lorenz!, t0, x0, _order, lorenz_jac!)
         @test jac_user == jac_auto
     end
 end
