@@ -113,40 +113,43 @@ function lyap_jetcoeffs!(t::Taylor1{T}, x::AbstractVector{Taylor1{S}},
         dx::AbstractVector{Taylor1{S}}, jac::Matrix{Taylor1{S}},
         varsaux::Array{Taylor1{S},3}) where {T <: Real, S <: Number}
     order = t.order
-    # number of Lyapunov exponents
-    nlyaps = size(jac, 1)
-    inds = axes(jac, 1)
-    # 0-th order evaluation of variational equations
+    # `dofrange` behaves like 1:dof, where `dof = size(jac, 1)`. Used to initialize `b` and `I`
+    dofrange = axes(jac, 1)
+    # The `view` below allows us to obtain CartesianIndices from `varsaux` when calling `eachindex(b)`
+    # `varsaux` is an array with size n×n×n
+    b = view(varsaux, dofrange, dofrange, dofrange)
+    # We use `I` to map between cartesian and linear indices
+    I = LinearIndices((dofrange, dofrange))
+
+    # 0-th order evaluation of variational equations `dx = jac * x`
+    # Initialize LHS of variational equations at zero
     dx .= zero(x[1])
-    for j in inds
-        for i in inds
-            for k in inds
-                varsaux[k, i, j] = Taylor1(constant_term(jac[i, k]) * constant_term(x[nlyaps * (j - 1) + k]), order)
-                dx[nlyaps * (j - 1) + i] = Taylor1(constant_term(dx[nlyaps * (j - 1) + i]) + constant_term(varsaux[k, i, j]), order)
-            end
-        end
+    # Compute 0-th Taylor coefficients of matrix product `jac * x` and save into `dx`
+    for i in eachindex(b)
+        varsaux[i] = Taylor1(constant_term(jac[ i[1], i[3] ]) * constant_term(x[ I[i[3], i[2]] ]), order)
+        lin_indx = I[ i[1], i[2]] # map from cartesian to linear index
+        dx[lin_indx] = Taylor1(constant_term(dx[lin_indx]) + constant_term(varsaux[i]), order)
     end
     # Recursion relations, 0-th order
     for __idx = eachindex(x)
         (x[__idx]).coeffs[2] = (dx[__idx]).coeffs[1]
     end
-    # Compute Taylor coefficients of variational equations up to order `order`
+
+    # Compute Taylor coefficients of variational equations `dx = jac * x` up to order `order`
     for ord = 1:order - 1
         ordnext = ord + 1
-        for j in inds
-            for i in inds
-                TaylorSeries.zero!(dx[nlyaps * (j - 1) + i], x[1], ord)
-                for k in inds
-                    TaylorSeries.mul!(varsaux[k, i, j], jac[i, k], x[nlyaps * (j - 1) + k], ord)
-                    TaylorSeries.add!(dx[nlyaps * (j - 1) + i], dx[nlyaps * (j - 1) + i], varsaux[k, i, j], ord)
-                end
-            end
+        # Compute `ord`-th Taylor coefficients of matrix product `jac * x` and save into `dx`
+        for i in eachindex(b)
+            TaylorSeries.mul!(varsaux[i], jac[ i[1], i[3] ], x[ I[i[3], i[2]] ], ord)
+            lin_indx = I[ i[1], i[2]] # map from cartesian to linear index
+            TaylorSeries.add!(dx[lin_indx], dx[lin_indx], varsaux[i], ord)
         end
         # Recursion relations, `ord`-th order
         for __idx = eachindex(x)
             (x[__idx]).coeffs[ordnext + 1] = (dx[__idx]).coeffs[ordnext] / ordnext
         end
     end
+
     return nothing
 end
 
