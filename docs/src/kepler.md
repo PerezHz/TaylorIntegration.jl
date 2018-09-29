@@ -73,23 +73,23 @@ q0 = ini_cond(aKep, eKep)
 We now perform the integration, using a 28 order expansion and
 absolute tolerance of ``10^{-20}``.
 ```@example kepler
-using TaylorIntegration
+using TaylorIntegration, Plots
 t, q = taylorinteg(kepler_eqs!, q0, 0.0, 10000*2pi, 28, 1.0e-20, maxsteps=700000);
 t[end], q[end,:]
 ```
 
 We first plot the orbit.
 ```@example kepler
-using Plots, LaTeXStrings
 x = view(q, :, 1)
 y = view(q, :, 2)
 vx = view(q, :, 3)
 vy = view(q, :, 4)
-scatter(x, y, shape=:circle, ms=0.3)
+scatter(x[1:10:end], y[1:10:end], shape=:circle, ms=0.05, legend=false)
 scatter!([0], [0], shape=:circle, ms=5)
-xaxis!(L"x", (-2.0, 0.5))
-yaxis!(L"y", (-1.0, 1.0))
-savefig("kepler_orbit.png")
+xaxis!("x", (-2.0, 0.5))
+yaxis!("y", (-1.0, 1.0))
+title!("Fig. 1")
+savefig("kepler_orbit.png");
 ```
 
 ![Orbit](kepler_orbit.png)
@@ -113,24 +113,26 @@ with respect to the initial value of the corresponding quantity
 as a function of time. These quantities are expressed
 in units of the local epsilon of the initial
 energy or angular momentum. This serves to illustrate
-the accuracy of the calculation.
+the accuracy of the calculation, shown in Figure 2 and 3.
 ```@example kepler
 e0 = energy(q0...)
-δE = (energy.(x,y,vx,vy)-e0)/eps(e0)
+δE = (energy.(x,y,vx,vy) .- e0) ./ eps(e0)
 plot(t, δE)
-xlabel!(L"t")
-ylabel!(L"\delta E")
-savefig("kepler_energy.png")
+xlabel!("t")
+ylabel!("dE")
+title!("Fig. 2")
+savefig("kepler_energy.png");
 ```
 ![Energy](kepler_energy.png)
 
 ```@example kepler
 lz0 = lz(q0...)
-δlz = (lz.(x,y,vx,vy)-lz0)/eps(lz0)
+δlz = (lz.(x,y,vx,vy) .- lz0) ./ eps(lz0)
 plot(t, δlz)
-xlabel!(L"t")
-ylabel!(L"\delta l_z")
-savefig("kepler_lz.png")
+xlabel!("t")
+ylabel!("dlz")
+title!("Fig. 3")
+savefig("kepler_lz.png");
 ```
 ![Angular momentum](kepler_lz.png)
 

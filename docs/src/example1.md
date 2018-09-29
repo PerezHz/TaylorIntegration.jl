@@ -89,8 +89,7 @@ We first load the required packages and define a function which
 represents the equation of motion.
 
 ```@example example1
-using TaylorIntegration, Plots, LaTeXStrings
-pyplot();
+using TaylorIntegration, Plots
 diffeq(t, x) = x^2;
 ```
 
@@ -100,32 +99,37 @@ diffeq(t, x) = x^2;
     independent variable (`t`), followed by the dependent variables (`x`)
     and then the derivatives defining the equations of motion (`dx`).
     For a single ODE, as in the present case, we omit the last argument
-    which is returned; for more ODEs, both `x` and `dx` are preallocated
-    vectors and the function mutates (modifies) `dx`.
+    which is returned, and avoid using vectors; for more ODEs, both `x` and `dx`
+    are preallocated vectors and the function mutates (modifies) `dx`.
 
 Now, we integrate the equations of motion using [`taylorinteg`](@ref);
 despite of the fact that the solution only exists for ``t<t_\textrm{max}``,
-below we shall compute the solution up to ``t_\textrm{end}=0.34``. For
+below we shall *try* to compute it up to ``t_\textrm{end}=0.34``; as we shall
+see, Taylor's method takes care of this. For
 the integration presented below, we use a 28-th series expansion, with
-``\epsilon_\textrm{tol} = 10^{-20}``.
+``\epsilon_\textrm{tol} = 10^{-20}``, and compute up to 150
+integration steps.
 
 ```@example example1
 tT, xT = taylorinteg(diffeq, 3.0, 0.0, 0.34, 28, 1e-20, maxsteps=150);
 ```
 
-With this parameters, we first note that the last point of the
+We first note that the last point of the
 calculation does not exceed ``t_\textrm{max}``.
 ```@example example1
 tT[end]
 ```
+Increasing the `maxsteps` parameter pushes `tT[end]` closer to ``t_\textrm{max}``
+but it actually does not reach this value.
 
-The following figures displays the computed solution as a function of
+Figure 1 displays the computed solution as a function of
 time, in log scale.
 ```@example example1
 plot(tT, log10.(xT), shape=:circle)
-xlabel!(L"t")
-ylabel!(L"\log_{10}(x(t))")
-xlims!(0,0.4)
+xlabel!("t")
+ylabel!("log10(x(t))")
+xlims!(0,0.34)
+title!("Fig. 1")
 savefig("fig1.png");
 ```
 
@@ -135,16 +139,17 @@ Clearly, the solution diverges without bound when
 ``t\to t_\textrm{max} = 1/3``, i.e., ``x(t)`` approaches infinity in
 finite time.
 
-The next figure shows the relative difference between the numerical
+Figure 2 shows the relative difference between the numerical
 and the analytical solution in terms of time.
 
 ```@example example1
 exactsol(t, x0) = x0 / (1 - x0 * t)
 δxT = abs.(xT .- exactsol.(tT, 3.0)) ./ exactsol.(tT, 3.0);
 plot(tT[6:end], log10.(δxT[6:end]), shape=:circle)
-xlabel!(L"t")
-ylabel!(L"\log_{10}(\delta x(t))")
+xlabel!("t")
+ylabel!("log10(δx(t))")
 xlims!(0, 0.4)
+title!("Fig. 2")
 savefig("fig2.png");
 ```
 
@@ -154,9 +159,11 @@ To put in perspective how good is the constructed solution, we
 impose (arbitrarily) a relative accuracy of ``10^{-13}``; the time until
 such accuracy is satisfied is given by:
 ```@example example1
-indx = findfirst(δxT .> 1.0e-13)
-tT[indx-1], exactsol(tT[indx-1],3.0)
+indx = findfirst(δxT .> 1.0e-13);
+esol = exactsol(tT[indx-1],3.0);
+tT[indx-1], esol, eps(esol)
 ```
 Note that, the accuracy imposed in terms of the actual value
-of the exact solution means that the difference between the computed
-and the exact solutions is essentially in the last three figures.
+of the exact solution means that the difference of the computed
+and the exact solutions is essentially due to the `eps` of the
+computed value.

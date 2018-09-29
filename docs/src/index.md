@@ -21,17 +21,17 @@ TaylorIntegration.jl is a [registered package](http://pkg.julialang.org), and is
 simply installed by running
 
 ```julia
-julia> Pkg.add("TaylorIntegration")
+pkg> add TaylorIntegration
 ```
 
-### Supporting and Citing
-The software in this ecosystem was developed as part of academic research.
+### Supporting and citing
+This package is developed as part of academic research.
 If you would like to help supporting it, please star the repository as
 such metrics may help us secure funding. If you use this software, we
 would be grateful if you could cite our work as follows:
 
-    J.A. P\'erez-Hern\'andez, L. Benet, `TaylorIntegration.jl`: Taylor Integration
-    in Julia, https://github.com/PerezHz/TaylorIntegration.jl
+J.A. P\'erez-Hern\'andez, L. Benet, `TaylorIntegration.jl`: Taylor Integration
+in Julia, https://github.com/PerezHz/TaylorIntegration.jl
 
 
 ### Acknowledgments
