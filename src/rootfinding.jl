@@ -127,17 +127,23 @@ For more details about conventions in `taylorinteg`, please see [`taylorinteg`](
 
 ```julia
     using TaylorIntegration
+
     function pendulum!(t, x, dx)
         dx[1] = x[2]
         dx[2] = -sin(x[1])
         nothing
     end
+
     g(t, x, dx) = x[2]
+
     x0 = [1.3, 0.0]
+
     # find the roots of `g` along the solution
     tv, xv, tvS, xvS, gvS = taylorinteg(pendulum!, g, x0, 0.0, 22.0, 28, 1.0E-20);
+
     # find the roots of the 2nd derivative of `g` along the solution
     tv, xv, tvS, xvS, gvS = taylorinteg(pendulum!, g, x0, 0.0, 22.0, 28, 1.0E-20; eventorder=2);
+```
 """
 function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
         order::Int, abstol::T; maxsteps::Int=500, eventorder::Int=0,

@@ -410,7 +410,7 @@ Note that f! updates (mutates) the pre-allocated vector dx.
 - Jet transport for the simple pendulum.
 
 ```julia
-    using TaylorSeries, TaylorIntegration
+    using TaylorIntegration # TaylorSeries is reexported automatically
 
     function pendulum!(t, x, dx) #the simple pendulum ODE
         dx[1] = x[2]

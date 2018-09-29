@@ -190,7 +190,7 @@ end
 """
     lyap_taylorinteg(f!, q0, t0, tmax, order, abstol[, f!]; maxsteps::Int=500)
 
-Similar to [`taylorinteg!`](@ref) for the calculation of the Lyapunov
+Similar to [`taylorinteg`](@ref) for the calculation of the Lyapunov
 spectrum. Note that the number of `TaylorN` variables should be set
 previously by the user (e.g., by means of `TaylorSeries.set_variables`) and
 should be equal to the length of the vector of initial conditions `q0`.
