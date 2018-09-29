@@ -84,16 +84,12 @@ x = view(q, :, 1)
 y = view(q, :, 2)
 vx = view(q, :, 3)
 vy = view(q, :, 4)
-scatter(x[1:10:end], y[1:10:end], shape=:circle, ms=0.05, legend=false)
+plot(x, y, legend=false)
 scatter!([0], [0], shape=:circle, ms=5)
 xaxis!("x", (-2.0, 0.5))
 yaxis!("y", (-1.0, 1.0))
 title!("Fig. 1")
-savefig("kepler_orbit.png");
 ```
-
-![Orbit](kepler_orbit.png)
-
 
 The following functions allow us to calculate the energy and angular
 momentum using cartesian coordinates.
@@ -111,8 +107,8 @@ lz( x, y, vx, vy ) = mass * ( x*vy - y*vx ) ;
 We use the change in energy and angular momentum of the orbit
 with respect to the initial value of the corresponding quantity
 as a function of time. These quantities are expressed
-in units of the local epsilon of the initial
-energy or angular momentum. This serves to illustrate
+in units of the *local epsilon* of the initial
+energy or angular momentum, respectively. This serves to illustrate
 the accuracy of the calculation, shown in Figure 2 and 3.
 ```@example kepler
 e0 = energy(q0...)
@@ -121,9 +117,7 @@ plot(t, δE)
 xlabel!("t")
 ylabel!("dE")
 title!("Fig. 2")
-savefig("kepler_energy.png");
 ```
-![Energy](kepler_energy.png)
 
 ```@example kepler
 lz0 = lz(q0...)
@@ -132,12 +126,12 @@ plot(t, δlz)
 xlabel!("t")
 ylabel!("dlz")
 title!("Fig. 3")
-savefig("kepler_lz.png");
 ```
-![Angular momentum](kepler_lz.png)
 
-To put the above results in perspective, the *absolute* value
-of the maximum deviation of the energy and angular momentum
-are ``\max(|\delta E|) \lesssim 2.15\times 10^{-13}`` and
-``\max(|\delta l_z|) \lesssim 3.24\times 10^{-14}``, respectively.
-These quantities are maximum absolute errors of the integration.
+These errors are reminiscent of random walks.
+
+The maximum *absolute* errors of the energy and angular momentum
+are
+```@example kepler
+maximum( abs.(energy.(x,y,vx,vy) .- e0) ), maximum( abs.(lz.(x,y,vx,vy) .- lz0) )
+```

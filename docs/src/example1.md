@@ -130,10 +130,7 @@ xlabel!("t")
 ylabel!("log10(x(t))")
 xlims!(0,0.34)
 title!("Fig. 1")
-savefig("fig1.png");
 ```
-
-![fig1](fig1.png)
 
 Clearly, the solution diverges without bound when
 ``t\to t_\textrm{max} = 1/3``, i.e., ``x(t)`` approaches infinity in
@@ -150,10 +147,7 @@ xlabel!("t")
 ylabel!("log10(δx(t))")
 xlims!(0, 0.4)
 title!("Fig. 2")
-savefig("fig2.png");
 ```
-
-![fig2](fig2.png)
 
 To put in perspective how good is the constructed solution, we
 impose (arbitrarily) a relative accuracy of ``10^{-13}``; the time until
