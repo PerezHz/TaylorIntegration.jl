@@ -4,9 +4,9 @@ Taylor's integration method is a quite powerful method to integrate ODEs
 which are smooth enough, allowing to reach a precision comparable
 to round-off errors per time-step. A *high-order* Taylor approximation
 of the solution (dependent variable) is constructed such that the error
-is quite small. A time-step is constructed which warrantees
+is quite small. A time-step is constructed which guarantees
 the validity of the series; this is used to sum up the Taylor
-expansion to obtain an approximation of the solution at later time.
+expansion to obtain an approximation of the solution at a later time.
 
 
 ## [The recurrence relation](@id rec_rel)
@@ -69,15 +69,14 @@ are obtained *recursively* using Eq. (\ref{eq-recursion}).
 ## [Time step](@id time-step)
 
 In the computer, the expansion (\ref{eq-solution}) has to be computed
-to a finite *order*. Clearly, a more accurate solution is obtained
-the larger the order of the series is. We shall denote by ``K``
-the order of the series.
+to a finite *order*. We shall denote by ``K`` the order of the series. Clearly,
+the larger the order ``K``, the more accurate the obtained solution is.
 
 The theorem of existence and uniqueness of the solution of
 Eq.~(\ref{eq-ODE}) ensures that the Taylor expansion converges. Then,
 assuming that ``K`` is large enough to be within
 the convergent tail. We introduce the parameter ``\epsilon_\textrm{tol} > 0``
-to control how large is the large term. The idea is to set this
+to control how large is the last term. The idea is to set this
 parameter to a small value, usually smaller than the machine-epsilon.
 Denoting by ``h = t_1-t_0`` the time step, then
 ``| x_{[K]} | h^K \le \epsilon_\textrm{tol}``, we obtain
@@ -87,12 +86,12 @@ Denoting by ``h = t_1-t_0`` the time step, then
 h \le \Big(\frac{\epsilon_\textrm{tol}}{| x_{[K]} |}\Big)^{1/K}.
 \end{equation}
 ```
-Equation~(\ref{eq-h}) represents the *maximum* time-step which is
+Equation (\ref{eq-h}) represents the *maximum* time-step which is
 consistent with ``\epsilon_\textrm{tol}``, ``K`` and the assumption of
 being within the convergence tail. Notice that the arguments exposed
 above simply ensure that ``h`` is a maximum time-step, but any other
 smaller than ``h`` can be used since the series is convergent in the
 open interval ``t\in(t_0-h,t_0+h)``.
 
-Finally, from Eq.~(\ref{eq-solution}) with (\ref{eq-h}) we
+Finally, from Eq. (\ref{eq-solution}) with (\ref{eq-h}) we
 obtain ``x(t_1) = x(t_0+h)``, which is again an initial value problem.
