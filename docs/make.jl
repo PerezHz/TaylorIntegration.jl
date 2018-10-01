@@ -12,6 +12,7 @@ makedocs(
             "jet_transport.md"],
         "Tutorial" => ["example1.md",
             "kepler.md",
+            "pendulum.md",
             "root_finding.md"],
         "API"  => "api.md",
     ]
