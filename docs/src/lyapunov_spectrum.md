@@ -12,5 +12,7 @@ Oseledet's multiplicative ergodic theorem [3].
 ## References
 
 [1] Benettin G., Galgani L., Giorgilli A., Strelcyn J.M., 1980a, Meccanica, 15, 9
+
 [2] Benettin G., Galgani L., Giorgilli A., Strelcyn J.M., 1980b, Meccanica, 15, 21
+
 [3] Oseledets V. I., 1968, Trudy Moskovskogo Matematicheskogo Obshchestva, 19, 179
