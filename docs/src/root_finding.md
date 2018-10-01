@@ -1,3 +1,4 @@
-# [Root-finding](@id rootfinding)
+# [Root-finding: Poincaré map for the Hénon-Heiles system](@id rootfinding)
 
-Here we describe how to use root-finding methods in TaylorIntegration.jl
+In this example, we will construct a Poincaré map associated to ``y=0``,
+``\dot y>0`` and ``E=0.1025`` for the Hénon-Heiles system.
