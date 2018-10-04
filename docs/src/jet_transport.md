@@ -38,7 +38,7 @@ Instead of the initial condition, we consider the polynomial
 ```math
 \begin{equation*}
 P_{0,\mathbf{x}_0}(\delta\mathbf{x}) = [x_0+\delta x, y_0 + \delta y]^T.
-\end{equation*}.
+\end{equation*}
 ```
 Then,
 ```math
