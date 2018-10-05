@@ -144,7 +144,7 @@ exactsol(t, x0) = x0 / (1 - x0 * t)
 δxT = abs.(xT .- exactsol.(tT, 3.0)) ./ exactsol.(tT, 3.0);
 plot(tT[6:end], log10.(δxT[6:end]), shape=:circle)
 xlabel!("t")
-ylabel!("log10(δx(t))")
+ylabel!("log10(dx(t))")
 xlims!(0, 0.4)
 title!("Fig. 2")
 ```

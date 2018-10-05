@@ -17,7 +17,7 @@ chosen solver supports computations using *multi-variate polynomial algebra*.
 
 ## An example
 
-From D. Pérez-Palau et al, *Celest. Mech, Dyn. Astron.* **123**, 239-262 (2015).
+From D. Pérez-Palau et al, *Celest. Mech. Dyn. Astron.* **123**, 239-262 (2015).
 
 Let us consider the differential equations for the harmonic oscillator:
 ```math
