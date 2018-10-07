@@ -159,5 +159,5 @@ tT[indx-1], esol, eps(esol)
 ```
 Note that, the accuracy imposed in terms of the actual value
 of the exact solution means that the difference of the computed
-and the exact solutions is essentially due to the `eps` of the
+and the exact solution is essentially due to the `eps` of the
 computed value.
