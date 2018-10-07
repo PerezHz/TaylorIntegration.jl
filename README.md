@@ -2,10 +2,19 @@
 
 [![TaylorIntegration](http://pkg.julialang.org/badges/TaylorIntegration_0.6.svg)](http://pkg.julialang.org/?pkg=TaylorIntegration) [![TaylorIntegration](http://pkg.julialang.org/badges/TaylorIntegration_0.7.svg)](http://pkg.julialang.org/detail/TaylorIntegration)
 
-[![Build Status](https://travis-ci.org/PerezHz/TaylorIntegration.jl.svg?branch=master)](https://travis-ci.org/PerezHz/TaylorIntegration.jl) [![Build status](https://ci.appveyor.com/api/projects/status/21kovkl598vbbt85/branch/master?svg=true)](https://ci.appveyor.com/project/PerezHz/taylorintegration-jl/branch/master)
+Build status:
+[![travis][travis-img]](https://travis-ci.org/PerezHz/TaylorIntegration.jl)
+[![appveyor][appveyor-img]](https://ci.appveyor.com/project/PerezHz/taylorintegration-jl/branch/master)
 
-[![Coverage Status](https://coveralls.io/repos/github/PerezHz/TaylorIntegration.jl/badge.svg?branch=master)](https://coveralls.io/github/PerezHz/TaylorIntegration.jl?branch=master) [![codecov](https://codecov.io/gh/PerezHz/TaylorIntegration.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/PerezHz/TaylorIntegration.jl)
+Coverage:
+[![coveralls][coveralls-img]](https://coveralls.io/r/PerezHz/TaylorIntegration.jl?branch=master)
+[![codecov][codecov-img]](http://codecov.io/github/PerezHz/TaylorIntegration.jl?branch=master)
 
+
+[travis-img]: https://img.shields.io/travis/PerezHz/TaylorIntegration.jl/master.svg?label=Linux+/+macOS
+[appveyor-img]: https://img.shields.io/travis/PerezHz/TaylorIntegration.jl/master.svg?label=Windows
+[coveralls-img]: https://img.shields.io/travis/PerezHz/TaylorIntegration.jl/master.svg?label=coveralls
+[codecov-img]: https://img.shields.io/travis/PerezHz/TaylorIntegration.jl/master.svg?label=codecov
 
 
 ODE integration using Taylor's method in [Julia](http://julialang.org).
