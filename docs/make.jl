@@ -10,7 +10,8 @@ makedocs(
         "Background" => ["taylor_method.md",
             "lyapunov_spectrum.md",
             "jet_transport.md"],
-        "Tutorial" => ["example1.md",
+        "Examples" => [
+            "simple_example.md",
             "kepler.md",
             "lorenz_lyapunov.md",
             "pendulum.md",

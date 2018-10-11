@@ -19,7 +19,7 @@ Let us consider the following
 \end{equation}
 ```
 and define the initial value problem with the initial condition
-$x(t_0) = x(0)$.
+``x(t_0) = x(0)``.
 
 We write the solution of this equation as
 ```math
@@ -29,8 +29,8 @@ x = x_{[0]} + x_{[1]} (t-t_0) + x_{[2]} (t-t_0)^2 + \cdots +
 x_{[k]} (t-t_0)^k + \cdots,
 \end{equation}
 ```
-where the initial condition imposes that $x_{[0]} = x(0)$. Below, we show how to
-obtain the coefficients $x_{[k]}$ of the Taylor expansion of the solution.
+where the initial condition imposes that ``x_{[0]} = x(0)``. Below, we show how to
+obtain the coefficients ``x_{[k]}`` of the Taylor expansion of the solution.
 
 We assume that the Taylor expansion around ``t_0`` of ``f(t, x(t))`` is known,
 which we write as

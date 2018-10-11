@@ -1,11 +1,10 @@
 # [Lyapunov spectrum](@id lyap)
 
-Here we describe the background of Lyapunov spectra computations in
-`TaylorIntegration.jl`.
-
-Implementation of Lyapunov spectra computations in `TaylorIntegration.jl`
-follow the numerical method of Benettin et al. [1, 2], which itself is based on
-Oseledet's multiplicative ergodic theorem [3]. That is, simultaneously to the
+Here we describe the background of the Lyapunov spectra computations in
+`TaylorIntegration.jl`. Our implementation follows the numerical method
+of Benettin et al. [[1], [2]](@ref refsL),
+which itself is based on
+Oseledet's multiplicative ergodic theorem [[3]](@ref refsL). Namely, simultaneously to the
 integration of the equations of motion, we integrate the 1st-order variational
 equations associated to them.
 
@@ -27,33 +26,39 @@ variational equations associated to this system are
 where ``(\operatorname{D}f)(x(t))`` is the Jacobian of the function ``f`` with
 respect to the dependent variable ``x``, evaluated at time ``t``, for a given
 solution ``x(t)`` to the equations of motion. The variable ``\xi`` denotes a
-matrix, which initial condition is selected to be ``\xi(t_0) = I_{n\times n}``,
-the ``n\times n`` identity matrix; ``n`` is equal to the degrees of freedom of
-the dependent variable ``x``.
+matrix, whose initial condition is ``\xi(t_0) = \mathbb{1}_{n}``,
+the ``n\times n`` identity matrix, where ``n`` is the degrees of freedom or number
+of dependent variables ``x``.
 
 For the actual computation of the Lyapunov spectrum, we proceed as follows.
 During the simultaneous numerical integration of the equations of motion and the
 variational equations, at fixed time intervals ``t_k = k\cdot \Delta t``,
 ``k = 1, 2, \ldots`` we perform a ``QR`` decomposition over ``\xi(t_k)``, the
 solution of the variational equations at time ``t_k``. That is, we factorize
-``\xi(t_k)`` as ``\xi(t_k)=Q\cdot R``, where ``Q`` is an orthogonal ``n\times n``
-matrix and R is an upper triangular ``n\times n`` matrix with positive diagonal
-elements. The diagonal elements ``R_{ii,k}`` associated to the matrix ``R``,
-obtained from the ``QR`` process at time ``t_k``, allow us to obtain the growth
-factors from which the ``l``-th Lyapunov exponent is computed at time ``t_k`` as
+``\xi(t_k)`` as ``\xi(t_k)=Q_k\cdot R_k``, where ``Q_k`` is an orthogonal ``n\times n``
+matrix and ``R_k`` is an upper triangular ``n\times n`` matrix with positive diagonal
+elements. The diagonal elements ``R_{ii,k}`` are the growth
+factors from which the ``l``-th Lyapunov exponent is computed at time ``t_k``
 ```math
 \begin{equation}
 \label{lyap-spec}
 \lambda_l = \sum_{m=1}^k \frac{\log (R_{ll,m})}{k\cdot \Delta t}.
 \end{equation}
 ```
-On the other hand, the components of the ``Q`` matrix are substituted back into
-``\xi(t_k)``. The equations of motion, together with the variational equations,
-are then integrated up to time ``t_{k+1}``, and the process is repeated for
-sufficiently large ``k``, until convergence up to a prescribed tolerance is
-reached.
+In turn, the matrix ``Q`` is substituted into ``\xi(t_k)`` as the new (scaled)
+initial condition.
 
-## References
+The equations of motion together with the variational equations are integrated
+up to time ``t_{k+1}`` using Taylor's method. We note that each [time step](@ref time-step)
+of the integration is determined using the normalized derivatives of ``x`` and the
+tolerance ``\epsilon_\textrm{tol}``. This process is repeated until a prescribed
+``t_\textrm{max}`` is reached.
+
+[This example](@ref lyap_lorenz) illustrates the computation
+of the Lyapunov spectrum for the Lorenz system.
+
+
+### [References](@id refsL)
 
 [1] Benettin G., Galgani L., Giorgilli A., Strelcyn J.M., 1980, Meccanica, 15, 9
 
