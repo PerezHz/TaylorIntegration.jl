@@ -162,5 +162,4 @@ scatter!( x_nom, p_nom,
     color=:black,
     m=(1,2.8,stroke(0))
 )
-plot!( ξv./0.05 )
 ```
