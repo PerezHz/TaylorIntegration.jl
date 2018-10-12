@@ -5,6 +5,7 @@ makedocs(
     modules  = [TaylorIntegration],
     format   = :html,
     sitename = "TaylorIntegration.jl",
+    authors  = "Jorge A. Pérez-Hernández and Luis Benet",
     pages    = [
         "Home" => "index.md",
         "Background" => [
