@@ -3,8 +3,8 @@
 Here, we present the calculation of the Lyapunov spectrum of the
 [Lorenz system](https://en.wikipedia.org/wiki/Lorenz_system),
 using `TaylorIntegration.jl`. The computation involves evaluating the 1st
-order variational equations $\dot \xi = J \cdot \xi$ for this system, where
-$J = \operatorname{D}f$ is the Jacobian. By default, the numerical value of
+order variational equations ``\dot \xi = J \cdot \xi`` for this system, where
+``J = \operatorname{D}f`` is the Jacobian. By default, the numerical value of
 the Jacobian is computed using automatic differentiation techniques
 implemented in [`TaylorSeries.jl`](https://github.com/JuliaDiff/TaylorSeries.jl),
 which saves us from writing down explicitly the Jacobian. Conversely, this can be
@@ -15,12 +15,12 @@ function.
 The Lorenz system is the ODE defined as:
 ```math
 \begin{eqnarray*}
-    \dot{x}_1 & = & \sigma(x_2-x_1) \\
-    \dot{x}_2 & = & x_1(\rho-x_3)-x_2 \\
-    \dot{x}_3 & = & x_1x_2-\beta x_3
+    \dot{x}_1 & = & \sigma(x_2-x_1), \\
+    \dot{x}_2 & = & x_1(\rho-x_3)-x_2, \\
+    \dot{x}_3 & = & x_1x_2-\beta x_3,
 \end{eqnarray*}
 ```
-where $\sigma$, $\rho$ and $\beta$ are constant parameters.
+where ``\sigma``, ``\rho`` and ``\beta`` are constant parameters.
 
 First, we write a Julia function which evaluates (in-place) the Lorenz system:
 ```@example lorenz
@@ -44,7 +44,8 @@ const ρ = 45.92
 nothing # hide
 ```
 
-We set the initial conditions, the initial and final integration times:
+We define the initial conditions, the initial and final integration times
+for the integration:
 ```@example lorenz
 const x0 = [19.0, 20.0, 50.0] #the initial condition
 const t0 = 0.0     #the initial time
@@ -58,8 +59,8 @@ has to be equal to that value. We calculate this trace using
 check if this value is conserved (or approximately conserved)
 as a function of time.
 ```@example lorenz
-# Note that TaylorSeries.jl exported variables and methods are @reexport-ed by TaylorIntegration.jl
-#Calculate trace of Lorenz system Jacobian via TaylorSeries.jacobian:
+# Note that TaylorSeries.jl is @reexport-ed by TaylorIntegration.jl
+# Calculate trace of Lorenz system Jacobian via TaylorSeries.jacobian:
 import LinearAlgebra: tr
 using TaylorIntegration
 xi = set_variables("δ", order=1, numvars=length(x0))
@@ -76,22 +77,23 @@ of the ODE in-place:
 ```@example lorenz
 #Lorenz system Jacobian (in-place):
 function lorenz_jac!(jac, t, x)
-    jac[1,1] = -σ+zero(x[1])
-    jac[1,2] = σ+zero(x[1])
+    jac[1,1] = -σ + zero(x[1])
+    jac[1,2] = σ + zero(x[1])
     jac[1,3] = zero(x[1])
-    jac[2,1] = ρ-x[3]
-    jac[2,2] = -1.0+zero(x[1])
+    jac[2,1] = ρ - x[3]
+    jac[2,2] = -1.0 + zero(x[1])
     jac[2,3] = -x[1]
     jac[3,1] = x[2]
     jac[3,2] = x[1]
-    jac[3,3] = -β+zero(x[1])
+    jac[3,3] = -β + zero(x[1])
     nothing
 end
 nothing # hide
 ```
-We note the use of `zero(x[1])` in the function `lorenz_jac!` when the RHS is
-a simple numeric value; this is needed to allow the proper promotion of the
-variables to carry out Taylor's method.
+!!! note
+    We use of `zero(x[1])` in the function `lorenz_jac!` when the RHS consists
+    of a numeric value; this is needed to allow the proper promotion of the
+    variables to carry out Taylor's method.
 
 We can actually check the consistency of `lorenz_jac!` with the computation
 of the jacobian using automatic differentiation techniques. Below we use
@@ -112,32 +114,38 @@ one with the values of the Lyapunov spectrum.
 We first carry out the integration computing internally the Jacobian
 ```@example lorenz
 tv, xv, λv = lyap_taylorinteg(lorenz!, x0, t0, tmax, 28, 1e-20; maxsteps=2000000);
+nothing # hide
 ```
-Now, the integration is now obtained exploiting `lorenz_jac!`:
+Now, the integration is obtained exploiting `lorenz_jac!`:
 ```@example lorenz
 tv_, xv_, λv_ = lyap_taylorinteg(lorenz!, x0, t0, tmax, 28, 1e-20, lorenz_jac!; maxsteps=2000000);
+nothing # hide
 ```
+In terms of performance the second method is about ~50% faster than the first.
 
-We check the consistency of the orbits computed by the two methods.
+We check the consistency of the orbits computed by the two methods:
 ```@example lorenz
 tv == tv_, xv == xv_, λv == λv_
 ```
+
 As mentioned above, a more subtle check is related to the fact that the trace
 of the Jacobian is constant in time, which must coincide with the sum
-of all Lyapunov exponents. Using the initial value `lorenztr`, we obtain
+of all Lyapunov exponents. Using its initial value `lorenztr`, we compare it
+with the final Lyapunov exponents of the computation, and obtain
 ```@example lorenz
 sum(λv[end,:]) ≈ lorenztr, sum(λv_[end,:]) ≈ lorenztr, sum(λv[end,:]) ≈ sum(λv_[end,:])
 ```
-Above we have checked approximate equality; we now show that the
+
+Above we checked the approximate equality; we now show that the
 relative error is quite small and comparable with the local machine epsilon
 value around `lorenztr`:
 ```@example lorenz
-abs(sum(λv[end,:])/lorenztr) - 1), abs(sum(λv_[end,:])/lorenztr) - 1), eps(lorenztr)
+abs(sum(λv[end,:])/lorenztr - 1), abs(sum(λv_[end,:])/lorenztr - 1), eps(lorenztr)
 ```
-This shows that the numerical error is dominated by roundoff errors in floating
+Therefore, the numerical error is dominated by roundoff errors in the floating
 point arithmetic of the integration.
-
-We will now proceed to plot our results. First, we plot Lorenz attractor
+We will now proceed to plot our results. First, we plot Lorenz attractor in
+phase space
 ```@example lorenz
 using Plots
 plot(xv[:,1], xv[:,2], xv[:,3], leg=false)
