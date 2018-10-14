@@ -33,7 +33,8 @@ energy surface.
 ```@example poincare
 # initial energy and initial condition
 const E0 = 0.1025
-x0 = [0.45335, 0.0, 0.0, 0.0] # hide
+x0 = [0.45335, 0.0, 0.0, 0.0]
+nothing # hide
 ```
 
 In order to be able to generate (random) initial conditions with the appropriate
@@ -62,8 +63,8 @@ H(x0)
 ```
 
 The scalar function `g`, which may depend on the time `t`, the dependent
-variable `x` and even the velocities `dx` defines the surface of section. In
-the present case, it is defined as
+variable `x` and even the velocities `dx`, defines the surface of section by
+means of the condition `g(t, x, dx)==0`. In the present case, it is defined as
 ```@example poincare
 # y=0, py>0 section
 function g(t, x, dx)
