@@ -62,9 +62,10 @@ Let's check that the initial condition `x0` has actually energy equal to
 H(x0)
 ```
 
-The scalar function `g`, which may depend on the time `t`, the dependent
-variable `x` and even the velocities `dx`, defines the surface of section by
-means of the condition `g(t, x, dx) == 0`. In the present case, it is defined as
+The scalar function `g`, which may depend on the time `t`, the vector of dependent
+variables `x` and even the velocities `dx`, defines the surface of section by
+means of the condition `g(t, x, dx) == 0`; `g` should return a variable of
+type `eltype(x)`. In the present case, it is defined as
 ```@example poincare
 # y=0, py>0 section
 function g(t, x, dx)
