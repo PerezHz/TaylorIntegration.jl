@@ -18,7 +18,8 @@ makedocs(
             "kepler.md",
             "lorenz_lyapunov.md",
             "pendulum.md",
-            "root_finding.md"
+            "root_finding.md",
+            "common.md"
             ],
         "API"  => "api.md",
         ]
