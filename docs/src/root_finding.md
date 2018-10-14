@@ -3,7 +3,7 @@
 In this example, we shall illustrate how to construct a Poincaré map associated
 with the surface of section ``y=0``, ``\dot y>0``, for ``E=0.1025`` for the
 [Hénon-Heiles system](https://en.wikipedia.org/wiki/H%C3%A9non%E2%80%93Heiles_system). This is
-equivalent to find the roots of an appropriate function `g(t,x,dx)`.
+equivalent to find the roots of an appropriate function `g(t, x, dx)`.
 
 The Hénon-Heiles system is a 2-dof Hamiltonian system used to model the (planar)
 motion of a star around a galactic center. The Hamiltonian is given by
@@ -64,7 +64,7 @@ H(x0)
 
 The scalar function `g`, which may depend on the time `t`, the dependent
 variable `x` and even the velocities `dx`, defines the surface of section by
-means of the condition `g(t, x, dx)==0`. In the present case, it is defined as
+means of the condition `g(t, x, dx) == 0`. In the present case, it is defined as
 ```@example poincare
 # y=0, py>0 section
 function g(t, x, dx)
