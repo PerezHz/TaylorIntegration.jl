@@ -20,6 +20,10 @@ end μ
 
 μ = 0.01
 
+d_prim(x, y, px, py) = sqrt((x-μ)^2+y^2)
+d_sec(x, y, px, py) = sqrt((x+1-μ)^2+y^2)
+d_prim(x) = d_prim(x...)
+d_sec(x) = d_sec(x...)
 V(x, y) = - (1-μ)/sqrt((x-μ)^2+y^2) - μ/sqrt((x+1-μ)^2+y^2)
 H(x, y, px, py) = (px^2+py^2)/2-(x*py-y*px) + V(x, y)
 H(x) = H(x...)
@@ -30,12 +34,28 @@ p = [μ]
 using TaylorIntegration
 prob = ODEProblem(f, u0, tspan, p)
 sol = solve(prob, TaylorMethod(28), abstol=1e-20)
+```
 
+```@example common
 E0 = H(u0)
 E = H.(sol.u);
 δE = E .- E0;
+```
 
+```@example common
 # @show δE;
 using Plots
 plot(sol, vars=(1, 2))
+```
+
+```@example common
+plot(sol.t, δE)
+```
+
+```@example common
+d1 = d_prim.(sol.u)
+d2 = d_sec.(sol.u)
+
+plot(sol.t, d1)
+plot!(sol.t, d2)
 ```
