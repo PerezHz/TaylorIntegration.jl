@@ -1,7 +1,7 @@
-# [Interoperability between TaylorIntegration.jl and the `JuliaDiffEq` package ecosystem](@id diffeqinterface)
+# [Interoperability with `DifferentialEquations.jl`](@id diffeqinterface)
 
 Here, we show an example of interoperability between `TaylorIntegration.jl` and
-some packages from the `JuliaDiffEqs` organization.
+`DifferentialEquations.jl`.
 
 Below, we use `ParameterizedFunctions.jl` to define the appropriate system of ODEs.
 Also, we use `OrdinaryDiffEq.jl`, in order to compare
@@ -29,7 +29,7 @@ this example, we assume the mass parameter to have a value $\mu=0.01$.
 nothing # hide
 ```
 The Hamiltonian for the PCR3BP in the synodic frame (i.e., a frame which rotates
-such that the primaries are at rest) is
+such that the primaries are at rest on the $x$ axis) is
 ```math
 \begin{equation}
 \label{eq-pcr3bp-hamiltonian}
@@ -147,7 +147,7 @@ nothing # hide
 We plot the $x--y$ orbit from the solution obtained with `TaylorIntegration.jl`:
 ```@example common
 plot(solT, vars=(1, 2))
-scatter!([μ, -1+μ], [0,0], leg=false)
+scatter!([μ, -1+μ], [0,0], leg=false) # positions of the primaries
 xlims!(-1+μ-0.2, 1+μ+0.2)
 ```
 Note that the orbit obtained with `TaylorIntegration.jl` displays the expected
@@ -156,8 +156,7 @@ primaries, without escaping to infinity. As a comparison, we now plot the $x--y$
 orbit from the solution obtained with the `Vern8()` method:
 ```@example common
 plot(solV, vars=(1, 2))
-scatter!([μ, -1+μ], [0,0], leg=false)
-# xlims!(-1+μ-0.2, 1+μ+0.2)
+scatter!([μ, -1+μ], [0,0], leg=false) # positions of the primaries
 ```
 In the `Vern8()` case, the displayed dynamics in the $x--y$ plane are not quite
 what we should expect qualitatively from how we constructed the problem and the
