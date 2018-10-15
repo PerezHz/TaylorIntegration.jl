@@ -175,9 +175,9 @@ Below, we plot, in log scale, the `abs` of the absolute error in the Jacobi
 constant as a function of time, for both the `TaylorIntegration.jl` and the
 `Vern8()` solutions:
 ```@example common
-plot(solT.t, abs.(δET), yscale=:log10)
-plot!(solV.t, abs.(δEV))
-ylims!(10^-18,10^4)
+plot(solT.t, abs.(δET), yscale=:log10, label="TaylorIntegration.jl")
+plot!(solV.t, abs.(δEV), label="Vern8()")
+ylims!(10^-18, 10^4)
 ```
 We see that, whereas the Jacobi constant error for the `TaylorIntegration.jl`
 solution remains bounded below $10^{-13}$, the solution with `Vern8()` is larger
