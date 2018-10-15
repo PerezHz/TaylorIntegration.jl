@@ -90,6 +90,8 @@ using Plots
 plot(ZVC, -2:0.001:2, label="zero-vel. curve")
 plot!([-2.5, 2.5], [-1.5772, -1.5772], label="J0 = -1.5722")
 ylims!(-3, -1)
+xlabel!("x")
+ylabel!("J")
 title!("Zero-velocity curves (x-axis projection)")
 ```
 Note that the maxima in the plot correspond to the Lagrangian points $L_1$, $L_2$
@@ -149,6 +151,8 @@ We plot the $x--y$ orbit from the solution obtained with `TaylorIntegration.jl`:
 plot(solT, vars=(1, 2))
 scatter!([μ, -1+μ], [0,0], leg=false) # positions of the primaries
 xlims!(-1+μ-0.2, 1+μ+0.2)
+xlabel!("x")
+ylabel!("y")
 ```
 Note that the orbit obtained with `TaylorIntegration.jl` displays the expected
 dynamics: the test particle is able to explore the regions sorrounding both
@@ -157,6 +161,8 @@ orbit from the solution obtained with the `Vern8()` method:
 ```@example common
 plot(solV, vars=(1, 2))
 scatter!([μ, -1+μ], [0,0], leg=false) # positions of the primaries
+xlabel!("x")
+ylabel!("y")
 ```
 In the `Vern8()` case, the displayed dynamics in the $x--y$ plane are not quite
 what we should expect qualitatively from how we constructed the problem and the
@@ -178,6 +184,8 @@ constant as a function of time, for both the `TaylorIntegration.jl` and the
 plot(solT.t, abs.(δET), yscale=:log10, label="TaylorIntegration.jl")
 plot!(solV.t, abs.(δEV), label="Vern8()")
 ylims!(10^-18, 10^4)
+xlabel!("dE")
+ylabel!("t")
 ```
 We see that, whereas the Jacobi constant error for the `TaylorIntegration.jl`
 solution remains bounded below $10^{-13}$, the solution with `Vern8()` is larger
