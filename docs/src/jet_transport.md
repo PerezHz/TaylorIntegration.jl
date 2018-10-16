@@ -102,7 +102,8 @@ expansions in ``\delta x`` and ``\delta y`` will reflect aspects of the
 non-linearities of the ODEs. Clearly, jet transport techniques allow to address
 stability properties beyond the linear case, though memory constraints may
 play a role. See [this example](@ref pendulum) illustrating the
-implementation for the simple pendulum.
+implementation for the simple pendulum, and [this one](@ref jettransport2)
+illustrating the construction of a Poincaré map with Jet transport techniques.
 
 
 ### [References](@id refsJT)
