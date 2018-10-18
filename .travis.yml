@@ -39,6 +39,3 @@ after_success:
   - julia -e 'joinpath(dirname(pathof(TaylorIntegration)), ".."); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
   # push coverage results to Codecov
   - julia -e 'using Coverage; Codecov.submit(Codecov.process_folder())'
-  # Documentation
-  - julia -e 'import Pkg; ps=Pkg.PackageSpec(name="Documenter", version="0.19"); Pkg.add(ps); Pkg.pin(ps)'
-  - julia -e 'include(joinpath(dirname(pathof(TaylorIntegration)), "../docs", "make.jl"))'
