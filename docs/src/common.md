@@ -17,7 +17,7 @@ is simply considered as a massless test particle.
 The body with the greater mass ``m_1`` is referred as the *primary*, and
 ``m_2`` as the *secondary*. These bodies are together
 called the *primaries* and are assumed
-to describe a keplerian circular orbits about their center of mass, which is placed at
+to describe Keplerian circular orbits about their center of mass, which is placed at
 the origin of the reference frame. It is further assumed that the orbit of the third body
 takes place in the orbital plane of the primaries.
 A full treatment of the PCR3BP may be found in [[1]](@ref refsPCR3BP).
@@ -110,7 +110,7 @@ nothing # hide
 
 We define a function `py!`, which depends on the initial condition ``q_0 = (x_0, 0, 0, p_{y,0})``
 and the Jacobi constant value ``J_0``, such that it computes an adequate value
-``p_{y,0}`` for which we have ``H(q_0)=J_0`` and updates (in place) the initial condition
+``p_{y,0}`` for which we have ``H(q_0)=J_0`` and updates (in-place) the initial condition
 accordingly.
 ```@example common
 function py!(q0, J0)
@@ -233,9 +233,10 @@ Finally, we comment on the time spent by each integration.
 @time solve(prob, Vern9(), abstol=1e-20);
 ```
 Clearly, the integration with `TaylorMethod()` takes *much longer* than that using
-`Vern9()`. Yet, as shown above, the latter seems meaningless, at least
-with regards to the conservation of the Jacobi constant, which is an important
-property to trust the result of the integration.
+`Vern9()`. Yet, as shown above, the former preserves the Jacobi constant
+to a high accuracy while displaying the correct dynamics; whereas the latter
+solution loses accuracy in the sense of not conserving the Jacobi constant,
+which is an important property to trust the result of the integration.
 
 
 ### [References](@id refsPCR3BP)
