@@ -8,13 +8,11 @@ of the event function `g` whose root we are trying to find. Returns `true` if
 `g_old` and `g_now` have different signs (i.e., if one is positive and the other
 one is negative); otherwise returns `false`.
 """
-surfacecrossing(g_old::Taylor1{T}, g_now::Taylor1{T}, eventorder::Int) where {T <: Real} = g_old[eventorder]*g_now[eventorder] < zero(T)
-
-surfacecrossing(g_old::Taylor1{Taylor1{T}}, g_now::Taylor1{Taylor1{T}},
-        eventorder::Int) where {T <: Real} = g_old[eventorder][0] * g_now[eventorder][0] < zero(T)
-
-surfacecrossing(g_old::Taylor1{TaylorN{T}}, g_now::Taylor1{TaylorN{T}},
-        eventorder::Int) where {T <: Real} = g_old[eventorder][0][1] * g_now[eventorder][0][1] < zero(T)
+function surfacecrossing(g_old::Taylor1{T}, g_now::Taylor1{T},
+        eventorder::Int) where {T <: Number}
+    g_product = constant_term(g_old[eventorder])*constant_term(g_now[eventorder])
+    return g_product < zero(g_product)
+end
 
 """
     nrconvergencecriterion(g_val, nrabstol::T, nriter::Int, newtoniter::Int) where {T<:Real}
@@ -27,14 +25,8 @@ tolerance; and 2) the number of iterations `nriter` of the Newton-Raphson proces
 is less than the maximum allowed number of iterations, `newtoniter`; otherwise,
 returns `false`.
 """
-nrconvergencecriterion(g_val::T, nrabstol::T, nriter::Int,
-        newtoniter::Int) where {T<:Real} = abs(g_val) > nrabstol && nriter ≤ newtoniter
-
-nrconvergencecriterion(g_val::Taylor1{T}, nrabstol::T, nriter::Int,
-        newtoniter::Int) where {T<:Real} = abs(g_val[0]) > nrabstol && nriter ≤ newtoniter
-
-nrconvergencecriterion(g_val::TaylorN{T}, nrabstol::T, nriter::Int,
-        newtoniter::Int) where {T<:Real} = abs(g_val[0][1]) > nrabstol && nriter ≤ newtoniter
+nrconvergencecriterion(g_val::U, nrabstol::T, nriter::Int,
+        newtoniter::Int) where {U<:Number, T<:Real} = abs(constant_term(g_val)) > nrabstol && nriter ≤ newtoniter
 
 """
     findroot!(g, t, x, dx, g_val_old, g_val, eventorder, tvS, xvS, gvS,
@@ -127,17 +119,23 @@ For more details about conventions in `taylorinteg`, please see [`taylorinteg`](
 
 ```julia
     using TaylorIntegration
+
     function pendulum!(t, x, dx)
         dx[1] = x[2]
         dx[2] = -sin(x[1])
         nothing
     end
+
     g(t, x, dx) = x[2]
+
     x0 = [1.3, 0.0]
+
     # find the roots of `g` along the solution
     tv, xv, tvS, xvS, gvS = taylorinteg(pendulum!, g, x0, 0.0, 22.0, 28, 1.0E-20);
+
     # find the roots of the 2nd derivative of `g` along the solution
     tv, xv, tvS, xvS, gvS = taylorinteg(pendulum!, g, x0, 0.0, 22.0, 28, 1.0E-20; eventorder=2);
+```
 """
 function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
         order::Int, abstol::T; maxsteps::Int=500, eventorder::Int=0,
