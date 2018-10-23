@@ -113,6 +113,16 @@ The current keyword arguments are `maxsteps=500`, `eventorder=0`,
 `newtoniter=10`, and `nrabstol=eps(T)`, where `T` is the common type of `t0`,
 `tmax` and `abstol`.
 
+The current keyword argument are:
+- `maxsteps=500`: maximum number of integration steps.
+- `parse_eqs=true`: usie the specialized method of `jetcoeffs!` created
+    with [`@taylorize`](@ref).
+- `eventorder=0`: order of the derivative of `g` whose roots are computed.
+- `newtoniter=10`: maximum Newton-Raphson iterations per detected root.
+- `nrabstol=eps(T)`: allowed tolerance for the Newton-Raphson process; T is the common
+    type of `t0`, `tmax` and `abstol`.
+
+
 For more details about conventions in `taylorinteg`, please see [`taylorinteg`](@ref).
 
 **Examples**:

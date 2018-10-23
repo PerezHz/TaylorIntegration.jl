@@ -5,6 +5,8 @@ module TaylorIntegration
 using Reexport
 @reexport using TaylorSeries, DiffEqBase
 using LinearAlgebra
+using Markdown
+
 
 const warnkeywords =
     (:save_idxs, :d_discontinuities, :unstable_check, :save_everystep,

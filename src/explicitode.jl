@@ -1,12 +1,12 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
 # jetcoeffs!
-"""
+@doc doc"""
     jetcoeffs!(eqsdiff, t, x)
 
 Returns an updated `x` using the recursion relation of the
 derivatives obtained from the differential equations
-\$\\dot{x}=dx/dt=f(t,x)\$.
+``\dot{x}=dx/dt=f(t,x)``.
 
 `eqsdiff` is the function defining the RHS of the ODE,
 `x` contains the Taylor1 expansion of the dependent variable(s) and
@@ -39,12 +39,12 @@ function jetcoeffs!(eqsdiff, t::Taylor1{T},
     nothing
 end
 
-"""
+@doc doc"""
     jetcoeffs!(eqsdiff!, t, x, dx, xaux)
 
 Mutates `x` in-place using the recursion relation of the
 derivatives obtained from the differential equations
-\$\\dot{x}=dx/dt=f(t,x)\$.
+``\dot{x}=dx/dt=f(t,x)``.
 
 `eqsdiff!` is the function defining the RHS of the ODE,
 `x` contains the Taylor1 expansion of the dependent variables and
@@ -120,11 +120,11 @@ function stepsize(q::AbstractArray{Taylor1{U},1}, epsilon::T) where {T<:Real, U<
 end
 
 #taylorstep
-"""
-    taylorstep!(f, t, x, t0, t1, x0, order, abstol) -> δt, x0
+@doc doc"""
+    taylorstep!(f, t, x, t0, t1, x0, order, abstol, parse_eqs=true) -> δt, x0
 
-One-step Taylor integration for the ODE \$\\dot{x}=dx/dt=f(t, x)\$
-with initial conditions \$x(t_0)=x_0\$, computed from `t0` up to
+One-step Taylor integration for the ODE ``\dot{x}=dx/dt=f(t, x)``
+with initial conditions ``x(t_0)=x_0``, computed from `t0` up to
 `t1`. Returns the time-step of the actual integration carried out
 and the updated value of `x0`.
 
@@ -165,11 +165,11 @@ function taylorstep!(f, t::Taylor1{T}, x::Taylor1{U}, t0::T, t1::T, x0::U,
     return δt, x0
 end
 
-"""
+@doc doc"""
     taylorstep!(f!, t, x, dx, xaux, t0, t1, x0, order, abstol, parse_eqs=true) -> δt
 
-One-step Taylor integration for the ODE \$\\dot{x}=dx/dt=f(t, x)\$
-with initial conditions \$x(t_0)=x_0\$, computed from `t0` up to
+One-step Taylor integration for the ODE ``\dot{x}=dx/dt=f(t, x)``
+with initial conditions ``x(t_0)=x_0``, computed from `t0` up to
 `t1`, returning the time-step of the actual integration carried out
 and updating (in-place) `x0`.
 
@@ -212,30 +212,33 @@ function taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}}, dx::Vector{Taylor
 end
 
 # taylorinteg
-"""
-    taylorinteg(f, x0, t0, tmax, order, abstol; keyword... )
+@doc doc"""
+    taylorinteg(f, x0, t0, tmax, order, abstol; kwargs... )
 
 General-purpose Taylor integrator for the explicit ODE
-\$\\dot{x}=f(t,x)\$ with initial condition specified by `x0`
+``\dot{x}=f(t,x)``, with initial condition specified by `x0`
 at time `t0`. The initial condition `x0` may be of type `T<:Number`
-or a `Vector{T}`, with `T` including `TaylorN{T}`; the latter case
+or `Vector{T}`, with `T` including `TaylorN{T}`; the latter case
 is of interest for jet transport applications.
 
 It returns a vector with the values of time (independent variable),
-and a vector (of type `typeof(x0)`) with the computed values of
+and a vector with the computed values of
 the dependent variable(s). The integration stops when time
-is larger than `tmax` (in which case the last returned values are
-`t_max`, `x(t_max)`), or else when the number of saved steps is larger
+is larger than `tmax`, in which case the last returned
+value(s) correspond to that time, or when the number of saved steps is larger
 than `maxsteps`.
 
-The integration uses polynomial expansions on the independent variable
+The integration method uses polynomial expansions on the independent variable
 of order `order`; the parameter `abstol` serves to define the
 time step using the last two Taylor coefficients of the expansions.
 Make sure you use a *large enough* `order` to assure convergence.
 
-The current keyword argument is `maxsteps=500`.
+The current keyword argument are:
+- `maxsteps=500`: maximum number of integration steps.
+- `parse_eqs=true`: usie the specialized method of `jetcoeffs!` created
+    with [`@taylorize`](@ref).
 
-**Examples**:
+## Examples
 
 - One dependent variable: The function `f` defines the equation of motion.
 
@@ -372,26 +375,29 @@ function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T, order::Int, abstol::T;
 end
 
 # Integrate and return results evaluated at given time
-"""
+@doc doc"""
     taylorinteg(f, x0, t0, trange, order, abstol; keyword... )
 
 General-purpose Taylor integrator for the explicit ODE
-\$\\dot{x}=f(t,x)\$ with initial condition specified by `x0::{T<:Number}`
+``\dot{x}=f(t,x)`` with initial condition specified by `x0::{T<:Number}`
 or `x0::Vector{T}` at time `t0`.
 It returns a vector (of type `typeof(x0)`) with the computed values of
 the dependent variable(s), evaluated *only* at the times specified by
-the range `trange`. The integration stops at `tmax=trange[end]`
-(in which case the last returned values are `t_max`, `x(t_max)`), or
-else when the number of computed time steps is larger than `maxsteps`.
+the range `trange`. The integration stops at `tmax=trange[end]`,
+in which case the last returned values are `t_max`, `x(t_max)`, or
+when the number of computed time steps is larger than `maxsteps`.
 
-The integration uses polynomial expansions on the independent variable
+The integration method uses polynomial expansions on the independent variable
 of order `order`; the parameter `abstol` serves to define the
 time step using the last two Taylor coefficients of the expansions.
 Make sure you use a *large enough* `order` to assure convergence.
 
-The current keyword argument is `maxsteps=500`.
+The current keyword argument are:
+- `maxsteps=500`: maximum number of integration steps
+- `parse_eqs=true`: usie the specialized method of `jetcoeffs!` created
+    with [`@taylorize`](@ref).
 
-**Examples**:
+## Examples
 
 - One dependent variable: The function `f` defines the equation of motion.
 

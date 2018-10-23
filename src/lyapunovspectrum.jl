@@ -96,14 +96,14 @@ function modifiedGS!(A, Q, R, aⱼ, qᵢ, vⱼ)
     return nothing
 end
 
-"""
+@doc doc"""
     lyap_jetcoeffs!(t, x, dx, jac, varsaux)
 
 Similar to [`jetcoeffs!`](@ref) for the calculation of the Lyapunov spectrum.
 Updates *only* the elements of `x` which correspond to the solution of the 1st-order
-variational equations \$\\dot{\\xi}=J \\cdot \\xi\$, where \$J\$ is the Jacobian
+variational equations ``\dot{\xi}=J \cdot \xi``, where ``J`` is the Jacobian
 matrix, i.e., the linearization of the equations of motion. `jac` is the Taylor
-expansion of \$J\$ wrt the independent variable, around the current initial
+expansion of ``J`` wrt the independent variable, around the current initial
 condition. `varsaux` is an auxiliary array of type `Array{eltype(jac),3}` to
 avoid allocations. Calling this method assumes that `jac` has been computed
 previously using [`stabilitymatrix!`](@ref).
