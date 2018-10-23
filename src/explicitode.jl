@@ -136,19 +136,24 @@ the degree  used for the `Taylor1` polynomials during the integration
 and `abstol` is the absolute tolerance used to determine the time step
 of the integration. Note that `x0` is of type `Taylor1{T<:Number}` or
 `Taylor1{TaylorN{T}}`. If the time step is larger than `t1-t0`, that
-difference is used as the time step.
+difference is used as the time step. Finally, `parse_eqs` is a switch
+to force *not* using (`parse_eqs=false`) the specialized method of `jetcoeffs!`
+created with [`@taylorize`](@ref); the default is `true` (parse the equations).
 
 """
-function taylorstep!(f, t::Taylor1{T}, x::Taylor1{U},
-        t0::T, t1::T, x0::U, order::Int, abstol::T) where {T<:Real, U<:Number}
+function taylorstep!(f, t::Taylor1{T}, x::Taylor1{U}, t0::T, t1::T, x0::U,
+        order::Int, abstol::T, parse_eqs::Bool=true) where {T<:Real, U<:Number}
+
     @assert t1 > t0
 
     # Compute the Taylor coefficients
-    # if applicable( jetcoeffs!, t, x, Val(f) )
-    try
-        jetcoeffs!(t, x, Val(f))
-    # else
-    catch
+    if parse_eqs
+        try
+            jetcoeffs!(t, x, Val(f))
+        catch
+            jetcoeffs!(f, t, x)
+        end
+    else
         jetcoeffs!(f, t, x)
     end
 
@@ -161,7 +166,7 @@ function taylorstep!(f, t::Taylor1{T}, x::Taylor1{U},
 end
 
 """
-    taylorstep!(f!, t, x, dx, xaux, t0, t1, x0, order, abstol) -> δt
+    taylorstep!(f!, t, x, dx, xaux, t0, t1, x0, order, abstol, parse_eqs=true) -> δt
 
 One-step Taylor integration for the ODE \$\\dot{x}=dx/dt=f(t, x)\$
 with initial conditions \$x(t_0)=x_0\$, computed from `t0` up to
@@ -176,22 +181,25 @@ variables and is of type `Vector{Taylor1{T<:Number}}`, `order`
 is the degree used for the `Taylor1` polynomials during the integration
 and `abstol` is the absolute tolerance used to determine the time step
 of the integration.  `dx` and `xaux`, both of the same type as `x0`,
-are needed to avoid allocations.
-
+are needed to avoid allocations. Finally, `parse_eqs` is a switch
+to force *not* using (`parse_eqs=false`) the specialized method of `jetcoeffs!`
+created with [`@taylorize`](@ref); the default is `true` (parse the equations).
 
 """
-function taylorstep!(f!, t::Taylor1{T},
-        x::Vector{Taylor1{U}}, dx::Vector{Taylor1{U}},
+function taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}}, dx::Vector{Taylor1{U}},
         xaux::Vector{Taylor1{U}}, t0::T, t1::T, x0::Array{U,1},
-        order::Int, abstol::T) where {T<:Real, U<:Number}
+        order::Int, abstol::T, parse_eqs::Bool=true) where {T<:Real, U<:Number}
+
     @assert t1 > t0
 
     # Compute the Taylor coefficients
-    # if applicable( jetcoeffs!, t, x, dx, Val(f!) )
-    try
-        jetcoeffs!(t, x, dx, Val(f!))
-    # else
-    catch
+    if parse_eqs
+        try
+            jetcoeffs!(t, x, dx, Val(f!))
+        catch
+            jetcoeffs!(f!, t, x, dx, xaux)
+        end
+    else
         jetcoeffs!(f!, t, x, dx, xaux)
     end
 
@@ -256,28 +264,28 @@ The current keyword argument is `maxsteps=500`.
 Note that `f!` updates (mutates) the pre-allocated vector `dx`.
 
 """
-function taylorinteg(f, x0::S,
-        t0::T, tmax::U, order::Int, abstol::V; maxsteps::Int=500) where {S<:Number, T<:Real, U<:Real, V<:Real}
+function taylorinteg(f, x0::S, t0::T, tmax::U, order::Int, abstol::V;
+        maxsteps::Int=500, parse_eqs::Bool=true) where {S<:Number, T<:Real, U<:Real, V<:Real}
 
     #in order to handle mixed input types, we promote types before integrating:
     x0, t0, tmax, abstol, afloat = promote(x0, t0, tmax, abstol, one(Float64))
 
-    taylorinteg(f, x0, t0, tmax, order, abstol, maxsteps=maxsteps)
+    taylorinteg(f, x0, t0, tmax, order, abstol, maxsteps=maxsteps, parse_eqs=parse_eqs)
 end
 
-function taylorinteg(f, q0::Array{S,1}, t0::T, tmax::U, order::Int,
-        abstol::V; maxsteps::Int=500) where {S<:Number, T<:Real, U<:Real, V<:Real}
+function taylorinteg(f, q0::Array{S,1}, t0::T, tmax::U, order::Int, abstol::V;
+        maxsteps::Int=500, parse_eqs::Bool=true) where {S<:Number, T<:Real, U<:Real, V<:Real}
 
     #promote to common type before integrating:
     elq0, t0, tmax, abstol, afloat = promote(q0[1], t0, tmax, abstol, one(Float64))
     #convert the elements of q0 to the common, promoted type:
     q0_ = convert(Array{typeof(elq0)}, q0)
 
-    taylorinteg(f, q0_, t0, tmax, order, abstol, maxsteps=maxsteps)
+    taylorinteg(f, q0_, t0, tmax, order, abstol, maxsteps=maxsteps, parse_eqs=parse_eqs)
 end
 
 function taylorinteg(f, x0::U, t0::T, tmax::T, order::Int,
-        abstol::T; maxsteps::Int=500) where {T<:Real, U<:Number}
+        abstol::T; maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real, U<:Number}
 
     # Allocation
     tv = Array{T}(undef, maxsteps+1)
@@ -295,7 +303,7 @@ function taylorinteg(f, x0::U, t0::T, tmax::T, order::Int,
 
     # Integration
     while t0 < tmax
-        δt, x0 = taylorstep!(f, t, x, t0, tmax, x0, order, abstol)
+        δt, x0 = taylorstep!(f, t, x, t0, tmax, x0, order, abstol, parse_eqs)
         @inbounds x[0] = x0
         t0 += δt
         @inbounds t[0] = t0
@@ -314,8 +322,8 @@ function taylorinteg(f, x0::U, t0::T, tmax::T, order::Int,
     return view(tv,1:nsteps), view(xv,1:nsteps)
 end
 
-function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T, order::Int,
-        abstol::T; maxsteps::Int=500) where {T<:Real, U<:Number}
+function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T, order::Int, abstol::T;
+        maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real, U<:Number}
 
     # Allocation
     tv = Array{T}(undef, maxsteps+1)
@@ -342,7 +350,7 @@ function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T, order::Int,
     # Integration
     nsteps = 1
     while t0 < tmax
-        δt = taylorstep!(f!, t, x, dx, xaux, t0, tmax, x0, order, abstol)
+        δt = taylorstep!(f!, t, x, dx, xaux, t0, tmax, x0, order, abstol, parse_eqs)
         for i in eachindex(x0)
             @inbounds x[i][0] = x0[i]
             @inbounds dx[i] = Taylor1( zero(x0[i]), order )
@@ -432,7 +440,7 @@ Note that the initial conditions `q0TN` are of type `TaylorN{Float64}`.
 
 """
 function taylorinteg(f, x0::U, trange::Union{AbstractRange{T},Vector{T}},
-        order::Int, abstol::T; maxsteps::Int=500) where {T<:Real, U<:Number}
+        order::Int, abstol::T; maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real, U<:Number}
 
     # Allocation
     nn = length(trange)
@@ -453,7 +461,7 @@ function taylorinteg(f, x0::U, trange::Union{AbstractRange{T},Vector{T}},
         @inbounds t0, t1 = trange[iter], trange[iter+1]
         nsteps = 0
         while nsteps < maxsteps
-            δt, x0 = taylorstep!(f, t, x, t0, t1, x0, order, abstol)
+            δt, x0 = taylorstep!(f, t, x, t0, t1, x0, order, abstol, parse_eqs)
             @inbounds x[0] = x0
             t0 += δt
             @inbounds t[0] = t0
@@ -474,7 +482,7 @@ function taylorinteg(f, x0::U, trange::Union{AbstractRange{T},Vector{T}},
 end
 
 function taylorinteg(f!, q0::Array{U,1}, trange::Union{AbstractRange{T},Vector{T}},
-        order::Int, abstol::T; maxsteps::Int=500) where {T<:Real, U<:Number}
+        order::Int, abstol::T; maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real, U<:Number}
 
     # Allocation
     nn = length(trange)
@@ -509,7 +517,7 @@ function taylorinteg(f!, q0::Array{U,1}, trange::Union{AbstractRange{T},Vector{T
         t0, t1 = trange[iter], trange[iter+1]
         nsteps = 0
         while nsteps < maxsteps
-            δt = taylorstep!(f!, t, x, dx, xaux, t0, t1, x0, order, abstol)
+            δt = taylorstep!(f!, t, x, dx, xaux, t0, t1, x0, order, abstol, parse_eqs)
             for i in eachindex(x0)
                 @inbounds x[i][0] = x0[i]
                 @inbounds dx[i] = Taylor1( zero(x0[i]), order )
