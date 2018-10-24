@@ -8,9 +8,10 @@ CurrentModule = TaylorIntegration
 
 ## Exported functions
 
-```@autodocs
-Modules = [TaylorIntegration]
-Private = false
+```@docs
+taylorinteg
+lyap_taylorinteg
+@taylorize
 ```
 
 ## Internal

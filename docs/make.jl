@@ -21,6 +21,7 @@ makedocs(
             "root_finding.md",
             "common.md"
             ],
+        "Optimizing: `@taylorize`" => "taylorize.md",
         "API"  => "api.md",
         ]
 )
