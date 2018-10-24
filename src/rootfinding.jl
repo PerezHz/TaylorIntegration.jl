@@ -187,6 +187,13 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
     xvS = similar(xv)
     gvS = similar(tvS)
 
+    # Use specialized jetcoeffs! method?
+    try
+        jetcoeffs!(t, x, dx, Val(f!))
+    catch
+        parse_eqs = false
+    end
+
     # Integration
     nsteps = 1
     nevents = 1 #number of detected events

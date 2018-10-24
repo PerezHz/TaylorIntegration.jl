@@ -26,9 +26,10 @@ end)
 );
 
 # Constants for the initial declaration and initialization of arrays
-const _DECL_ARRAY = Expr(:block,
+const _DECL_ARRAY = sanitize( Expr(:block,
     :(__var1 = Array{Taylor1{S}}(undef, __var2)),
-    :(@__dot__  __var1 = Taylor1( zero(S), order )) )
+    :(__var1 .= Taylor1( zero(S), order ))
+    ) )
 
 
 """
@@ -346,7 +347,6 @@ function _newfnbody(fnbody, d_indx)
                     push!(newfnbody.args, ex)
                     continue
                 end
-                # @show(ex, nex)
                 push!(newfnbody.args, nex.args[2:end]...)
 
                 # Bookkeeping of indexed vars, to define assignements
@@ -363,15 +363,13 @@ function _newfnbody(fnbody, d_indx)
                         push!(v_newindx, vars_nex[1])
                 end
             else
-                @show(typeof(ex), ex.head)
-                throw(ArgumentError("$ex.head is not yet implemented"))
+                throw(ArgumentError("$(ex.head) is not yet implemented; $(typeof(ex))"))
             end
             #
         elseif isa(ex, LineNumberNode)
             continue
         else
-            @show(typeof(ex))
-            throw(ArgumentError("$ex is not an `Expr`"))
+            throw(ArgumentError("$ex is not an `Expr`; $(typeof(ex))"))
             #
         end
     end
@@ -455,8 +453,7 @@ function _parse_newfnbody!(ex::Expr, preex::Expr,
                 push!(indx_rm, i)
                 #
             else #needed?
-                @show(aa, typeof(aa_rhs[2]))
-                error("Different from `Expr`, `Symbol` or `Number`")
+                error("Either $aa or $typeof(aa_rhs[2]) are different from `Expr`, `Symbol` or `Number`")
                 #
             end
             #
@@ -703,8 +700,7 @@ function _defs_preamble!(preamble::Expr, fnargs,
                 #
             end
         else
-            @show(i, ex, typeof(ex))
-            throw(ArgumentError("$ex is not an `Expr`"))
+            throw(ArgumentError("$ex is not an `Expr`; $(typeof(ex))"))
             #
         end
 
@@ -758,18 +754,22 @@ end
 
 
 """
-`@taylorize ex`
+`@taylorize expr`
 
-Used only when `ex` is the definition of a function. It
-evaluates `ex` and also the parsed function corresponding
-to `ex` in terms of the mutating functions of TaylorSeries.
+This macro `eval`s the function given by `expr` and defines a new
+method of [`jetcoeffs!`](@ref) which is specialized on that
+function. Integrating via [`taylorinteg`](@ref) of 
+[`lyap_taylorinteg`](@ref) after using the macro yields better performance.
+
+See the [documentation](@ref taylorize) for more details and limitations.
+
+!!! warning
+    This macro is on an experimental stage; check the integration
+    results carefully.
 
 """
 macro taylorize( ex )
     nex = _make_parsed_jetcoeffs(ex)
-    # @show(ex)
-    # println()
-    # @show(nex)
     quote
         eval( $(esc(ex)) )  # evals to calling scope the passed function
         eval( $(esc(nex)) ) # New method of `jetcoeffs!`

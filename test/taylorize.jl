@@ -10,9 +10,8 @@ const _abstol = 1.0E-20
 const t0 = 0.0
 const tf = 1000.0
 
-
 # Scalar integration
-ll = length(methods(TaylorIntegration.jetcoeffs!))
+global ll = 2
 
 @testset "Scalar case: xdot(t,x) = b-x^2" begin
     b1 = 3.0
@@ -136,17 +135,18 @@ tf = 2π*100.0
 
         return nothing
     end
+
+    NN = 2
     @taylorize function kepler1_parsed2!(t, q, dq)
-        ll = 2
         r2 = zero(q[1])
-        for i = 1:ll
+        for i = 1:NN
             r2_aux = r2 + q[i]^2
             r2 = r2_aux
         end
         r_p3d2 = r2^(3/2)
-        for j = 1:ll
-            dq[j] = q[ll+j]
-            dq[ll+j] = mμ*q[j]/r_p3d2
+        for j = 1:NN
+            dq[j] = q[NN+j]
+            dq[NN+j] = mμ*q[j]/r_p3d2
         end
 
         nothing
@@ -163,10 +163,13 @@ tf = 2π*100.0
         maxsteps=500000)
     @time taylorinteg(kepler1!, q0, t0, tf, _order, _abstol,
         maxsteps=500000)
+
     tv6p, xv6p = taylorinteg(kepler1_parsed2!, q0, t0, tf, _order, _abstol,
         maxsteps=500000, parse_eqs=false)
     @time taylorinteg(kepler1_parsed2!, q0, t0, tf, _order, _abstol,
         maxsteps=500000, parse_eqs=false)
+    tv7p, xv7p = taylorinteg(kepler1_parsed2!, q0, t0, tf, _order, _abstol,
+        maxsteps=500000)
     @time taylorinteg(kepler1_parsed2!, q0, t0, tf, _order, _abstol,
         maxsteps=500000)
 
@@ -175,6 +178,8 @@ tf = 2π*100.0
     @test iszero( norm(xv5-xv5p, Inf) )
     @test iszero( norm(tv5-tv6p, Inf) )
     @test iszero( norm(xv5-xv6p, Inf) )
+    @test iszero( norm(tv7p-tv6p, Inf) )
+    @test iszero( norm(xv7p-xv6p, Inf) )
 end
 
 
@@ -191,18 +196,18 @@ end
 
         return nothing
     end
+    NN = 2
     @taylorize function kepler2_parsed2!(t, q, dq)
-        ll = 2
         r2 = zero(q[1])
-        for i = 1:ll
+        for i = 1:NN
             r2_aux = r2 + q[i]^2
             r2 = r2_aux
         end
-        # r = sqrt(r2)
-        r_p3d2 = (sqrt(r2))^3
-        for j = 1:ll
-            dq[j] = q[ll+j]
-            dq[ll+j] = mμ*q[j]/r_p3d2
+        r = sqrt(r2)
+        r_p3d2 = r^3
+        for j = 1:NN
+            dq[j] = q[NN+j]
+            dq[NN+j] = mμ*q[j]/r_p3d2
         end
 
         nothing
@@ -219,10 +224,13 @@ end
         maxsteps=500000)
     @time taylorinteg(kepler2!, q0, t0, tf, _order, _abstol,
         maxsteps=500000)
+
     tv6p, xv6p = taylorinteg(kepler2_parsed2!, q0, t0, tf, _order, _abstol,
         maxsteps=500000, parse_eqs=false)
     @time taylorinteg(kepler2_parsed2!, q0, t0, tf, _order, _abstol,
         maxsteps=500000, parse_eqs=false)
+    tv7p, xv7p = taylorinteg(kepler2_parsed2!, q0, t0, tf, _order, _abstol,
+        maxsteps=500000)
     @time taylorinteg(kepler2_parsed2!, q0, t0, tf, _order, _abstol,
         maxsteps=500000)
 
@@ -231,8 +239,71 @@ end
     @test iszero( norm(xv5-xv5p, Inf) )
     @test iszero( norm(tv5-tv6p, Inf) )
     @test iszero( norm(xv5-xv6p, Inf) )
-    @test iszero( norm(tv5p-tv6p, Inf) )
-    @test iszero( norm(xv5p-xv6p, Inf) )
+    @test iszero( norm(tv7p-tv6p, Inf) )
+    @test iszero( norm(xv7p-xv6p, Inf) )
+end
+
+
+tf = 40.0
+@testset "Lyapunov spectrum and `@taylorize`" begin
+    #Lorenz system parameters
+    σ = 16.0
+    β = 4.0
+    ρ = 45.92
+
+    #Lorenz system ODE:
+    @taylorize function lorenz!(t, x, dx)
+        dx[1] = σ*(x[2]-x[1])
+        dx[2] = x[1]*(ρ-x[3])-x[2]
+        dx[3] = x[1]*x[2]-β*x[3]
+        nothing
+    end
+    # @show(methods(TaylorIntegration.jetcoeffs!))
+
+    #Lorenz system Jacobian (in-place):
+    function lorenz_jac!(jac, t, x)
+        jac[1,1] = -σ+zero(x[1])
+        jac[2,1] = ρ-x[3]
+        jac[3,1] = x[2]
+        jac[1,2] = σ+zero(x[1])
+        jac[2,2] = -1.0+zero(x[1])
+        jac[3,2] = x[1]
+        jac[1,3] = zero(x[1])
+        jac[2,3] = -x[1]
+        jac[3,3] = -β+zero(x[1])
+        nothing
+    end
+
+    q0 = [19.0, 20.0, 50.0] #the initial condition
+    xi = set_variables("δ", order=1, numvars=length(q0))
+
+    tv1, lv1, xv1 = lyap_taylorinteg(lorenz!, q0, t0, tf, _order, _abstol,
+        maxsteps=2000, parse_eqs=false);
+    @time lyap_taylorinteg(lorenz!, q0, t0, tf, _order, _abstol,
+        maxsteps=2000, parse_eqs=false);
+
+    tv2, lv2, xv2 = lyap_taylorinteg(lorenz!, q0, t0, tf, _order, _abstol,
+        maxsteps=2000);
+    @time lyap_taylorinteg(lorenz!, q0, t0, tf, _order, _abstol,
+        maxsteps=2000);
+
+    @test tv1 == tv2
+    @test lv1 == lv2
+    @test xv1 == xv2
+
+    tv1, lv1, xv1 = lyap_taylorinteg(lorenz!, q0, t0, tf, _order, _abstol,
+        lorenz_jac!, maxsteps=2000, parse_eqs=false);
+    @time lyap_taylorinteg(lorenz!, q0, t0, tf, _order, _abstol,
+        lorenz_jac!, maxsteps=2000, parse_eqs=false);
+
+    tv2, lv2, xv2 = lyap_taylorinteg(lorenz!, q0, t0, tf, _order, _abstol,
+        lorenz_jac!, maxsteps=2000,  parse_eqs=true);
+    @time lyap_taylorinteg(lorenz!, q0, t0, tf, _order, _abstol,
+        lorenz_jac!, maxsteps=2000,  parse_eqs=true);
+
+    @test tv1 == tv2
+    @test lv1 == lv2
+    @test xv1 == xv2
 end
 
 
