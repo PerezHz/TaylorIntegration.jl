@@ -187,11 +187,14 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
     xvS = similar(xv)
     gvS = similar(tvS)
 
-    # Use specialized jetcoeffs! method?
-    try
-        jetcoeffs!(t, x, dx, Val(f!))
-    catch
-        parse_eqs = false
+    # Determine if specialized jetcoeffs! method exists
+    parse_eqs = parse_eqs && (length(methods(jetcoeffs!)) > 2)
+    if parse_eqs
+        try
+            jetcoeffs!(Val(f!), t, x, dx)
+        catch
+            parse_eqs = false
+        end
     end
 
     # Integration

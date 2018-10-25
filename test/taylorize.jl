@@ -244,7 +244,7 @@ end
 end
 
 
-tf = 40.0
+tf = 20.0
 @testset "Lyapunov spectrum and `@taylorize`" begin
     #Lorenz system parameters
     σ = 16.0

@@ -8,7 +8,7 @@ using Espresso: subs, simplify, ExGraph, ExH, to_expr, sanitize, genname,
 # Define some constants to create the new (parsed) functions
 # The (irrelevant) `nothing` below is there to have a :block Expr; deleted later
 const _HEAD_PARSEDFN_SCALAR = sanitize(:(
-function jetcoeffs!(__tT::Taylor1{T}, __x::Taylor1{S}, ::Val{__fn}) where
+function jetcoeffs!(::Val{__fn}, __tT::Taylor1{T}, __x::Taylor1{S}) where
         {T<:Real, S<:Number}
 
     order = __tT.order
@@ -17,8 +17,8 @@ end)
 );
 
 const _HEAD_PARSEDFN_VECTOR = sanitize(:(
-function jetcoeffs!(__tT::Taylor1{T}, __x::AbstractVector{Taylor1{S}},
-        __dx::AbstractVector{Taylor1{S}}, ::Val{__fn}) where {T<:Real, S<:Number}
+function jetcoeffs!( ::Val{__fn}, __tT::Taylor1{T}, __x::AbstractVector{Taylor1{S}},
+        __dx::AbstractVector{Taylor1{S}}) where {T<:Real, S<:Number}
 
     order = __tT.order
     nothing
@@ -758,7 +758,7 @@ end
 
 This macro `eval`s the function given by `expr` and defines a new
 method of [`jetcoeffs!`](@ref) which is specialized on that
-function. Integrating via [`taylorinteg`](@ref) of 
+function. Integrating via [`taylorinteg`](@ref) of
 [`lyap_taylorinteg`](@ref) after using the macro yields better performance.
 
 See the [documentation](@ref taylorize) for more details and limitations.

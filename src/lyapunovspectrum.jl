@@ -16,7 +16,7 @@ function stabilitymatrix!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
         δx::Vector{TaylorN{Taylor1{U}}}, dδx::Vector{TaylorN{Taylor1{U}}},
         jac::Matrix{Taylor1{U}}, _δv::Vector{TaylorN{Taylor1{U}}},
         jacobianfunc! =nothing) where {T<:Real, U<:Number}
-    # if jacobianfunc! == Nothing
+
     if isa(jacobianfunc!, Nothing)
         # Set δx equal to current value of xaux plus 1st-order variations
         for ind in eachindex(δx)
@@ -177,7 +177,7 @@ function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
     dof = length(δx)
 
     # Compute the Taylor coefficients associated to trajectory
-    __jetcoeffs!(f!, t, view(x, 1:dof), view(dx, 1:dof), view(xaux, 1:dof), Val(parse_eqs))
+    __jetcoeffs!(Val(parse_eqs), f!, t, view(x, 1:dof), view(dx, 1:dof), view(xaux, 1:dof))
 
     # Compute stability matrix
     stabilitymatrix!(f!, t, x, δx, dδx, jac, _δv, jacobianfunc!)
@@ -239,7 +239,6 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
     @inbounds t[0] = t0
 
     # If user does not provide Jacobian, check number of TaylorN variables and initialize _δv
-    # if jacobianfunc! == Nothing
     if isa(jacobianfunc!, Nothing)
         @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
         for ind in eachindex(q0)
@@ -261,11 +260,14 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
     qᵢ = similar(aⱼ)
     vⱼ = similar(aⱼ)
 
-    # Use specialized jetcoeffs! method?
-    try
-        jetcoeffs!(t, view(x, 1:dof), view(dx, 1:dof), Val(f!))
-    catch
-        parse_eqs = false
+    # Determine if specialized jetcoeffs! method exists
+    parse_eqs = parse_eqs && (length(methods(jetcoeffs!)) > 2)
+    if parse_eqs
+        try
+            jetcoeffs!(Val(f!), t, view(x, 1:dof), view(dx, 1:dof))
+        catch
+            parse_eqs = false
+        end
     end
 
     # Integration
@@ -331,7 +333,6 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, trange::Union{AbstractRange{T},Vec
     tspan = zero(T)
 
     # If user does not provide Jacobian, check number of TaylorN variables and initialize _δv
-    # if jacobianfunc! == Nothing
     if isa(jacobianfunc!, Nothing)
         @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
         for ind in eachindex(q0)
@@ -353,11 +354,14 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, trange::Union{AbstractRange{T},Vec
     qᵢ = similar(aⱼ)
     vⱼ = similar(aⱼ)
 
-    # Use specialized jetcoeffs! method?
-    try
-        jetcoeffs!(t, view(x, 1:dof), view(dx, 1:dof), Val(f!))
-    catch
-        parse_eqs = false
+    # Determine if specialized jetcoeffs! method exists
+    parse_eqs = parse_eqs && (length(methods(jetcoeffs!)) > 2)
+    if parse_eqs
+        try
+            jetcoeffs!(Val(f!), t, view(x, 1:dof), view(dx, 1:dof))
+        catch
+            parse_eqs = false
+        end
     end
 
     # Integration

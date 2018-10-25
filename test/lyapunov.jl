@@ -127,7 +127,7 @@ end
 
     #Test lyap_taylorinteg with autodiff-computed Jacobian, maxsteps=2000
     tv, xv, λv = lyap_taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol; maxsteps=2000)
-    @time tv, xv, λv = lyap_taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol; maxsteps=2000)
+    @time lyap_taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol; maxsteps=2000)
     @test xv[1,:] == q0
     @test tv[1] == t0
     @test size(xv) == size(λv)
@@ -144,7 +144,7 @@ end
 
     #Test lyap_taylorinteg with user-defined Jacobian, maxsteps=2000
     tv2, xv2, λv2 = lyap_taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol, lorenz_jac!; maxsteps=2000)
-    @time tv2, xv2, λv2 = lyap_taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol, lorenz_jac!; maxsteps=2000)
+    @time lyap_taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol, lorenz_jac!; maxsteps=2000)
     @test xv2[1,:] == q0
     @test tv2[1] == t0
     @test size(xv2) == size(λv2)
@@ -187,7 +187,7 @@ end
     @test prod(isnan.(xw[2:end,:]))
 
     xw, λw = lyap_taylorinteg(lorenz!, q0, t0:1.0:tmax, _order, _abstol; maxsteps=2000)
-    @time xw, λw = lyap_taylorinteg(lorenz!, q0, t0:1.0:tmax, _order, _abstol; maxsteps=2000)
+    @time lyap_taylorinteg(lorenz!, q0, t0:1.0:tmax, _order, _abstol; maxsteps=2000)
     @test xw[1,:] == q0
     @test size(xw) == size(λw)
     @test isapprox(sum(λw[1,:]), lorenztr) == false
@@ -197,12 +197,12 @@ end
     @test isapprox(λw[end,2], -0.00830, rtol=mytol, atol=mytol)
     @test isapprox(λw[end,3], -22.46336, rtol=mytol, atol=mytol)
     xw_, λw_ = lyap_taylorinteg(lorenz!, q0, t0:1.0:tmax, _order, _abstol, lorenz_jac!; maxsteps=2000)
-    @time xw_, λw_ = lyap_taylorinteg(lorenz!, q0, t0:1.0:tmax, _order, _abstol, lorenz_jac!; maxsteps=2000)
+    @time lyap_taylorinteg(lorenz!, q0, t0:1.0:tmax, _order, _abstol, lorenz_jac!; maxsteps=2000)
     @test xw == xw_
     @test λw == λw_
 
     xw2, λw2 = lyap_taylorinteg(lorenz!, q0, collect(t0:1.0:tmax), _order, _abstol; maxsteps=2000)
-    @time xw2, λw2 = lyap_taylorinteg(lorenz!, q0, collect(t0:1.0:tmax), _order, _abstol; maxsteps=2000)
+    @time lyap_taylorinteg(lorenz!, q0, collect(t0:1.0:tmax), _order, _abstol; maxsteps=2000)
     @test xw2 == xw
     @test λw2 == λw
     @test xw2[1,:] == q0
@@ -214,7 +214,7 @@ end
     @test isapprox(λw2[end,2], -0.00830, rtol=mytol, atol=mytol)
     @test isapprox(λw2[end,3], -22.46336, rtol=mytol, atol=mytol)
     xw2_, λw2_ = lyap_taylorinteg(lorenz!, q0, collect(t0:1.0:tmax), _order, _abstol, lorenz_jac!; maxsteps=2000)
-    @time xw2_, λw2_ = lyap_taylorinteg(lorenz!, q0, collect(t0:1.0:tmax), _order, _abstol, lorenz_jac!; maxsteps=2000)
+    @time lyap_taylorinteg(lorenz!, q0, collect(t0:1.0:tmax), _order, _abstol, lorenz_jac!; maxsteps=2000)
     @test xw2 == xw2_
     @test λw2 == λw2_
 
