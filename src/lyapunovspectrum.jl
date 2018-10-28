@@ -18,7 +18,7 @@ function stabilitymatrix!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
         jacobianfunc! =nothing) where {T<:Real, U<:Number}
 
     if isa(jacobianfunc!, Nothing)
-        # Set δx equal to current value of xaux plus 1st-order variations
+        # Set δx equal to current value of x plus 1st-order variations
         for ind in eachindex(δx)
             @inbounds δx[ind] = x[ind] + _δv[ind]
         end
