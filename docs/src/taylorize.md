@@ -35,7 +35,7 @@ initially is 2.
 ```@example taylorize
 length(methods(TaylorIntegration.jetcoeffs!)) == 2 # initial value
 ```
-This number is maybe increased (new methods are added) when the macro,
+This number is increased (new methods are added) when the macro,
 or some of the internal functions around it, are used without an error.
 
 The macro [`@taylorize`](@ref) is intended to be used in front of the function
@@ -52,8 +52,10 @@ To see this, we use the macro on the function `pendulum!` as we wrote it above.
     dx[2] = -sin(x[1])
 end
 
-methods(TaylorIntegration.jetcoeffs!)
+methods(pendulum!)
+```
 
+```@example taylorize
 methods(TaylorIntegration.jetcoeffs!)
 ```
 
@@ -85,14 +87,14 @@ t1 == t2 && x1 == x2
 ```
 
 The speed-up obtained comes from the design of the new (specialized) method of
-`TaylorIntegration.jetcoeffs!`: it avoids some repeated allocations incurred
+`TaylorIntegration.jetcoeffs!`: it avoids some repeated computations incurred
 by the direct implementation. This is achieved by knowing the specific AST of
 the function that is integrated, which is walked through and *translated* into
 the actual implementation, using directly the low-level functions defined in
 `TaylorSeries.jl`.
 For this, we use [Espresso.jl](https://github.com/dfdx/Espresso.jl).
 
-For the function `pendulum!`, the new method is somewhat similar to:
+For the function `pendulum!`, the new method is similar to:
 ```@example taylorize
 ex = :(function pendulum!(t, x, dx)
     dx[1] = x[2]
@@ -119,6 +121,6 @@ e1/e3
 
 The macro parsing is somewhat complicated, and consequently, limited.
 Broadcasting does not work, and its use is not compatible when used from
-`DifferentialEquations.jl`. If the function is not recognized by [`TaylorSeries.jl`](https://github.com/JuliaDiff/TaylorSeries.jl),
-it is simply copied. The heuristics about vectors may not work for specific
+`DifferentialEquations.jl`. Function calls which are not recognized by [`TaylorSeries.jl`](https://github.com/JuliaDiff/TaylorSeries.jl),
+are simply copied. The heuristics about vectors may not work for specific
 cases. Please report any problems.
