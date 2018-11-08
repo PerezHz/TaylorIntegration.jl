@@ -67,7 +67,7 @@ poincare_anim1 = @animate for i=1:21
     ylabel!(&quot;py&quot;)
     title!(&quot;Hénon-Heiles Poincaré map (21 iterates)&quot;)
 end
-gif(poincare_anim1, &quot;henonheilespoincaremap5.gif&quot;, fps = 2)
+gif(poincare_anim1, &quot;../build/henonheilespoincaremap5.gif&quot;, fps = 2)
 nothing # hide</code></pre><p><img src="henonheilespoincaremap5.gif" alt="Poincaré map for the Hénon Heiles system"/></p><h2><a class="nav-anchor" id="jettransport2-1" href="#jettransport2-1">Jet transport</a></h2><p>Now, we illustrate the use of jet transport techniques in the same example, that is, we propagate a neighborhood around <code>x0</code>, which will be plotted in the Poincaré map. We first define the vector of small increments of the phase space variables, <code>xTN</code>; we fix the maximum order of the polynomial expansion in these variables to be <code>4</code>. Then, <code>x0TN</code> is the neighborhood in the 4-dimensional phase space around <span>$x0$</span>.</p><div><pre><code class="language-julia">xTN = set_variables(&quot;δx δy δpx δpy&quot;, numvars=length(x0), order=4)
 x0TN = x0 .+ xTN</code></pre></div><p>As it was shown above, <span>$x0$</span> belongs to the energy surface <span>$H(x0) = E_0 = 0.1025$</span>; yet, as it was defined above, the set of phase space points denoted by <code>x0TN</code> includes points that belong to other energy surfaces. This can be noticed by computing <code>H(x0TN)</code></p><div><pre><code class="language-julia">H(x0TN)</code></pre><pre><code class="language-none"> 0.1025 + 0.2478237775 δy + 0.24817464176177093 δpx + 0.9533499999999999 δx² + 0.046650000000000025 δy² + 0.5 δpx² + 0.5 δpy² + 1.0 δx² δy - 0.3333333333333333 δy³ + 𝒪(‖x‖⁵)</code></pre></div><p>Clearly, the expression above may contain points whose energy is different from <code>E0</code>. As it was done above, we shall fix the <code>px</code> component of <code>x0TN</code> so <em>all</em> points of the neighborhood are in the same energy surface.</p><div><pre><code class="language-julia">px!(x0TN, E0) # Impose that all variations are on the proper energy shell!
 H(x0TN)</code></pre><pre><code class="language-none"> 0.1025 + 2.7755575615628914e-17 δy + 5.551115123125783e-17 δy² - 4.440892098500626e-16 δx² δy - 5.551115123125783e-17 δy³ - 1.7763568394002505e-15 δx² δy² + 8.881784197001252e-16 δx² δpy² + 4.440892098500626e-16 δy⁴ + 8.881784197001252e-16 δy² δpy² + 4.440892098500626e-16 δpy⁴ + 𝒪(‖x‖⁵)</code></pre></div><p>We notice that the coefficients of all monomials whose order is not zero are very small, and the constant_term is <code>E0</code>.</p><p>In order to properly handle this case, we need to extend the definition of <code>g</code> to be useful for <code>Taylor1{TaylorN{T}}</code> vectors.</p><div><pre><code class="language-julia">#specialized method of g for Taylor1{TaylorN{T}}&#39;s
@@ -118,5 +118,14 @@ poincare_anim2 = @animate for i=1:21
     ylabel!(&quot;py&quot;)
     title!(&quot;Poincaré map: 4th-order jet transport vs Monte Carlo&quot;)
 end
-gif(poincare_anim2, &quot;poincareanim2.gif&quot;, fps = 2)
-nothing # hide</code></pre><p><img src="poincareanim2.gif" alt="Poincaré map: Jet transport vs Monte Carlos"/></p><footer><hr/><a class="previous" href="pendulum.html"><span class="direction">Previous</span><span class="title">Jet transport: the simple pendulum</span></a><a class="next" href="common.html"><span class="direction">Next</span><span class="title">Interoperability with <code>DifferentialEquations.jl</code></span></a></footer></article></body></html>
+gif(poincare_anim2, &quot;../build/poincareanim2.gif&quot;, fps = 2)
+nothing # hide</code></pre><p><img src="poincareanim2.gif" alt="Poincaré map: Jet transport vs Monte Carlos"/></p><p>The next animation is the same as before, adapting the scale.</p><pre><code class="language-">poincare_anim3 = @animate for i=1:21
+    scatter(map(x-&gt;x[i,2], xvSv), map(x-&gt;x[i,4], xvSv), marker=(:circle, stroke(0)),
+        markersize=0.01, label=&quot;Monte Carlo&quot;)
+    plot!(yS[i,:], pS[i,:], width=0.1, label=&quot;Jet transport&quot;)
+    xlabel!(&quot;y&quot;)
+    ylabel!(&quot;py&quot;)
+    title!(&quot;Poincaré map: 4th-order jet transport vs Monte Carlo&quot;)
+end
+gif(poincare_anim3, &quot;../build/poincareanim3.gif&quot;, fps = 2)
+nothing # hide</code></pre><p><img src="poincareanim3.gif" alt="Poincaré map: Jet transport vs Monte Carlos"/></p><footer><hr/><a class="previous" href="pendulum.html"><span class="direction">Previous</span><span class="title">Jet transport: the simple pendulum</span></a><a class="next" href="common.html"><span class="direction">Next</span><span class="title">Interoperability with <code>DifferentialEquations.jl</code></span></a></footer></article></body></html>
