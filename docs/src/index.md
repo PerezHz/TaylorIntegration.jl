@@ -30,8 +30,7 @@ If you would like to help supporting it, please star the repository as
 such metrics may help us secure funding. If you use this software, we
 would be grateful if you could cite our work as follows:
 
-J.A. P\'erez-Hern\'andez, L. Benet, `TaylorIntegration.jl`: Taylor Integration
-in Julia, https://github.com/PerezHz/TaylorIntegration.jl
+J.A. Pérez-Hernández, L. Benet, TaylorIntegration.jl: Taylor Integration in Julia, https://github.com/PerezHz/TaylorIntegration.jl
 
 
 ### Acknowledgments

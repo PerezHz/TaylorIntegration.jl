@@ -138,10 +138,10 @@ poincare_anim1 = @animate for i=1:21
     ylabel!("py")
     title!("Hénon-Heiles Poincaré map (21 iterates)")
 end
-gif(poincare_anim1, "../build/henonheilespoincaremap5.gif", fps = 2)
+gif(poincare_anim1, "poincareanim1.gif", fps = 2);
 nothing # hide
 ```
-![Poincaré map for the Hénon Heiles system](henonheilespoincaremap5.gif)
+![Poincaré map for the Hénon Heiles system](assets/figures/poincareanim1.gif)
 
 
 ## [Jet transport](@id jettransport2)
@@ -238,10 +238,10 @@ poincare_anim2 = @animate for i=1:21
     ylabel!("py")
     title!("Poincaré map: 4th-order jet transport vs Monte Carlo")
 end
-gif(poincare_anim2, "../build/poincareanim2.gif", fps = 2)
+gif(poincare_anim2, "poincareanim2.gif", fps = 2);
 nothing # hide
 ```
-![Poincaré map: Jet transport vs Monte Carlos](poincareanim2.gif)
+![Poincaré map: Jet transport vs Monte Carlo](./assets/figures/poincareanim2.gif)
 
 The next animation is the same as before, adapting the scale.
 ```@example poincare
@@ -253,7 +253,7 @@ poincare_anim3 = @animate for i=1:21
     ylabel!("py")
     title!("Poincaré map: 4th-order jet transport vs Monte Carlo")
 end
-gif(poincare_anim3, "../build/poincareanim3.gif", fps = 2)
+gif(poincare_anim3, "poincareanim3.gif", fps = 2);
 nothing # hide
 ```
-![Poincaré map: Jet transport vs Monte Carlos](poincareanim3.gif)
+![Poincaré map: Jet transport vs Monte Carlo](assets/figures/poincareanim3.gif)
