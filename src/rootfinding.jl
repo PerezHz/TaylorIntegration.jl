@@ -226,3 +226,96 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
 
     return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:), view(tvS,1:nevents-1), view(transpose(view(xvS,:,1:nevents-1)),1:nevents-1,:), view(gvS,1:nevents-1)
 end
+
+function taylorinteg(f!, g, q0::Array{U,1}, trange::Union{AbstractRange{T},Vector{T}},
+        order::Int, abstol::T; maxsteps::Int=500, parse_eqs::Bool=true,
+        eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
+
+    # Allocation
+    nn = length(trange)
+    dof = length(q0)
+    x0 = similar(q0, eltype(q0), dof)
+    fill!(x0, T(NaN))
+    xv = Array{eltype(q0)}(undef, dof, nn)
+    for ind in 1:nn
+        @inbounds xv[:,ind] .= x0
+    end
+
+    # Initialize the vector of Taylor1 expansions
+    t = Taylor1( T, order )
+    x = Array{Taylor1{U}}(undef, dof)
+    dx = Array{Taylor1{U}}(undef, dof)
+    xaux = Array{Taylor1{U}}(undef, dof)
+    for i in eachindex(q0)
+        @inbounds x[i] = Taylor1( q0[i], order )
+        @inbounds dx[i] = Taylor1( zero(q0[i]), order )
+    end
+
+    # Initial conditions
+    @inbounds t[0] = trange[1]
+    x0 = deepcopy(q0)
+    x .= Taylor1.(q0, order)
+    @inbounds xv[:,1] .= q0
+
+    #Some auxiliary arrays for root-finding/event detection/Poincaré surface of section evaluation
+    g_val = zero(g(t,x,x))
+    g_val_old = zero(g_val)
+    slope = zero(U)
+    dt_li = zero(U)
+    dt_nr = zero(U)
+    δt = zero(U)
+    δt_old = zero(U)
+
+    x_dx = vcat(x, dx)
+    g_dg = vcat(g_val, g_val_old)
+    x_dx_val = Array{U}(undef, length(x_dx) )
+    g_dg_val = vcat(evaluate(g_val), evaluate(g_val_old))
+
+    tvS = Array{U}(undef, maxsteps+1)
+    xvS = similar(xv)
+    gvS = similar(tvS)
+
+    # Determine if specialized jetcoeffs! method exists
+    parse_eqs = parse_eqs && (length(methods(jetcoeffs!)) > 2)
+    if parse_eqs
+        try
+            jetcoeffs!(Val(f!), t, x, dx)
+        catch
+            parse_eqs = false
+        end
+    end
+
+    # Integration
+    iter = 1
+    nevents = 1 #number of detected events
+    while iter < nn
+        t0, t1 = trange[iter], trange[iter+1]
+        nsteps = 0
+        while nsteps < maxsteps
+            δt_old = δt
+            δt = taylorstep!(f!, t, x, dx, xaux, t0, t1, x0, order, abstol, parse_eqs)
+            g_val = g(t, x, dx)
+            nevents = findroot!(g, t, x, dx, g_val_old, g_val, eventorder,
+                tvS, xvS, gvS, t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val,
+                nrabstol, newtoniter, nevents)
+            g_val_old = deepcopy(g_val)
+            for i in eachindex(x0)
+                @inbounds x[i][0] = x0[i]
+                @inbounds dx[i] = Taylor1( zero(x0[i]), order )
+            end
+            t0 += δt
+            t0 ≥ t1 && break
+            nsteps += 1
+        end
+        if nsteps ≥ maxsteps && t0 != t1
+            @info("""
+            Maximum number of integration steps reached; exiting.
+            """)
+            break
+        end
+        iter += 1
+        @inbounds xv[:,iter] .= x0
+    end
+
+    return transpose(xv), view(tvS,1:nevents-1), view(transpose(view(xvS,:,1:nevents-1)),1:nevents-1,:), view(gvS,1:nevents-1)
+end
