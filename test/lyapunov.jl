@@ -93,7 +93,7 @@ end
     q0TN = [ q0[1]+xi[1], q0[2]+xi[2], q0[3]+xi[3] ]
     dq0TN = similar(q0TN)
     lorenz!(t0, q0TN, dq0TN)
-    jac_autodiff = jacobian(dq0TN) # Jacobian, computed via automatic differentiation
+    jac_autodiff = TaylorSeries.jacobian(dq0TN) # Jacobian, computed via automatic differentiation
     lorenztr = tr(jac_autodiff) #trace of Lorenz system Jacobian matrix
 
     @test lorenztr == -(1+σ+β)
@@ -170,7 +170,7 @@ end
     q0TN = q0+xi
     dq0TN = similar(q0TN)
     lorenz!(t0, q0TN, dq0TN)
-    lorenztr = tr(jacobian(dq0TN)) #trace of Lorenz system Jacobian matrix
+    lorenztr = tr(TaylorSeries.jacobian(dq0TN)) #trace of Lorenz system Jacobian matrix
     @test lorenztr == -(1+σ+β)
 
     xw, λw = lyap_taylorinteg(lorenz!, q0, t0:1.0:tmax, _order, _abstol; maxsteps=2)

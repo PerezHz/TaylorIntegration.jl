@@ -24,7 +24,7 @@ function stabilitymatrix!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
         end
         # Equations of motion
         eqsdiff!(t, δx, dδx)
-        jacobian!(jac, dδx)
+        TaylorSeries.jacobian!(jac, dδx)
     else
         jacobianfunc!(jac, t, x)
     end

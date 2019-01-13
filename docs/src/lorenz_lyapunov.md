@@ -67,7 +67,7 @@ xi = set_variables("δ", order=1, numvars=length(x0))
 x0TN = x0 .+ xi
 dx0TN = similar(x0TN)
 lorenz!(t0, x0TN, dx0TN)
-jjac = jacobian(dx0TN)
+jjac = TaylorSeries.jacobian(dx0TN)
 lorenztr = tr(jjac) #trace of Lorenz system Jacobian matrix
 nothing # hide
 ```
@@ -100,7 +100,7 @@ of the jacobian using automatic differentiation techniques. Below we use
 the initial conditions `x0`, but it is easy to generalize this.
 ```@example lorenz
 lorenz_jac!(jjac, t0, x0)  # update the matrix `jjac` using Jacobian provided by the user
-jacobian(dx0TN) == jjac    # `dx0TN` is obtained via automatic differentiation
+TaylorSeries.jacobian(dx0TN) == jjac    # `dx0TN` is obtained via automatic differentiation
 ```
 
 Now, we are ready to perform the integration using `lyap_taylorinteg` function,
