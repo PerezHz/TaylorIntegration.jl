@@ -362,6 +362,9 @@ function _newfnbody(fnbody, d_indx)
                     (isindx_lhs || vars_nex[1] != ex_lhs) &&
                         push!(v_newindx, vars_nex[1])
                 end
+            elseif ex.head == :local
+                push!(newfnbody.args, ex)
+                #
             else
                 throw(ArgumentError("$(ex.head) is not yet implemented; $(typeof(ex))"))
             end
@@ -456,6 +459,10 @@ function _parse_newfnbody!(ex::Expr, preex::Expr,
                 error("Either $aa or $typeof(aa_rhs[2]) are different from `Expr`, `Symbol` or `Number`")
                 #
             end
+            #
+        elseif aa.head == :local
+            push!(preex.args, aa)
+            push!(indx_rm, i)   # delete associated expr in body function
             #
         else
 
