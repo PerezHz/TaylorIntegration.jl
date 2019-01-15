@@ -140,6 +140,39 @@ end
 end
 
 
+@testset "Time-dependent integration (with and without `local` vars)" begin
+    @taylorize function integ_cos1(t, x)
+        y = cos(t)
+        return y
+    end
+    @taylorize function integ_cos2(t, x)
+        local y = cos(t)
+        yy = y
+        return yy
+    end
+
+    @test (@isdefined integ_cos1)
+    @test (@isdefined integ_cos2)
+
+    tv11, xv11 = taylorinteg(integ_cos1, 0.0, 0.0, pi, _order, _abstol, parse_eqs=false)
+    @time taylorinteg(integ_cos1, 0.0, 0.0, pi, _order, _abstol, parse_eqs=false)
+    tv12, xv12 = taylorinteg(integ_cos1, 0.0, 0.0, pi, _order, _abstol)
+    @time taylorinteg(integ_cos1, 0.0, 0.0, pi, _order, _abstol)
+    @test length(tv11) == length(tv12)
+    @test iszero( norm(tv11-tv12, Inf) )
+    @test iszero( norm(xv11-xv12, Inf) )
+
+    tv21, xv21 = taylorinteg(integ_cos2, 0.0, 0.0, pi, _order, _abstol, parse_eqs=false)
+    @time taylorinteg(integ_cos2, 0.0, 0.0, pi, _order, _abstol, parse_eqs=false)
+    tv22, xv22 = taylorinteg(integ_cos2, 0.0, 0.0, pi, _order, _abstol)
+    @time taylorinteg(integ_cos2, 0.0, 0.0, pi, _order, _abstol)
+    @test length(tv21) == length(tv22)
+    @test iszero( norm(tv21-tv22, Inf) )
+    @test iszero( norm(xv21-xv22, Inf) )
+
+    @test iszero( norm(xv12-xv22, Inf) )
+end
+
 # Multiple (3) pendula
 @testset "Multiple pendula" begin
     NN = 3
