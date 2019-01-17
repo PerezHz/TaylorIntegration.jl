@@ -1,14 +1,16 @@
 # [Optimizing: `@taylorize`](@id taylorize)
 
-Here, we describe the specific use of the macro [`@taylorize`](@ref), which
+Here, we describe the use of the macro [`@taylorize`](@ref), which
 parses the functions containing the ODEs to be integrated, allowing to speed up
 [`taylorinteg`](@ref) and [`lyap_taylorinteg`](@ref).
 
 !!! warning
-    The macro [`@taylorize`](@ref) is still in an experimental phase;
+    [`@taylorize`](@ref) is still in an experimental phase;
     be cautious of the resulting integration, which has to be tested
     carefully.
 
+
+## An example
 
 In order to explain what the macro does, we shall use as example the
 [mathematical pendulum](@ref pendulum). First, we carry out the integration
@@ -35,15 +37,14 @@ initially is 2.
 ```@example taylorize
 length(methods(TaylorIntegration.jetcoeffs!)) == 2 # initial value
 ```
-This number is increased (new methods are added) when the macro,
-or some of the internal functions around it, are used without an error.
+`@taylorize` will increase this number, that is, new methods will be created.
 
 The macro [`@taylorize`](@ref) is intended to be used in front of the function
 that implements the equations of motion. The macro does the following: it
 first parses the actual function as it is, so the integration can be computed
-using `taylorinteg`, as above. It then creates a new method of
-[`TaylorIntegration.jetcoeffs!`](@ref), which is specialized
-(through `Val`) on the specific function parsed.
+using `taylorinteg`, as above (or with the keyword argument `parse_eqs=false`).
+It then creates a new method of [`TaylorIntegration.jetcoeffs!`](@ref), which
+is specialized method (through `Val`) on the specific function parsed.
 
 To see this, we use the macro on the function `pendulum!` as we wrote it above.
 ```@example taylorize
@@ -68,7 +69,7 @@ is selected internally by default when calling [`taylorinteg`](@ref) or
 illustrated above, the keyword argument `parse_eqs` has to be set to `false`.
 
 Now we carry out the integration using the specialized method; note that we
-use the same instruction used before.
+use the same instruction as before.
 
 ```@example taylorize
 t2, x2 = taylorinteg(pendulum!, q0, t0, tf, 28, 1e-20, maxsteps=1500); # warm-up run
@@ -92,21 +93,22 @@ by the direct implementation. This is achieved by knowing the specific AST of
 the function that is integrated, which is walked through and *translated* into
 the actual implementation, using directly the low-level functions defined in
 `TaylorSeries.jl`.
-For this, we use [Espresso.jl](https://github.com/dfdx/Espresso.jl).
+For this, we rely on [Espresso.jl](https://github.com/dfdx/Espresso.jl) and
+some metaprogramming.
 
-For the function `pendulum!`, the new method is similar to:
+For the function `pendulum!`, the new method can be obtained as:
 ```@example taylorize
 ex = :(function pendulum!(t, x, dx)
     dx[1] = x[2]
     dx[2] = -sin(x[1])
 end)
 
-TaylorIntegration._make_parsed_jetcoeffs(ex)
+new_ex = TaylorIntegration._make_parsed_jetcoeffs(ex)
 ```
-More complicated functions become difficult to read. From here, one can
-further optimize this method manually.
+The complexity of the functions increases the difficult to read them. Note that
+one can further optimize `new_ex` manually.
 
-Finally, in order to allow to opt-out from using the specialized method
+As stated above, in order to allow to opt-out from using the specialized method
 created by [`@taylorize`](@ref), [`taylorinteg`](@ref) and
 [`lyap_taylorinteg`](@ref) recognize the keyword argument `parse_eqs`;
 setting it to `false` imposes using the standard method.
@@ -119,8 +121,21 @@ e3 = @elapsed taylorinteg(pendulum!, q0, t0, tf, 28, 1e-20, maxsteps=1500, parse
 e1/e3
 ```
 
-The macro parsing is somewhat complicated, and consequently, limited.
-Broadcasting does not work, and its use is not compatible when used from
-`DifferentialEquations.jl`. Function calls which are not recognized by [`TaylorSeries.jl`](https://github.com/JuliaDiff/TaylorSeries.jl),
-are simply copied. The heuristics about vectors may not work for specific
-cases. Please report any problems.
+## Limitations
+
+The macro parsing is somewhat complicated and somewhat limited. It does allow
+to use array declarations through `Array`, but other ways (such as `similar`)
+are not yet implemented; avoid using `_T` and `_S` as type variables
+in the array definitions, since these names are used to define the
+parameterized types of the function as well as proper initialization of
+some temporary arrays. Broadcasting is not compatible with `@taylorize`,
+and it can't be exploited from `DifferentialEquations.jl` interface. `if-else` blocks
+are recognized, but short-circuit conditional operators (`&&` and `||`)
+are not. Function calls which are not recognized by
+[`TaylorSeries.jl`](https://github.com/JuliaDiff/TaylorSeries.jl),
+are simply copied. The heuristics for vectors may not work for all
+cases.
+
+We recommend to have a look on `test/taylorize.jl`, which implements different
+cases, including uses of `local` for internal parameters. Please report any
+problems you may encounter.
