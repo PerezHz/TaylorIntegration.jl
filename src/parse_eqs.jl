@@ -8,8 +8,8 @@ using Espresso: subs, simplify, ExGraph, ExH, to_expr, sanitize, genname,
 # Define some constants to create the new (parsed) functions
 # The (irrelevant) `nothing` below is there to have a :block Expr; deleted later
 const _HEAD_PARSEDFN_SCALAR = sanitize(:(
-function jetcoeffs!(::Val{__fn}, __tT::Taylor1{T}, __x::Taylor1{S}) where
-        {T<:Real, S<:Number}
+function jetcoeffs!(::Val{__fn}, __tT::Taylor1{_T}, __x::Taylor1{_S}) where
+        {_T<:Real, _S<:Number}
 
     order = __tT.order
     nothing
@@ -17,8 +17,8 @@ end)
 );
 
 const _HEAD_PARSEDFN_VECTOR = sanitize(:(
-function jetcoeffs!( ::Val{__fn}, __tT::Taylor1{T}, __x::AbstractVector{Taylor1{S}},
-        __dx::AbstractVector{Taylor1{S}}) where {T<:Real, S<:Number}
+function jetcoeffs!( ::Val{__fn}, __tT::Taylor1{_T}, __x::AbstractVector{Taylor1{_S}},
+        __dx::AbstractVector{Taylor1{_S}}) where {_T<:Real, _S<:Number}
 
     order = __tT.order
     nothing
@@ -27,8 +27,8 @@ end)
 
 # Constants for the initial declaration and initialization of arrays
 const _DECL_ARRAY = sanitize( Expr(:block,
-    :(__var1 = Array{Taylor1{S}}(undef, __var2)),
-    :(__var1 .= Taylor1( zero(S), order ))
+    :(__var1 = Array{Taylor1{_S}}(undef, __var2)),
+    :(__var1 .= Taylor1( zero(_S), order ))
     ) )
 
 
