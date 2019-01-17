@@ -293,7 +293,7 @@ function taylorinteg(f!, g, q0::Array{U,1}, trange::Union{AbstractRange{T},Vecto
         nsteps = 0
         while nsteps < maxsteps
             δt_old = δt
-            δt = taylorstep!(f!, t, x, dx, xaux, t0, t1, x0, order, abstol, parse_eqs)
+            δt = taylorstep!(f!, t, x, dx, xaux, t0, t1, x0, order, abstol)
             g_val = g(t, x, dx)
             nevents = findroot!(g, t, x, dx, g_val_old, g_val, eventorder,
                 tvS, xvS, gvS, t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val,

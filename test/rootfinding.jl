@@ -115,4 +115,17 @@ g(t, x, dx) = x[2]
     @test norm( map(z->z.coeffs, gvS1) ) < 1E-12
     @test norm(evaluate.(tvS1)-[T/2,T,3T/2,2T,5T/2],Inf) < 1E-13
     @test norm(evaluate.(xvS1)-xvS, Inf) < 1E-14
+
+    #tests with time ranges/vectors
+
+    #testing 0-th order root-finding
+    tv = [t0, T/2, T, 3T/2, 2T, 5T/2, 3T]
+    xv, tvS, xvS, gvS = taylorinteg(pendulum!, g, x0, tv, _order, _abstol, maxsteps=1000)
+    @test xv[1,:] == x0
+    @test size(tvS) == (5,)
+    @test size(tvS) == size(tv[2:end-1])
+    @test norm(tvS-[T/2,T,3T/2,2T,5T/2],Inf) < 1E-13
+    @test norm(tv[2:end-1]-tvS, Inf) < 1E-15
+    @test norm(xv[2:end-1,:]-xvS, Inf) < 1E-15
+    @test norm(gvS,Inf) < eps()
 end
