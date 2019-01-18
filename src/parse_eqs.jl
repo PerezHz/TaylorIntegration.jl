@@ -54,12 +54,21 @@ function _make_parsed_jetcoeffs(ex::Expr, debug=false)
     forloopblock = Expr(:for, :(ord = 1:order-1),
         Expr(:block, :(ordnext = ord + 1)) )
 
-    # Transform graph representation of the body of the function
+    #= Transform graph representation of the body of the function
+    - `defspreamble` includes the definitions used for zeroth order (preamble)
+    - `fnbody` is the transformed function body, using mutating functions
+        from TaylorSeries, and is used within the for-loop block
+    - `retvar` is the (guessed) return variable, which defines the LHS
+        of the ODEs
+    =#
     defspreamble, fnbody, retvar = _preamble_body(fnbody, fnargs, debug)
     debug && (println("****** _preamble_body ******");
         @show(defspreamble); println(); @show(fnbody); println();)
 
-    # Recursion relation
+    #= Create body of recursion loop; temporary assignements may be needed.
+    - rec_preamb
+    - rec_fnbody
+    =#
     debug && println("****** _recursionloop ******")
     rec_preamb, rec_fnbody = _recursionloop(fnargs, retvar)
 
@@ -187,7 +196,7 @@ function _newhead(fn, fnargs)
         "Wrong number of arguments in the definition of the function $fn"))
     end
 
-    # Add `TaylorIntegration` to create a new method of `jetcoeffs!`
+    # Add `TaylorIntegration` (module name) to create a new method of `jetcoeffs!`
     newfunction.args[1].args[1].args[1] =
         Expr(:., :TaylorIntegration, :(:jetcoeffs!))
 
@@ -217,21 +226,28 @@ function _preamble_body(fnbody, fnargs, debug=false)
     v_vars = Union{Symbol,Expr}[]
     v_assign = Dict{Union{Symbol,Expr}, Number}()
 
-    # Rename vars to have the body in non-indexed form
+    #= Rename vars to have the body in non-indexed form
+    `d_indx` is a dictionary mapping new variables (symbols) to old
+    (perhaps indexed) symbols
+    =#
     fnbody, d_indx = _rename_indexedvars(fnbody)
     debug && (println("------ _rename_indexedvars ------");
         @show(fnbody); println(); @show(d_indx); println())
 
-    # Create newfnbody
-    #    v_newindx: symbols of auxiliary indexed vars
-    #    v_arraydecl: symbols which are explicitly declared as Array or Vector
+    #= Create newfnbody
+    - v_newindx: symbols of auxiliary indexed vars
+    - v_arraydecl: symbols which are explicitly declared as Array or Vector
+    - `newfnbody` corresponds to `fnbody`, cleaned (without irrelevant comments)
+        and with all new variables in place
+    =#
     newfnbody, v_newindx, v_arraydecl = _newfnbody(fnbody, d_indx)
     debug && (println("------ _newfnbody ------");
         @show(v_newindx); println(); @show(v_arraydecl); println();
         @show(newfnbody); println())
 
-    # Parse `newfnbody!` and create `prepreamble`, updating the
-    # bookkeeping vectors.
+    # Parse `newfnbody` and create `prepreamble`, updating the bookkeeping vectors.
+    # The returned `newfnbody` and `prepreamble` use the mutating functions
+    # of TaylorSeries.
     prepreamble = Expr(:block,)
     _parse_newfnbody!(newfnbody, prepreamble, v_vars, v_assign, d_indx,
         v_newindx, v_arraydecl)
@@ -253,7 +269,7 @@ function _preamble_body(fnbody, fnargs, debug=false)
     # Bring back substitutions
     newfnbody = subs(newfnbody, d_indx)
 
-    # Define retvar; for scalar eqs is the last included in v_vars
+    # Define retvar; for scalar eqs is the last entry included in v_vars
     retvar = length(fnargs) == 2 ? subs(v_vars[end], d_indx) : fnargs[end]
 
     debug && (println("------ _defs_preamble! ------");
@@ -299,13 +315,15 @@ function _newfnbody(fnbody, d_indx)
     v_newindx = Symbol[]
     v_arraydecl = Symbol[]
 
+    # The magic happens HERE!!
+    # Each line of fnbody (fnbody.args) is parsed separately
     for (i, ex) in enumerate(fnbody.args)
         if isa(ex, Expr)
 
             # Ignore the following cases
             (ex.head == :return) && continue
 
-            # Treat `for` loops separately
+            # Treat `for` loops and `if` blocks separately
             if ex.head == :block
                 newblock, tmp_newindx, tmp_arraydecl = _newfnbody(ex, d_indx)
                 push!(newfnbody.args, newblock )
@@ -313,8 +331,7 @@ function _newfnbody(fnbody, d_indx)
                 append!(v_arraydecl, tmp_arraydecl)
             elseif ex.head == :for
                 push!(newfnbody.args, Expr(:for, ex.args[1]))
-                loopbody, tmp_newindx, tmp_arraydecl =
-                    _newfnbody( ex.args[2], d_indx )
+                loopbody, tmp_newindx, tmp_arraydecl = _newfnbody( ex.args[2], d_indx )
                 push!(newfnbody.args[end].args, loopbody)
                 append!(v_newindx, tmp_newindx)
                 append!(v_arraydecl, tmp_arraydecl)
@@ -326,12 +343,13 @@ function _newfnbody(fnbody, d_indx)
                     append!(v_newindx, tmp_newindx)
                     append!(v_arraydecl, tmp_arraydecl)
                 end
-            elseif ex.head == :(=) || ex.head == :call
+            elseif ex.head == :(=) || ex.head == :call  # assignements or function calls
 
                 ex_lhs = ex.args[1]
                 ex_rhs = ex.args[2]
 
                 # Case of explicit declaration of Array or Vector
+                # TO-DO: Include cases where the definition uses `similar`
                 if !isempty(findex(:(_Array{_TT...}), ex)) ||
                         !isempty(findex(:(Vector{_TT...}), ex))
                     push!(v_arraydecl, ex_lhs)
@@ -344,6 +362,7 @@ function _newfnbody(fnbody, d_indx)
                 try
                     nex = to_expr(ExGraph(simplify(ex)))
                 catch
+                    # copy `ex` as it is, if it is not "recognized"
                     push!(newfnbody.args, ex)
                     continue
                 end
@@ -359,19 +378,22 @@ function _newfnbody(fnbody, d_indx)
 
                     # any(haskey.(d_indx, vars_nex[:])) &&
                     #     !in(vars_nex[1], v_newindx) &&
-                    (isindx_lhs || vars_nex[1] != ex_lhs) &&
-                        push!(v_newindx, vars_nex[1])
+                    (isindx_lhs || vars_nex[1] != ex_lhs) && push!(v_newindx, vars_nex[1])
                 end
             elseif ex.head == :local
+                # If declared as `local`, copy `ex` as it is. In some cases this
+                # helps performance. Very useful for including (numeric) constants
                 push!(newfnbody.args, ex)
                 #
             else
+                # If not implemented, throw an `ArgumentError`
                 throw(ArgumentError("$(ex.head) is not yet implemented; $(typeof(ex))"))
             end
             #
         elseif isa(ex, LineNumberNode)
-            continue
+            continue  # Ignore `LineNumberNode`s
         else
+            # In any other case, throw an `ArgumentError`
             throw(ArgumentError("$ex is not an `Expr`; $(typeof(ex))"))
             #
         end
@@ -404,9 +426,11 @@ function _parse_newfnbody!(ex::Expr, preex::Expr,
     # Numeric assignements to be deleted
     indx_rm = Int[]
 
+    # Magic happens HERE
+    # Each line of ex (ex.args) is parsed separately
     for (i, aa) in enumerate(ex.args)
 
-        # Treat for loops and blocks separately
+        # Treat for loops, blocks and if blocks separately
         if (aa.head == :for)
             push!(preex.args, Expr(:for, aa.args[1]))
             _parse_newfnbody!(aa, preex.args[end],
@@ -437,8 +461,8 @@ function _parse_newfnbody!(ex::Expr, preex::Expr,
             # Replace expressions when needed, and bookkeeping
             if isa(aa_rhs, Expr)
                 (aa_rhs.args[1] == :eachindex || aa_rhs.head == :(:)) && continue
-                _replace_expr!(ex, preex, i,
-                    aa_lhs, aa_rhs, v_vars, d_indx, v_newindx)
+                # Replace expression
+                _replace_expr!(ex, preex, i, aa_lhs, aa_rhs, v_vars, d_indx, v_newindx)
 
                 # Remove new aa_lhs declaration from `ex`; it is already declared
                 in(aa_lhs, v_arraydecl) && push!(indx_rm, i)
@@ -448,19 +472,21 @@ function _parse_newfnbody!(ex::Expr, preex::Expr,
                 bb = subs(aa, Dict(aa_rhs => :(identity($aa_rhs))))
                 bb_lhs = bb.args[1]
                 bb_rhs = bb.args[2]
-                _replace_expr!(ex, preex, i,
-                    bb_lhs, bb_rhs, v_vars, d_indx, v_newindx)
+                # Replace expression
+                _replace_expr!(ex, preex, i, bb_lhs, bb_rhs, v_vars, d_indx, v_newindx)
                 #
-            elseif isa(aa_rhs, Number)
+            elseif isa(aa_rhs, Number)  # case of numeric values
                 push!(v_assign, aa_lhs => aa_rhs)
                 push!(indx_rm, i)
                 #
-            else #needed?
+            else # needed?
                 error("Either $aa or $typeof(aa_rhs[2]) are different from `Expr`, `Symbol` or `Number`")
                 #
             end
             #
         elseif aa.head == :local
+            # If declared as `local`, copy `ex` as it is, and delete it from
+            # the recursion body
             push!(preex.args, aa)
             push!(indx_rm, i)   # delete associated expr in body function
             #
@@ -547,8 +573,7 @@ function _replacecalls!(fnold::Expr, newvar::Symbol, v_vars)
         # Unary call
         # Replacements
         fnexpr, def_fnexpr, aux_fnexpr = TaylorSeries._dict_unary_calls[dcall]
-        fnexpr = subs(fnexpr,
-            Dict(:_res => newvar, :_arg1 => newarg1, :_k => :ord))
+        fnexpr = subs(fnexpr, Dict(:_res => newvar, :_arg1 => newarg1, :_k => :ord))
         def_fnexpr = :( _res = Taylor1($(def_fnexpr.args[2]), order) )
         def_fnexpr = subs(def_fnexpr,
             Dict(:_res => newvar, :_arg1 => :(constant_term($(newarg1))),
@@ -599,7 +624,7 @@ end
 
 Returns a vector with expressions defining the auxiliary variables
 in the preamble; it may modify `d_indx` if new variables are introduced.
-`v_preamb` is for bookkeeping the introduced variables
+`v_preamb` is for bookkeeping the introduced variables.
 
 """
 function _defs_preamble!(preamble::Expr, fnargs,
@@ -674,7 +699,7 @@ function _defs_preamble!(preamble::Expr, fnargs,
 
                     vars_indexed = findex(:(_X[_i...]), arhs)
 
-                    # NOTE: Use the size of the var with more indices
+                    # NOTE: Uses the size of the var with more indices
                     # to define the declaration of the new array.
                     iimax, ii_indx = findmax(
                         [length(find_indices(aa)[1]) for aa in vars_indexed] )
@@ -779,6 +804,6 @@ macro taylorize( ex )
     nex = _make_parsed_jetcoeffs(ex)
     quote
         eval( $(esc(ex)) )  # evals to calling scope the passed function
-        eval( $(esc(nex)) ) # New method of `jetcoeffs!`
+        eval( $(esc(nex)) ) # evals the new method of `jetcoeffs!`
     end
 end

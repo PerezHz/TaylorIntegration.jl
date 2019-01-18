@@ -155,13 +155,14 @@ e1/e3
 ## Limitations
 
 The construction of the function by using [`@taylorize`](@ref) is somewhat
-complicated and limited. It does allow
+complicated and limited. It is useful to have expressions which involve
+two arguments at most, which imposes the proper use of parenthesis: For example,
+`a+b+c` should be written as `(a+b)+c`. The macro allows
 to use array declarations through `Array`, but other ways (e.g. `similar`)
-are not yet implemented. It is recommended to not use the variables `_T` and `_S`,
-since these names are used to define the parameterized types of the specialized
-methods in [`TaylorIntegration.jetcoeffs!`](@ref). Broadcasting is not recognized
-by `@taylorize`, and the macro can't be used when the integration is performed
-through the [interoperability with `DifferentialEquations.jl](@ref diffeqinterface).
+are not yet implemented. It is recommended to not use variables prefixed
+bby an underscore, in particular `_T` and `_S`, to avoid name collisions. Broadcasting is not recognized by `@taylorize`, and the macro can't be
+used when the integration is performed through the
+[interoperability with `DifferentialEquations.jl`](@ref diffeqinterface).
 `if-else` blocks are recognized in its long form, but short-circuit conditional
 operators (`&&` and `||`) are not. Expressions which correspond to function calls
 (so the `head` field is `:call`) which are not recognized by the parser are
@@ -169,6 +170,7 @@ simply copied. The heuristics used, specially for vectors, may not work for all
 cases.
 
 It is recommended to skim `test/taylorize.jl`, which implements different
-cases, including uses of `local` for internal parameters.
+cases, including uses of `local` for internal parameters, which in some
+cases adds some performance.
 
 Please report any problems you may encounter.
