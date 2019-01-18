@@ -302,7 +302,9 @@ function taylorinteg(f!, g, q0::Array{U,1}, trange::AbstractVector{T},
 
     # Initial conditions
     @inbounds t[0] = trange[1]
+    @inbounds t0, t1, tmax = trange[1], trange[2], trange[end]
     x0 = deepcopy(q0)
+    x1 = similar(x0)
     x .= Taylor1.(q0, order)
     @inbounds xv[:,1] .= q0
 
@@ -325,36 +327,76 @@ function taylorinteg(f!, g, q0::Array{U,1}, trange::AbstractVector{T},
     gvS = similar(tvS)
 
     # Integration
-    iter = 1
+    iter = 2
+    nsteps = 1
     nevents = 1 #number of detected events
-    while iter < nn
-        t0, t1 = trange[iter], trange[iter+1]
-        nsteps = 0
-        while nsteps < maxsteps
-            δt_old = δt
-            δt = taylorstep!(f!, t, x, dx, xaux, t0, t1, x0, order, abstol)
-            g_val = g(t, x, dx)
-            nevents = findroot!(g, t, x, dx, g_val_old, g_val, eventorder,
-                tvS, xvS, gvS, t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val,
-                nrabstol, newtoniter, nevents)
-            g_val_old = deepcopy(g_val)
-            for i in eachindex(x0)
-                @inbounds x[i][0] = x0[i]
-                @inbounds dx[i] = Taylor1( zero(x0[i]), order )
-            end
-            t0 += δt
-            t0 ≥ t1 && break
-            nsteps += 1
+    while t0 < tmax
+        δt_old = δt
+        δt = taylorstep!(f!, t, x, dx, xaux, t0, tmax, x0, order, abstol)
+        tnext = t0+δt
+        # Evaluate solution at times within convergence radius
+        while t1 < tnext
+            evaluate!(x, t1-t0, x1)
+            @inbounds xv[:,iter] .= x1
+            iter += 1
+            @inbounds t1 = trange[iter]
         end
-        if nsteps ≥ maxsteps && t0 != t1
+        if δt == tmax-t0
+            @inbounds xv[:,iter] .= x0
+            break
+        end
+        g_val = g(t, x, dx)
+        nevents = findroot!(g, t, x, dx, g_val_old, g_val, eventorder,
+            tvS, xvS, gvS, t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val,
+            nrabstol, newtoniter, nevents)
+        g_val_old = deepcopy(g_val)
+        for i in eachindex(x0)
+            @inbounds x[i][0] = x0[i]
+        end
+        t0 = tnext
+        @inbounds t[0] = t0
+        nsteps += 1
+        # @inbounds tv[nsteps] = t0
+        # @inbounds xv[:,nsteps] .= x0
+        if nsteps > maxsteps
             @info("""
             Maximum number of integration steps reached; exiting.
             """)
             break
         end
-        iter += 1
-        @inbounds xv[:,iter] .= x0
     end
+
+    # # Integration
+    # iter = 1
+    # nevents = 1 #number of detected events
+    # while iter < nn
+    #     t0, t1 = trange[iter], trange[iter+1]
+    #     nsteps = 0
+    #     while nsteps < maxsteps
+    #         δt_old = δt
+    #         δt = taylorstep!(f!, t, x, dx, xaux, t0, t1, x0, order, abstol)
+    #         g_val = g(t, x, dx)
+    #         nevents = findroot!(g, t, x, dx, g_val_old, g_val, eventorder,
+    #             tvS, xvS, gvS, t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val,
+    #             nrabstol, newtoniter, nevents)
+    #         g_val_old = deepcopy(g_val)
+    #         for i in eachindex(x0)
+    #             @inbounds x[i][0] = x0[i]
+    #             @inbounds dx[i] = Taylor1( zero(x0[i]), order )
+    #         end
+    #         t0 += δt
+    #         t0 ≥ t1 && break
+    #         nsteps += 1
+    #     end
+    #     if nsteps ≥ maxsteps && t0 != t1
+    #         @info("""
+    #         Maximum number of integration steps reached; exiting.
+    #         """)
+    #         break
+    #     end
+    #     iter += 1
+    #     @inbounds xv[:,iter] .= x0
+    # end
 
     return transpose(xv), view(tvS,1:nevents-1), view(transpose(view(xvS,:,1:nevents-1)),1:nevents-1,:), view(gvS,1:nevents-1)
 end
