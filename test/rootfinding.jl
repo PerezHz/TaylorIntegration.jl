@@ -78,8 +78,8 @@ g(t, x, dx) = x[2]
     @test size(tvSr) == (5,)
     @test size(tvSr) == size(tvr[2:end-1])
     @test norm(tvSr-[T/2,T,3T/2,2T,5T/2],Inf) < 1E-13
-    @test norm(tvr[2:end-1]-tvSr, Inf) < 1E-15
-    @test norm(xvr[2:end-1,:]-xvSr, Inf) < 1E-15
+    @test norm(tvr[2:end-1]-tvSr, Inf) < 1E-14
+    @test norm(xvr[2:end-1,:]-xvSr, Inf) < 1E-14
     @test norm(gvSr[:]) < eps()
     @test norm(tvS-tvSr, Inf) < 5E-15
 
