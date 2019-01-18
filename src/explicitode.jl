@@ -475,8 +475,6 @@ function taylorinteg(f, x0::U, trange::AbstractVector{T},
     x = Taylor1( x0, order )
 
     # Initial conditions
-    iter = 2
-    nsteps = 1
     @inbounds t0, t1, tmax = trange[1], trange[2], trange[end]
     @inbounds t[0] = t0
     @inbounds xv[1] = x0
@@ -492,6 +490,8 @@ function taylorinteg(f, x0::U, trange::AbstractVector{T},
     end
 
     # Integration
+    iter = 2
+    nsteps = 1
     while t0 < tmax
         δt, x0 = taylorstep!(f, t, x, t0, tmax, x0, order, abstol, parse_eqs)
         tnext = t0+δt
@@ -527,6 +527,7 @@ function taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
     nn = length(trange)
     dof = length(q0)
     x0 = similar(q0, eltype(q0), dof)
+    x1 = similar(x0)
     fill!(x0, T(NaN))
     xv = Array{eltype(q0)}(undef, dof, nn)
     for ind in 1:nn
@@ -545,6 +546,7 @@ function taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
 
     # Initial conditions
     @inbounds t[0] = trange[1]
+    @inbounds t0, t1, tmax = trange[1], trange[2], trange[end]
     x .= Taylor1.(q0, order)
     @inbounds x0 .= q0
     @inbounds xv[:,1] .= q0
@@ -560,28 +562,35 @@ function taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
     end
 
     # Integration
-    iter = 1
-    while iter < nn
-        t0, t1 = trange[iter], trange[iter+1]
-        nsteps = 0
-        while nsteps < maxsteps
-            δt = taylorstep!(f!, t, x, dx, xaux, t0, t1, x0, order, abstol, parse_eqs)
-            for i in eachindex(x0)
-                @inbounds x[i][0] = x0[i]
-                @inbounds dx[i] = Taylor1( zero(x0[i]), order )
-            end
-            t0 += δt
-            t0 ≥ t1 && break
-            nsteps += 1
+    iter = 2
+    nsteps = 1
+    while t0 < tmax
+        δt = taylorstep!(f!, t, x, dx, xaux, t0, tmax, x0, order, abstol, parse_eqs)
+        tnext = t0+δt
+        # Evaluate solution at times within convergence radius
+        while t1 < tnext
+            evaluate!(x, t1-t0, x1)
+            @inbounds xv[:,iter] .= x1
+            iter += 1
+            @inbounds t1 = trange[iter]
         end
-        if nsteps ≥ maxsteps && t0 != t1
+        if δt == tmax-t0
+            @inbounds xv[:,iter] .= x0
+            break
+        end
+        for i in eachindex(x0)
+            @inbounds x[i][0] = x0[i]
+            @inbounds dx[i] = Taylor1( zero(x0[i]), order )
+        end
+        t0 = tnext
+        @inbounds t[0] = t0
+        nsteps += 1
+        if nsteps > maxsteps
             @info("""
             Maximum number of integration steps reached; exiting.
             """)
             break
         end
-        iter += 1
-        @inbounds xv[:,iter] .= x0
     end
 
     return transpose(xv)

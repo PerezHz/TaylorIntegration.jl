@@ -277,8 +277,8 @@ For more details about conventions in `taylorinteg`, please see [`taylorinteg`](
 ```
 """
 function taylorinteg(f!, g, q0::Array{U,1}, trange::AbstractVector{T},
-        order::Int, abstol::T; maxsteps::Int=500, parse_eqs::Bool=true,
-        eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
+        order::Int, abstol::T; maxsteps::Int=500, eventorder::Int=0,
+        newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
 
     # Allocation
     nn = length(trange)
@@ -323,16 +323,6 @@ function taylorinteg(f!, g, q0::Array{U,1}, trange::AbstractVector{T},
     tvS = Array{U}(undef, maxsteps+1)
     xvS = similar(xv)
     gvS = similar(tvS)
-
-    # Determine if specialized jetcoeffs! method exists
-    parse_eqs = parse_eqs && (length(methods(jetcoeffs!)) > 2)
-    if parse_eqs
-        try
-            jetcoeffs!(Val(f!), t, x, dx)
-        catch
-            parse_eqs = false
-        end
-    end
 
     # Integration
     iter = 1
