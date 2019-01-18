@@ -177,7 +177,7 @@ end
     xw, λw = lyap_taylorinteg(lorenz!, q0, trange, _order, _abstol; maxsteps=5)
     @test xw[1,:] == q0
     @test size(xw) == (length(trange), 3)
-    @test size(λw) == (5+1, 3)
+    @test size(λw) == (6, 3) # 6 = maxsteps+1
     @test prod(isnan.(xw[2:end,:]))
     xw2, λw2 = lyap_taylorinteg(lorenz!, q0, collect(trange), _order, _abstol; maxsteps=5)
     @test xw[1, :] == xw2[1, :]
@@ -185,7 +185,7 @@ end
     xw_, λw_ = lyap_taylorinteg(lorenz!, q0, trange, _order, _abstol, lorenz_jac!; maxsteps=5)
     @test xw[1,:] == q0
     @test size(xw) == (length(trange), 3)
-    @test size(λw) == (5+1, 3)
+    @test size(λw) == (6, 3) # 6 = maxsteps+1
     @test prod(isnan.(xw[2:end,:]))
     xw2_, λw2_ = lyap_taylorinteg(lorenz!, q0, collect(trange), _order, _abstol, lorenz_jac!; maxsteps=5)
     @test xw_[1, :] == xw2_[1, :]
