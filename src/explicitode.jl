@@ -393,7 +393,7 @@ end
 
 # Integrate and return results evaluated at given time
 @doc doc"""
-    taylorinteg(f, x0, t0, trange, order, abstol; keyword... )
+    taylorinteg(f, x0, trange, order, abstol; keyword... )
 
 General-purpose Taylor integrator for the explicit ODE
 ``\dot{x}=f(t,x)`` with initial condition specified by `x0::{T<:Number}`
