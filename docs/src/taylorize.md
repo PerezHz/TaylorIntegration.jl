@@ -161,7 +161,7 @@ are not yet implemented. It is recommended to not use the variables `_T` and `_S
 since these names are used to define the parameterized types of the specialized
 methods in [`TaylorIntegration.jetcoeffs!`](@ref). Broadcasting is not recognized
 by `@taylorize`, and the macro can't be used when the integration is performed
-through the [interoperability with `DifferentialEquations.jl](@ref common).
+through the [interoperability with `DifferentialEquations.jl](@ref diffeqinterface).
 `if-else` blocks are recognized in its long form, but short-circuit conditional
 operators (`&&` and `||`) are not. Expressions which correspond to function calls
 (so the `head` field is `:call`) which are not recognized by the parser are
