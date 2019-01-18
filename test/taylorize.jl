@@ -3,6 +3,7 @@
 using TaylorIntegration
 using Test
 using LinearAlgebra: norm
+using Elliptic
 
 # Constants for the integrations
 const _order = 20
@@ -585,4 +586,44 @@ end
         local cos(t)
     end)
     @test_throws BoundsError TaylorIntegration._make_parsed_jetcoeffs(ex)
+end
+
+
+@testset "Jet transport with @taylorize macro" begin
+    @taylorize function pendulum!(t, x, dx)
+        dx[1] = x[2]
+        dx[2] = -sin( x[1] )
+        nothing
+    end
+
+    varorder = 2 #the order of the variational expansion
+    p = set_variables("ξ", numvars=2, order=varorder) #TaylorN steup
+    q0 = [1.3, 0.0] #the initial conditions
+    q0TN = q0 + p #parametrization of a small neighbourhood around the initial conditions
+    # T is the librational period == 4Elliptic.K(sin(q0[1]/2)^2)
+    T = 4Elliptic.K(sin(q0[1]/2)^2) # equals 7.019250311844546
+    t0 = 0.0 #the initial time
+    tmax = T #the final time
+    integstep = 0.25*T #the time interval between successive evaluations of the solution vector
+
+    #the time range
+    tr = t0:integstep:tmax;
+    #note that as called below, taylorinteg uses the parsed jetcoeffs! method by default
+    xvp = taylorinteg(pendulum!, q0, tr, _order, _abstol, maxsteps=100)
+
+    # "warmup" for jet transport integration
+    xvTN = taylorinteg(pendulum!, q0TN, tr, _order, _abstol, maxsteps=1, parse_eqs=false)
+    xvTN = taylorinteg(pendulum!, q0TN, tr, _order, _abstol, maxsteps=1)
+    @test size(xvTN) == (5,2)
+    #jet transport integration with parsed jetcoeffs!
+    xvTNp = taylorinteg(pendulum!, q0TN, tr, _order, _abstol, maxsteps=100)
+    #jet transport integration with non-parsed jetcoeffs!
+    xvTN = taylorinteg(pendulum!, q0TN, tr, _order, _abstol, maxsteps=100, parse_eqs=false)
+    @test norm(xvTNp[:,:]() - xvp, Inf) < 1E-15
+
+    dq = 0.0001*rand(2)
+    q1 = q0 + dq
+    yv = taylorinteg(pendulum!, q1, tr, _order, _abstol, maxsteps=100)
+    yv_jt = xvTNp[:,:](dq)
+    @test norm(yv-yv_jt, Inf) < 1E-11
 end
