@@ -151,7 +151,9 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
         order::Int, abstol::T; maxsteps::Int=500, parse_eqs::Bool=true,
         eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
 
-    # Allocation
+    @assert order ≥ eventorder "`eventorder` must be less than or equal to `order`"
+
+        # Allocation
     tv = Array{T}(undef, maxsteps+1)
     dof = length(q0)
     xv = Array{U}(undef, dof, maxsteps+1)
@@ -279,6 +281,8 @@ For more details about conventions in `taylorinteg`, please see [`taylorinteg`](
 function taylorinteg(f!, g, q0::Array{U,1}, trange::AbstractVector{T},
         order::Int, abstol::T; maxsteps::Int=500, eventorder::Int=0,
         newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
+
+    @assert order ≥ eventorder "`eventorder` must be less than or equal to `order`"
 
     # Allocation
     nn = length(trange)

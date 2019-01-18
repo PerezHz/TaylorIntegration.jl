@@ -73,6 +73,7 @@ g(t, x, dx) = x[2]
 
     #testing 0-th order root-finding with time ranges/vectors
     tvr = [t0, T/2, T, 3T/2, 2T, 5T/2, 3T]
+    @test_throws AssertionError taylorinteg(pendulum!, g, x0, view(tvr, :), _order, _abstol, maxsteps=1000, eventorder=_order+1)
     xvr, tvSr, xvSr, gvSr = taylorinteg(pendulum!, g, x0, view(tvr, :), _order, _abstol, maxsteps=1000)
     @test xvr[1,:] == x0
     @test size(tvSr) == (5,)
@@ -102,6 +103,7 @@ g(t, x, dx) = x[2]
     @test norm( xvS1()-xvS, Inf ) < 1E-14
 
     #testing surface higher order crossing detections and root-finding
+    @test_throws AssertionError taylorinteg(pendulum!, g, x0, t0, 3T, _order, _abstol, maxsteps=1000, eventorder=_order+1, newtoniter=2)
     tv, xv, tvS, xvS, gvS = taylorinteg(pendulum!, g, x0, t0, 3T, _order, _abstol, maxsteps=1000, eventorder=2, newtoniter=2)
     @test tv[1] == t0
     @test xv[1,:] == x0
