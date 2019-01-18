@@ -553,7 +553,7 @@ const tf = 20.0
 end
 
 
-@testset "Tests for throwing erros" begin
+@testset "Tests for throwing errors" begin
     # Wrong number of arguments
     ex = :(function f_p!(t, x, dx, y)
         dx[1] = x[2]
