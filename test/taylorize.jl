@@ -602,12 +602,10 @@ end
     q0TN = q0 + p #parametrization of a small neighbourhood around the initial conditions
     # T is the librational period == 4Elliptic.K(sin(q0[1]/2)^2)
     T = 4Elliptic.K(sin(q0[1]/2)^2) # equals 7.019250311844546
-    t0 = 0.0 #the initial time
-    tmax = T #the final time
     integstep = 0.25*T #the time interval between successive evaluations of the solution vector
 
     #the time range
-    tr = t0:integstep:tmax;
+    tr = t0:integstep:T;
     #note that as called below, taylorinteg uses the parsed jetcoeffs! method by default
     xvp = taylorinteg(pendulum!, q0, tr, _order, _abstol, maxsteps=100)
 
@@ -631,14 +629,12 @@ end
     dq = 0.001
     t = Taylor1([0.0, 1.0], 10)
     x0T1 = q0+[0t,t]
-    tv, xv = taylorinteg(pendulum!, q0+[0.0,dq], t0, 2T, _order, _abstol)
+    q1 = q0+[0.0,dq]
+    tv, xv = taylorinteg(pendulum!, q1, t0, 2T, _order, _abstol)
     tvT1, xvT1 = taylorinteg(pendulum!, x0T1, t0, 2T, _order, _abstol, parse_eqs=false)
     tvT1p, xvT1p = taylorinteg(pendulum!, x0T1, t0, 2T, _order, _abstol)
     @test tvT1 == tvT1p
     @test xvT1 == xvT1p
     xv_jt = xvT1p[:,:](dq)
-    @show xv[end,:]
-    @show xv_jt[end,:]
-    @show xv[1,:] == xv_jt[1,:]
     @test norm(xv_jt[end,:]-xv[end,:]) < 20eps(norm(xv[end,:]))
 end
