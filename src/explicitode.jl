@@ -475,7 +475,10 @@ function taylorinteg(f, x0::U, trange::AbstractVector{T},
     x = Taylor1( x0, order )
 
     # Initial conditions
-    @inbounds t[0] = trange[1]
+    iter = 2
+    nsteps = 1
+    @inbounds t0, t1, tmax = trange[1], trange[2], trange[end]
+    @inbounds t[0] = t0
     @inbounds xv[1] = x0
 
     # Determine if specialized jetcoeffs! method exists
@@ -489,28 +492,31 @@ function taylorinteg(f, x0::U, trange::AbstractVector{T},
     end
 
     # Integration
-    iter = 1
-    while iter < nn
-        @inbounds t0, t1 = trange[iter], trange[iter+1]
-        nsteps = 0
-        while nsteps < maxsteps
-            δt, x0 = taylorstep!(f, t, x, t0, t1, x0, order, abstol, parse_eqs)
-            @inbounds x[0] = x0
-            t0 += δt
-            @inbounds t[0] = t0
-            t0 ≥ t1 && break
-            nsteps += 1
+    while t0 < tmax
+        δt, x0 = taylorstep!(f, t, x, t0, tmax, x0, order, abstol, parse_eqs)
+        tnext = t0+δt
+        # Evaluate solution at times within convergence radius
+        while t1 < tnext
+            x1 = evaluate(x, t1-t0)
+            @inbounds xv[iter] = x1
+            iter += 1
+            @inbounds t1 = trange[iter]
         end
-        if nsteps ≥ maxsteps && t0 != t1
+        if δt == tmax-t0
+            @inbounds xv[iter] = x0
+            break
+        end
+        @inbounds x[0] = x0
+        t0 = tnext
+        @inbounds t[0] = t0
+        nsteps += 1
+        if nsteps > maxsteps
             @info("""
             Maximum number of integration steps reached; exiting.
             """)
             break
         end
-        iter += 1
-        @inbounds xv[iter] = x0
     end
-
     return xv
 end
 

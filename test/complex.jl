@@ -36,13 +36,14 @@ end
     @test isapprox( zsol11[2]  , z0*exp(-tr[2]) )
     @test isapprox( zsol11[6], z0*exp(-tr[6]) )
     @test isapprox( zsol11[end], z0*exp(-tr[end]) )
-    tt, zsol1 = taylorinteg(eqs1, z0, 0.0, 2pi, _order, _abstol, maxsteps=1)
+    tt, zsol1t = taylorinteg(eqs1, z0, 0.0, 2pi, _order, _abstol, maxsteps=1)
     @test length(tt) == 2
-    @test length(zsol1) == 2
-    tt, zsol1 = taylorinteg(eqs1, z0, 0.0, 2pi, _order, _abstol)
-    @test zsol1[1] == z0
-    @test isapprox( zsol1[2]  , z0*exp(-tt[2]) )
-    @test isapprox( zsol1[end], z0*exp(-tt[end]) )
+    @test length(zsol1t) == 2
+    tt, zsol1t = taylorinteg(eqs1, z0, 0.0, 2pi, _order, _abstol)
+    @test zsol1t[1] == z0
+    @test isapprox( zsol1t[2]  , z0*exp(-tt[2]) )
+    @test isapprox( zsol1t[end], z0*exp(-tt[end]) )
+    @test zsol1t[end] == zsol1[end]
 end
 
 @testset "Test integration of ODE with complex dependent variables (2)" begin
