@@ -462,7 +462,7 @@ Note that f! updates (mutates) the pre-allocated vector dx.
 Note that the initial conditions `q0TN` are of type `TaylorN{Float64}`.
 
 """
-function taylorinteg(f, x0::U, trange::Union{AbstractRange{T},Vector{T}},
+function taylorinteg(f, x0::U, trange::AbstractVector{T},
         order::Int, abstol::T; maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real, U<:Number}
 
     # Allocation
@@ -514,7 +514,7 @@ function taylorinteg(f, x0::U, trange::Union{AbstractRange{T},Vector{T}},
     return xv
 end
 
-function taylorinteg(f!, q0::Array{U,1}, trange::Union{AbstractRange{T},Vector{T}},
+function taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
         order::Int, abstol::T; maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real, U<:Number}
 
     # Allocation

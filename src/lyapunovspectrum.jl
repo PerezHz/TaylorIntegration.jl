@@ -303,7 +303,7 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
     return view(tv,1:nsteps),  view(transpose(xv),1:nsteps,:),  view(transpose(λ),1:nsteps,:)
 end
 
-function lyap_taylorinteg(f!, q0::Array{U,1}, trange::Union{AbstractRange{T},Vector{T}},
+function lyap_taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
         order::Int, abstol::T, jacobianfunc! =nothing; maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real, U<:Number}
     # Allocation
     nn = length(trange)

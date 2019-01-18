@@ -227,7 +227,7 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
     return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:), view(tvS,1:nevents-1), view(transpose(view(xvS,:,1:nevents-1)),1:nevents-1,:), view(gvS,1:nevents-1)
 end
 
-function taylorinteg(f!, g, q0::Array{U,1}, trange::Union{AbstractRange{T},Vector{T}},
+function taylorinteg(f!, g, q0::Array{U,1}, trange::AbstractVector{T},
         order::Int, abstol::T; maxsteps::Int=500, parse_eqs::Bool=true,
         eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
 
