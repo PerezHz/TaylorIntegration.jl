@@ -179,7 +179,7 @@ end
     @test size(xw) == (length(trange), 3)
     @test size(λw) == (6, 3) # 6 = maxsteps+1
     @test prod(isnan.(xw[2:end,:]))
-    xw2, λw2 = lyap_taylorinteg(lorenz!, q0, collect(trange), _order, _abstol; maxsteps=5)
+    xw2, λw2 = lyap_taylorinteg(lorenz!, q0, vec(trange), _order, _abstol; maxsteps=5)
     @test xw[1, :] == xw2[1, :]
     @test λw == λw2
     xw_, λw_ = lyap_taylorinteg(lorenz!, q0, trange, _order, _abstol, lorenz_jac!; maxsteps=5)
@@ -187,7 +187,7 @@ end
     @test size(xw) == (length(trange), 3)
     @test size(λw) == (6, 3) # 6 = maxsteps+1
     @test prod(isnan.(xw[2:end,:]))
-    xw2_, λw2_ = lyap_taylorinteg(lorenz!, q0, collect(trange), _order, _abstol, lorenz_jac!; maxsteps=5)
+    xw2_, λw2_ = lyap_taylorinteg(lorenz!, q0, vec(trange), _order, _abstol, lorenz_jac!; maxsteps=5)
     @test xw_[1, :] == xw2_[1, :]
     @test λw_ == λw2_
 
@@ -205,7 +205,7 @@ end
     @test xw == xw_
     @test λw == λw_
 
-    @time xw2, λw2 = lyap_taylorinteg(lorenz!, q0, collect(trange), _order, _abstol; maxsteps=2000)
+    @time xw2, λw2 = lyap_taylorinteg(lorenz!, q0, vec(trange), _order, _abstol; maxsteps=2000)
     @test xw2 == xw
     @test λw2 == λw
     @test xw2[1,:] == q0
@@ -216,12 +216,12 @@ end
     @test isapprox(λw2[end,1], 1.46486, rtol=mytol, atol=mytol)
     @test isapprox(λw2[end,2], -0.00471, rtol=mytol, atol=mytol)
     @test isapprox(λw2[end,3], -22.46015, rtol=mytol, atol=mytol)
-    @time xw2_, λw2_ = lyap_taylorinteg(lorenz!, q0, collect(trange), _order, _abstol, lorenz_jac!; maxsteps=2000)
+    @time xw2_, λw2_ = lyap_taylorinteg(lorenz!, q0, vec(trange), _order, _abstol, lorenz_jac!; maxsteps=2000)
     @test xw2 == xw2_
     @test λw2 == λw2_
 
     # Check integration consistency (orbit should not depend on variational eqs)
-    x_ = taylorinteg(lorenz!, q0, collect(trange), _order, _abstol; maxsteps=2000)
+    x_ = taylorinteg(lorenz!, q0, vec(trange), _order, _abstol; maxsteps=2000)
     @test x_ == xw2
 
 end

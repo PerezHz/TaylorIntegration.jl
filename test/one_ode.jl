@@ -37,7 +37,7 @@ const tT = Taylor1(_order)
     @test xvr[1] == xv[1]
     @test xvr[end] == xv[end-1]
 
-    tarray = collect(trange)
+    tarray = vec(trange)
     xv2 = taylorinteg(eqs_mov, x0, tarray, _order, _abstol)
     @test xv[1:end-1] == xv2[1:end-1]
     @test xv2[1:end-1] ≈ xv[1:end-1] atol=eps() rtol=0.0

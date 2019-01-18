@@ -140,7 +140,7 @@ end
     tv = 0.0:0.05:0.33
     xvT1 = taylorinteg(f, x0T1, tv, _order, _abstol, maxsteps=1)
     @test size(xvT1) == (7,)
-    ta = collect(tv)
+    ta = vec(tv)
     xvT1 = taylorinteg(f, x0T1, ta, _order, _abstol, maxsteps=1)
     @test size(xvT1) == (7,)
     xvT1 = taylorinteg(f, x0T1, tv, _order, _abstol)
@@ -196,7 +196,7 @@ end
     tv = 0.0:0.05:0.33
     xvTN = taylorinteg(f, x0TN, tv, _order, _abstol, maxsteps=1)
     @test size(xvTN) == (7,)
-    ta = collect(tv)
+    ta = vec(tv)
     xvTN = taylorinteg(f, x0TN, ta, _order, _abstol, maxsteps=1)
     @test size(xvTN) == (7,)
     xvTN = taylorinteg(f, x0TN, tv, _order, _abstol)
@@ -290,7 +290,7 @@ end
     xv1 = taylorinteg(harmosc!, x0T1, tv, _order, _abstol, maxsteps=1)
     @test length(tv) == 201
     @test size(xv1) == (201, 3)
-    ta = collect(tv)
+    ta = vec(tv)
     xv1 = taylorinteg(harmosc!, x0T1, ta, _order, _abstol, maxsteps=1)
     @test length(ta) == 201
     @test size(xv1) == (201, 3)

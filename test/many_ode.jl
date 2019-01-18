@@ -45,7 +45,7 @@ const tT = Taylor1(_order)
     @test abs(xv[3,2] - 4/3) ≤ eps(4/3)
     @test abs(xv[2,1] - 4.8) ≤ eps(4.8)
 
-    tarray = collect(trange)
+    tarray = vec(trange)
     xv2 = taylorinteg(eqs_mov!, q0, tarray, _order, _abstol)
     @test xv[1:3,:] == xv2[1:3,:]
     @test xv2[1:3,:] ≈ xv[1:3,:] atol=eps() rtol=0.0
