@@ -619,11 +619,26 @@ end
     xvTNp = taylorinteg(pendulum!, q0TN, tr, _order, _abstol, maxsteps=100)
     #jet transport integration with non-parsed jetcoeffs!
     xvTN = taylorinteg(pendulum!, q0TN, tr, _order, _abstol, maxsteps=100, parse_eqs=false)
+    @test xvTN == xvTNp
     @test norm(xvTNp[:,:]() - xvp, Inf) < 1E-15
 
-    dq = 0.0001*rand(2)
+    dq = 0.0001rand(2)
     q1 = q0 + dq
     yv = taylorinteg(pendulum!, q1, tr, _order, _abstol, maxsteps=100)
     yv_jt = xvTNp[:,:](dq)
     @test norm(yv-yv_jt, Inf) < 1E-11
+
+    dq = 0.001
+    t = Taylor1([0.0, 1.0], 10)
+    x0T1 = q0+[0t,t]
+    tv, xv = taylorinteg(pendulum!, q0+[0.0,dq], t0, 2T, _order, _abstol)
+    tvT1, xvT1 = taylorinteg(pendulum!, x0T1, t0, 2T, _order, _abstol, parse_eqs=false)
+    tvT1p, xvT1p = taylorinteg(pendulum!, x0T1, t0, 2T, _order, _abstol)
+    @test tvT1 == tvT1p
+    @test xvT1 == xvT1p
+    xv_jt = xvT1p[:,:](dq)
+    @show xv[end,:]
+    @show xv_jt[end,:]
+    @show xv[1,:] == xv_jt[1,:]
+    @test norm(xv_jt[end,:]-xv[end,:]) < 20eps(norm(xv[end,:]))
 end
