@@ -160,7 +160,7 @@ two arguments at most, which imposes the proper use of parenthesis: For example,
 `a+b+c` should be written as `(a+b)+c`. The macro allows
 to use array declarations through `Array`, but other ways (e.g. `similar`)
 are not yet implemented. It is recommended to not use variables prefixed
-bby an underscore, in particular `_T` and `_S`, to avoid name collisions. Broadcasting is not recognized by `@taylorize`, and the macro can't be
+by an underscore, in particular `_T` and `_S`, to avoid name collisions. Broadcasting is not recognized by `@taylorize`, and the macro can't be
 used when the integration is performed through the
 [interoperability with `DifferentialEquations.jl`](@ref diffeqinterface).
 `if-else` blocks are recognized in its long form, but short-circuit conditional
