@@ -171,6 +171,16 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
     @inbounds tv[1] = t0
     @inbounds xv[:,1] .= q0
 
+    # Determine if specialized jetcoeffs! method exists
+    parse_eqs = parse_eqs && (length(methods(jetcoeffs!)) > 2)
+    if parse_eqs
+        try
+            jetcoeffs!(Val(f!), t, x, dx)
+        catch
+            parse_eqs = false
+        end
+    end
+
     #Some auxiliary arrays for root-finding/event detection/Poincaré surface of section evaluation
     g_val = zero(g(t,x,x))
     g_val_old = zero(g_val)
@@ -279,8 +289,8 @@ For more details about conventions in `taylorinteg`, please see [`taylorinteg`](
 ```
 """
 function taylorinteg(f!, g, q0::Array{U,1}, trange::AbstractVector{T},
-        order::Int, abstol::T; maxsteps::Int=500, eventorder::Int=0,
-        newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
+        order::Int, abstol::T; maxsteps::Int=500, parse_eqs::Bool=true,
+        eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
 
     @assert order ≥ eventorder "`eventorder` must be less than or equal to `order`"
 
@@ -312,6 +322,16 @@ function taylorinteg(f!, g, q0::Array{U,1}, trange::AbstractVector{T},
     x .= Taylor1.(q0, order)
     @inbounds xv[:,1] .= q0
 
+    # Determine if specialized jetcoeffs! method exists
+    parse_eqs = parse_eqs && (length(methods(jetcoeffs!)) > 2)
+    if parse_eqs
+        try
+            jetcoeffs!(Val(f!), t, x, dx)
+        catch
+            parse_eqs = false
+        end
+    end
+
     #Some auxiliary arrays for root-finding/event detection/Poincaré surface of section evaluation
     g_val = zero(g(t,x,x))
     g_val_old = zero(g_val)
@@ -336,7 +356,7 @@ function taylorinteg(f!, g, q0::Array{U,1}, trange::AbstractVector{T},
     nevents = 1 #number of detected events
     while t0 < tmax
         δt_old = δt
-        δt = taylorstep!(f!, t, x, dx, xaux, t0, tmax, x0, order, abstol)
+        δt = taylorstep!(f!, t, x, dx, xaux, t0, tmax, x0, order, abstol, parse_eqs)
         tnext = t0+δt
         # Evaluate solution at times within convergence radius
         while t1 < tnext
