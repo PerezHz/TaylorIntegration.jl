@@ -7,9 +7,7 @@ Build status:
 [![appveyor][appveyor-img]](https://ci.appveyor.com/project/PerezHz/taylorintegration-jl/branch/master)
 
 Coverage:
-[![coveralls][coveralls-img]](https://coveralls.io/r/PerezHz/TaylorIntegration.jl?branch=master)
-[![codecov][codecov-img]](http://codecov.io/github/PerezHz/TaylorIntegration.jl?branch=master)
-
+[![Coverage Status](https://coveralls.io/repos/github/PerezHz/TaylorIntegration.jl/badge.svg?branch=master)](https://coveralls.io/github/PerezHz/TaylorIntegration.jl?branch=master) [![codecov](https://codecov.io/gh/PerezHz/TaylorIntegration.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/PerezHz/TaylorIntegration.jl)
 
 [travis-img]: https://img.shields.io/travis/PerezHz/TaylorIntegration.jl/master.svg?label=Linux+/+macOS
 [appveyor-img]: https://img.shields.io/travis/PerezHz/TaylorIntegration.jl/master.svg?label=Windows
