@@ -3,7 +3,9 @@ using TaylorIntegration
 
 makedocs(
     modules  = [TaylorIntegration],
-    format   = :html,
+    format   = Documenter.HTML(
+        prettyurls = get(ENV, "CI", nothing) == "true"),
+    clean = false,
     sitename = "TaylorIntegration.jl",
     authors  = "Jorge A. Pérez-Hernández and Luis Benet",
     pages    = [
@@ -21,6 +23,7 @@ makedocs(
             "root_finding.md",
             "common.md"
             ],
+        "Optimizing: `@taylorize`" => "taylorize.md",
         "API"  => "api.md",
         ]
 )
@@ -28,8 +31,8 @@ makedocs(
 deploydocs(
     repo   = "github.com/PerezHz/TaylorIntegration.jl.git",
     target = "build",
-    julia  = "1.0",
-    osname = "linux",
+    # julia  = "1.0",
+    # osname = "linux",
     deps   = nothing,
     make   = nothing
 )

@@ -5,6 +5,8 @@ module TaylorIntegration
 using Reexport
 @reexport using TaylorSeries, DiffEqBase
 using LinearAlgebra
+using Markdown
+
 
 const warnkeywords =
     (:save_idxs, :d_discontinuities, :unstable_check, :save_everystep,
@@ -18,11 +20,12 @@ function __init__()
     global warnlist = Set(warnkeywords)
 end
 
-export taylorinteg, lyap_taylorinteg
+export taylorinteg, lyap_taylorinteg, @taylorize
 
 include("explicitode.jl")
 include("lyapunovspectrum.jl")
 include("common.jl")
 include("rootfinding.jl")
+include("parse_eqs.jl")
 
 end #module

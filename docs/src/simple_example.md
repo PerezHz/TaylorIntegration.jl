@@ -77,7 +77,7 @@ use of Taylor's method is to impose a quite small value of
 of the expansion.
 
 
-## Implementation
+## [Implementation](@id implementation_ex1)
 
 We shall illustrate how to use `TaylorIntegration.jl` to integrate
 Eq. (\ref{eq-example1}) for the initial condition ``x(0)=3``. Notice

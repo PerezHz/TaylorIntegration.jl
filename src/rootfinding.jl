@@ -113,6 +113,16 @@ The current keyword arguments are `maxsteps=500`, `eventorder=0`,
 `newtoniter=10`, and `nrabstol=eps(T)`, where `T` is the common type of `t0`,
 `tmax` and `abstol`.
 
+The current keyword argument are:
+- `maxsteps=500`: maximum number of integration steps.
+- `parse_eqs=true`: usie the specialized method of `jetcoeffs!` created
+    with [`@taylorize`](@ref).
+- `eventorder=0`: order of the derivative of `g` whose roots are computed.
+- `newtoniter=10`: maximum Newton-Raphson iterations per detected root.
+- `nrabstol=eps(T)`: allowed tolerance for the Newton-Raphson process; T is the common
+    type of `t0`, `tmax` and `abstol`.
+
+
 For more details about conventions in `taylorinteg`, please see [`taylorinteg`](@ref).
 
 **Examples**:
@@ -138,8 +148,8 @@ For more details about conventions in `taylorinteg`, please see [`taylorinteg`](
 ```
 """
 function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
-        order::Int, abstol::T; maxsteps::Int=500, eventorder::Int=0,
-        newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
+        order::Int, abstol::T; maxsteps::Int=500, parse_eqs::Bool=true,
+        eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
 
     # Allocation
     tv = Array{T}(undef, maxsteps+1)
@@ -177,12 +187,22 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
     xvS = similar(xv)
     gvS = similar(tvS)
 
+    # Determine if specialized jetcoeffs! method exists
+    parse_eqs = parse_eqs && (length(methods(jetcoeffs!)) > 2)
+    if parse_eqs
+        try
+            jetcoeffs!(Val(f!), t, x, dx)
+        catch
+            parse_eqs = false
+        end
+    end
+
     # Integration
     nsteps = 1
     nevents = 1 #number of detected events
     while t0 < tmax
         δt_old = δt
-        δt = taylorstep!(f!, t, x, dx, xaux, t0, tmax, x0, order, abstol)
+        δt = taylorstep!(f!, t, x, dx, xaux, t0, tmax, x0, order, abstol, parse_eqs)
         g_val = g(t, x, dx)
         nevents = findroot!(g, t, x, dx, g_val_old, g_val, eventorder,
             tvS, xvS, gvS, t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val,

@@ -10,67 +10,6 @@ const _abstol = 1.0E-20
 f(t, x) = x^2
 g(t, x) = 0.3x
 
-@testset "Test Taylor1 jet transport (t0, tmax): 1-dim case" begin
-    p = Taylor1([0.0,1.0], 5)
-    x0 = 3.0 #"nominal" initial condition
-    x0T1 = x0 + p #jet transport initial condition
-    t0 = 0.0
-    tmax = 0.3
-    tvT1, xvT1 = taylorinteg(f, x0T1, t0, tmax, _order, _abstol, maxsteps=1)
-    @test size(tvT1) == (2,)
-    @test size(xvT1) == (2,)
-    tvT1, xvT1 = taylorinteg(f, x0T1, t0, tmax, _order, _abstol)
-    tv, xv = taylorinteg(f, x0, t0, tmax, _order, _abstol)
-    exactsol(t, x0, t0) = x0/(1.0-x0*(t-t0)) #the analytical solution
-    δsol = exactsol(tvT1[end], x0T1, t0)-xvT1[end] #analytical vs jet transport diff at end of integration
-    δcoeffs = δsol.coeffs
-    @test isapprox(δcoeffs, zeros(6), atol=1e-10, rtol=0)
-    @test isapprox(x0, evaluate(xvT1[1]))
-    @test isapprox(xv[1], evaluate(xvT1[1]))
-    @test isapprox(xv[end], evaluate(xvT1[end]))
-    xvT1_0 = evaluate.(xvT1)
-    @test norm(exactsol.(tvT1, x0, t0)-xvT1_0, Inf) < 1E-12
-    for i in 1:5
-        disp = 0.001*rand() #a small, random displacement
-        x0_disp = x0+disp
-        tv_disp, xv_disp = taylorinteg(f, x0_disp, t0, tmax, _order, _abstol)
-        xvT1_disp = evaluate.(xvT1, disp)
-        @test norm(exactsol.(tvT1, x0_disp, t0)-xvT1_disp, Inf) < 1E-12 #analytical vs jet transport
-        @test norm(x0_disp-evaluate(xvT1[1], disp), Inf) < 1E-12
-        @test norm(xv_disp[1]-evaluate(xvT1[1], disp), Inf) < 1E-12
-        @test norm(xv_disp[end]-evaluate(xvT1[end], disp), Inf) < 1E-12
-    end
-
-    y0 = 1.0 #"nominal" initial condition
-    u0 = 0.0 #initial time
-    y0T1 = y0 + p #jet transport initial condition
-    uvT1, yvT1 = taylorinteg(g, y0T1, t0, 10/0.3, _order, _abstol, maxsteps=1) #warmup lap
-    # test maxsteps break
-    @test size(uvT1) == (2,)
-    @test size(yvT1) == (2,)
-    uvT1, yvT1 = taylorinteg(g, y0T1, t0, 10/0.3, _order, _abstol) #Taylor1 jet transport integration
-    uv, yv = taylorinteg(g, y0, t0, 10/0.3, _order, _abstol) #reference integration
-    exactsol_g(u, y0, u0) = y0*exp(0.3(u-u0))  #the analytical solution
-    δsol_g = exactsol_g(uvT1[end], y0T1, t0)-yvT1[end] #analytical vs jet transport diff at end of integration
-    δcoeffs_g = δsol_g.coeffs
-    @test isapprox(δcoeffs_g, zeros(6), atol=1e-10, rtol=0)
-    @test isapprox(y0, evaluate(yvT1[1]), atol=1e-10, rtol=0)
-    @test isapprox(yv[1], evaluate(yvT1[1]), atol=1e-10, rtol=0)
-    @test isapprox(yv[end], evaluate(yvT1[end]), atol=1e-10, rtol=0)
-    yvT1_0 = evaluate.(yvT1)
-    @test norm(exactsol_g.(uvT1, y0, u0)-yvT1_0, Inf) < 1E-9
-    for i in 1:5
-        disp = 0.001*rand() #a small, random displacement
-        y0_disp = y0+disp
-        uv_disp, yv_disp = taylorinteg(g, y0_disp, u0, 10/0.3, _order, _abstol)
-        yvT1_disp = evaluate.(yvT1, disp)
-        @test norm(exactsol_g.(uvT1, y0_disp, u0)-yvT1_disp, Inf) < 1E-9 #analytical vs jet transport
-        @test norm(y0_disp-evaluate(yvT1[1], disp), Inf) < 1E-9
-        @test norm(yv_disp[1]-evaluate(yvT1[1], disp), Inf) < 1E-9
-        @test norm(yv_disp[end]-evaluate(yvT1[end], disp), Inf) < 1E-9
-    end
-end
-
 @testset "Test TaylorN jet transport (t0, tmax): 1-dim case" begin
     p = set_variables("ξ", numvars=1, order=5)
     x0 = 3.0 #"nominal" initial condition
@@ -130,6 +69,67 @@ end
         @test norm(y0_disp-yvTN[1]([disp]), Inf) < 1E-9
         @test norm(yv_disp[1]-yvTN[1]([disp]), Inf) < 1E-9
         @test norm(yv_disp[end]-yvTN[end]([disp]), Inf) < 1E-9
+    end
+end
+
+@testset "Test Taylor1 jet transport (t0, tmax): 1-dim case" begin
+    p = Taylor1([0.0,1.0], 5)
+    x0 = 3.0 #"nominal" initial condition
+    x0T1 = x0 + p #jet transport initial condition
+    t0 = 0.0
+    tmax = 0.3
+    tvT1, xvT1 = taylorinteg(f, x0T1, t0, tmax, _order, _abstol, maxsteps=1)
+    @test size(tvT1) == (2,)
+    @test size(xvT1) == (2,)
+    tvT1, xvT1 = taylorinteg(f, x0T1, t0, tmax, _order, _abstol)
+    tv, xv = taylorinteg(f, x0, t0, tmax, _order, _abstol)
+    exactsol(t, x0, t0) = x0/(1.0-x0*(t-t0)) #the analytical solution
+    δsol = exactsol(tvT1[end], x0T1, t0)-xvT1[end] #analytical vs jet transport diff at end of integration
+    δcoeffs = δsol.coeffs
+    @test isapprox(δcoeffs, zeros(6), atol=1e-10, rtol=0)
+    @test isapprox(x0, evaluate(xvT1[1]))
+    @test isapprox(xv[1], evaluate(xvT1[1]))
+    @test isapprox(xv[end], evaluate(xvT1[end]))
+    xvT1_0 = evaluate.(xvT1)
+    @test norm(exactsol.(tvT1, x0, t0)-xvT1_0, Inf) < 1E-12
+    for i in 1:5
+        disp = 0.001*rand() #a small, random displacement
+        x0_disp = x0+disp
+        tv_disp, xv_disp = taylorinteg(f, x0_disp, t0, tmax, _order, _abstol)
+        xvT1_disp = evaluate.(xvT1, disp)
+        @test norm(exactsol.(tvT1, x0_disp, t0)-xvT1_disp, Inf) < 1E-12 #analytical vs jet transport
+        @test norm(x0_disp-evaluate(xvT1[1], disp), Inf) < 1E-12
+        @test norm(xv_disp[1]-evaluate(xvT1[1], disp), Inf) < 1E-12
+        @test norm(xv_disp[end]-evaluate(xvT1[end], disp), Inf) < 1E-12
+    end
+
+    y0 = 1.0 #"nominal" initial condition
+    u0 = 0.0 #initial time
+    y0T1 = y0 + p #jet transport initial condition
+    uvT1, yvT1 = taylorinteg(g, y0T1, t0, 10/0.3, _order, _abstol, maxsteps=1) #warmup lap
+    # test maxsteps break
+    @test size(uvT1) == (2,)
+    @test size(yvT1) == (2,)
+    uvT1, yvT1 = taylorinteg(g, y0T1, t0, 10/0.3, _order, _abstol) #Taylor1 jet transport integration
+    uv, yv = taylorinteg(g, y0, t0, 10/0.3, _order, _abstol) #reference integration
+    exactsol_g(u, y0, u0) = y0*exp(0.3(u-u0))  #the analytical solution
+    δsol_g = exactsol_g(uvT1[end], y0T1, t0)-yvT1[end] #analytical vs jet transport diff at end of integration
+    δcoeffs_g = δsol_g.coeffs
+    @test isapprox(δcoeffs_g, zeros(6), atol=1e-10, rtol=0)
+    @test isapprox(y0, evaluate(yvT1[1]), atol=1e-10, rtol=0)
+    @test isapprox(yv[1], evaluate(yvT1[1]), atol=1e-10, rtol=0)
+    @test isapprox(yv[end], evaluate(yvT1[end]), atol=1e-10, rtol=0)
+    yvT1_0 = evaluate.(yvT1)
+    @test norm(exactsol_g.(uvT1, y0, u0)-yvT1_0, Inf) < 1E-9
+    for i in 1:5
+        disp = 0.001*rand() #a small, random displacement
+        y0_disp = y0+disp
+        uv_disp, yv_disp = taylorinteg(g, y0_disp, u0, 10/0.3, _order, _abstol)
+        yvT1_disp = evaluate.(yvT1, disp)
+        @test norm(exactsol_g.(uvT1, y0_disp, u0)-yvT1_disp, Inf) < 1E-9 #analytical vs jet transport
+        @test norm(y0_disp-evaluate(yvT1[1], disp), Inf) < 1E-9
+        @test norm(yv_disp[1]-evaluate(yvT1[1], disp), Inf) < 1E-9
+        @test norm(yv_disp[end]-evaluate(yvT1[end], disp), Inf) < 1E-9
     end
 end
 
