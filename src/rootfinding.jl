@@ -6,13 +6,18 @@ the last-before-current value of event function `g`; `g_now` represents the
 current value of event function `g`; `eventorder` is the order of the derivative
 of the event function `g` whose root we are trying to find. Returns `true` if
 `g_old` and `g_now` have different signs (i.e., if one is positive and the other
-one is negative); otherwise returns `false`.
+one is negative). Otherwise, if `g_old` and `g_now` have the same sign or if
+either one of them are a `nothing` value, then returns `false`.
 """
 function surfacecrossing(g_old::Taylor1{T}, g_now::Taylor1{T},
         eventorder::Int) where {T <: Number}
     g_product = constant_term(g_old[eventorder])*constant_term(g_now[eventorder])
     return g_product < zero(g_product)
 end
+
+surfacecrossing(g_old::Taylor1{T}, g_now::Nothing, eventorder::Int) where {T <: Number} = false
+surfacecrossing(g_old::Nothing, g_now::Taylor1{T}, eventorder::Int) where {T <: Number} = false
+surfacecrossing(g_old::Nothing, g_now::Nothing, eventorder::Int) = false
 
 """
     nrconvergencecriterion(g_val, nrabstol::T, nriter::Int, newtoniter::Int) where {T<:Real}

@@ -1,7 +1,7 @@
 # [Poincaré maps](@id rootfinding)
 
 In this example, we shall illustrate how to construct a Poincaré map associated
-with the surface of section ``y=0``, ``\dot y>0``, for ``E=0.1025`` for the
+with the surface of section ``x=0``, ``\dot x>0``, for ``E=0.1025`` for the
 [Hénon-Heiles system](https://en.wikipedia.org/wiki/Hénon–Heiles_system). This is
 equivalent to find the roots of an appropriate function `g(t, x, dx)`. We
 illustrate the implementation using many initial conditions (Monte
@@ -70,8 +70,20 @@ H(x0)
 
 The scalar function `g`, which may depend on the time `t`, the vector of dependent
 variables `x` and even the velocities `dx`, defines the surface of section by
-means of the condition `g(t, x, dx) == 0`; `g` should return a variable of
-type `eltype(x)`. In the present case, it is defined as
+means of the condition `g(t, x, dx) == 0`. This function `g` should return a
+variable of type `eltype(x)`. In the particular case that the user wishes to
+discard a particular crossing (or crossings), the function `g` must then return
+a `nothing` value, as will be demonstrated below.
+
+For the present example, we are looking for crossings through the surface ``x=0``,
+which corresponds to `g(t, x, dx) = x[1]`. But since we are looking only for the
+crossings through ``x=0`` which also satisfy ``\dot x > 0``, we have to define
+`g` in such a way that the crossing is discarded *only* if ``\dot x < 0``. One
+way to achieve this, is to define `g` such that if ``\dot x > 0`` then `g`
+returns the value of `x[1]`; otherwise, if ``\dot x < 0``, then `g` returns a
+`nothing` value.
+
+Therefore, we define `g` as
 ```@example poincare
 # x=0, px>0 section
 function g(t, x, dx)
@@ -82,7 +94,7 @@ function g(t, x, dx)
         return x[1]
     else
         #otherwise, discard the crossing
-        return zero(x[1])
+        return nothing
     end
 end
 nothing # hide
@@ -184,7 +196,7 @@ function g(t, x::Array{Taylor1{TaylorN{T}},1}, dx::Array{Taylor1{TaylorN{T}},1})
     if px_ > zero( T )
         return x[1]
     else
-        return zero(x[1])
+        return nothing
     end
 end
 nothing # hide
