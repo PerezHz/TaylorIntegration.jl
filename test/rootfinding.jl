@@ -63,7 +63,6 @@ g(t, x, dx) = x[2]
     @test size(xvS1) == (0,2)
     @test size(gvS1) == (0,)
 
-
     #testing 0-th order root-finding
     tv, xv, tvS, xvS, gvS = taylorinteg(pendulum!, g, x0, t0, 3T, _order, _abstol, maxsteps=1000)
     @test tv[1] == t0
@@ -72,47 +71,61 @@ g(t, x, dx) = x[2]
     @test norm(tvS-[T/2,T,3T/2,2T,5T/2],Inf) < 1E-13
     @test norm(gvS,Inf) < eps()
 
+    #testing 0-th order root-finding with time ranges/vectors
+    tvr = [t0, T/2, T, 3T/2, 2T, 5T/2, 3T]
+    @test_throws AssertionError taylorinteg(pendulum!, g, x0, view(tvr, :), _order, _abstol, maxsteps=1000, eventorder=_order+1)
+    xvr, tvSr, xvSr, gvSr = taylorinteg(pendulum!, g, x0, view(tvr, :), _order, _abstol, maxsteps=1000)
+    @test xvr[1,:] == x0
+    @test size(tvSr) == (5,)
+    @test size(tvSr) == size(tvr[2:end-1])
+    @test norm(tvSr-[T/2,T,3T/2,2T,5T/2],Inf) < 1E-13
+    @test norm(tvr[2:end-1]-tvSr, Inf) < 1E-14
+    @test norm(xvr[2:end-1,:]-xvSr, Inf) < 1E-14
+    @test norm(gvSr[:]) < eps()
+    @test norm(tvS-tvSr, Inf) < 5E-15
+
     #testing 0-th order root-finding + TaylorN jet transport
     tvN, xvN, tvSN, xvSN, gvSN = taylorinteg(pendulum!, g, x0N, t0, 3T, _order, _abstol, maxsteps=1000)
     @test size(tvSN) == size(tvS)
     @test size(xvSN) == size(xvS)
     @test size(gvSN) == size(gvS)
-    @test norm( map(z->map(y->y.coeffs, z.coeffs), gvSN) ) < 1E-14
-    @test norm(evaluate.(tvSN)-[T/2,T,3T/2,2T,5T/2],Inf) < 1E-13
-    @test norm(evaluate.(xvSN)-xvS, Inf) < 1E-15
+    @test norm(gvSN[:]) < 1E-15
+    @test norm( tvSN()-[T/2,T,3T/2,2T,5T/2], Inf ) < 1E-13
+    @test norm( xvSN()-xvS, Inf ) < 1E-14
 
     #testing 0-th root-finding + Taylor1 jet transport
     tv1, xv1, tvS1, xvS1, gvS1 = taylorinteg(pendulum!, g, x01, t0, 3T, _order, _abstol, maxsteps=1000)
     @test size(tvS1) == size(tvS)
     @test size(xvS1) == size(xvS)
     @test size(gvS1) == size(gvS)
-    @test norm( map(z->z.coeffs, gvS1) ) < 1E-14
-    @test norm(evaluate.(tvS1)-[T/2,T,3T/2,2T,5T/2],Inf) < 1E-13
-    @test norm(evaluate.(xvS1)-xvS, Inf) < 1E-15
+    @test norm(gvS1[:]) < 1E-14
+    @test norm( tvS1()-[T/2,T,3T/2,2T,5T/2], Inf ) < 1E-13
+    @test norm( xvS1()-xvS, Inf ) < 1E-14
 
     #testing surface higher order crossing detections and root-finding
+    @test_throws AssertionError taylorinteg(pendulum!, g, x0, t0, 3T, _order, _abstol, maxsteps=1000, eventorder=_order+1, newtoniter=2)
     tv, xv, tvS, xvS, gvS = taylorinteg(pendulum!, g, x0, t0, 3T, _order, _abstol, maxsteps=1000, eventorder=2, newtoniter=2)
     @test tv[1] == t0
     @test xv[1,:] == x0
     @test size(tvS) == (5,)
     @test norm(tvS-[T/2,T,3T/2,2T,5T/2],Inf) < 1E-13
-    @test norm(gvS,Inf) < 1E-15
+    @test norm(gvS[:]) < 1E-15
 
     #testing higher order root-finding + TaylorN jet transport
     tvN, xvN, tvSN, xvSN, gvSN = taylorinteg(pendulum!, g, x0N, t0, 3T, _order, _abstol, maxsteps=1000, eventorder=2)
     @test size(tvSN) == size(tvS)
     @test size(xvSN) == size(xvS)
     @test size(gvSN) == size(gvS)
-    @test norm( map(z->map(y->y.coeffs, z.coeffs), gvSN) ) < 1E-12
-    @test norm(evaluate.(tvSN)-[T/2,T,3T/2,2T,5T/2],Inf) < 1E-13
-    @test norm(evaluate.(xvSN)-xvS, Inf) < 1E-14
+    @test norm(gvSN[:]) < 1E-13
+    @test norm(tvSN()-[T/2,T,3T/2,2T,5T/2],Inf) < 1E-13
+    @test norm(xvSN()-xvS, Inf) < 1E-14
 
     #testing higher root-finding + Taylor1 jet transport
     tv1, xv1, tvS1, xvS1, gvS1 = taylorinteg(pendulum!, g, x01, t0, 3T, _order, _abstol, maxsteps=1000, eventorder=2)
     @test size(tvS1) == size(tvS)
     @test size(xvS1) == size(xvS)
     @test size(gvS1) == size(gvS)
-    @test norm( map(z->z.coeffs, gvS1) ) < 1E-12
-    @test norm(evaluate.(tvS1)-[T/2,T,3T/2,2T,5T/2],Inf) < 1E-13
-    @test norm(evaluate.(xvS1)-xvS, Inf) < 1E-14
+    @test norm(gvS1[:]) < 1E-14
+    @test norm( tvS1()-[T/2,T,3T/2,2T,5T/2], Inf ) < 1E-13
+    @test norm( xvS1()-xvS, Inf ) < 1E-14
 end

@@ -303,14 +303,14 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
     return view(tv,1:nsteps),  view(transpose(xv),1:nsteps,:),  view(transpose(λ),1:nsteps,:)
 end
 
-function lyap_taylorinteg(f!, q0::Array{U,1}, trange::Union{AbstractRange{T},Vector{T}},
+function lyap_taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
         order::Int, abstol::T, jacobianfunc! =nothing; maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real, U<:Number}
     # Allocation
     nn = length(trange)
     dof = length(q0)
     xv = Array{U}(undef, dof, nn)
     fill!(xv, U(NaN))
-    λ = similar(xv)
+    λ = Array{U}(undef, dof, maxsteps+1)
     λtsum = similar(q0)
     jt = Matrix{U}(I, dof, dof)
     _δv = Array{TaylorN{Taylor1{U}}}(undef, dof)
@@ -325,10 +325,12 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, trange::Union{AbstractRange{T},Vec
     # Initialize the vector of Taylor1 expansions
     t = Taylor1(T, order)
     x0 = vcat(q0, reshape(jt, dof*dof))
+    q1 = similar(q0)
     nx0 = length(x0)
     x = Array{Taylor1{U}}(undef, nx0)
     x .= Taylor1.( x0, order )
     @inbounds t[0] = trange[1]
+    @inbounds t0, t1, tmax = trange[1], trange[2], trange[end]
     t00 = trange[1]
     tspan = zero(T)
 
@@ -365,41 +367,47 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, trange::Union{AbstractRange{T},Vec
     end
 
     # Integration
-    iter = 1
-    while iter < nn
-        t0, t1 = trange[iter], trange[iter+1]
-        nsteps = 0
-        while nsteps < maxsteps
-            δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol, _δv, varsaux, parse_eqs, jacobianfunc!)
-            for ind in eachindex(jt)
-                @inbounds jt[ind] = x0[dof+ind]
-            end
-            modifiedGS!( jt, QH, RH, aⱼ, qᵢ, vⱼ )
-            t0 += δt
-            @inbounds t[0] = t0
-            nsteps += 1
-            @inbounds for ind in eachindex(q0)
-                λtsum[ind] += log(RH[ind,ind])
-            end
-            for ind in eachindex(QH)
-                @inbounds x0[dof+ind] = QH[ind]
-            end
-            x .= Taylor1.( x0, order )
-            t0 ≥ t1 && break
+    iter = 2
+    nsteps = 1
+    while t0 < tmax
+        δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, tmax, x0, order, abstol, _δv, varsaux, parse_eqs, jacobianfunc!)
+        for ind in eachindex(jt)
+            @inbounds jt[ind] = x0[dof+ind]
         end
-        if nsteps ≥ maxsteps && t0 != t1
+        modifiedGS!( jt, QH, RH, aⱼ, qᵢ, vⱼ )
+        tnext = t0+δt
+        # Evaluate solution at times within convergence radius
+        while t1 < tnext
+            evaluate!(x[1:dof], t1-t0, q1)
+            @inbounds xv[:,iter] .= q1
+            iter += 1
+            @inbounds t1 = trange[iter]
+        end
+        if δt == tmax-t0
+            @inbounds xv[:,iter] .= x0[1:dof]
+            break
+        end
+        t0 = tnext
+        @inbounds t[0] = t0
+        tspan = t0-t00
+        nsteps += 1
+        # @inbounds tv[nsteps] = t0
+        @inbounds for ind in eachindex(q0)
+            # xv[ind,nsteps] = x0[ind]
+            λtsum[ind] += log(RH[ind,ind])
+            λ[ind,nsteps] = λtsum[ind]/tspan
+        end
+        for ind in eachindex(QH)
+            @inbounds x0[dof+ind] = QH[ind]
+        end
+        x .= Taylor1.( x0, order )
+        if nsteps > maxsteps
             @info("""
             Maximum number of integration steps reached; exiting.
             """)
             break
         end
-        iter += 1
-        tspan = t0-t00
-        @inbounds for ind in eachindex(q0)
-            xv[ind,iter] = x0[ind]
-            λ[ind,iter] = λtsum[ind]/tspan
-        end
     end
 
-    return transpose(xv),  transpose(λ)
+    return transpose(xv),  view(transpose(λ),1:nsteps,:)
 end

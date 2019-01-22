@@ -6,13 +6,18 @@ the last-before-current value of event function `g`; `g_now` represents the
 current value of event function `g`; `eventorder` is the order of the derivative
 of the event function `g` whose root we are trying to find. Returns `true` if
 `g_old` and `g_now` have different signs (i.e., if one is positive and the other
-one is negative); otherwise returns `false`.
+one is negative). Otherwise, if `g_old` and `g_now` have the same sign or if
+either one of them are a `nothing` value, then returns `false`.
 """
 function surfacecrossing(g_old::Taylor1{T}, g_now::Taylor1{T},
         eventorder::Int) where {T <: Number}
     g_product = constant_term(g_old[eventorder])*constant_term(g_now[eventorder])
     return g_product < zero(g_product)
 end
+
+surfacecrossing(g_old::Taylor1{T}, g_now::Nothing, eventorder::Int) where {T <: Number} = false
+surfacecrossing(g_old::Nothing, g_now::Taylor1{T}, eventorder::Int) where {T <: Number} = false
+surfacecrossing(g_old::Nothing, g_now::Nothing, eventorder::Int) = false
 
 """
     nrconvergencecriterion(g_val, nrabstol::T, nriter::Int, newtoniter::Int) where {T<:Real}
@@ -151,7 +156,9 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
         order::Int, abstol::T; maxsteps::Int=500, parse_eqs::Bool=true,
         eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
 
-    # Allocation
+    @assert order ≥ eventorder "`eventorder` must be less than or equal to `order`"
+
+        # Allocation
     tv = Array{T}(undef, maxsteps+1)
     dof = length(q0)
     xv = Array{U}(undef, dof, maxsteps+1)
@@ -168,6 +175,16 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
     x .= Taylor1.(q0, order)
     @inbounds tv[1] = t0
     @inbounds xv[:,1] .= q0
+
+    # Determine if specialized jetcoeffs! method exists
+    parse_eqs = parse_eqs && (length(methods(jetcoeffs!)) > 2)
+    if parse_eqs
+        try
+            jetcoeffs!(Val(f!), t, x, dx)
+        catch
+            parse_eqs = false
+        end
+    end
 
     #Some auxiliary arrays for root-finding/event detection/Poincaré surface of section evaluation
     g_val = zero(g(t,x,x))
@@ -225,4 +242,156 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
     end
 
     return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:), view(tvS,1:nevents-1), view(transpose(view(xvS,:,1:nevents-1)),1:nevents-1,:), view(gvS,1:nevents-1)
+end
+
+"""
+    taylorinteg(f, g, x0, trange, order, abstol; kwargs... )
+
+Root-finding method of `taylorinteg`; returns the solution of the ODE evaluated
+*only* at the times specified by `trange`. Given a function `g(t, x, dx)`,
+called the event function, `taylorinteg` checks for the occurrence of a root
+of `g` evaluated at the solution; that is, it checks for the occurrence of an
+event or condition specified by `g=0`. Then, `taylorinteg` attempts to find that
+root (or event, or crossing) by performing a Newton-Raphson process. When
+called with the `eventorder=n` keyword argument, `taylorinteg` searches for the
+roots of the `n`-th derivative of `g`, which is computed via automatic
+differentiation.
+
+`maxsteps` is the maximum number of allowed time steps; `eventorder` is the
+order of the derivatives of `g` whose roots the user is interested in finding;
+`newtoniter` is the maximum number of Newton-Raphson iterations per detected
+root; `nrabstol` is the allowed tolerance for the Newton-Raphson process.
+
+The current keyword arguments are `maxsteps=500`, `eventorder=0`,
+`newtoniter=10`, and `nrabstol=eps(T)`, where `T` is the common type of `t0`,
+`tmax` and `abstol`.
+
+For more details about conventions in `taylorinteg`, please see [`taylorinteg`](@ref).
+
+**Examples**:
+
+```julia
+    using TaylorIntegration
+
+    function pendulum!(t, x, dx)
+        dx[1] = x[2]
+        dx[2] = -sin(x[1])
+        nothing
+    end
+
+    g(t, x, dx) = x[2]
+
+    x0 = [1.3, 0.0]
+
+    # times at which the solution will be returned
+    tv = 0.0:1.0:22.0
+
+    # find the roots of `g` along the solution; return the solution *only* at each value of `tv`
+    xv, tvS, xvS, gvS = taylorinteg(pendulum!, g, x0, tv, 28, 1.0E-20);
+
+    # find the roots of the 2nd derivative of `g` along the solution; return the solution *only* at each value of `tv`
+    xv, tvS, xvS, gvS = taylorinteg(pendulum!, g, x0, tv, 28, 1.0E-20; eventorder=2);
+```
+"""
+function taylorinteg(f!, g, q0::Array{U,1}, trange::AbstractVector{T},
+        order::Int, abstol::T; maxsteps::Int=500, parse_eqs::Bool=true,
+        eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
+
+    @assert order ≥ eventorder "`eventorder` must be less than or equal to `order`"
+
+    # Allocation
+    nn = length(trange)
+    dof = length(q0)
+    x0 = similar(q0, eltype(q0), dof)
+    fill!(x0, T(NaN))
+    xv = Array{eltype(q0)}(undef, dof, nn)
+    for ind in 1:nn
+        @inbounds xv[:,ind] .= x0
+    end
+
+    # Initialize the vector of Taylor1 expansions
+    t = Taylor1( T, order )
+    x = Array{Taylor1{U}}(undef, dof)
+    dx = Array{Taylor1{U}}(undef, dof)
+    xaux = Array{Taylor1{U}}(undef, dof)
+    for i in eachindex(q0)
+        @inbounds x[i] = Taylor1( q0[i], order )
+        @inbounds dx[i] = Taylor1( zero(q0[i]), order )
+    end
+
+    # Initial conditions
+    @inbounds t[0] = trange[1]
+    @inbounds t0, t1, tmax = trange[1], trange[2], trange[end]
+    x0 = deepcopy(q0)
+    x1 = similar(x0)
+    x .= Taylor1.(q0, order)
+    @inbounds xv[:,1] .= q0
+
+    # Determine if specialized jetcoeffs! method exists
+    parse_eqs = parse_eqs && (length(methods(jetcoeffs!)) > 2)
+    if parse_eqs
+        try
+            jetcoeffs!(Val(f!), t, x, dx)
+        catch
+            parse_eqs = false
+        end
+    end
+
+    #Some auxiliary arrays for root-finding/event detection/Poincaré surface of section evaluation
+    g_val = zero(g(t,x,x))
+    g_val_old = zero(g_val)
+    slope = zero(U)
+    dt_li = zero(U)
+    dt_nr = zero(U)
+    δt = zero(U)
+    δt_old = zero(U)
+
+    x_dx = vcat(x, dx)
+    g_dg = vcat(g_val, g_val_old)
+    x_dx_val = Array{U}(undef, length(x_dx) )
+    g_dg_val = vcat(evaluate(g_val), evaluate(g_val_old))
+
+    tvS = Array{U}(undef, maxsteps+1)
+    xvS = similar(xv)
+    gvS = similar(tvS)
+
+    # Integration
+    iter = 2
+    nsteps = 1
+    nevents = 1 #number of detected events
+    while t0 < tmax
+        δt_old = δt
+        δt = taylorstep!(f!, t, x, dx, xaux, t0, tmax, x0, order, abstol, parse_eqs)
+        tnext = t0+δt
+        # Evaluate solution at times within convergence radius
+        while t1 < tnext
+            evaluate!(x, t1-t0, x1)
+            @inbounds xv[:,iter] .= x1
+            iter += 1
+            @inbounds t1 = trange[iter]
+        end
+        if δt == tmax-t0
+            @inbounds xv[:,iter] .= x0
+            break
+        end
+        g_val = g(t, x, dx)
+        nevents = findroot!(g, t, x, dx, g_val_old, g_val, eventorder,
+            tvS, xvS, gvS, t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val,
+            nrabstol, newtoniter, nevents)
+        g_val_old = deepcopy(g_val)
+        for i in eachindex(x0)
+            @inbounds x[i][0] = x0[i]
+        end
+        t0 = tnext
+        @inbounds t[0] = t0
+        nsteps += 1
+        if nsteps > maxsteps
+            @info("""
+            Maximum number of integration steps reached; exiting.
+            """)
+            break
+        end
+    end
+
+    return transpose(xv), view(tvS,1:nevents-1), view(transpose(view(xvS,:,1:nevents-1)),1:nevents-1,:), view(gvS,1:nevents-1)
 end
