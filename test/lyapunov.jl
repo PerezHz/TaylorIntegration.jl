@@ -206,9 +206,13 @@ end
     @time xw, λw = lyap_taylorinteg(lorenz!, q0, trange, _order, _abstol; maxsteps=2000)
     @test xw[1,:] == q0
     @test size(xw) == (length(trange), length(q0))
-    # @test size(λw) == (length(trange), length(q0))
+    @test size(λw) == (length(trange), length(q0))
     @test isapprox(sum(λw[1,:]), lorenztr) == false
     @test isapprox(sum(λw[end,:]), lorenztr)
+    tz, xz, λz = lyap_taylorinteg(lorenz!, q0, trange[1], trange[end], _order, _abstol; maxsteps=2000)
+    @test λw[end,:] == λz[end,:]
+    @test xw[end,:] == xz[end,:]
+    @test tz[end] == trange[end]
     mytol = 1e-4
     @test isapprox(λw[end,1], 1.47167, rtol=mytol, atol=mytol)
     @test isapprox(λw[end,2], -0.00831, rtol=mytol, atol=mytol)
@@ -216,6 +220,10 @@ end
     @time xw_, λw_ = lyap_taylorinteg(lorenz!, q0, trange, _order, _abstol, lorenz_jac!; maxsteps=2000)
     @test xw == xw_
     @test λw == λw_
+    tz_, xz_, λz_ = lyap_taylorinteg(lorenz!, q0, trange[1], trange[end], _order, _abstol, lorenz_jac!; maxsteps=2000)
+    @test λw_[end,:] == λz_[end,:]
+    @test xw_[end,:] == xz_[end,:]
+    @test tz_[end] == trange[end]
 
     @time xw2, λw2 = lyap_taylorinteg(lorenz!, q0, vec(trange), _order, _abstol; maxsteps=2000)
     @test xw2 == xw
@@ -224,6 +232,10 @@ end
     @test size(xw) == (length(trange), length(q0))
     @test isapprox(sum(λw2[1,:]), lorenztr) == false
     @test isapprox(sum(λw2[end,:]), lorenztr)
+    tz2, xz2, λz2 = lyap_taylorinteg(lorenz!, q0, trange[1], trange[end], _order, _abstol; maxsteps=2000)
+    @test λw2[end,:] == λz2[end,:]
+    @test xw2[end,:] == xz2[end,:]
+    @test tz2[end] == trange[end]
     mytol = 1e-4
     @test isapprox(λw2[end,1], 1.47167, rtol=mytol, atol=mytol)
     @test isapprox(λw2[end,2], -0.00831, rtol=mytol, atol=mytol)
@@ -231,6 +243,10 @@ end
     @time xw2_, λw2_ = lyap_taylorinteg(lorenz!, q0, vec(trange), _order, _abstol, lorenz_jac!; maxsteps=2000)
     @test xw2 == xw2_
     @test λw2 == λw2_
+    tz2_, xz2_, λz2_ = lyap_taylorinteg(lorenz!, q0, trange[1], trange[end], _order, _abstol, lorenz_jac!; maxsteps=2000)
+    @test λw2_[end,:] == λz2_[end,:]
+    @test xw2_[end,:] == xz2_[end,:]
+    @test tz2_[end] == trange[end]
 
     # Check integration consistency (orbit should not depend on variational eqs)
     x_ = taylorinteg(lorenz!, q0, vec(trange), _order, _abstol; maxsteps=2000)
