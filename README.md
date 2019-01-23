@@ -15,7 +15,7 @@ Coverage:
 [codecov-img]: https://img.shields.io/travis/PerezHz/TaylorIntegration.jl/master.svg?label=codecov
 
 Documentation:
-[![](https://img.shields.io/badge/docs-latest-blue.svg)](https://PerezHz.github.io/TaylorIntegration.jl/latest)
+[![](https://img.shields.io/badge/docs-latest-blue.svg)](https://PerezHz.github.io/TaylorIntegration.jl/latest) [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://PerezHz.github.io/TaylorIntegration.jl/stable)
 
 ODE integration using Taylor's method in [Julia](http://julialang.org).
 
