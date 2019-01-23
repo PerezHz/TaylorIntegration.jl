@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Poincaré maps · TaylorIntegration.jl</title><link href="https://cdnjs.cloudflare.com/ajax/libs/normalize/4.2.0/normalize.min.css" rel="stylesheet" type="text/css"/><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.2.0/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link href="../assets/documenter.css" rel="stylesheet" type="text/css"/></head><body><nav class="toc"><h1>TaylorIntegration.jl</h1><select id="version-selector" onChange="window.location.href=this.value" style="visibility: hidden"></select><form class="search" id="search-form" action="../search/"><input id="search-query" name="q" type="text" placeholder="Search docs"/></form><ul><li><a class="toctext" href="../">Home</a></li><li><span class="toctext">Background</span><ul><li><a class="toctext" href="../taylor_method/">ODE integration using Taylor&#39;s method</a></li><li><a class="toctext" href="../lyapunov_spectrum/">Lyapunov spectrum</a></li><li><a class="toctext" href="../jet_transport/">Jet transport</a></li></ul></li><li><span class="toctext">Examples</span><ul><li><a class="toctext" href="../simple_example/">Infinity in finite time</a></li><li><a class="toctext" href="../kepler/">The Kepler problem</a></li><li><a class="toctext" href="../lorenz_lyapunov/">Lyapunov spectrum of Lorenz system</a></li><li><a class="toctext" href="../pendulum/">Jet transport: the simple pendulum</a></li><li class="current"><a class="toctext" href>Poincaré maps</a><ul class="internal"><li><a class="toctext" href="#Monte-Carlo-simulation-1">Monte Carlo simulation</a></li><li><a class="toctext" href="#jettransport2-1">Jet transport</a></li></ul></li><li><a class="toctext" href="../common/">Interoperability with <code>DifferentialEquations.jl</code></a></li></ul></li><li><a class="toctext" href="../taylorize/">Optimizing: <code>@taylorize</code></a></li><li><a class="toctext" href="../api/">API</a></li></ul></nav><article id="docs"><header><nav><ul><li>Examples</li><li><a href>Poincaré maps</a></li></ul><a class="edit-page" href="https://github.com/PerezHz/TaylorIntegration.jl/blob/master/docs/src/root_finding.md"><span class="fa"></span> Edit on GitHub</a></nav><hr/><div id="topbar"><span>Poincaré maps</span><a class="fa fa-bars" href="#"></a></div></header><h1><a class="nav-anchor" id="rootfinding-1" href="#rootfinding-1">Poincaré maps</a></h1><p>In this example, we shall illustrate how to construct a Poincaré map associated with the surface of section <span>$x=0$</span>, <span>$\dot x&gt;0$</span>, for <span>$E=0.1025$</span> for the <a href="https://en.wikipedia.org/wiki/Hénon–Heiles_system">Hénon-Heiles system</a>. This is equivalent to find the roots of an appropriate function <code>g(t, x, dx)</code>. We illustrate the implementation using many initial conditions (Monte Carlo like implementation), and then compare the results with the use of <a href="../jet_transport/#jettransport-1">jet transport techniques</a>.</p><h2><a class="nav-anchor" id="Monte-Carlo-simulation-1" href="#Monte-Carlo-simulation-1">Monte Carlo simulation</a></h2><p>The Hénon-Heiles system is a 2-dof Hamiltonian system used to model the (planar) motion of a star around a galactic center. The Hamiltonian is given by <span>$H = (p_x^2+p_y^2)/2 + (x^2+y^2)/2 + \lambda (x^2y-y^3/3)$</span>, from which the equations of motion can be obtained; below we concentrate in the case <span>$\lambda=1$</span>.</p><div><pre><code class="language-julia"># Hamiltonian
+V(x,y) = 0.5*( x^2 + y^2 )+( x^2*y - y^3/3)
+H(x,y,p,q) = 0.5*(p^2+q^2) + V(x, y)
+H(x) = H(x...)
+
+# Equations of motion
+function henonheiles!(t, x, dx)
+    dx[1] = x[3]
+    dx[2] = x[4]
+    dx[3] = -x[1]-2x[2]*x[1]
+    dx[4] = -x[2]-(x[1]^2-x[2]^2)
+    nothing
+end</code></pre></div><p>We set the initial energy, which is a conserved quantity; <code>x0</code> corresponds to the initial condition, which will be properly adjusted to be in the correct energy surface.</p><div><pre><code class="language-julia"># initial energy and initial condition
+const E0 = 0.1025
+x0 = [0.0, 0.45335, 0.0, 0.0]</code></pre></div><p>In order to be able to generate (random) initial conditions with the appropriate energy, we write a function <code>px</code>, which depends on <code>x</code>, <code>y</code>, <code>py</code> and the energy <code>E</code> that returns the value of <code>px&gt;0</code> for which the initial condition <code>[x, y, px, py]</code> has energy <code>E</code>:</p><div><pre><code class="language-julia"># px: select px0&gt;0 such that E=E0
+px(x, E) = sqrt(2(E-V(x[1], x[2]))-x[4]^2)
+
+# px!: in-place version of px; returns the initial condition
+function px!(x, E)
+    mypx = px(x, E)
+    x[3] = mypx
+    return x
+end
+
+# run px!
+px!(x0, E0)</code></pre><pre><code class="language-none">4-element Array{Float64,1}:
+ 0.0
+ 0.45335
+ 0.24817464176177093
+ 0.0</code></pre></div><p>Let&#39;s check that the initial condition <code>x0</code> has actually energy equal to <code>E0</code>, up to roundoff accuracy:</p><div><pre><code class="language-julia">H(x0)</code></pre><pre><code class="language-none">0.1025</code></pre></div><p>The scalar function <code>g</code>, which may depend on the time <code>t</code>, the vector of dependent variables <code>x</code> and even the velocities <code>dx</code>, defines the surface of section by means of the condition <code>g(t, x, dx) == 0</code>. This function <code>g</code> should return a variable of type <code>eltype(x)</code>. In the particular case that the user wishes to discard a particular crossing (or crossings), the function <code>g</code> must then return a <code>nothing</code> value, as will be demonstrated below.</p><p>For the present example, we are looking for crossings through the surface <span>$x=0$</span>, which corresponds to <code>g(t, x, dx) = x[1]</code>. But since we are looking only for the crossings through <span>$x=0$</span> which also satisfy <span>$\dot x &gt; 0$</span>, we have to define <code>g</code> in such a way that the crossing is discarded <em>only</em> if <span>$\dot x &lt; 0$</span>. One way to achieve this, is to define <code>g</code> such that if <span>$\dot x &gt; 0$</span> then <code>g</code> returns the value of <code>x[1]</code>; otherwise, if <span>$\dot x &lt; 0$</span>, then <code>g</code> returns a <code>nothing</code> value.</p><p>Therefore, we define <code>g</code> as</p><div><pre><code class="language-julia"># x=0, px&gt;0 section
+function g(t, x, dx)
+    px_ = constant_term(x[3])
+    # if px &gt; 0...
+    if px_ &gt; zero(px_)
+        # ...return x
+        return x[1]
+    else
+        #otherwise, discard the crossing
+        return nothing
+    end
+end</code></pre></div><div class="admonition note"><div class="admonition-title">Note</div><div class="admonition-text"><p>Note that in the definition of <code>g</code> we want to make sure that we only take the &quot;positive&quot; crossings through the surface of section <span>$x=0$</span>; hence the <code>if...else...</code> block.</p></div></div><p>We initialize some auxiliary arrays, where we shall save the solutions:</p><div><pre><code class="language-julia"># number of initial conditions
+nconds = 100
+tvSv = Vector{Vector{Float64}}(undef, nconds)
+xvSv = Vector{Matrix{Float64}}(undef, nconds)
+gvSv = Vector{Vector{Float64}}(undef, nconds)
+x_ini = similar(x0)</code></pre></div><p>We generate <code>nconds</code> random initial conditions in a small neighborhood around <code>x0</code> and integrate the equations of motion from <code>t0=0</code> to <code>tmax=135</code>, using a polynomial of order 25 and absolute tolerance <code>1e-25</code>:</p><div><pre><code class="language-julia">using TaylorIntegration
+
+for i in 1:nconds
+    rand1 = rand()
+    rand2 = rand()
+    x_ini .= x0 .+ 0.005 .* [0.0, sqrt(rand1)*cos(2pi*rand2), 0.0, sqrt(rand1)*sin(2pi*rand2)]
+    px!(x_ini, E0)
+
+    tv_i, xv_i, tvS_i, xvS_i, gvS_i = taylorinteg(henonheiles!, g, x_ini, 0.0, 135.0,
+        25, 1e-25, maxsteps=30000);
+    tvSv[i] = vcat(0.0, tvS_i)
+    xvSv[i] = vcat(transpose(x_ini), xvS_i)
+    gvSv[i] = vcat(0.0, gvS_i)
+end</code></pre></div><p>We generate an animation with the solutions</p><pre><code class="language-">using Plots
+poincare_anim1 = @animate for i=1:21
+    scatter(map(x-&gt;x[i,2], xvSv), map(x-&gt;x[i,4], xvSv), label=&quot;$(i-1)-th iterate&quot;,
+        m=(1,stroke(0)), ratio=:equal)
+    xlims!(0.08, 0.48)
+    ylims!(-0.13, 0.13)
+    xlabel!(&quot;y&quot;)
+    ylabel!(&quot;py&quot;)
+    title!(&quot;Hénon-Heiles Poincaré map (21 iterates)&quot;)
+end
+gif(poincare_anim1, &quot;poincareanim1.gif&quot;, fps = 2);
+nothing # hide</code></pre><p><img src="../assets/figures/poincareanim1.gif" alt="Poincaré map for the Hénon Heiles system"/></p><h2><a class="nav-anchor" id="jettransport2-1" href="#jettransport2-1">Jet transport</a></h2><p>Now, we illustrate the use of jet transport techniques in the same example, that is, we propagate a neighborhood around <code>x0</code>, which will be plotted in the Poincaré map. We first define the vector of small increments of the phase space variables, <code>xTN</code>; we fix the maximum order of the polynomial expansion in these variables to be <code>4</code>. Then, <code>x0TN</code> is the neighborhood in the 4-dimensional phase space around <span>$x0$</span>.</p><div><pre><code class="language-julia">xTN = set_variables(&quot;δx δy δpx δpy&quot;, numvars=length(x0), order=4)
+x0TN = x0 .+ xTN</code></pre></div><p>As it was shown above, <span>$x0$</span> belongs to the energy surface <span>$H(x0) = E_0 = 0.1025$</span>; yet, as it was defined above, the set of phase space points denoted by <code>x0TN</code> includes points that belong to other energy surfaces. This can be noticed by computing <code>H(x0TN)</code></p><div><pre><code class="language-julia">H(x0TN)</code></pre><pre><code class="language-none"> 0.1025 + 0.2478237775 δy + 0.24817464176177093 δpx + 0.9533499999999999 δx² + 0.046650000000000025 δy² + 0.5 δpx² + 0.5 δpy² + 1.0 δx² δy - 0.3333333333333333 δy³ + 𝒪(‖x‖⁵)</code></pre></div><p>Clearly, the expression above may contain points whose energy is different from <code>E0</code>. As it was done above, we shall fix the <code>px</code> component of <code>x0TN</code> so <em>all</em> points of the neighborhood are in the same energy surface.</p><div><pre><code class="language-julia">px!(x0TN, E0) # Impose that all variations are on the proper energy shell!
+H(x0TN)</code></pre><pre><code class="language-none"> 0.1025 + 2.7755575615628914e-17 δy + 5.551115123125783e-17 δy² - 4.440892098500626e-16 δx² δy - 5.551115123125783e-17 δy³ - 1.7763568394002505e-15 δx² δy² + 8.881784197001252e-16 δx² δpy² + 4.440892098500626e-16 δy⁴ + 8.881784197001252e-16 δy² δpy² + 4.440892098500626e-16 δpy⁴ + 𝒪(‖x‖⁵)</code></pre></div><p>We notice that the coefficients of all monomials whose order is not zero are very small, and the constant_term is <code>E0</code>.</p><p>In order to properly handle this case, we need to extend the definition of <code>g</code> to be useful for <code>Taylor1{TaylorN{T}}</code> vectors.</p><div><pre><code class="language-julia">#specialized method of g for Taylor1{TaylorN{T}}&#39;s
+function g(t, x::Array{Taylor1{TaylorN{T}},1}, dx::Array{Taylor1{TaylorN{T}},1}) where {T&lt;:Number}
+    px_ = constant_term(constant_term(x[3]))
+    if px_ &gt; zero( T )
+        return x[1]
+    else
+        return nothing
+    end
+end</code></pre></div><p>We are now set to carry out the integration.</p><div><pre><code class="language-julia">tvTN, xvTN, tvSTN, xvSTN, gvSTN = taylorinteg(henonheiles!, g, x0TN, 0.0, 135.0, 25, 1e-25, maxsteps=30000);</code></pre></div><p>We define some auxiliary arrays, and then make an animation with the results for plotting.</p><pre><code class="language-">#some auxiliaries:
+xvSTNaa = Array{Array{TaylorN{Float64},1}}(undef, length(tvSTN)+1 );
+xvSTNaa[1] = x0TN
+for ind in 2:length(tvSTN)+1
+    whatever = xvSTN[ind-1,:]
+    xvSTNaa[ind] = whatever
+end
+tvSTNaa = union([zero(tvSTN[1])], tvSTN);
+
+myrnd  = 0:0.01:1
+npoints = length(myrnd)
+ncrosses = length(tvSTN)
+yS = Array{Float64}(undef, ncrosses+1, npoints)
+pS = Array{Float64}(undef, ncrosses+1, npoints)
+
+myrad=0.005
+ξy = @. myrad * cos(2pi*myrnd)
+ξp = @. myrad * sin(2pi*myrnd)
+
+for indpoint in 1:npoints
+    yS[1,indpoint] = x0[2] + ξy[indpoint]
+    pS[1,indpoint] = x0[4] + ξp[indpoint]
+    mycond = [0.0, ξy[indpoint], 0.0, ξp[indpoint]]
+    for indS in 2:ncrosses+1
+        temp = evaluate(xvSTNaa[indS], mycond)
+        yS[indS,indpoint] = temp[2]
+        pS[indS,indpoint] = temp[4]
+    end
+end
+
+poincare_anim2 = @animate for i=1:21
+    scatter(map(x-&gt;x[i,2], xvSv), map(x-&gt;x[i,4], xvSv), marker=(:circle, stroke(0)),
+        markersize=0.01, label=&quot;Monte Carlo&quot;)
+    plot!(yS[i,:], pS[i,:], width=0.1, label=&quot;Jet transport&quot;)
+    xlims!(0.09,0.5)
+    ylims!(-0.11,0.11)
+    xlabel!(&quot;y&quot;)
+    ylabel!(&quot;py&quot;)
+    title!(&quot;Poincaré map: 4th-order jet transport vs Monte Carlo&quot;)
+end
+gif(poincare_anim2, &quot;poincareanim2.gif&quot;, fps = 2);
+nothing # hide</code></pre><p><img src="../assets/figures/poincareanim2.gif" alt="Poincaré map: Jet transport vs Monte Carlo"/></p><p>The next animation is the same as before, adapting the scale.</p><pre><code class="language-">poincare_anim3 = @animate for i=1:21
+    scatter(map(x-&gt;x[i,2], xvSv), map(x-&gt;x[i,4], xvSv), marker=(:circle, stroke(0)),
+        markersize=0.01, label=&quot;Monte Carlo&quot;)
+    plot!(yS[i,:], pS[i,:], width=0.1, label=&quot;Jet transport&quot;)
+    xlabel!(&quot;y&quot;)
+    ylabel!(&quot;py&quot;)
+    title!(&quot;Poincaré map: 4th-order jet transport vs Monte Carlo&quot;)
+end
+gif(poincare_anim3, &quot;poincareanim3.gif&quot;, fps = 2);
+nothing # hide</code></pre><p><img src="../assets/figures/poincareanim3.gif" alt="Poincaré map: Jet transport vs Monte Carlo"/></p><footer><hr/><a class="previous" href="../pendulum/"><span class="direction">Previous</span><span class="title">Jet transport: the simple pendulum</span></a><a class="next" href="../common/"><span class="direction">Next</span><span class="title">Interoperability with <code>DifferentialEquations.jl</code></span></a></footer></article></body></html>
