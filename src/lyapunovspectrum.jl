@@ -311,7 +311,7 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
     xv = Array{U}(undef, dof, nn)
     fill!(xv, U(NaN))
     λ = Array{U}(undef, dof, nn)
-    # fill!(λ, U(NaN))
+    fill!(λ, U(NaN))
     λtsum = similar(q0)
     jt = Matrix{U}(I, dof, dof)
     _δv = Array{TaylorN{Taylor1{U}}}(undef, dof)
@@ -372,30 +372,33 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
     nsteps = 1
     while t0 < tmax
         δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, tmax, x0, order, abstol, _δv, varsaux, parse_eqs, jacobianfunc!)
-        # for ind in eachindex(jt)
-        #     @inbounds jt[ind] = x0[dof+ind]
-        # end
-        # modifiedGS!( jt, QH, RH, aⱼ, qᵢ, vⱼ )
         tnext = t0+δt
         # # Evaluate solution at times within convergence radius
-        while t1 <= tnext
+        while t1 < tnext
             evaluate!(x[1:dof], t1-t0, q1)
             @inbounds xv[:,iter] .= q1
-
             for ind in eachindex(jt)
                 @inbounds jt[ind] = evaluate(x[dof+ind], δt)
             end
-                modifiedGS!( jt, QH, RH, aⱼ, qᵢ, vⱼ )
+            modifiedGS!( jt, QH, RH, aⱼ, qᵢ, vⱼ )
             tspan = t1-t00
             @inbounds for ind in eachindex(q0)
-                # xv[ind,nsteps] = x0[ind]
-                # λtsum[ind] += log(RH[ind,ind])
                 λ[ind,iter] = (λtsum[ind]+log(RH[ind,ind]))/tspan
             end
-
             iter += 1
             @inbounds t1 = trange[iter]
-            nsteps = 0
+        end
+        if δt == tmax-t0
+            @inbounds xv[:,iter] .= x0[1:dof]
+            for ind in eachindex(jt)
+                @inbounds jt[ind] = x0[dof+ind]
+            end
+            modifiedGS!( jt, QH, RH, aⱼ, qᵢ, vⱼ )
+            tspan = tmax-t00
+            @inbounds for ind in eachindex(q0)
+                λ[ind,iter] = (λtsum[ind]+log(RH[ind,ind]))/tspan
+            end
+            break
         end
 
         for ind in eachindex(jt)
@@ -403,20 +406,11 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
         end
         modifiedGS!( jt, QH, RH, aⱼ, qᵢ, vⱼ )
 
-
-        # if δt == tmax-t0
-        #     @inbounds xv[:,iter] .= x0[1:dof]
-        #     break
-        # end
         t0 = tnext
         @inbounds t[0] = t0
-        # tspan = t0-t00
         nsteps += 1
-        # @inbounds tv[nsteps] = t0
         @inbounds for ind in eachindex(q0)
-            # xv[ind,nsteps] = x0[ind]
             λtsum[ind] += log(RH[ind,ind])
-            # λ[ind,nsteps] = λtsum[ind]/tspan
         end
         for ind in eachindex(QH)
             @inbounds x0[dof+ind] = QH[ind]
