@@ -1,5 +1,7 @@
 # TaylorIntegration.jl
 
+ODE integration using Taylor's method in [Julia](http://julialang.org).
+
 [![TaylorIntegration](http://pkg.julialang.org/badges/TaylorIntegration_0.6.svg)](http://pkg.julialang.org/?pkg=TaylorIntegration) [![TaylorIntegration](http://pkg.julialang.org/badges/TaylorIntegration_0.7.svg)](http://pkg.julialang.org/detail/TaylorIntegration)
 
 Build status:
@@ -17,7 +19,8 @@ Coverage:
 Documentation:
 [![](https://img.shields.io/badge/docs-latest-blue.svg)](https://PerezHz.github.io/TaylorIntegration.jl/latest) [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://PerezHz.github.io/TaylorIntegration.jl/stable)
 
-ODE integration using Taylor's method in [Julia](http://julialang.org).
+DOI:
+[![DOI](https://zenodo.org/badge/65340295.svg)](https://zenodo.org/badge/latestdoi/65340295)
 
 ## Authors
 
