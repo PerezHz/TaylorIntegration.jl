@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Jet transport · TaylorIntegration.jl</title><link href="https://cdnjs.cloudflare.com/ajax/libs/normalize/4.2.0/normalize.min.css" rel="stylesheet" type="text/css"/><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.2.0/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link href="../assets/documenter.css" rel="stylesheet" type="text/css"/></head><body><nav class="toc"><h1>TaylorIntegration.jl</h1><select id="version-selector" onChange="window.location.href=this.value" style="visibility: hidden"></select><form class="search" id="search-form" action="../search/"><input id="search-query" name="q" type="text" placeholder="Search docs"/></form><ul><li><a class="toctext" href="../">Home</a></li><li><span class="toctext">Background</span><ul><li><a class="toctext" href="../taylor_method/">ODE integration using Taylor&#39;s method</a></li><li><a class="toctext" href="../lyapunov_spectrum/">Lyapunov spectrum</a></li><li class="current"><a class="toctext" href>Jet transport</a><ul class="internal"><li><a class="toctext" href="#A-simple-example-1">A simple example</a></li></ul></li></ul></li><li><span class="toctext">Examples</span><ul><li><a class="toctext" href="../simple_example/">Infinity in finite time</a></li><li><a class="toctext" href="../kepler/">The Kepler problem</a></li><li><a class="toctext" href="../lorenz_lyapunov/">Lyapunov spectrum of Lorenz system</a></li><li><a class="toctext" href="../pendulum/">Jet transport: the simple pendulum</a></li><li><a class="toctext" href="../root_finding/">Poincaré maps</a></li><li><a class="toctext" href="../common/">Interoperability with <code>DifferentialEquations.jl</code></a></li></ul></li><li><a class="toctext" href="../taylorize/">Optimizing: <code>@taylorize</code></a></li><li><a class="toctext" href="../api/">API</a></li></ul></nav><article id="docs"><header><nav><ul><li>Background</li><li><a href>Jet transport</a></li></ul><a class="edit-page" href="https://github.com/PerezHz/TaylorIntegration.jl/blob/master/docs/src/jet_transport.md"><span class="fa"></span> Edit on GitHub</a></nav><hr/><div id="topbar"><span>Jet transport</span><a class="fa fa-bars" href="#"></a></div></header><h1><a class="nav-anchor" id="jettransport-1" href="#jettransport-1">Jet transport</a></h1><p>In this section we describe the jet transport capabilities included in <code>TaylorIntegration.jl</code>. <em>Jet transport</em> is a tool that allows the propagation under the flow of a small neighborhood in phase space around a given initial condition, instead of propagating a single initial condition only.</p><p>To compute the propagation of <span>$\mathbf{x}_0 + \delta \mathbf{x}$</span>, where <span>$\delta \mathbf{x}$</span> are independent small displacements in phase space around the initial condition <span>$\mathbf{x}_0$</span>, one has to solve high-order variational equations. The idea is to treat <span>$\mathbf{x}_0 + \delta \mathbf{x}$</span> as a truncated polynomial in the <span>$\delta \mathbf{x}$</span> variables. The maximum order of this polynomial has to be fixed in advance.</p><p>Jet transport works in general with <em>any</em> ordinary ODE solver, provided the chosen solver supports computations using <em>multi-variate polynomial algebra</em>.</p><h2><a class="nav-anchor" id="A-simple-example-1" href="#A-simple-example-1">A simple example</a></h2><p>Following D. Pérez-Palau et al <a href="#refsJT-1">[1]</a>, let us consider the differential equations for the harmonic oscillator:</p><div>\[\begin{eqnarray*}
+\dot{x} &amp; = &amp; y, \\
+\dot{y} &amp; = &amp; -x,
+\end{eqnarray*}\]</div><p>with the initial condition <span>$\mathbf{x}_0=[x_0, y_0]^T$</span>. We illustrate jet transport techniques using Euler&#39;s method</p><div>\[\begin{equation*}
+\mathbf{x}_{n+1} = \mathbf{x}_n + h \mathbf{f}(\mathbf{x}_n).
+\end{equation*}\]</div><p>Instead of considering the initial conditions <span>$\mathbf{x}_0$</span>, we consider the time evolution of the polynomial</p><div>\[\begin{equation*}
+P_{0,\mathbf{x}_0}(\delta\mathbf{x}) = [x_0+\delta x, y_0 + \delta y]^T,
+\end{equation*}\]</div><p>where <span>$\delta x$</span> and <span>$\delta y$</span> are small displacements. Below we concentrate in polynomials of order 1 in <span>$\delta x$</span> and <span>$\delta y$</span>; since the equations of motion of the harmonic oscillator are linear, there are no higher order terms.</p><p>Using Euler&#39;s method we obtain</p><div>\[\begin{eqnarray*}
+  \mathbf{x}_1 &amp; = &amp;
+  \left(
+    \begin{array}{c}
+    x_0 + h y_0 \\
+    y_0 - h x_0
+    \end{array}
+  \right)
+  + \left(
+      \begin{array}{cc}
+         1 &amp; h \\
+        -h &amp; 1
+      \end{array}
+    \right)
+    \left(
+      \begin{array}{c}
+        \delta x\\
+        \delta y
+      \end{array}
+    \right). \\
+  \mathbf{x}_2 &amp; = &amp;
+  \left(
+    \begin{array}{c}
+    1-h^2 x_0 + 2 h y_0 \\
+    1-h^2 y_0 - 2 h x_0
+    \end{array}
+  \right)
+  + \left(
+    \begin{array}{cc}
+      1-h^2 &amp; 2 h \\
+      -2 h &amp; 1-h^2
+    \end{array}
+    \right)
+    \left(
+      \begin{array}{c}
+        \delta x\\
+        \delta y
+      \end{array}
+    \right).
+\end{eqnarray*}\]</div><p>The first terms in the expressions for <span>$\mathbf{x}_1$</span> and <span>$\mathbf{x}_2$</span> above correspond to the result of an Euler integration step using the initial conditions only. The other terms are the (linear) corrections which involve the small displacements <span>$\delta x$</span> and <span>$\delta y$</span>.</p><p>In general, for differential equations involving non-linear terms, the resulting expansions in <span>$\delta x$</span> and <span>$\delta y$</span> will reflect aspects of the non-linearities of the ODEs. Clearly, jet transport techniques allow to address stability properties beyond the linear case, though memory constraints may play a role. See <a href="../pendulum/#pendulum-1">this example</a> illustrating the implementation for the simple pendulum, and <a href="../root_finding/#jettransport2-1">this one</a> illustrating the construction of a Poincaré map with Jet transport techniques.</p><h3><a class="nav-anchor" id="refsJT-1" href="#refsJT-1">References</a></h3><p>[1] D. Pérez-Palau, Josep J. Masdemont, Gerard Gómez, 2015, Celest. Mech. Dyn. Astron. 123, 239.</p><footer><hr/><a class="previous" href="../lyapunov_spectrum/"><span class="direction">Previous</span><span class="title">Lyapunov spectrum</span></a><a class="next" href="../simple_example/"><span class="direction">Next</span><span class="title">Infinity in finite time</span></a></footer></article></body></html>
