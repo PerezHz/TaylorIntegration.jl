@@ -43,3 +43,7 @@ Comments, suggestions, and improvements are welcome and appreciated.
 ## License
 
 `TaylorIntegration` is licensed under the [MIT "Expat" license](./LICENSE.md).
+
+## Acknowledgments
+
+We acknowledge financial support from DGAPA-PAPIIT grants IG-100616.
