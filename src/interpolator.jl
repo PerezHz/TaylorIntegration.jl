@@ -46,5 +46,7 @@ function (tinterp::TaylorInterpolator{T,U,2})(t::T) where {T<:Real, U<:Number}
     end
 end
 
-#TODO: add dense=true|false flag to taylorinteg, return TaylorInterpolator when true
-#TODO: define "callable" methods for TaylorInterpolator
+function (tinterp::TaylorInterpolator{T,U,N})(t::V) where {T<:Real, U<:Number, V<:Real, N}
+    R = promote_type(T, V)
+    return tinterp(convert(R, t))
+end
