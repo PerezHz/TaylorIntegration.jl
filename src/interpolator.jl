@@ -1,5 +1,5 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
-struct TaylorInterpolator{T,U,N}
+@auto_hash_equals struct TaylorInterpolator{T,U,N}
     t::AbstractVector{T}
     x::AbstractArray{Taylor1{U},N}
     #Inner constructor

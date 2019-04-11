@@ -8,6 +8,7 @@ using LinearAlgebra
 using Markdown
 using Requires
 using InteractiveUtils: methodswith
+using AutoHashEquals
 
 
 export taylorinteg, lyap_taylorinteg, @taylorize, TaylorInterpolator
