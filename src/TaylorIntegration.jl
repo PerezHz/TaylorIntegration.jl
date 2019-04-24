@@ -3,29 +3,21 @@
 module TaylorIntegration
 
 using Reexport
-@reexport using TaylorSeries, DiffEqBase
+@reexport using TaylorSeries
 using LinearAlgebra
 using Markdown
+using Requires
 
-
-const warnkeywords =
-    (:save_idxs, :d_discontinuities, :unstable_check, :save_everystep,
-     :save_end, :initialize_save, :adaptive, :dt, :reltol, :dtmax,
-     :dtmin, :force_dtmin, :internalnorm, :gamma, :beta1, :beta2,
-     :qmax, :qmin, :qsteady_min, :qsteady_max, :qoldinit, :failfactor,
-     :maxiters, :isoutofdomain, :unstable_check,
-     :calck, :progress, :timeseries_steps, :tstops, :saveat, :dense)
-
-function __init__()
-    global warnlist = Set(warnkeywords)
-end
 
 export taylorinteg, lyap_taylorinteg, @taylorize
 
 include("explicitode.jl")
 include("lyapunovspectrum.jl")
-include("common.jl")
 include("rootfinding.jl")
 include("parse_eqs.jl")
+
+function __init__()
+    @require DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e" include("common.jl")
+end
 
 end #module
