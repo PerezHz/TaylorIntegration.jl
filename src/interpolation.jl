@@ -1,9 +1,9 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
-@auto_hash_equals struct TaylorInterpolator{T,U,N}
+@auto_hash_equals struct TaylorInterpolant{T,U,N}
     t::AbstractVector{T}
     x::AbstractArray{Taylor1{U},N}
     #Inner constructor
-    function TaylorInterpolator{T,U,N}(
+    function TaylorInterpolant{T,U,N}(
         t::AbstractVector{T},
         x::AbstractArray{Taylor1{U},N}
     ) where {T<:Real, U<:Number, N}
@@ -12,13 +12,13 @@
 end
 
 #outer constructor
-function TaylorInterpolator(t::AbstractVector{T},
+function TaylorInterpolant(t::AbstractVector{T},
         x::AbstractArray{Taylor1{U},N}) where {T<:Real, U<:Number, N}
-    return TaylorInterpolator{T,U,N}(t, x)
+    return TaylorInterpolant{T,U,N}(t, x)
 end
 
 # function-like (callability) methods
-function (tinterp::TaylorInterpolator{T,U,1})(t::T) where {T<:Real, U<:Number}
+function (tinterp::TaylorInterpolant{T,U,1})(t::T) where {T<:Real, U<:Number}
     @assert tinterp.t[1] ≤ t ≤ tinterp.t[end] "Evaluation time outside range of interpolation"
     ind = findlast(x->x≤t, tinterp.t)
     if ind == lastindex(tinterp.t)
@@ -32,7 +32,7 @@ function (tinterp::TaylorInterpolator{T,U,1})(t::T) where {T<:Real, U<:Number}
     end
 end
 
-function (tinterp::TaylorInterpolator{T,U,1})(t::Taylor1{T}) where {T<:Real, U<:Number}
+function (tinterp::TaylorInterpolant{T,U,1})(t::Taylor1{T}) where {T<:Real, U<:Number}
     t0 = t[0]
     @assert tinterp.t[1] ≤ t0 ≤ tinterp.t[end] "Evaluation time outside range of interpolation"
     ind = findlast(x->x≤t0, tinterp.t)
@@ -47,7 +47,7 @@ function (tinterp::TaylorInterpolator{T,U,1})(t::Taylor1{T}) where {T<:Real, U<:
     end
 end
 
-function (tinterp::TaylorInterpolator{T,U,2})(t::T) where {T<:Real, U<:Number}
+function (tinterp::TaylorInterpolant{T,U,2})(t::T) where {T<:Real, U<:Number}
     @assert tinterp.t[1] ≤ t ≤ tinterp.t[end] "Evaluation time outside range of interpolation"
     ind = findlast(x->x≤t, tinterp.t)
     if ind == lastindex(tinterp.t)
@@ -61,7 +61,7 @@ function (tinterp::TaylorInterpolator{T,U,2})(t::T) where {T<:Real, U<:Number}
     end
 end
 
-function (tinterp::TaylorInterpolator{T,U,2})(t::Taylor1{T}) where {T<:Real, U<:Number}
+function (tinterp::TaylorInterpolant{T,U,2})(t::Taylor1{T}) where {T<:Real, U<:Number}
     t0 = t[0]
     @assert tinterp.t[1] ≤ t0 ≤ tinterp.t[end] "Evaluation time outside range of interpolation"
     ind = findlast(x->x≤t0, tinterp.t)
@@ -76,7 +76,7 @@ function (tinterp::TaylorInterpolator{T,U,2})(t::Taylor1{T}) where {T<:Real, U<:
     end
 end
 
-function (tinterp::TaylorInterpolator{T,U,N})(t::V) where {T<:Real, U<:Number, V<:Real, N}
+function (tinterp::TaylorInterpolant{T,U,N})(t::V) where {T<:Real, U<:Number, V<:Real, N}
     R = promote_type(T, V)
     return tinterp(convert(R, t))
 end

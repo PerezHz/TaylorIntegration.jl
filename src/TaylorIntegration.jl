@@ -11,13 +11,13 @@ using InteractiveUtils: methodswith
 using AutoHashEquals
 
 
-export taylorinteg, lyap_taylorinteg, @taylorize, TaylorInterpolator
+export taylorinteg, lyap_taylorinteg, @taylorize, TaylorInterpolant
 
 include("explicitode.jl")
 include("lyapunovspectrum.jl")
 include("rootfinding.jl")
 include("parse_eqs.jl")
-include("interpolator.jl")
+include("interpolation.jl")
 
 function __init__()
     @require DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e" include("common.jl")

@@ -19,7 +19,7 @@ const _abstol = 1.0E-20
     @test tv == tv2
     @test xv == xv2
     tinterp = taylorinteg(eqs_mov, x0, t0, tmax, _order, _abstol, dense=true)
-    tinterp2 = deepcopy(tinterp) # test TaylorInterpolator equality
+    tinterp2 = deepcopy(tinterp) # test TaylorInterpolant equality
     @test tinterp2 == tinterp
     @test tinterp.t == tv
     # the interpolator evaluated at tv should equal the solution without interpolation
@@ -67,7 +67,7 @@ end
     @test tv == tv2
     @test xv == xv2
     tinterp = taylorinteg(f!, x0, t0, tmax, _order, _abstol, dense=true)
-    tinterp2 = deepcopy(tinterp) # test TaylorInterpolator equality
+    tinterp2 = deepcopy(tinterp) # test TaylorInterpolant equality
     @test tinterp2 == tinterp
     # @time tinterp = taylorinteg(f!, x0, t0, tmax, _order, _abstol, dense=true)
     @test tinterp.t == tv
