@@ -1,12 +1,14 @@
 # [Interoperability with `DifferentialEquations.jl`](@id diffeqinterface)
 
 Here, we show an example of interoperability between `TaylorIntegration.jl` and
-[`DifferentialEquations.jl`](https://github.com/JuliaDiffEq/DifferentialEquations.jl).
-That is, how to use `TaylorIntegration.jl` from `DifferentialEquations.jl`.
-Below, we shall use `ParameterizedFunctions.jl` to define the appropriate system of ODEs.
-Also, we use `OrdinaryDiffEq.jl`, in order to compare
+[`DifferentialEquations.jl`](https://github.com/JuliaDiffEq/DifferentialEquations.jl), i.e.,
+how to use `TaylorIntegration.jl` from the `DifferentialEquations`
+ecosystem. the basic requirement is to load `DiffEqBase.jl`, which
+sets-up the common interface.
+Below, we shall also use `ParameterizedFunctions.jl` to define the appropriate
+system of ODEs, and use `OrdinaryDiffEq.jl` to compare
 the accuracy of `TaylorIntegration.jl` with respect to
-high-accuracy methods for non-stiff problems.
+high-accuracy methods for non-stiff problems (`Vern9` method).
 
 The problem we will integrate in this example is the planar circular restricted
 three-body problem (PCR3BP, also capitalized as PCRTBP). The PCR3BP describes
@@ -26,9 +28,9 @@ The ratio ``\mu = m_2/(m_1+m_2)`` is known as the *mass parameter*. Using
 mass units such that ``m_1+m_2=1``, we have ``m_1=1-\mu`` and ``m_2=\mu``. In
 this example, we assume the mass parameter to have a value ``\mu=0.01``.
 ```@example common
-using TaylorIntegration, Plots
+using Plots
 
-μ = 0.01
+const μ = 0.01
 nothing # hide
 ```
 The Hamiltonian for the PCR3BP in the synodic frame (i.e., a frame which rotates
@@ -135,23 +137,22 @@ H(q0) == J0
 
 Following [the tutorial](http://docs.juliadiffeq.org/latest/tutorials/ode_example.html)
 of `DifferentialEquations.jl`, we define an `ODEProblem` for the integration;
-`TaylorIntegration.jl` can be used via its common interface bindings with `JuliaDiffEq`.
+`TaylorIntegration.jl` can be used via its common interface bindings with `DiffEqBase.jl`; both packages need to be loaded explicitly.
 ```@example common
 tspan = (0.0, 1000.0)
 p = [μ]
 
-using TaylorIntegration # `ODEProblem` is exported by TaylorIntegration
+using TaylorIntegration, DiffEqBase
 prob = ODEProblem(f, q0, tspan, p)
 ```
 
-We solve `prob` using a 25-th order Taylor method, with a local absolute tolerance ``\epsilon_\mathrm{tol} = 10^{-20}``; note that `TaylorIntegration.jl` has to be loaded
-independently.
+We solve `prob` using a 25-th order Taylor method, with a local absolute tolerance ``\epsilon_\mathrm{tol} = 10^{-20}``.
 ```@example common
 solT = solve(prob, TaylorMethod(25), abstol=1e-20);
 ```
 
-Likewise, we load `OrdinaryDiffEq` in order to solve the same problem `prob`
-with the `Vern9` method, which the `DifferentialEquations.jl`
+As mentioned above, we load `OrdinaryDiffEq` in order to solve the same problem `prob`
+now with the `Vern9` method, which the `DifferentialEquations.jl`
 [documentation](http://docs.juliadiffeq.org/latest/solvers/ode_solve.html#Non-Stiff-Problems-1)
 recommends for high-accuracy (i.e., very low tolerance) integrations of
 non-stiff problems.
@@ -227,16 +228,21 @@ the solution displays many close approaches with ``m_2``.
 
 Finally, we comment on the time spent by each integration.
 ```@example common
-@time solve(prob, TaylorMethod(25), abstol=1e-20);
+@elapsed solve(prob, TaylorMethod(25), abstol=1e-20);
 ```
 ```@example common
-@time solve(prob, Vern9(), abstol=1e-20);
+@elapsed solve(prob, Vern9(), abstol=1e-20);
 ```
 Clearly, the integration with `TaylorMethod()` takes *much longer* than that using
 `Vern9()`. Yet, as shown above, the former preserves the Jacobi constant
 to a high accuracy while displaying the correct dynamics; whereas the latter
 solution loses accuracy in the sense of not conserving the Jacobi constant,
 which is an important property to trust the result of the integration.
+
+Finally, we shall mention here that a way to improve the integration time in
+`TaylorIntegration` is using the macro [`@taylorize`](@ref); see
+[this section](@ref taylorize) for details. Yet, using the macro is not
+currently compatible with the common interface with `DifferentialEquations`.
 
 
 ### [References](@id refsPCR3BP)
