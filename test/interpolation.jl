@@ -58,25 +58,25 @@ end
         Dx[2] = cos(t)
         nothing
     end
-    t0 = 0//1
+    t0r = 0//1
     tmax = 10.25*(2pi)
-    x0 = [t0, 0.0] #initial conditions such that x(t)=sin(t)
-    tv, xv = taylorinteg(f!, x0, t0, tmax, _order, _abstol)
-    tv2, xv2 = taylorinteg(f!, x0, t0, tmax, _order, _abstol, dense=false)
-    # @time tv2, xv2 = taylorinteg(f!, x0, t0, tmax, _order, _abstol, dense=false)
+    x0 = [t0r, 0.0] #initial conditions such that x(t)=sin(t)
+    tv, xv = taylorinteg(f!, x0, t0r, tmax, _order, _abstol)
+    tv2, xv2 = taylorinteg(f!, x0, t0r, tmax, _order, _abstol, dense=false)
+    # @time tv2, xv2 = taylorinteg(f!, x0, t0r, tmax, _order, _abstol, dense=false)
     @test tv == tv2
     @test xv == xv2
-    tinterp = taylorinteg(f!, x0, t0, tmax, _order, _abstol, dense=true)
+    tinterp = taylorinteg(f!, x0, t0r, tmax, _order, _abstol, dense=true)
     tinterp2 = deepcopy(tinterp) # test TaylorInterpolant equality
     @test tinterp2 == tinterp
-    # @time tinterp = taylorinteg(f!, x0, t0, tmax, _order, _abstol, dense=true)
+    # @time tinterp = taylorinteg(f!, x0, t0r, tmax, _order, _abstol, dense=true)
     @test tinterp.t == tv
     @test transpose(hcat(tinterp.(tv)...)) == xv
-    @test tinterp(t0) == x0
+    @test tinterp(t0r) == x0
     @test tinterp(tmax) == xv[end,:]
     δt = 1e-8
     tT = Taylor1(_order)
-    tT[0] = float(t0)
+    tT[0] = float(t0r)
     xT = Taylor1.(x0, _order)
     dxT = similar(xT)
     xaux = similar(xT)
