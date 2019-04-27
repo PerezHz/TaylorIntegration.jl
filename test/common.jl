@@ -1,4 +1,4 @@
-using TaylorIntegration, Test
+using TaylorIntegration, Test, DiffEqBase
 using LinearAlgebra: norm
 
 f(u,p,t) = u
