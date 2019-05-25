@@ -14,7 +14,7 @@ Optionally, the user may provide a Jacobian function `jacobianfunc!` to compute
 """
 function stabilitymatrix!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
         δx::Vector{TaylorN{Taylor1{U}}}, dδx::Vector{TaylorN{Taylor1{U}}},
-        jac::Matrix{Taylor1{U}}, _δv::Vector{TaylorN{Taylor1{U}}},
+        jac::Matrix{Taylor1{U}}, _δv::Vector{TaylorN{Taylor1{U}}}, params,
         jacobianfunc! =nothing) where {T<:Real, U<:Number}
 
     if isa(jacobianfunc!, Nothing)
@@ -23,10 +23,10 @@ function stabilitymatrix!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
             @inbounds δx[ind] = x[ind] + _δv[ind]
         end
         # Equations of motion
-        eqsdiff!(t, δx, dδx)
+        eqsdiff!(dδx, δx, params, t)
         TaylorSeries.jacobian!(jac, dδx)
     else
-        jacobianfunc!(jac, t, x)
+        jacobianfunc!(jac, x, params, t)
     end
     nothing
 end
@@ -170,17 +170,17 @@ function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
         δx::Array{TaylorN{Taylor1{U}},1}, dδx::Array{TaylorN{Taylor1{U}},1},
         jac::Array{Taylor1{U},2}, t0::T, t1::T, x0::Array{U,1}, order::Int,
         abstol::T, _δv::Vector{TaylorN{Taylor1{U}}}, varsaux::Array{Taylor1{U},3},
-        parse_eqs::Bool=true, jacobianfunc! =nothing) where {T<:Real, U<:Number}
+        params, parse_eqs::Bool=true, jacobianfunc! =nothing) where {T<:Real, U<:Number}
 
     # Dimensions of phase-space: dof
     nx = length(x)
     dof = length(δx)
 
     # Compute the Taylor coefficients associated to trajectory
-    __jetcoeffs!(Val(parse_eqs), f!, t, view(x, 1:dof), view(dx, 1:dof), view(xaux, 1:dof))
+    __jetcoeffs!(Val(parse_eqs), f!, t, view(x, 1:dof), view(dx, 1:dof), view(xaux, 1:dof), params)
 
     # Compute stability matrix
-    stabilitymatrix!(f!, t, x, δx, dδx, jac, _δv, jacobianfunc!)
+    stabilitymatrix!(f!, t, x, δx, dδx, jac, _δv, params, jacobianfunc!)
 
     # Compute the Taylor coefficients associated to variational equations
     lyap_jetcoeffs!(t, view(x, dof+1:nx), view(dx, dof+1:nx), jac, varsaux)
@@ -210,7 +210,7 @@ differentiation using `TaylorSeries.jl`.
 
 """
 function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
-        order::Int, abstol::T, jacobianfunc! =nothing;
+        order::Int, abstol::T, params = nothing, jacobianfunc! =nothing;
         maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real, U<:Number}
     # Allocation
     tv = Array{T}(undef, maxsteps+1)
@@ -264,7 +264,7 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
     parse_eqs = parse_eqs && (length(methods(jetcoeffs!)) > 2)
     if parse_eqs
         try
-            jetcoeffs!(Val(f!), t, view(x, 1:dof), view(dx, 1:dof))
+            jetcoeffs!(Val(f!), t, view(x, 1:dof), view(dx, 1:dof), params)
         catch
             parse_eqs = false
         end
@@ -273,7 +273,8 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
     # Integration
     nsteps = 1
     while t0 < tmax
-        δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, tmax, x0, order, abstol, _δv, varsaux, parse_eqs, jacobianfunc!)
+        δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, tmax, x0,
+            order, abstol, _δv, varsaux, params, parse_eqs, jacobianfunc!)
         for ind in eachindex(jt)
             @inbounds jt[ind] = x0[dof+ind]
         end
@@ -304,7 +305,8 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
 end
 
 function lyap_taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
-        order::Int, abstol::T, jacobianfunc! =nothing; maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real, U<:Number}
+        order::Int, abstol::T, params = nothing, jacobianfunc! = nothing;
+        maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real, U<:Number}
     # Allocation
     nn = length(trange)
     dof = length(q0)
@@ -361,7 +363,7 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
     parse_eqs = parse_eqs && (length(methods(jetcoeffs!)) > 2)
     if parse_eqs
         try
-            jetcoeffs!(Val(f!), t, view(x, 1:dof), view(dx, 1:dof))
+            jetcoeffs!(Val(f!), t, view(x, 1:dof), view(dx, 1:dof), params)
         catch
             parse_eqs = false
         end
@@ -371,7 +373,8 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
     iter = 2
     nsteps = 1
     while t0 < tmax
-        δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, tmax, x0, order, abstol, _δv, varsaux, parse_eqs, jacobianfunc!)
+        δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, tmax, x0,
+            order, abstol, _δv, varsaux, params, parse_eqs, jacobianfunc!)
         tnext = t0+δt
         # # Evaluate solution at times within convergence radius
         while t1 < tnext

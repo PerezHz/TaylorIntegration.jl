@@ -12,9 +12,9 @@ const t0 = 0.0
 const tf = 1000.0
 
 # Scalar integration
-@testset "Scalar case: xdot(t,x) = b-x^2" begin
+@testset "Scalar case: xdot(x, p, t) = b-x^2" begin
     b1 = 3.0
-    @taylorize xdot1(t, x) = b1-x^2
+    @taylorize xdot1(x, p, t) = b1-x^2
     @test length(methods(TaylorIntegration.jetcoeffs!)) == 3
     @test (@isdefined xdot1)
 
@@ -28,7 +28,7 @@ const tf = 1000.0
     @test iszero( norm(xv1-xv1p, Inf) )
 
     # Now using `local` constants
-    @taylorize xdot2(t, x) = (local b2 = 3; b2-x^2)
+    @taylorize xdot2(x, p, t) = (local b2 = 3; b2-x^2)
     @test length(methods(TaylorIntegration.jetcoeffs!)) == 4
     @test (@isdefined xdot2)
 
@@ -47,9 +47,9 @@ const tf = 1000.0
 end
 
 
-@testset "Scalar case: xdot(t,x) = -9.81" begin
-    xdot1(t, x) = -9.81 + zero(t) # `zero(t)` is needed; cf #20
-    @taylorize xdot1_parsed(t, x) = -9.81 + zero(t) # `zero(t)` can be avoided here
+@testset "Scalar case: xdot(x, p, t) = -9.81" begin
+    xdot1(x, p, t) = -9.81 + zero(t) # `zero(t)` is needed; cf #20
+    @taylorize xdot1_parsed(x, p, t) = -9.81 + zero(t) # `zero(t)` can be avoided here
 
     @test (@isdefined xdot1_parsed)
 
@@ -61,7 +61,7 @@ end
     @test iszero( norm(xv1-xv1p, Inf) )
 
     # Now using `local`
-    @taylorize function xdot2(t, x)
+    @taylorize function xdot2(x, p, t)
         local ggrav = -9.81 + zero(t)  # zero(t) is needed for the parse_eqs=false case
         tmp = ggrav  # needed to avoid an error when parsing
     end
@@ -84,7 +84,7 @@ end
 
 # Pendulum integrtf = 100.0
 @testset "Integration of the pendulum" begin
-    @taylorize function pendulum!(t, x, dx)
+    @taylorize function pendulum!(dx, x, p, t)
         dx[1] = x[2]
         dx[2] = -sin( x[1] )
         nothing
@@ -104,7 +104,7 @@ end
 # Complex dependent variables
 @testset "Complex dependent variable" begin
     cc = complex(0.0,1.0)
-    @taylorize eqscmplx(t,x) = cc*x
+    @taylorize eqscmplx(x, p, t) = cc*x
 
     @test (@isdefined eqscmplx)
     cx0 = complex(1.0, 0.0)
@@ -117,7 +117,7 @@ end
     @test iszero( norm(xv1-xv1p, Inf) )
 
     # Using `local` for the constant value
-    @taylorize eqscmplx2(t,x) = (local cc1 = Complex(0.0,1.0); cc1*x)
+    @taylorize eqscmplx2(x, p, t) = (local cc1 = Complex(0.0,1.0); cc1*x)
 
     @test (@isdefined eqscmplx2)
     tv2, xv2 = taylorinteg(eqscmplx2, cx0, t0, tf, _order, _abstol, maxsteps=1500,
@@ -136,11 +136,11 @@ end
 
 
 @testset "Time-dependent integration (with and without `local` vars)" begin
-    @taylorize function integ_cos1(t, x)
+    @taylorize function integ_cos1(x, p, t)
         y = cos(t)
         return y
     end
-    @taylorize function integ_cos2(t, x)
+    @taylorize function integ_cos2(x, p, t)
         local y = cos(t)  # allows to calculate directly `cos(t)` *once*
         yy = y   # needed to avoid an error
         return yy
@@ -170,7 +170,7 @@ end
 @testset "Multiple pendula" begin
     NN = 3
     nnrange = 1:3
-    @taylorize function multpendula1!(t, x, dx)
+    @taylorize function multpendula1!(dx, x, p, t)
         for i in nnrange
             dx[i] = x[NN+i]
             dx[i+NN] = -sin( x[i] )
@@ -189,7 +189,7 @@ end
     @test iszero( norm(tv1-tv1p, Inf) )
     @test iszero( norm(xv1-xv1p, Inf) )
 
-    @taylorize function multpendula2!(t, x, dx)
+    @taylorize function multpendula2!(dx, x, p, t)
         local NN = 3
         local nnrange = 1:NN
         for i in nnrange
@@ -222,7 +222,7 @@ const _order = 28
 const tf = 2π*100.0
 @testset "Kepler problem (using `^`)" begin
     mμ = -1.0
-    @taylorize function kepler1!(t, q, dq)
+    @taylorize function kepler1!(dq, q, p, t)
         r_p3d2 = (q[1]^2+q[2]^2)^1.5
 
         dq[1] = q[3]
@@ -234,7 +234,7 @@ const tf = 2π*100.0
     end
 
     NN = 2
-    @taylorize function kepler2!(t, q, dq)
+    @taylorize function kepler2!(dq, q, p, t)
         r2 = zero(q[1])
         for i = 1:NN
             r2_aux = r2 + q[i]^2
@@ -270,7 +270,7 @@ const tf = 2π*100.0
     @test iszero( norm(tv7p-tv6p, Inf) )
     @test iszero( norm(xv7p-xv6p, Inf) )
 
-    @taylorize function kepler3!(t, q, dq)
+    @taylorize function kepler3!(dq, q, p, t)
         local mμ = -1.0
         r_p3d2 = (q[1]^2+q[2]^2)^1.5
 
@@ -282,7 +282,7 @@ const tf = 2π*100.0
         return nothing
     end
 
-    @taylorize function kepler4!(t, q, dq)
+    @taylorize function kepler4!(dq, q, p, t)
         local mμ = -1.0
         local NN = 2
         r2 = zero(q[1])
@@ -327,7 +327,7 @@ end
 
 @testset "Kepler problem (using `sqrt`)" begin
     mμ = -1.0
-    @taylorize function kepler1!(t, q, dq)
+    @taylorize function kepler1!(dq, q, p, t)
         r = sqrt(q[1]^2+q[2]^2)
         r_p3d2 = r^3
 
@@ -339,7 +339,7 @@ end
         return nothing
     end
     NN = 2
-    @taylorize function kepler2!(t, q, dq)
+    @taylorize function kepler2!(dq, q, p, t)
         r2 = zero(q[1])
         for i = 1:NN
             r2_aux = r2 + q[i]^2
@@ -376,7 +376,7 @@ end
     @test iszero( norm(tv2p-tv2, Inf) )
     @test iszero( norm(xv2p-xv2, Inf) )
 
-    @taylorize function kepler3!(t, q, dq)
+    @taylorize function kepler3!(dq, q, p, t)
         local mμ = -1.0
         r = sqrt(q[1]^2+q[2]^2)
         r_p3d2 = r^3
@@ -389,7 +389,7 @@ end
         return nothing
     end
 
-    @taylorize function kepler4!(t, q, dq)
+    @taylorize function kepler4!(dq, q, p, t)
         local NN = 2
         local mμ = -1.0
         r2 = zero(q[1])
@@ -441,7 +441,7 @@ const tf = 20.0
     ρ = 45.92
 
     #Lorenz system ODE:
-    @taylorize function lorenz1!(t, x, dx)
+    @taylorize function lorenz1!(dx, x, p, t)
         dx[1] = σ*(x[2]-x[1])
         dx[2] = x[1]*(ρ-x[3])-x[2]
         dx[3] = x[1]*x[2]-β*x[3]
@@ -449,7 +449,7 @@ const tf = 20.0
     end
 
     #Lorenz system Jacobian (in-place):
-    function lorenz1_jac!(jac, t, x)
+    function lorenz1_jac!(jac, x, p, t)
         jac[1,1] = -σ+zero(x[1])
         jac[2,1] = ρ-x[3]
         jac[3,1] = x[2]
@@ -491,7 +491,7 @@ const tf = 20.0
     @test xv1 == xv2
 
     #Lorenz system ODE:
-    @taylorize function lorenz2!(t, x, dx)
+    @taylorize function lorenz2!(dx, x, p, t)
         #Lorenz system parameters
         local σ = 16.0
         local β = 4.0
@@ -504,7 +504,7 @@ const tf = 20.0
     end
 
     #Lorenz system Jacobian (in-place):
-    function lorenz2_jac!(jac, t, x)
+    function lorenz2_jac!(jac, x, p, t)
         #Lorenz system parameters
         local σ = 16.0
         local β = 4.0
@@ -556,20 +556,20 @@ end
 
 @testset "Tests for throwing errors" begin
     # Wrong number of arguments
-    ex = :(function f_p!(t, x, dx, y)
+    ex = :(function f_p!(dx, x, p, t, y)
         dx[1] = x[2]
         dx[2] = -sin( x[1] )
     end)
     @test_throws ArgumentError TaylorIntegration._make_parsed_jetcoeffs(ex)
 
     # `&&` is not yet implemented
-    ex = :(function f_p!(t, x)
+    ex = :(function f_p!(x, p, t)
         true && x
     end)
     @test_throws ArgumentError TaylorIntegration._make_parsed_jetcoeffs(ex)
 
     # a is not an Expr; String
-    ex = :(function f_p!(t, x)
+    ex = :(function f_p!(x, p, t)
         "a"
     end)
     @test_throws ArgumentError TaylorIntegration._make_parsed_jetcoeffs(ex)
@@ -581,8 +581,8 @@ end
     end)
     @test_throws KeyError TaylorIntegration._make_parsed_jetcoeffs(ex)
 
-    # BoundsError
-    ex = :(function f_p!(t, x)
+    # BoundsError; no return variable defined
+    ex = :(function f_p!(x, p, t)
         local cos(t)
     end)
     @test_throws BoundsError TaylorIntegration._make_parsed_jetcoeffs(ex)
@@ -590,7 +590,7 @@ end
 
 
 @testset "Jet transport with @taylorize macro" begin
-    @taylorize function pendulum!(t, x, dx)
+    @taylorize function pendulum!(dx, x, p, t)
         dx[1] = x[2]
         dx[2] = -sin( x[1] )
         nothing

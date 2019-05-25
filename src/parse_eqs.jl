@@ -8,7 +8,7 @@ using Espresso: subs, simplify, ExGraph, ExH, to_expr, sanitize, genname,
 # Define some constants to create the new (parsed) functions
 # The (irrelevant) `nothing` below is there to have a :block Expr; deleted later
 const _HEAD_PARSEDFN_SCALAR = sanitize(:(
-function jetcoeffs!(::Val{__fn}, __tT::Taylor1{_T}, __x::Taylor1{_S}) where
+function jetcoeffs!(::Val{__fn}, __tT::Taylor1{_T}, __x::Taylor1{_S}, __params) where
         {_T<:Real, _S<:Number}
 
     order = __tT.order
@@ -18,7 +18,7 @@ end)
 
 const _HEAD_PARSEDFN_VECTOR = sanitize(:(
 function jetcoeffs!( ::Val{__fn}, __tT::Taylor1{_T}, __x::AbstractVector{Taylor1{_S}},
-        __dx::AbstractVector{Taylor1{_S}}) where {_T<:Real, _S<:Number}
+        __dx::AbstractVector{Taylor1{_S}}, __params) where {_T<:Real, _S<:Number}
 
     order = __tT.order
     nothing
@@ -82,10 +82,12 @@ function _make_parsed_jetcoeffs(ex::Expr, debug=false)
     push!(newfunction.args[2].args, forloopblock, Meta.parse("return nothing"))
 
     # Rename variables of the body of the new function
-    newfunction = subs(newfunction, Dict(:__tT => fnargs[1],
-        :(__x) => fnargs[2], :(__fn) => fn ))
     if length(fnargs) == 3
-        newfunction = subs(newfunction, Dict(:(__dx) => fnargs[3]))
+        newfunction = subs(newfunction, Dict(:__tT => fnargs[3],
+            :(__x) => fnargs[1], :(__fn) => fn ))
+    elseif length(fnargs) == 4
+        newfunction = subs(newfunction, Dict(:__tT => fnargs[4],
+            :(__x) => fnargs[2], :(__dx) => fnargs[1], :(__fn) => fn ))
     end
 
     return newfunction
@@ -187,9 +189,9 @@ vector with its arguments (which are two or three).
 function _newhead(fn, fnargs)
 
     # Construct common elements of the new expression
-    if length(fnargs) == 2
+    if length(fnargs) == 3
         newfunction = copy(_HEAD_PARSEDFN_SCALAR)
-    elseif length(fnargs) == 3
+    elseif length(fnargs) == 4
         newfunction = copy(_HEAD_PARSEDFN_VECTOR)
     else
         throw(ArgumentError(
@@ -270,7 +272,8 @@ function _preamble_body(fnbody, fnargs, debug=false)
     newfnbody = subs(newfnbody, d_indx)
 
     # Define retvar; for scalar eqs is the last entry included in v_vars
-    retvar = length(fnargs) == 2 ? subs(v_vars[end], d_indx) : fnargs[end]
+    @show(v_vars)
+    retvar = length(fnargs) == 3 ? subs(v_vars[end], d_indx) : fnargs[1]
 
     debug && (println("------ _defs_preamble! ------");
         @show(d_indx); println(); @show(v_newindx); println();
@@ -754,12 +757,12 @@ Build the expression for the recursion-loop.
 function _recursionloop(fnargs, retvar)
 
     ll = length(fnargs)
-    if ll == 2
+    if ll == 3
 
         rec_preamb = sanitize( :( $(fnargs[2])[1] = $(retvar)[0] ) )
         rec_fnbody = sanitize( :( $(fnargs[2])[ordnext] = $(retvar)[ord]/ordnext ) )
         #
-    elseif ll == 3
+    elseif ll == 4
 
         retvar = fnargs[end]
         rec_preamb = sanitize(:(

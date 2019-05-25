@@ -9,7 +9,7 @@ const _abstol = 1.0E-20
 const tT = Taylor1(_order)
 
 @testset "Tests: dot{x}=x.^2, x(0) = [3.0,1.0]" begin
-    function eqs_mov!(t, x, Dx)
+    function eqs_mov!(Dx, x, p, t)
         for i in eachindex(x)
             Dx[i] = x[i]^2
         end
@@ -22,13 +22,13 @@ const tT = Taylor1(_order)
     xdotT = Array{Taylor1{Float64}}(undef, length(q0))
     xaux = Array{Taylor1{Float64}}(undef, length(q0))
     tT[1] = t0
-    TaylorIntegration.jetcoeffs!(eqs_mov!, tT, q0T, xdotT, xaux)
+    TaylorIntegration.jetcoeffs!(eqs_mov!, tT, q0T, xdotT, xaux, nothing)
     @test q0T[1].coeffs[end] == 3.0^(_order+1)
     @test q0T[2].coeffs[end] == 1.0
     δt = (_abstol/q0T[1].coeffs[end-1])^inv(_order-1)
     @test TaylorIntegration.stepsize(q0T, _abstol) == δt
 
-    tv, xv = taylorinteg(eqs_mov!, q0, 0.0, 0.5, _order, _abstol)
+    tv, xv = taylorinteg(eqs_mov!, q0, 0.0, 0.5, _order, _abstol, nothing)
     @test length(tv) == 501
     @test isa(xv, SubArray)
     @test xv[1,:] == q0
@@ -46,7 +46,7 @@ const tT = Taylor1(_order)
     @test abs(xv[2,1] - 4.8) ≤ eps(4.8)
 
     tarray = vec(trange)
-    xv2 = taylorinteg(eqs_mov!, q0, tarray, _order, _abstol)
+    xv2 = taylorinteg(eqs_mov!, q0, tarray, _order, _abstol, nothing)
     @test xv[1:3,:] == xv2[1:3,:]
     @test xv2[1:3,:] ≈ xv[1:3,:] atol=eps() rtol=0.0
     @test size(xv2) == (9,2)
@@ -60,7 +60,7 @@ const tT = Taylor1(_order)
 end
 
 @testset "Test non-autonomous ODE (2): dot{x}=cos(t)" begin
-    function f!(t, x, Dx)
+    function f!(Dx, x, p, t)
         Dx[1] = one(t)
         Dx[2] = cos(t)
         nothing
@@ -82,7 +82,7 @@ end
     @test abs(sin(tmax)-xv[end,2]) < 1e-14
 
     tmax = 15*(2pi)
-    tv, xv = taylorinteg(f!, x0, t0, tmax, order, abstol)
+    tv, xv = taylorinteg(f!, x0, t0, tmax, order, abstol, nothing)
     @test length(tv) < 501
     @test length(xv[:,1]) < 501
     @test length(xv[:,2]) < 501

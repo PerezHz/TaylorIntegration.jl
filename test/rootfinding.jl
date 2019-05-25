@@ -7,13 +7,13 @@ using LinearAlgebra: norm
 const _order = 28
 const _abstol = 1.0E-20
 
-function pendulum!(t, x, dx)
+function pendulum!(dx, x, p, t)
     dx[1] = x[2]
     dx[2] = -sin(x[1])
     nothing
 end
 
-g(t, x, dx) = x[2]
+g(dx, x, p, t) = x[2]
 
 @testset "Test intersection of surfaces and root-finding: simple pendulum" begin
     t0 = 0.0

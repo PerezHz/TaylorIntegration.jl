@@ -98,9 +98,9 @@ function findroot!(g, t, x, dx, g_val_old, g_val, eventorder, tvS, xvS, gvS,
 end
 
 """
-    taylorinteg(f, g, x0, t0, tmax, order, abstol; kwargs... )
+    taylorinteg(f, g, x0, t0, tmax, order, abstol, params; kwargs... )
 
-Root-finding method of `taylorinteg`. Given a function `g(t, x, dx)`,
+Root-finding method of `taylorinteg`. Given a function `g(dx, x, params, t)`,
 called the event function, `taylorinteg` checks for the occurrence of a root
 of `g` evaluated at the solution; that is, it checks for the occurrence of an
 event or condition specified by `g=0`. Then, `taylorinteg` attempts to find that
@@ -141,7 +141,7 @@ For more details about conventions in `taylorinteg`, please see [`taylorinteg`](
         nothing
     end
 
-    g(t, x, dx) = x[2]
+    g(dx, x, params, t) = x[2]
 
     x0 = [1.3, 0.0]
 
@@ -153,7 +153,7 @@ For more details about conventions in `taylorinteg`, please see [`taylorinteg`](
 ```
 """
 function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
-        order::Int, abstol::T; maxsteps::Int=500, parse_eqs::Bool=true,
+        order::Int, abstol::T, params = nothing; maxsteps::Int=500, parse_eqs::Bool=true,
         eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
 
     @assert order ≥ eventorder "`eventorder` must be less than or equal to `order`"
@@ -180,14 +180,14 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
     parse_eqs = parse_eqs && (length(methods(jetcoeffs!)) > 2)
     if parse_eqs
         try
-            jetcoeffs!(Val(f!), t, x, dx)
+            jetcoeffs!(Val(f!), t, x, dx, params)
         catch
             parse_eqs = false
         end
     end
 
     #Some auxiliary arrays for root-finding/event detection/Poincaré surface of section evaluation
-    g_val = zero(g(t,x,x))
+    g_val = zero(g(x, x, params, t))
     g_val_old = zero(g_val)
     slope = zero(U)
     dt_li = zero(U)
@@ -204,23 +204,14 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
     xvS = similar(xv)
     gvS = similar(tvS)
 
-    # Determine if specialized jetcoeffs! method exists
-    parse_eqs = parse_eqs && (length(methods(jetcoeffs!)) > 2)
-    if parse_eqs
-        try
-            jetcoeffs!(Val(f!), t, x, dx)
-        catch
-            parse_eqs = false
-        end
-    end
 
     # Integration
     nsteps = 1
     nevents = 1 #number of detected events
     while t0 < tmax
         δt_old = δt
-        δt = taylorstep!(f!, t, x, dx, xaux, t0, tmax, x0, order, abstol, parse_eqs)
-        g_val = g(t, x, dx)
+        δt = taylorstep!(f!, t, x, dx, xaux, t0, tmax, x0, order, abstol, params, parse_eqs)
+        g_val = g(dx, x, params, t)
         nevents = findroot!(g, t, x, dx, g_val_old, g_val, eventorder,
             tvS, xvS, gvS, t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val,
             nrabstol, newtoniter, nevents)
@@ -248,7 +239,7 @@ end
     taylorinteg(f, g, x0, trange, order, abstol; kwargs... )
 
 Root-finding method of `taylorinteg`; returns the solution of the ODE evaluated
-*only* at the times specified by `trange`. Given a function `g(t, x, dx)`,
+*only* at the times specified by `trange`. Given a function `g(dx, x, params, t)`,
 called the event function, `taylorinteg` checks for the occurrence of a root
 of `g` evaluated at the solution; that is, it checks for the occurrence of an
 event or condition specified by `g=0`. Then, `taylorinteg` attempts to find that
@@ -279,7 +270,7 @@ For more details about conventions in `taylorinteg`, please see [`taylorinteg`](
         nothing
     end
 
-    g(t, x, dx) = x[2]
+    g(dx, x, p, t) = x[2]
 
     x0 = [1.3, 0.0]
 
@@ -294,7 +285,7 @@ For more details about conventions in `taylorinteg`, please see [`taylorinteg`](
 ```
 """
 function taylorinteg(f!, g, q0::Array{U,1}, trange::AbstractVector{T},
-        order::Int, abstol::T; maxsteps::Int=500, parse_eqs::Bool=true,
+        order::Int, abstol::T, params = nothing; maxsteps::Int=500, parse_eqs::Bool=true,
         eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
 
     @assert order ≥ eventorder "`eventorder` must be less than or equal to `order`"
@@ -331,14 +322,14 @@ function taylorinteg(f!, g, q0::Array{U,1}, trange::AbstractVector{T},
     parse_eqs = parse_eqs && (length(methods(jetcoeffs!)) > 2)
     if parse_eqs
         try
-            jetcoeffs!(Val(f!), t, x, dx)
+            jetcoeffs!(Val(f!), t, x, dx, params)
         catch
             parse_eqs = false
         end
     end
 
     #Some auxiliary arrays for root-finding/event detection/Poincaré surface of section evaluation
-    g_val = zero(g(t,x,x))
+    g_val = zero(g(x, x, params, t))
     g_val_old = zero(g_val)
     slope = zero(U)
     dt_li = zero(U)
@@ -361,7 +352,7 @@ function taylorinteg(f!, g, q0::Array{U,1}, trange::AbstractVector{T},
     nevents = 1 #number of detected events
     while t0 < tmax
         δt_old = δt
-        δt = taylorstep!(f!, t, x, dx, xaux, t0, tmax, x0, order, abstol, parse_eqs)
+        δt = taylorstep!(f!, t, x, dx, xaux, t0, tmax, x0, order, abstol, params, parse_eqs)
         tnext = t0+δt
         # Evaluate solution at times within convergence radius
         while t1 < tnext
@@ -374,7 +365,7 @@ function taylorinteg(f!, g, q0::Array{U,1}, trange::AbstractVector{T},
             @inbounds xv[:,iter] .= x0
             break
         end
-        g_val = g(t, x, dx)
+        g_val = g(dx, x, params, t)
         nevents = findroot!(g, t, x, dx, g_val_old, g_val, eventorder,
             tvS, xvS, gvS, t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val,
             nrabstol, newtoniter, nevents)
