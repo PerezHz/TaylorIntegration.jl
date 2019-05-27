@@ -31,7 +31,6 @@ function jetcoeffs!(eqsdiff::Function, t::Taylor1{T}, x::Taylor1{U}, params) whe
         @inbounds xaux = Taylor1( x.coeffs[1:ordnext] )
 
         # Equations of motion
-        # dx = eqsdiff(taux, xaux)
         dx = eqsdiff(xaux, params, taux)
 
         # Recursion relation
@@ -76,7 +75,6 @@ function jetcoeffs!(eqsdiff!::Function, t::Taylor1{T},
         end
 
         # Equations of motion
-        # eqsdiff!(taux, xaux, dx)
         eqsdiff!(dx, xaux, params, taux)
 
         # Recursion relations

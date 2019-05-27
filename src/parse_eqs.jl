@@ -84,10 +84,11 @@ function _make_parsed_jetcoeffs(ex::Expr, debug=false)
     # Rename variables of the body of the new function
     if length(fnargs) == 3
         newfunction = subs(newfunction, Dict(:__tT => fnargs[3],
-            :(__x) => fnargs[1], :(__fn) => fn ))
+            :__params => fnargs[2], :(__x) => fnargs[1], :(__fn) => fn ))
     elseif length(fnargs) == 4
         newfunction = subs(newfunction, Dict(:__tT => fnargs[4],
-            :(__x) => fnargs[2], :(__dx) => fnargs[1], :(__fn) => fn ))
+            :__params => fnargs[3], :(__x) => fnargs[2], :(__dx) => fnargs[1],
+            :(__fn) => fn ))
     end
 
     return newfunction
@@ -242,7 +243,7 @@ function _preamble_body(fnbody, fnargs, debug=false)
     - `newfnbody` corresponds to `fnbody`, cleaned (without irrelevant comments)
         and with all new variables in place
     =#
-    newfnbody, v_newindx, v_arraydecl = _newfnbody(fnbody, d_indx)
+    newfnbody, v_newindx, v_arraydecl = _newfnbody(fnbody, fnargs, d_indx)
     debug && (println("------ _newfnbody ------");
         @show(v_newindx); println(); @show(v_arraydecl); println();
         @show(newfnbody); println())
@@ -272,7 +273,6 @@ function _preamble_body(fnbody, fnargs, debug=false)
     newfnbody = subs(newfnbody, d_indx)
 
     # Define retvar; for scalar eqs is the last entry included in v_vars
-    @show(v_vars)
     retvar = length(fnargs) == 3 ? subs(v_vars[end], d_indx) : fnargs[1]
 
     debug && (println("------ _defs_preamble! ------");
@@ -305,14 +305,14 @@ end
 
 
 """
-`_newfnbody(fnbody, d_indx)`
+`_newfnbody(fnbody, fnargs, d_indx)`
 
 Returns a new (modified) body of the function, a priori unfolding
 the expression graph (AST) as unary and binary calls, and a vector
 (`v_newindx`) with the name of auxiliary indexed variables.
 
 """
-function _newfnbody(fnbody, d_indx)
+function _newfnbody(fnbody, fnargs, d_indx)
     # `fnbody` is assumed to be a `:block` `Expr`
     newfnbody = Expr(:block,)
     v_newindx = Symbol[]
@@ -322,31 +322,32 @@ function _newfnbody(fnbody, d_indx)
     # Each line of fnbody (fnbody.args) is parsed separately
     for (i, ex) in enumerate(fnbody.args)
         if isa(ex, Expr)
+            ex_head = ex.head
 
             # Ignore the following cases
-            (ex.head == :return) && continue
+            (ex_head == :return) && continue
 
             # Treat `for` loops and `if` blocks separately
-            if ex.head == :block
-                newblock, tmp_newindx, tmp_arraydecl = _newfnbody(ex, d_indx)
+            if ex_head == :block
+                newblock, tmp_newindx, tmp_arraydecl = _newfnbody(ex, fnargs, d_indx)
                 push!(newfnbody.args, newblock )
                 append!(v_newindx, tmp_newindx)
                 append!(v_arraydecl, tmp_arraydecl)
-            elseif ex.head == :for
+            elseif ex_head == :for
                 push!(newfnbody.args, Expr(:for, ex.args[1]))
-                loopbody, tmp_newindx, tmp_arraydecl = _newfnbody( ex.args[2], d_indx )
+                loopbody, tmp_newindx, tmp_arraydecl = _newfnbody( ex.args[2], fnargs, d_indx )
                 push!(newfnbody.args[end].args, loopbody)
                 append!(v_newindx, tmp_newindx)
                 append!(v_arraydecl, tmp_arraydecl)
-            elseif ex.head == :if
+            elseif ex_head == :if
                 push!(newfnbody.args, Expr(:if, ex.args[1]))
                 for exx in ex.args[2:end]
-                    ifbody, tmp_newindx, tmp_arraydecl = _newfnbody( exx, d_indx)
+                    ifbody, tmp_newindx, tmp_arraydecl = _newfnbody( exx, fnargs, d_indx)
                     push!(newfnbody.args[end].args, ifbody)
                     append!(v_newindx, tmp_newindx)
                     append!(v_arraydecl, tmp_arraydecl)
                 end
-            elseif ex.head == :(=) || ex.head == :call  # assignements or function calls
+            elseif ex_head == :(=) || ex_head == :call  # assignements or function calls
 
                 ex_lhs = ex.args[1]
                 ex_rhs = ex.args[2]
@@ -357,6 +358,29 @@ function _newfnbody(fnbody, d_indx)
                         !isempty(findex(:(Vector{_TT...}), ex))
                     push!(v_arraydecl, ex_lhs)
                     push!(newfnbody.args, ex)
+                    continue
+                end
+
+                # Case of multiple assignments, e.g., ex = :((σ, ρ, β) = par)
+                # Distinguishes if the RHS is the parameter or the dependent vars
+                if isa(ex_lhs, Expr)
+                    if ex_lhs.head == :tuple && length(fnargs) == 4 && isa(ex_rhs, Symbol)
+                        # Construct new expressions
+                        if ex_rhs == fnargs[3]  # params
+                            for i in eachindex(ex_lhs.args)
+                                ex_indx = Expr(:local, Expr(:(=), ex_lhs.args[i], Expr(:ref, ex_rhs, i)))
+                                push!(newfnbody.args, ex_indx)
+                            end
+                        elseif ex_rhs == fnargs[2] # `x`
+                            for i in eachindex(ex_lhs.args)
+                                ex_indx = Expr(:(=), ex_lhs.args[i], Expr(:ref, ex_rhs, i))
+                                push!(newfnbody.args, ex_indx)
+                            end
+                        else
+                            throw(ArgumentError("Assignment no implemented in $(ex)"))
+                        end
+                        #
+                    end
                     continue
                 end
 
@@ -383,14 +407,14 @@ function _newfnbody(fnbody, d_indx)
                     #     !in(vars_nex[1], v_newindx) &&
                     (isindx_lhs || vars_nex[1] != ex_lhs) && push!(v_newindx, vars_nex[1])
                 end
-            elseif ex.head == :local
+            elseif ex_head == :local
                 # If declared as `local`, copy `ex` as it is. In some cases this
                 # helps performance. Very useful for including (numeric) constants
                 push!(newfnbody.args, ex)
                 #
             else
                 # If not implemented, throw an `ArgumentError`
-                throw(ArgumentError("$(ex.head) is not yet implemented; $(typeof(ex))"))
+                throw(ArgumentError("$(ex_head) is not yet implemented; $(typeof(ex))"))
             end
             #
         elseif isa(ex, LineNumberNode)
