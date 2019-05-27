@@ -57,7 +57,7 @@ function DiffEqBase.solve(
     elseif isinplace && typeof(prob.u0) <: AbstractArray{eltype(uType),2}
         f! = (du, u, p, t) -> (
                 dd = reshape(du, sizeu); uu = reshape(u, sizeu);
-                f(dd, uu, p, t); u .= vec(uu); du .= vec(dd); 0)
+                f(dd, uu, p, t); u = vec(uu); du = vec(dd); 0)
         u0 = vec(prob.u0)
         t, vectimeseries = taylorinteg(f!, u0, prob.tspan[1], prob.tspan[2],
             alg.order, abstol, prob.p, maxsteps=maxiters)
