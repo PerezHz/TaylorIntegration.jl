@@ -28,9 +28,13 @@ pkg> add TaylorIntegration
 This package is developed as part of academic research.
 If you would like to help supporting it, please star the repository as
 such metrics may help us secure funding. If you use this software, we
-would be grateful if you could cite our work as follows:
+would be grateful if you could cite our work as follows (Bibtex entry
+can be found [here](https://zenodo.org/record/2562353/export/hx)):
 
-J.A. Pérez-Hernández, L. Benet, TaylorIntegration.jl: Taylor Integration in Julia, https://github.com/PerezHz/TaylorIntegration.jl
+    J.A. Pérez-Hernández and L. Benet
+    TaylorIntegration.jl: Taylor Integration in Julia
+    https://github.com/PerezHz/TaylorIntegration.jl
+    DOI:[10.5281/zenodo.2562352](https://doi.org/10.5281/zenodo.2562352)
 
 
 ### Acknowledgments

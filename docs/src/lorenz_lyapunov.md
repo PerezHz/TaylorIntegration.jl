@@ -25,10 +25,12 @@ where ``\sigma``, ``\rho`` and ``\beta`` are constant parameters.
 First, we write a Julia function which evaluates (in-place) the Lorenz system:
 ```@example lorenz
 #Lorenz system ODE:
-function lorenz!(t, x, dx)
-    dx[1] = σ*(x[2]-x[1])
-    dx[2] = x[1]*(ρ-x[3])-x[2]
-    dx[3] = x[1]*x[2]-β*x[3]
+function lorenz!(dq, q, params, t)
+    σ, ρ, β = params
+    x, y, z = q
+    dq[1] = σ*(y-x)
+    dq[2] = x*(ρ-z)-y
+    dq[3] = x*y-β*z
     nothing
 end
 nothing #hide
@@ -38,9 +40,7 @@ Below, we use the the parameters ``\sigma = 16.0``, ``\beta = 4`` and
 ```@example lorenz
 #Lorenz system parameters
 #we use the `const` prefix in order to help the compiler speed things up
-const σ = 16.0
-const β = 4.0
-const ρ = 45.92
+const params = [16.0, 45.92, 4.0]
 nothing # hide
 ```
 
@@ -66,7 +66,7 @@ using TaylorIntegration
 xi = set_variables("δ", order=1, numvars=length(x0))
 x0TN = x0 .+ xi
 dx0TN = similar(x0TN)
-lorenz!(t0, x0TN, dx0TN)
+lorenz!(dx0TN, x0TN, params, t0)
 jjac = TaylorSeries.jacobian(dx0TN)
 lorenztr = tr(jjac) #trace of Lorenz system Jacobian matrix
 nothing # hide
@@ -76,7 +76,8 @@ As explained above, the user may provide a function which computes the Jacobian
 of the ODE in-place:
 ```@example lorenz
 #Lorenz system Jacobian (in-place):
-function lorenz_jac!(jac, t, x)
+function lorenz_jac!(jac, x, params, t)
+    σ, ρ, β = params
     jac[1,1] = -σ + zero(x[1])
     jac[1,2] = σ + zero(x[1])
     jac[1,3] = zero(x[1])
@@ -99,7 +100,7 @@ We can actually check the consistency of `lorenz_jac!` with the computation
 of the jacobian using automatic differentiation techniques. Below we use
 the initial conditions `x0`, but it is easy to generalize this.
 ```@example lorenz
-lorenz_jac!(jjac, t0, x0)  # update the matrix `jjac` using Jacobian provided by the user
+lorenz_jac!(jjac, x0, params, t0)  # update the matrix `jjac` using Jacobian provided by the user
 TaylorSeries.jacobian(dx0TN) == jjac    # `dx0TN` is obtained via automatic differentiation
 ```
 
@@ -113,12 +114,12 @@ one with the values of the Lyapunov spectrum.
 
 We first carry out the integration computing internally the Jacobian
 ```@example lorenz
-tv, xv, λv = lyap_taylorinteg(lorenz!, x0, t0, tmax, 28, 1e-20; maxsteps=2000000);
+tv, xv, λv = lyap_taylorinteg(lorenz!, x0, t0, tmax, 28, 1e-20, params; maxsteps=2000000);
 nothing # hide
 ```
 Now, the integration is obtained exploiting `lorenz_jac!`:
 ```@example lorenz
-tv_, xv_, λv_ = lyap_taylorinteg(lorenz!, x0, t0, tmax, 28, 1e-20, lorenz_jac!; maxsteps=2000000);
+tv_, xv_, λv_ = lyap_taylorinteg(lorenz!, x0, t0, tmax, 28, 1e-20, params, lorenz_jac!; maxsteps=2000000);
 nothing # hide
 ```
 In terms of performance the second method is about ~50% faster than the first.

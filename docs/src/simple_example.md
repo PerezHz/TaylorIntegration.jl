@@ -83,35 +83,31 @@ We shall illustrate how to use `TaylorIntegration.jl` to integrate
 Eq. (\ref{eq-example1}) for the initial condition ``x(0)=3``. Notice
 that according to the exact solution Eq. (\ref{eq-sol1}), the solution
 only exists for ``t<t_\mathrm{max} =1/3``; in addition, we note that
-this number can not be represented exactly as a floating-point.
+this number can not be represented exactly as a floating-point number.
 
 We first load the required packages and define a function which
 represents the equation of motion.
 
 ```@example example1
 using TaylorIntegration, Plots
-diffeq(t, x) = x^2;
+diffeq(x, p, t) = x^2;
 ```
 
 !!! note
-    In `TaylorIntegration.jl`, the convention for writing the
-    function representing the equations of motion is to use first the
-    independent variable (`t`), followed by the dependent variables (`x`)
-    and then the derivatives defining the equations of motion (`dx`).
-    For a single ODE, as in the present case, we omit the last argument
-    which is returned, and avoid using vectors; for more ODEs, both `x` and `dx`
-    are preallocated vectors and the function mutates (modifies) `dx`.
+    In `TaylorIntegration.jl` we use the same convention of
+    [DifferentialEquations.jl](http://docs.juliadiffeq.org/stable/tutorials/ode_example.html) when writing the function representing the equations
+    of motion.
 
-Now, we integrate the equations of motion using [`taylorinteg`](@ref);
-despite of the fact that the solution only exists for ``t<t_\textrm{max}``,
+We now integrate the equations of motion using [`taylorinteg`](@ref);
+note that, despite of the fact that the solution only exists for ``t<t_\textrm{max}``,
 below we shall *try* to compute it up to ``t_\textrm{end}=0.34``; as we shall
 see, Taylor's method takes care of this. For
-the integration presented below, we use a 28-th series expansion, with
+the integration presented below, we use a 25-th series expansion, with
 ``\epsilon_\textrm{tol} = 10^{-20}``, and compute up to 150
 integration steps.
 
 ```@example example1
-tT, xT = taylorinteg(diffeq, 3.0, 0.0, 0.34, 28, 1e-20, maxsteps=150);
+tT, xT = taylorinteg(diffeq, 3.0, 0.0, 0.34, 25, 1e-20, maxsteps=150) ;
 ```
 
 We first note that the last point of the
