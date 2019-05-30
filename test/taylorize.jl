@@ -1,6 +1,6 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
-using TaylorIntegration
+using TaylorIntegration, DiffEqBase
 using Test
 using LinearAlgebra: norm
 using Elliptic
@@ -113,7 +113,7 @@ end
 
 
 # Pendulum integrtf = 100.0
-@testset "Integration of the pendulum" begin
+@testset "Integration of the pendulum and DiffEqs interface" begin
     @taylorize function pendulum!(dx, x, p, t)
         dx[1] = x[2]
         dx[2] = -sin( x[1] )
@@ -122,12 +122,21 @@ end
 
     @test (@isdefined pendulum!)
     q0 = [pi-0.001, 0.0]
-    tv2, xv2 = taylorinteg(pendulum!, q0, t0, tf, _order, _abstol, parse_eqs=false)
-    tv2p, xv2p = taylorinteg(pendulum!, q0, t0, tf, _order, _abstol)
+    tv2, xv2 = taylorinteg(pendulum!, q0, t0, tf, _order, _abstol, parse_eqs=false,
+        maxsteps=5000)
+    tv2p, xv2p = taylorinteg(pendulum!, q0, t0, tf, _order, _abstol, maxsteps=5000)
 
     @test length(tv2) == length(tv2p)
     @test iszero( norm(tv2-tv2p, Inf) )
     @test iszero( norm(xv2-xv2p, Inf) )
+
+    prob = ODEProblem(pendulum!, q0, (t0, tf), nothing) # no parameters
+    sol1 = solve(prob, TaylorMethod(_order), abstol=_abstol, parse_eqs=true)
+    sol2 = solve(prob, TaylorMethod(_order), abstol=_abstol, parse_eqs=false)
+    sol3 = solve(prob, TaylorMethod(_order), abstol=_abstol)
+
+    @test sol1.t == sol2.t == sol3.t == tv2p
+    @test sol1.u[end] == sol2.u[end] == sol3.u[end] == xv2p[end,1:2]
 end
 
 

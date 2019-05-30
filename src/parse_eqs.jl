@@ -788,11 +788,10 @@ function _recursionloop(fnargs, retvar)
         #
     elseif ll == 4
 
-        retvar = fnargs[end]
+        retvar = fnargs[1]
         rec_preamb = sanitize(:(
             for __idx in eachindex($(fnargs[2]))
-                $(fnargs[2])[__idx].coeffs[2] =
-                    $(retvar)[__idx].coeffs[1]
+                $(fnargs[2])[__idx].coeffs[2] = $(retvar)[__idx].coeffs[1]
             end
         ))
         rec_fnbody = sanitize(:(
