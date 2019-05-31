@@ -59,6 +59,11 @@ const tf = 1000.0
     @test iszero( norm(tv1p-tv3p, Inf) )
     @test iszero( norm(xv1p-xv2p, Inf) )
     @test iszero( norm(xv1p-xv3p, Inf) )
+
+    # Compare to exact solution
+    exact_sol(t, b, x0) = sqrt(b)*((sqrt(b)+x0)-(sqrt(b)-x0)*exp(-2sqrt(b)*t)) /
+        ((sqrt(b)+x0)+(sqrt(b)-x0)*exp(-2sqrt(b)*t))
+    @test norm(xv1p[end] - exact_sol(tv1p[end], b1, x0), Inf) < 1.0e-15
 end
 
 
@@ -109,6 +114,10 @@ end
     @test iszero( norm(tv1p-tv3p, Inf) )
     @test iszero( norm(xv1p-xv2p, Inf) )
     @test iszero( norm(xv1p-xv3p, Inf) )
+
+    # Compare to exact solution
+    exact_sol(t, g, x0) = x0 + g*(t-1.0)
+    @test norm(xv1p[end] - exact_sol(tv1p[end], -9.81, 10.0), Inf) < 1.0e-15
 end
 
 
@@ -170,7 +179,6 @@ end
     # Passing a parameter
     @taylorize eqscmplx3(x, p, t) = p*x
     @test (@isdefined eqscmplx3)
-    cx0 = complex(1.0, 0.0)
     tv3, xv3 = taylorinteg(eqscmplx3, cx0, t0, tf, _order, _abstol, cc, maxsteps=1500,
         parse_eqs=false)
     tv3p, xv3p = taylorinteg(eqscmplx3, cx0, t0, tf, _order, _abstol, cc, maxsteps=1500)
@@ -185,6 +193,10 @@ end
     @test iszero( norm(tv1p-tv3p, Inf) )
     @test iszero( norm(xv1p-xv2p, Inf) )
     @test iszero( norm(xv1p-xv3p, Inf) )
+
+    # Compare to exact solution
+    exact_sol(t, p, x0) = x0*exp(p*t)
+    @test norm(abs2(xv1p[end]) - abs2(exact_sol(tv1p[end], cc, cx0)), Inf) < 1.0e-15
 end
 
 
@@ -216,10 +228,60 @@ end
 
     @test iszero( norm(tv12-tv22, Inf) )
     @test iszero( norm(xv12-xv22, Inf) )
+
+    # Compare to exact solution
+    @test norm(xv11[end] - sin(tv11[end]), Inf) < 1.0e-15
 end
 
 
-# Multiple (3) pendula
+@testset "Time-dependent integration (vectorial case)" begin
+    @taylorize function integ_vec(dx, x, p, t)
+        dx[1] = cos(t)
+        dx[2] = -sin(t)
+        return dx
+    end
+
+    @test (@isdefined integ_vec)
+    x0 = [0.0, 1.0]
+    tv11, xv11 = taylorinteg(integ_vec, x0, 0.0, pi, _order, _abstol, parse_eqs=false)
+    tv12, xv12 = taylorinteg(integ_vec, x0, 0.0, pi, _order, _abstol)
+    @test length(tv11) == length(tv12)
+    @test iszero( norm(tv11-tv12, Inf) )
+    @test iszero( norm(xv11-xv12, Inf) )
+
+    # Compare to exact solution
+    @test norm(xv12[end, 1] - sin(tv12[end]), Inf) < 1.0e-15
+    @test norm(xv12[end, 2] - cos(tv12[end]), Inf) < 1.0e-15
+end
+
+
+# Simple harmonic oscillator
+@testset "Simple harmonic oscillator" begin
+    @taylorize function harm_osc!(dx, x, p, t)
+        local ω = p[1]
+        dx[1] = x[2]
+        dx[2] = -ω^2 * x[1]
+        return nothing
+    end
+
+    @test (@isdefined harm_osc!)
+    q0 = [1.0, 0.0]
+    p = [2.0]
+    tv1, xv1 = taylorinteg(harm_osc!, q0, t0, tf, _order, _abstol,
+        p, maxsteps=1000, parse_eqs=false)
+    tv1p, xv1p = taylorinteg(harm_osc!, q0, t0, tf, _order, _abstol,
+        p, maxsteps=1000)
+
+    @test length(tv1) == length(tv1p)
+    @test iszero( norm(tv1-tv1p, Inf) )
+    @test iszero( norm(xv1-xv1p, Inf) )
+
+    # Comparing to exact solution
+    @test norm(xv1p[end, 1] - cos(p[1]*tv1p[end]), Inf) < 1.0e-12
+    @test norm(xv1p[end, 2] + p[1]*sin(p[1]*tv1p[end]), Inf) < 3.0e-12
+end
+
+
 @testset "Multiple pendula" begin
     NN = 3
     nnrange = 1:3
