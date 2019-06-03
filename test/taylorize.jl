@@ -689,6 +689,25 @@ const tf = 20.0
     @test tv1 == tv3
     @test lv1 == lv3
     @test xv1 == xv3
+
+    # Using ranges
+    lv5, xv5 = lyap_taylorinteg(lorenz2!, q0, t0:0.125:tf, _order, _abstol,
+        maxsteps=2000, parse_eqs=false);
+
+    lv5p, xv5p = lyap_taylorinteg(lorenz2!, q0, t0:0.125:tf, _order, _abstol,
+        maxsteps=2000, parse_eqs=true);
+
+    @test lv5 == lv5p
+    @test xv5 == xv5p
+
+    lv6, xv6 = lyap_taylorinteg(lorenz2!, q0, t0:0.125:tf, _order, _abstol,
+        lorenz2_jac!, maxsteps=2000, parse_eqs=false);
+
+    lv6p, xv6p = lyap_taylorinteg(lorenz2!, q0, t0:0.125:tf, _order, _abstol,
+        lorenz2_jac!, maxsteps=2000,  parse_eqs=true);
+
+    @test lv6 == lv6p
+    @test xv6 == xv6p
 end
 
 
