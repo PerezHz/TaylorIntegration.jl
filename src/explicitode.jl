@@ -120,7 +120,23 @@ function stepsize(x::Taylor1{U}, epsilon::T) where {T<:Real, U<:Number}
         aux = aux^kinv
         h = min(h, aux)
     end
-    return h
+    isfinite(h) && return h
+
+    # If isinf(h) == true, we use the maximum (finite)
+    # step-size obtained from all coefficients as above.
+    # Note that the time step is independent from `epsilon`
+    hh = zero(T)
+    for k in 1:ord-1
+        @inbounds aux = norm( x[k], Inf)
+        aux == zero(T) && continue
+        aux = 1 / aux
+        kinv = one(T)/k
+        aux = aux^kinv
+        hh = max(hh, aux)
+    end
+    hh == zero(T) && return h
+
+    return hh
 end
 
 function stepsize(q::AbstractArray{Taylor1{U},1}, epsilon::T) where {T<:Real, U<:Number}
