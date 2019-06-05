@@ -158,30 +158,33 @@ end
 
 #taylorstep
 @doc doc"""
-    taylorstep!(f, t, x, t0, t1, x0, order, abstol, params, parse_eqs=true) -> δt, x0
+    taylorstep!(f, t, x, t0, t1, order, abstol, params, parse_eqs=true) -> δt
+    taylorstep!(f!, t, x, dx, xaux, t0, t1, order, abstol, params, parse_eqs=true) -> δt
 
 One-step Taylor integration for the one-dependent variable ODE ``\dot{x}=dx/dt=f(x, p, t)``
 with initial conditions ``x(t_0)=x_0``, computed from `t0` up to
-`t1`. Returns the time-step of the actual integration carried out
-and the updated value of `x0`.
+`t1`. Returns the time-step `δt` of the actual integration carried out.
 
 Here, `f` is the function defining the RHS of the ODE (see
 [`taylorinteg`](@ref)), `t` is the
 independent variable, `x` contains the Taylor expansion of the dependent
-variable,`x0` is the initial value of the dependent variable, `order` is
+variable, `order` is
 the degree  used for the `Taylor1` polynomials during the integration
-and `abstol` is the absolute tolerance used to determine the time step
+`abstol` is the absolute tolerance used to determine the time step
 of the integration, and `params` are the parameters entering the ODE
-functions. Note that `x0` is of type `Taylor1{T<:Number}` or
-`Taylor1{TaylorN{T}}`. If the time step is larger than `t1-t0`, that
-difference is used as the time step. Finally, `parse_eqs` is a switch
+functions. If the time step is larger than `t1-t0`, that
+difference is used as the time step.
+For several variables, `dx` and `xaux`, both of the same type as `x`,
+are needed to save allocations. Finally, `parse_eqs` is a switch
+to force *not* using (`parse_eqs=false`) the specialized method of `jetcoeffs!`
+created with [`@taylorize`](@ref); the default is `true` (parse the equations).
+Finally, `parse_eqs` is a switch
 to force *not* using (`parse_eqs=false`) the specialized method of `jetcoeffs!`
 created with [`@taylorize`](@ref); the default is `true` (parse the equations).
 
 """
-function taylorstep!(f, t::Taylor1{T}, x::Taylor1{U}, t0::T, t1::T, x0::U,
-        order::Int, abstol::T, params, parse_eqs::Bool=true) where
-            {T<:Real, U<:Number}
+function taylorstep!(f, t::Taylor1{T}, x::Taylor1{U}, t0::T, t1::T, order::Int,
+        abstol::T, params, parse_eqs::Bool=true) where {T<:Real, U<:Number}
 
     @assert t1 > t0
 
@@ -192,37 +195,12 @@ function taylorstep!(f, t::Taylor1{T}, x::Taylor1{U}, t0::T, t1::T, x0::U,
     δt = stepsize(x, abstol)
     δt = min(δt, t1-t0)
 
-    x0 = evaluate(x, δt)
-    return δt, x0
+    return δt
 end
 
-@doc doc"""
-    taylorstep!(f!, t, x, dx, xaux, t0, t1, x0, order, abstol, params, parse_eqs=true) -> δt
-
-One-step Taylor integration for the several-dependent variables ODE ``\dot{x}=dx/dt=f(x, p, t)``
-with initial conditions ``x(t_0)=x_0``, computed from `t0` up to
-`t1`, returning the time-step of the actual integration carried out
-and updating (in-place) `x0`.
-
-Here, `f!` is the function defining the RHS of the ODE (see
-[`taylorinteg`](@ref)), `t` is the
-independent variable, `x` contains the Taylor expansion of the dependent
-variables, `x0` corresponds to the initial (and updated) dependent
-variables and is of type `Vector{Taylor1{T<:Number}}`, `order`
-is the degree used for the `Taylor1` polynomials during the integration
-and `abstol` is the absolute tolerance used to determine the time step
-of the integration.
-
-`dx` and `xaux`, both of the same type as `x0`,
-are needed to save allocations. Finally, `parse_eqs` is a switch
-to force *not* using (`parse_eqs=false`) the specialized method of `jetcoeffs!`
-created with [`@taylorize`](@ref); the default is `true` (parse the equations).
-
-"""
 function taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}}, dx::Vector{Taylor1{U}},
-        xaux::Vector{Taylor1{U}}, t0::T, t1::T, x0::Array{U,1},
-        order::Int, abstol::T, params, parse_eqs::Bool=true) where
-            {T<:Real, U<:Number}
+        xaux::Vector{Taylor1{U}}, t0::T, t1::T, order::Int, abstol::T, params,
+        parse_eqs::Bool=true) where {T<:Real, U<:Number}
 
     @assert t1 > t0
 
@@ -233,7 +211,6 @@ function taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}}, dx::Vector{Taylor
     δt = stepsize(x, abstol)
     δt = min(δt, t1-t0)
 
-    evaluate!(x, δt, x0)
     return δt
 end
 
@@ -329,8 +306,8 @@ function taylorinteg(f, x0::U, t0::T, tmax::T, order::Int, abstol::T,
 
     # Integration
     while t0 < tmax
-        δt, x0 = taylorstep!(f, t, x, t0, tmax, x0, order, abstol,
-            params, parse_eqs)
+        δt = taylorstep!(f, t, x, t0, tmax, order, abstol, params, parse_eqs)
+        x0 = evaluate(x, δt) # new initial condition
         @inbounds x[0] = x0
         t0 += δt
         @inbounds t[0] = t0
@@ -387,8 +364,8 @@ function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T, order::Int, abstol::T,
     # Integration
     nsteps = 1
     while t0 < tmax
-        δt = taylorstep!(f!, t, x, dx, xaux, t0, tmax, x0, order, abstol,
-            params, parse_eqs)
+        δt = taylorstep!(f!, t, x, dx, xaux, t0, tmax, order, abstol, params, parse_eqs)
+        evaluate!(x, δt, x0) # new initial condition
         for i in eachindex(x0)
             @inbounds x[i][0] = x0[i]
             @inbounds dx[i] = Taylor1( zero(x0[i]), order )
@@ -463,8 +440,8 @@ function taylorinteg(f, x0::U, trange::AbstractVector{T},
     iter = 2
     nsteps = 1
     while t0 < tmax
-        δt, x0 = taylorstep!(f, t, x, t0, tmax, x0, order, abstol,
-            params, parse_eqs)
+        δt = taylorstep!(f, t, x, t0, tmax, order, abstol, params, parse_eqs)
+        x0 = evaluate(x, δt) # new initial condition
         tnext = t0+δt
         # Evaluate solution at times within convergence radius
         while t1 < tnext
@@ -537,8 +514,8 @@ function taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
     iter = 2
     nsteps = 1
     while t0 < tmax
-        δt = taylorstep!(f!, t, x, dx, xaux, t0, tmax, x0, order, abstol,
-            params, parse_eqs)
+        δt = taylorstep!(f!, t, x, dx, xaux, t0, tmax, order, abstol, params, parse_eqs)
+        evaluate!(x, δt, x0) # new initial condition
         tnext = t0+δt
         # Evaluate solution at times within convergence radius
         while t1 < tnext

@@ -73,7 +73,6 @@ end
     t0 = 0.0
     tmax = 0.3
     x0 = 3.0
-    q0 = [3.0, 3.0]
     x0T = Taylor1(x0, _order)
     tT[1] = t0
     TaylorIntegration.jetcoeffs!(eqs_mov, tT, x0T, nothing)
@@ -91,29 +90,7 @@ end
     @test tv[end] == tmax
     @test abs(xv[end]-exactsol(tv[end], xv[1])) < 2e-14
 
-    function eqs_mov!(Dx, x, p, t)
-        for i in eachindex(x)
-            Dx[i] = x[i]^2
-        end
-        nothing
-    end
-
-    tv, xv = taylorinteg(eqs_mov!, q0, 0.0, tmax, _order, _abstol, nothing)
-    @test length(tv) < 501
-    @test length(xv[:,1]) < 501
-    @test length(xv[:,2]) < 501
-    @test length(tv) == 14
-    @test length(xv[:,1]) == 14
-    @test length(xv[:,2]) == 14
-    @test xv[1,1:end] == q0
-    @test tv[end] < 1/3
-    @test tv[end] == tmax
-    @test xv[end,1] == xv[end,2]
-    @test abs(xv[end,1]-exactsol(tv[end], xv[1,1])) < 2e-14
-    @test abs(xv[end,2]-exactsol(tv[end], xv[1,2])) < 2e-14
-
     tmax = 0.33
-
     tv, xv = taylorinteg(eqs_mov, x0, 0.0, tmax, _order, _abstol)
     @test length(tv) < 501
     @test length(xv) < 501
@@ -123,20 +100,6 @@ end
     @test tv[end] < 1/3
     @test tv[end] == tmax
     @test abs(xv[end]-exactsol(tv[end], xv[1])) < 5e-12
-
-    tv, xv = taylorinteg(eqs_mov!, q0, 0.0, tmax, _order, _abstol)
-    @test length(tv) < 501
-    @test length(xv[:,1]) < 501
-    @test length(xv[:,2]) < 501
-    @test length(tv) == 28
-    @test length(xv[:,1]) == 28
-    @test length(xv[:,2]) == 28
-    @test xv[1,1:end] == q0
-    @test tv[end] < 1/3
-    @test tv[end] == tmax
-    @test xv[end,1] == xv[end,2]
-    @test abs(xv[end,1]-exactsol(tv[end], xv[1,1])) < 5e-12
-    @test abs(xv[end,2]-exactsol(tv[end], xv[1,2])) < 5e-12
 end
 
 @testset "Test non-autonomous ODE (1): dot{x}=cos(t)" begin

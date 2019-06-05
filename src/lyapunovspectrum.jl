@@ -1,7 +1,7 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
 """
-    stabilitymatrix!(eqsdiff!, t, x, δx, dδx, jac, _δv[, jacobianfunc!])
+    stabilitymatrix!(eqsdiff!, t, x, δx, dδx, jac, _δv, params[, jacobianfunc!=nothing])
 
 Updates the matrix `jac::Matrix{Taylor1{U}}` (linearized equations of motion)
 computed from the equations of motion (`eqsdiff!`), at time `t` at `x`; `x` is
@@ -155,12 +155,13 @@ function lyap_jetcoeffs!(t::Taylor1{T}, x::AbstractVector{Taylor1{S}},
 end
 
 """
-    lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, t1, x0, order, abstol, _δv, varsaux[, jacobianfunc!])
+    lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, t1, order, abstol, _δv, varsaux, params[, jacobianfunc!])
 
 Similar to [`taylorstep!`](@ref) for the calculation of the Lyapunov spectrum.
 `jac` is the Taylor expansion (wrt the independent variable) of the
 linearization of the equations of motion, i.e, the Jacobian. `xaux`, `δx`, `dδx`,
-`varsaux` and `_δv` are auxiliary vectors. Optionally, the user may provide a
+`varsaux` and `_δv` are auxiliary vectors, and `params` define the parameters
+of the ODEs. Optionally, the user may provide a
 Jacobian function `jacobianfunc!` to compute `jac`. Otherwise, `jac` is computed
 via automatic differentiation using `TaylorSeries.jl`.
 
@@ -168,7 +169,7 @@ via automatic differentiation using `TaylorSeries.jl`.
 function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
         dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}},
         δx::Array{TaylorN{Taylor1{U}},1}, dδx::Array{TaylorN{Taylor1{U}},1},
-        jac::Array{Taylor1{U},2}, t0::T, t1::T, x0::Array{U,1}, order::Int,
+        jac::Array{Taylor1{U},2}, t0::T, t1::T, order::Int,
         abstol::T, _δv::Vector{TaylorN{Taylor1{U}}}, varsaux::Array{Taylor1{U},3},
         params, parse_eqs::Bool=true, jacobianfunc! =nothing) where {T<:Real, U<:Number}
 
@@ -189,9 +190,9 @@ function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
     δt = stepsize(view(x, 1:dof), abstol)
     δt = min(δt, t1-t0)
 
-    # Update x0
-    evaluate!(x, δt, x0)
-
+    # # Update x0
+    # evaluate!(x, δt, x0)
+    #
     return δt
 end
 
@@ -273,8 +274,9 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
     # Integration
     nsteps = 1
     while t0 < tmax
-        δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, tmax, x0,
+        δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, tmax, 
             order, abstol, _δv, varsaux, params, parse_eqs, jacobianfunc!)
+        evaluate!(x, δt, x0) # Update x0
         for ind in eachindex(jt)
             @inbounds jt[ind] = x0[dof+ind]
         end
@@ -373,8 +375,9 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
     iter = 2
     nsteps = 1
     while t0 < tmax
-        δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, tmax, x0,
+        δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, tmax,
             order, abstol, _δv, varsaux, params, parse_eqs, jacobianfunc!)
+        evaluate!(x, δt, x0) # Update x0
         tnext = t0+δt
         # # Evaluate solution at times within convergence radius
         while t1 < tnext
