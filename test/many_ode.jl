@@ -93,3 +93,21 @@ end
     @test tv[end] == xv[end,1]
     @test abs(sin(tmax)-xv[end,2]) < 1e-14
 end
+
+@testset "Falling ball (stepsize)" begin
+    function fallball!(t, x, dx)
+        dx[1] = x[2]
+        dx[2] = -one(x[1])
+        nothing
+    end
+    exactsol(t, x0, v0) = x0 + v0*t - 0.5*t^2
+    t0 = 0.0
+    tmax = 5.0
+    abstol = 1e-20
+    order = 10
+    x0 = [10.0, 0.0] #initial conditions such that x(t)=sin(t)
+    tv, xv = taylorinteg(fallball!, x0, t0, tmax, order, abstol)
+    @test length(tv) < 501
+    @test length(xv[:,1]) < 501
+    @test exactsol.(tv, x0[1], x0[2]) == xv[:,1]
+end
