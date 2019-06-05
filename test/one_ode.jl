@@ -18,7 +18,7 @@ const tT = Taylor1(_order)
     δt = _abstol^inv(_order-1)
     @test TaylorIntegration.stepsize(x0T, _abstol) == δt
 
-    tv, xv = taylorinteg(eqs_mov, x0, 0.0, 1.0, _order, _abstol)
+    tv, xv = taylorinteg(eqs_mov, 1, 0.0, 1.0, _order, _abstol)
     @test length(tv) == 501
     @test length(xv) == 501
     @test xv[1] == x0

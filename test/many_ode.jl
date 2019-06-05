@@ -8,7 +8,7 @@ const _order = 28
 const _abstol = 1.0E-20
 const tT = Taylor1(_order)
 
-@testset "Tests: dot{x}=x.^2, x(0) = [3.0,1.0]" begin
+@testset "Tests: dot{x}=x.^2, x(0) = [3, 1]" begin
     function eqs_mov!(Dx, x, p, t)
         for i in eachindex(x)
             Dx[i] = x[i]^2
@@ -17,8 +17,8 @@ const tT = Taylor1(_order)
     end
     exactsol(t, x0) = x0/(1.0-x0*t)
     t0 = 0.0
-    q0 = [3.0, 1.0]
-    q0T = [Taylor1(q0[1], _order), Taylor1(q0[2], _order)]
+    q0 = [3, 1]
+    q0T = [Taylor1(3.0, _order), Taylor1(1.0, _order)]
     xdotT = Array{Taylor1{Float64}}(undef, length(q0))
     xaux = Array{Taylor1{Float64}}(undef, length(q0))
     tT[1] = t0
@@ -38,7 +38,7 @@ const tT = Taylor1(_order)
     xv = taylorinteg(eqs_mov!, q0, trange, _order, _abstol)
     @test size(xv) == (9,2)
     @test q0 == [3.0, 1.0]
-    @test typeof(xv) == Transpose{eltype(q0), Array{eltype(q0),2}}
+    @test typeof(xv) == Transpose{Float64, Array{Float64,2}}
     @test xv[1,1:end] == q0
     @test (isnan(xv[4,1]) && isnan(xv[4,2]))
     @test (isnan(xv[end,1]) && isnan(xv[end,2]))
@@ -51,7 +51,7 @@ const tT = Taylor1(_order)
     @test xv2[1:3,:] ≈ xv[1:3,:] atol=eps() rtol=0.0
     @test size(xv2) == (9,2)
     @test q0 == [3.0, 1.0]
-    @test typeof(xv2) == Transpose{eltype(q0), Array{eltype(q0),2}}
+    @test typeof(xv2) == Transpose{Float64, Array{Float64,2}}
     @test xv2[1,1:end] == q0
     @test (isnan(xv2[4,1]) && isnan(xv2[4,2]))
     @test (isnan(xv2[end,1]) && isnan(xv2[end,2]))
