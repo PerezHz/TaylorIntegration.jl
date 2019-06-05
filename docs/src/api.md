@@ -20,3 +20,12 @@ lyap_taylorinteg
 Modules = [TaylorIntegration]
 Public = false
 ```
+
+## Index
+
+```@index
+Pages = ["api.md"]
+Module = ["TaylorIntegration"]
+Order = [:function]
+Public = true
+```

@@ -1,4 +1,4 @@
-# [ODE integration using Taylor's method](@id taylormethod)
+# [Taylor's method](@id taylormethod)
 
 Taylor's integration method is a quite powerful method to integrate ODEs
 which are smooth enough, allowing to reach a precision comparable

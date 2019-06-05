@@ -146,12 +146,12 @@ specific AST of the function of the ODEs integrated, which is walked
 through and *translated* into the actual implementation, where some
 required auxiliary arrays are created and the low-level functions defined in
 `TaylorSeries.jl` are used.
-For this, we heavily rely on [Espresso.jl](https://github.com/dfdx/Espresso.jl) and
+For this, we heavily rely on [`Espresso.jl`](https://github.com/dfdx/Espresso.jl) and
 some metaprogramming; we thank Andrei Zhabinski for his help and comments.
 
 The new `jetcoeffs!` method can be inspected by constructing the expression
 corresponding to the function, and using
-[TaylorIntegration._make_parsed_jetcoeffs](@ref):
+[`TaylorIntegration._make_parsed_jetcoeffs`](@ref):
 
 ```@example taylorize
 ex = :(function pendulum!(dx, x, p, t)
