@@ -1,4 +1,4 @@
-# [ODE integration using Taylor's method](@id taylormethod)
+# [Taylor's method](@id taylormethod)
 
 Taylor's integration method is a quite powerful method to integrate ODEs
 which are smooth enough, allowing to reach a precision comparable
@@ -69,17 +69,18 @@ are obtained *recursively* using Eq. (\ref{eq-recursion}).
 ## [Time step](@id time-step)
 
 In the computer, the expansion (\ref{eq-solution}) has to be computed
-to a finite *order*. We shall denote by ``K`` the order of the series. Clearly,
+to a finite *order*. We shall denote by ``K`` the order of the series.
+In principle,
 the larger the order ``K``, the more accurate the obtained solution is.
 
 The theorem of existence and uniqueness of the solution of
 Eq.~(\ref{eq-ODE}) ensures that the Taylor expansion converges. Then,
 assuming that ``K`` is large enough to be within
-the convergent tail. We introduce the parameter ``\epsilon_\textrm{tol} > 0``
+the convergent tail, we introduce the parameter ``\epsilon_\textrm{tol} > 0``
 to control how large is the last term. The idea is to set this
 parameter to a small value, usually smaller than the machine-epsilon.
-Denoting by ``h = t_1-t_0`` the time step, then
-``| x_{[K]} | h^K \le \epsilon_\textrm{tol}``, we obtain
+Denoting by ``h = t_1-t_0`` the time step, then imposing
+``| x_{[K]} | h^K \le \epsilon_\textrm{tol}`` we obtain
 ```math
 \begin{equation}
 \label{eq-h}

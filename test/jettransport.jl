@@ -7,8 +7,8 @@ using Test
 const _order = 28
 const _abstol = 1.0E-20
 
-f(t, x) = x^2
-g(t, x) = 0.3x
+f(x, p, t) = x^2
+g(x, p, t) = 0.3x
 
 @testset "Test TaylorN jet transport (t0, tmax): 1-dim case" begin
     p = set_variables("ξ", numvars=1, order=5)
@@ -247,7 +247,7 @@ end
     end
 end
 
-function harmosc!(t, x, dx) #the harmonic oscillator ODE
+function harmosc!(dx, x, p, t) #the harmonic oscillator ODE
     dx[1] = x[2]
     dx[2] = -x[1]*x[3]^2
     dx[3] = zero(x[1])
@@ -315,7 +315,7 @@ end
     end
 end
 
-function harmosc!(t, x, dx) #the harmonic oscillator ODE
+function harmosc!(dx, x, p, t) #the harmonic oscillator ODE
     dx[1] = x[2]
     dx[2] = -x[1]
     nothing
@@ -348,7 +348,7 @@ end
     @test isapprox(xvTN_0[1,:], xvTN_0[end,:]) # end point must coincide with a full period
 end
 
-function pendulum!(t, x, dx) #the simple pendulum ODE
+function pendulum!(dx, x, p, t) #the simple pendulum ODE
     dx[1] = x[2]
     dx[2] = -sin(x[1])
     nothing

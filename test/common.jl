@@ -2,7 +2,6 @@ using TaylorIntegration, Test, DiffEqBase
 using LinearAlgebra: norm
 
 f(u,p,t) = u
-
 @testset "Test integration of ODE with numbers in common interface" begin
     u0 = 0.5
     tspan = (0.0, 1.0)
@@ -12,8 +11,7 @@ f(u,p,t) = u
     @test sol[end] - 0.5*exp(1) < 1e-12
 end
 
-f(du,u,p,t) = (du .= u)
-
+f(du, u, p, t) = (du .= u)
 @testset "Test integration of ODE with abstract arrays in common interface" begin
     u0 = rand(4, 2)
     tspan = (0.0, 1.0)

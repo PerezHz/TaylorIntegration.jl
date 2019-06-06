@@ -46,7 +46,7 @@ nothing # hide
 ```
 The equations of motion are:
 ```@example pendulum
-function pendulum!(t, x, dx)
+function pendulum!(dx, x, p, t)
     dx[1] = x[2]
     dx[2] = -sin(x[1])
 end

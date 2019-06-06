@@ -23,7 +23,7 @@ and ``v_x`` and ``v_y`` its velocity. The function `kepler_eqs!` *mutates*
 the vectors corresponding to the LHS of the equations of motion.
 
 ```@example kepler
-function kepler_eqs!(t, q, dq)
+function kepler_eqs!(dq, q, params, t)
     dq[1] = q[3]
     dq[2] = q[4]
     rr = ( q[1]^2 + q[2]^2 )^(3/2)
@@ -70,11 +70,11 @@ end
 q0 = ini_cond(aKep, eKep)
 ```
 
-We now perform the integration, using a 28 order expansion and
+We now perform the integration, using a 25 order expansion and
 absolute tolerance of ``10^{-20}``.
 ```@example kepler
 using TaylorIntegration, Plots
-t, q = taylorinteg(kepler_eqs!, q0, 0.0, 10000*2pi, 28, 1.0e-20, maxsteps=700000);
+t, q = taylorinteg(kepler_eqs!, q0, 0.0, 10000*2pi, 25, 1.0e-20, maxsteps=700_000);
 t[end], q[end,:]
 ```
 

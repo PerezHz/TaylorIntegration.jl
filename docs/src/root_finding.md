@@ -23,11 +23,12 @@ H(x,y,p,q) = 0.5*(p^2+q^2) + V(x, y)
 H(x) = H(x...)
 
 # Equations of motion
-function henonheiles!(t, x, dx)
-    dx[1] = x[3]
-    dx[2] = x[4]
-    dx[3] = -x[1]-2x[2]*x[1]
-    dx[4] = -x[2]-(x[1]^2-x[2]^2)
+function henonheiles!(dq, q, p, t)
+    x, y, px, py = q
+    dq[1] = px
+    dq[2] = py
+    dq[3] = -x-2y*x
+    dq[4] = -y-(x^2-y^2)
     nothing
 end
 nothing # hide
@@ -76,17 +77,17 @@ discard a particular crossing (or crossings), the function `g` must then return
 a `nothing` value, as will be demonstrated below.
 
 For the present example, we are looking for crossings through the surface ``x=0``,
-which corresponds to `g(t, x, dx) = x[1]`. But since we are looking only for the
+which corresponds to `g(dx, x, p, t) = x[1]`. But since we are looking only for the
 crossings through ``x=0`` which also satisfy ``\dot x > 0``, we have to define
 `g` in such a way that the crossing is discarded *only* if ``\dot x < 0``. One
 way to achieve this, is to define `g` such that if ``\dot x > 0`` then `g`
 returns the value of `x[1]`; otherwise, if ``\dot x < 0``, then `g` returns a
 `nothing` value.
 
-Therefore, we define `g` as
+Therefore, we define (following again the convention of `DifferentialEquations.jl`) the function `g` as
 ```@example poincare
 # x=0, px>0 section
-function g(t, x, dx)
+function g(dx, x, p, t)
     px_ = constant_term(x[3])
     # if px > 0...
     if px_ > zero(px_)
@@ -191,7 +192,8 @@ In order to properly handle this case, we need to extend the definition of
 `g` to be useful for `Taylor1{TaylorN{T}}` vectors.
 ```@example poincare
 #specialized method of g for Taylor1{TaylorN{T}}'s
-function g(t, x::Array{Taylor1{TaylorN{T}},1}, dx::Array{Taylor1{TaylorN{T}},1}) where {T<:Number}
+function g(dx::Array{Taylor1{TaylorN{T}},1}, x::Array{Taylor1{TaylorN{T}},1},
+        p, t) where {T<:Number}
     px_ = constant_term(constant_term(x[3]))
     if px_ > zero( T )
         return x[1]

@@ -28,8 +28,9 @@ function DiffEqBase.solve(
     alg::AlgType,
     timeseries=[],ts=[],ks=[];
     verbose=true, abstol = 1e-6, save_start = true,
-    timeseries_errors=true, maxiters = 1000000,
-    callback=nothing, kwargs...) where {uType, tType, isinplace, AlgType <: TaylorAlgorithm}
+    timeseries_errors=true, maxiters = 1_000_000,
+    callback=nothing, kwargs...) where
+        {uType, tType, isinplace, AlgType <: TaylorAlgorithm}
 
     if verbose
         warned = !isempty(kwargs) && check_keywords(alg, kwargs, warnlist)
@@ -40,29 +41,38 @@ function DiffEqBase.solve(
         error("TaylorIntegration is not compatible with callbacks.")
     end
 
-    if typeof(prob.u0) <: Number
-        u0 = [prob.u0]
-    else
-        u0 = vec(deepcopy(prob.u0))
-    end
-
     sizeu = size(prob.u0)
-    p = prob.p
     f = prob.f
 
-    if !isinplace && (typeof(prob.u0)<:Vector{Float64} || typeof(prob.u0)<:Number)
-        f! = (t, u, du) -> (du .= f(u, p, t); 0)
-    elseif !isinplace && typeof(prob.u0)<:AbstractArray
-        f! = (t, u, du) -> (du .= vec(f(reshape(u, sizeu), p, t)); 0)
-    elseif typeof(prob.u0)<:Vector{Float64}
-        f! = (t, u, du) -> f(du, u, p, t)
-    else # Then it's an in-place function on an abstract array
-        f! = (t, u, du) -> (f(reshape(du, sizeu), reshape(u, sizeu), p, t);
-                            u = vec(u); du=vec(du); 0)
-    end
+    if !isinplace && typeof(prob.u0) <: Vector{Float64}
+        f! = (du, u, p, t) -> (du .= f(u, p, t); 0)
+        t, vectimeseries = taylorinteg(f!, prob.u0, prob.tspan[1], prob.tspan[2],
+            alg.order, abstol, prob.p, maxsteps=maxiters, parse_eqs=false)
 
-    t,vectimeseries = taylorinteg(f!, u0, prob.tspan[1], prob.tspan[2], alg.order,
-                                                      abstol, maxsteps=maxiters)
+    elseif !isinplace && typeof(prob.u0) <: AbstractArray
+        f! = (du, u, p, t) -> (du .= vec(f(reshape(u, sizeu), p, t)); 0)
+        t, vectimeseries = taylorinteg(f!, prob.u0, prob.tspan[1], prob.tspan[2],
+            alg.order, abstol, prob.p, maxsteps=maxiters, parse_eqs=false)
+
+    elseif isinplace && typeof(prob.u0) <: AbstractArray{eltype(uType),2}
+        f! = (du, u, p, t) -> (
+                dd = reshape(du, sizeu); uu = reshape(u, sizeu);
+                f(dd, uu, p, t); u = vec(uu); du = vec(dd); 0)
+        u0 = vec(prob.u0)
+        t, vectimeseries = taylorinteg(f!, u0, prob.tspan[1], prob.tspan[2],
+            alg.order, abstol, prob.p, maxsteps=maxiters, parse_eqs=false)
+
+    else
+        if haskey(kwargs, :parse_eqs)
+            parse_eqs = kwargs[:parse_eqs]
+        else
+            parse_eqs = true
+        end
+        t, vectimeseries = taylorinteg(prob.f.f, prob.u0, prob.tspan[1],
+            prob.tspan[2], alg.order, abstol, prob.p, maxsteps=maxiters,
+            parse_eqs=parse_eqs)
+
+    end
 
     if save_start
       start_idx = 1
@@ -71,6 +81,7 @@ function DiffEqBase.solve(
       start_idx = 2
       _t = t[2:end]
     end
+
     if typeof(prob.u0) <: AbstractArray
       _timeseries = Vector{uType}(undef, 0)
       for i=start_idx:size(vectimeseries, 1)
@@ -81,6 +92,5 @@ function DiffEqBase.solve(
     end
 
     DiffEqBase.build_solution(prob,  alg, _t, _timeseries,
-                   timeseries_errors = timeseries_errors,
-                   retcode = :Success)
+        timeseries_errors = timeseries_errors, retcode = :Success)
 end

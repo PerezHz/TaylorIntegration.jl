@@ -8,8 +8,8 @@ const _order = 28
 const _abstol = 1.0E-20
 const tT = Taylor1(_order)
 
-@testset "Tests: dot{x}=x.^2, x(0) = [3.0,1.0]" begin
-    function eqs_mov!(t, x, Dx)
+@testset "Tests: dot{x}=x.^2, x(0) = [3, 1]" begin
+    function eqs_mov!(Dx, x, p, t)
         for i in eachindex(x)
             Dx[i] = x[i]^2
         end
@@ -17,18 +17,18 @@ const tT = Taylor1(_order)
     end
     exactsol(t, x0) = x0/(1.0-x0*t)
     t0 = 0.0
-    q0 = [3.0, 1.0]
-    q0T = [Taylor1(q0[1], _order), Taylor1(q0[2], _order)]
+    q0 = [3, 1]
+    q0T = Taylor1.(Float64.(q0), _order)
     xdotT = Array{Taylor1{Float64}}(undef, length(q0))
     xaux = Array{Taylor1{Float64}}(undef, length(q0))
     tT[1] = t0
-    TaylorIntegration.jetcoeffs!(eqs_mov!, tT, q0T, xdotT, xaux)
+    TaylorIntegration.jetcoeffs!(eqs_mov!, tT, q0T, xdotT, xaux, nothing)
     @test q0T[1].coeffs[end] == 3.0^(_order+1)
     @test q0T[2].coeffs[end] == 1.0
     δt = (_abstol/q0T[1].coeffs[end-1])^inv(_order-1)
     @test TaylorIntegration.stepsize(q0T, _abstol) == δt
 
-    tv, xv = taylorinteg(eqs_mov!, q0, 0.0, 0.5, _order, _abstol)
+    tv, xv = taylorinteg(eqs_mov!, q0, 0.0, 0.5, _order, _abstol, nothing)
     @test length(tv) == 501
     @test isa(xv, SubArray)
     @test xv[1,:] == q0
@@ -38,7 +38,7 @@ const tT = Taylor1(_order)
     xv = taylorinteg(eqs_mov!, q0, trange, _order, _abstol)
     @test size(xv) == (9,2)
     @test q0 == [3.0, 1.0]
-    @test typeof(xv) == Transpose{eltype(q0), Array{eltype(q0),2}}
+    @test typeof(xv) == Transpose{Float64, Array{Float64,2}}
     @test xv[1,1:end] == q0
     @test (isnan(xv[4,1]) && isnan(xv[4,2]))
     @test (isnan(xv[end,1]) && isnan(xv[end,2]))
@@ -46,12 +46,12 @@ const tT = Taylor1(_order)
     @test abs(xv[2,1] - 4.8) ≤ eps(4.8)
 
     tarray = vec(trange)
-    xv2 = taylorinteg(eqs_mov!, q0, tarray, _order, _abstol)
+    xv2 = taylorinteg(eqs_mov!, q0, tarray, _order, _abstol, nothing)
     @test xv[1:3,:] == xv2[1:3,:]
     @test xv2[1:3,:] ≈ xv[1:3,:] atol=eps() rtol=0.0
     @test size(xv2) == (9,2)
     @test q0 == [3.0, 1.0]
-    @test typeof(xv2) == Transpose{eltype(q0), Array{eltype(q0),2}}
+    @test typeof(xv2) == Transpose{Float64, Array{Float64,2}}
     @test xv2[1,1:end] == q0
     @test (isnan(xv2[4,1]) && isnan(xv2[4,2]))
     @test (isnan(xv2[end,1]) && isnan(xv2[end,2]))
@@ -59,8 +59,49 @@ const tT = Taylor1(_order)
     @test abs(xv2[2,1] - 4.8) ≤ eps(4.8)
 end
 
+@testset "Tests: dot{x}=x.^2, x(0) = [3, 3]" begin
+    function eqs_mov!(Dx, x, p, t)
+        for i in eachindex(x)
+            Dx[i] = x[i]^2
+        end
+        nothing
+    end
+    exactsol(t, x0) = x0/(1.0-x0*t)
+
+    q0 = [3.0, 3.0]
+    tmax = 0.3
+    tv, xv = taylorinteg(eqs_mov!, q0, 0, tmax, _order, _abstol, nothing)
+    @test length(tv) < 501
+    @test length(xv[:,1]) < 501
+    @test length(xv[:,2]) < 501
+    @test length(tv) == 14
+    @test length(xv[:,1]) == 14
+    @test length(xv[:,2]) == 14
+    @test xv[1,1:end] == q0
+    @test tv[end] < 1/3
+    @test tv[end] == tmax
+    @test xv[end,1] == xv[end,2]
+    @test abs(xv[end,1]-exactsol(tv[end], xv[1,1])) < 2e-14
+    @test abs(xv[end,2]-exactsol(tv[end], xv[1,2])) < 2e-14
+
+    tmax = 0.33
+    tv, xv = taylorinteg(eqs_mov!, [3, 3], 0.0, tmax, _order, _abstol)
+    @test length(tv) < 501
+    @test length(xv[:,1]) < 501
+    @test length(xv[:,2]) < 501
+    @test length(tv) == 28
+    @test length(xv[:,1]) == 28
+    @test length(xv[:,2]) == 28
+    @test xv[1,1:end] == q0
+    @test tv[end] < 1/3
+    @test tv[end] == tmax
+    @test xv[end,1] == xv[end,2]
+    @test abs(xv[end,1]-exactsol(tv[end], xv[1,1])) < 5e-12
+    @test abs(xv[end,2]-exactsol(tv[end], xv[1,2])) < 5e-12
+end
+
 @testset "Test non-autonomous ODE (2): dot{x}=cos(t)" begin
-    function f!(t, x, Dx)
+    function f!(Dx, x, p, t)
         Dx[1] = one(t)
         Dx[2] = cos(t)
         nothing
@@ -82,7 +123,7 @@ end
     @test abs(sin(tmax)-xv[end,2]) < 1e-14
 
     tmax = 15*(2pi)
-    tv, xv = taylorinteg(f!, x0, t0, tmax, order, abstol)
+    tv, xv = taylorinteg(f!, x0, t0, tmax, order, abstol, nothing)
     @test length(tv) < 501
     @test length(xv[:,1]) < 501
     @test length(xv[:,2]) < 501
@@ -95,7 +136,7 @@ end
 end
 
 @testset "Falling ball (stepsize)" begin
-    function fallball!(t, x, dx)
+    function fallball!(dx, x, p, t)
         dx[1] = x[2]
         dx[2] = -one(x[1])
         nothing

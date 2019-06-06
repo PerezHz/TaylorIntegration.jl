@@ -13,7 +13,7 @@ const β = 4.0
 const ρ = 45.92
 
 #Lorenz system ODE:
-function lorenz!(t, x, dx)
+function lorenz!(dx, x, p, t)
     dx[1] = σ*(x[2]-x[1])
     dx[2] = x[1]*(ρ-x[3])-x[2]
     dx[3] = x[1]*x[2]-β*x[3]
@@ -21,7 +21,7 @@ function lorenz!(t, x, dx)
 end
 
 #Lorenz system Jacobian (in-place):
-function lorenz_jac!(jac, t, x)
+function lorenz_jac!(jac, x, p, t)
     jac[1,1] = -σ+zero(x[1]); jac[1,2] = σ+zero(x[1]); jac[1,3] = zero(x[1])
     jac[2,1] = ρ-x[3]; jac[2,2] = -1.0+zero(x[1]); jac[2,3] = -x[1]
     jac[3,1] = x[2]; jac[3,2] = x[1]; jac[3,3] = -β+zero(x[1])
@@ -44,9 +44,9 @@ end
     for i in 1:10
         x0 = 10rand(3) #the initial condition
         x0T = Taylor1.(x0,_order)
-        TaylorIntegration.stabilitymatrix!(lorenz!, t_, x0T, δx, dδx, jac_auto, _δv)
+        TaylorIntegration.stabilitymatrix!(lorenz!, t_, x0T, δx, dδx, jac_auto, _δv, nothing)
         @test tr(constant_term.(jac_auto)) == -(1+σ+β)
-        TaylorIntegration.stabilitymatrix!(lorenz!, t_, x0T, δx, dδx, jac_user, _δv, lorenz_jac!)
+        TaylorIntegration.stabilitymatrix!(lorenz!, t_, x0T, δx, dδx, jac_user, _δv, nothing, lorenz_jac!)
         @test tr(constant_term.(jac_user)) == -(1+σ+β)
         @test jac_user == jac_auto
     end
@@ -92,7 +92,7 @@ end
     xi = set_variables("δ", order=1, numvars=length(q0))
     q0TN = [ q0[1]+xi[1], q0[2]+xi[2], q0[3]+xi[3] ]
     dq0TN = similar(q0TN)
-    lorenz!(t0, q0TN, dq0TN)
+    lorenz!(dq0TN, q0TN, nothing, t0)
     jac_autodiff = TaylorSeries.jacobian(dq0TN) # Jacobian, computed via automatic differentiation
     lorenztr = tr(jac_autodiff) #trace of Lorenz system Jacobian matrix
 
@@ -100,7 +100,8 @@ end
 
     # Compute Jacobian using previously defined `lorenz_jac!` function
     jac = Matrix{Taylor1{eltype(q0)}}(undef, dof, dof)
-    lorenz_jac!(jac, t, x)
+    lorenz_jac!(jac, x, nothing, t)
+    @test tr(constant_term.(jac)) == -(1+σ+β)
 
     # Jacobian values should be equal
     @test constant_term.(jac) == jac_autodiff
@@ -111,13 +112,13 @@ end
     xi = set_variables("δ", order=1, numvars=length(q0))
 
     #Test lyap_taylorinteg with autodiff-computed Jacobian, maxsteps=2
-    tv, xv, λv = lyap_taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol; maxsteps=5)
+    tv, xv, λv = lyap_taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol, nothing; maxsteps=5)
     @test size(tv) == (6,)
     @test size(xv) == (6,3)
     @test size(λv) == (6,3)
 
     #Test lyap_taylorinteg with user-defined Jacobian, maxsteps=2
-    tv2, xv2, λv2 = lyap_taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol, lorenz_jac!; maxsteps=5)
+    tv2, xv2, λv2 = lyap_taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol, nothing, lorenz_jac!; maxsteps=5)
     @test size(tv2) == (6,)
     @test size(xv2) == (6,3)
     @test size(λv2) == (6,3)
@@ -126,7 +127,7 @@ end
     @test λv == λv2
 
     #Test lyap_taylorinteg with autodiff-computed Jacobian, maxsteps=2000
-    @time tv, xv, λv = lyap_taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol; maxsteps=2000)
+    tv, xv, λv = lyap_taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol; maxsteps=2000)
     @test xv[1,:] == q0
     @test tv[1] == t0
     @test size(xv) == size(λv)
@@ -142,7 +143,7 @@ end
     @test x_ == xv
 
     #Test lyap_taylorinteg with user-defined Jacobian, maxsteps=2000
-    @time tv2, xv2, λv2 = lyap_taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol, lorenz_jac!; maxsteps=2000)
+    tv2, xv2, λv2 = lyap_taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol, nothing, lorenz_jac!; maxsteps=2000)
     @test xv2[1,:] == q0
     @test tv2[1] == t0
     @test size(xv2) == size(λv2)
@@ -169,7 +170,7 @@ end
     xi = set_variables("δ", order=1, numvars=length(q0))
     q0TN = q0+xi
     dq0TN = similar(q0TN)
-    lorenz!(t0, q0TN, dq0TN)
+    lorenz!(dq0TN, q0TN, nothing, t0)
     lorenztr = tr(TaylorSeries.jacobian(dq0TN)) #trace of Lorenz system Jacobian matrix
     @test lorenztr == -(1+σ+β)
 
@@ -188,14 +189,14 @@ end
     @test all(isnan.(λw2[2:end,:]))
     @test size(xw2) == (length(trange), 3)
     @test size(λw2) == size(xw2)
-    xw_, λw_ = lyap_taylorinteg(lorenz!, q0, trange, _order, _abstol, lorenz_jac!; maxsteps=5)
+    xw_, λw_ = lyap_taylorinteg(lorenz!, q0, trange, _order, _abstol, nothing, lorenz_jac!; maxsteps=5)
     @test xw_[1,:] == q0
     @test all(isnan.(xw_[2:end,:]))
     @test size(xw_) == (length(trange), 3)
     @test size(λw_) == size(xw_)
     @test λw_[1, :] == zeros(3)
     @test all(isnan.(λw_[2:end,:]))
-    xw2_, λw2_ = lyap_taylorinteg(lorenz!, q0, vec(trange), _order, _abstol, lorenz_jac!; maxsteps=5)
+    xw2_, λw2_ = lyap_taylorinteg(lorenz!, q0, vec(trange), _order, _abstol, nothing, lorenz_jac!; maxsteps=5)
     @test xw_[1, :] == xw2_[1, :]
     @test all(isnan.(xw2_[2:end,:]))
     @test λw2_[1, :] == zeros(3)
@@ -203,7 +204,7 @@ end
     @test size(xw2_) == (length(trange), 3)
     @test size(λw2_) == size(xw2_)
 
-    @time xw, λw = lyap_taylorinteg(lorenz!, q0, trange, _order, _abstol; maxsteps=2000)
+    xw, λw = lyap_taylorinteg(lorenz!, q0, trange, _order, _abstol; maxsteps=2000)
     @test xw[1,:] == q0
     @test size(xw) == (length(trange), length(q0))
     @test size(λw) == (length(trange), length(q0))
@@ -217,15 +218,15 @@ end
     @test isapprox(λw[end,1], 1.47167, rtol=mytol, atol=mytol)
     @test isapprox(λw[end,2], -0.00831, rtol=mytol, atol=mytol)
     @test isapprox(λw[end,3], -22.46336, rtol=mytol, atol=mytol)
-    @time xw_, λw_ = lyap_taylorinteg(lorenz!, q0, trange, _order, _abstol, lorenz_jac!; maxsteps=2000)
+    xw_, λw_ = lyap_taylorinteg(lorenz!, q0, trange, _order, _abstol, nothing, lorenz_jac!; maxsteps=2000)
     @test xw == xw_
     @test λw == λw_
-    tz_, xz_, λz_ = lyap_taylorinteg(lorenz!, q0, trange[1], trange[end], _order, _abstol, lorenz_jac!; maxsteps=2000)
+    tz_, xz_, λz_ = lyap_taylorinteg(lorenz!, q0, trange[1], trange[end], _order, _abstol, nothing, lorenz_jac!; maxsteps=2000)
     @test λw_[end,:] == λz_[end,:]
     @test xw_[end,:] == xz_[end,:]
     @test tz_[end] == trange[end]
 
-    @time xw2, λw2 = lyap_taylorinteg(lorenz!, q0, vec(trange), _order, _abstol; maxsteps=2000)
+    xw2, λw2 = lyap_taylorinteg(lorenz!, q0, vec(trange), _order, _abstol; maxsteps=2000)
     @test xw2 == xw
     @test λw2 == λw
     @test xw2[1,:] == q0
@@ -240,10 +241,10 @@ end
     @test isapprox(λw2[end,1], 1.47167, rtol=mytol, atol=mytol)
     @test isapprox(λw2[end,2], -0.00831, rtol=mytol, atol=mytol)
     @test isapprox(λw2[end,3], -22.46336, rtol=mytol, atol=mytol)
-    @time xw2_, λw2_ = lyap_taylorinteg(lorenz!, q0, vec(trange), _order, _abstol, lorenz_jac!; maxsteps=2000)
+    xw2_, λw2_ = lyap_taylorinteg(lorenz!, q0, vec(trange), _order, _abstol, nothing, lorenz_jac!; maxsteps=2000)
     @test xw2 == xw2_
     @test λw2 == λw2_
-    tz2_, xz2_, λz2_ = lyap_taylorinteg(lorenz!, q0, trange[1], trange[end], _order, _abstol, lorenz_jac!; maxsteps=2000)
+    tz2_, xz2_, λz2_ = lyap_taylorinteg(lorenz!, q0, trange[1], trange[end], _order, _abstol, nothing, lorenz_jac!; maxsteps=2000)
     @test λw2_[end,:] == λz2_[end,:]
     @test xw2_[end,:] == xz2_[end,:]
     @test tz2_[end] == trange[end]

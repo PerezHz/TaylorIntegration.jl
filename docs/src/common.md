@@ -3,18 +3,21 @@
 Here, we show an example of interoperability between `TaylorIntegration.jl` and
 [`DifferentialEquations.jl`](https://github.com/JuliaDiffEq/DifferentialEquations.jl), i.e.,
 how to use `TaylorIntegration.jl` from the `DifferentialEquations`
-ecosystem. the basic requirement is to load `DiffEqBase.jl`, which
+ecosystem. The basic requirement is to load `DiffEqBase.jl`, which
 sets-up the common interface.
-Below, we shall also use `ParameterizedFunctions.jl` to define the appropriate
-system of ODEs, and use `OrdinaryDiffEq.jl` to compare
+Below, we shall also use `OrdinaryDiffEq.jl` to compare
 the accuracy of `TaylorIntegration.jl` with respect to
 high-accuracy methods for non-stiff problems (`Vern9` method).
+While `DifferentialEquations` offers many macros to simplify certain
+aspects, we do not rely on them simply because using properly `@taylorize`
+improves the performance.
 
 The problem we will integrate in this example is the planar circular restricted
 three-body problem (PCR3BP, also capitalized as PCRTBP). The PCR3BP describes
 the motion of a body with negligible mass ``m_3`` under the gravitational influence of two
 bodies with masses ``m_1`` and ``m_2``, such that ``m_1 \ge m_2``. It is
-assumed that ``m_3`` is much smaller than the other two masses, and therefore it
+assumed that ``m_3`` is much smaller than the other two masses so it
+does not influence their motion, and therefore it
 is simply considered as a massless test particle.
 The body with the greater mass ``m_1`` is referred as the *primary*, and
 ``m_2`` as the *secondary*. These bodies are together
@@ -33,6 +36,7 @@ using Plots
 const μ = 0.01
 nothing # hide
 ```
+
 The Hamiltonian for the PCR3BP in the synodic frame (i.e., a frame which rotates
 such that the primaries are at rest on the ``x`` axis) is
 ```math
@@ -51,7 +55,7 @@ V(x, y) = - \frac{1-\mu}{\sqrt{(x-\mu)^2+y^2}} - \frac{\mu}{\sqrt{(x+1-\mu)^2+y^
 is the gravitational potential associated to the primaries. The RHS of Eq.
 (\ref{eq-pcr3bp-hamiltonian}) is also known as the *Jacobi constant*, since it is a
 preserved quantity of motion in the PCR3BP. We will use this property to check
-the accuracy of the obtained solution.
+the accuracy of the solutions computed.
 ```@example common
 V(x, y) = - (1-μ)/sqrt((x-μ)^2+y^2) - μ/sqrt((x+1-μ)^2+y^2)
 H(x, y, px, py) = (px^2+py^2)/2 - (x*py-y*px) + V(x, y)
@@ -69,18 +73,27 @@ The equations of motion for the PCR3BP are
     \dot{p_y} &=& - \frac{(1-\mu)y      }{((x-\mu)^2+y^2)^{3/2}} - \frac{\mu y       }{((x+1-\mu)^2+y^2)^{3/2}} - p_x.
 \end{eqnarray}
 ```
-We define this system of ODEs with `ParameterizedFunctions.jl`
-```@example common
-using ParameterizedFunctions
 
-f = @ode_def PCR3BP begin
-    dx = px + y
-    dy = py - x
-    dpx = - (1-μ)*(x-μ)*((x-μ)^2+y^2)^-1.5 - μ*(x+1-μ)*((x+1-μ)^2+y^2)^-1.5 + py
-    dpy = - (1-μ)*y    *((x-μ)^2+y^2)^-1.5 - μ*y      *((x+1-μ)^2+y^2)^-1.5 - px
-end μ
+We define this system of ODEs using the most naive approach
+```@example common
+function f(dq, q, param, t)
+    local μ = param[1]
+    x, y, px, py = q
+    dq[1] = px + y
+    dq[2] = py - x
+    dq[3] = - (1-μ)*(x-μ)*((x-μ)^2+y^2)^-1.5 - μ*(x+1-μ)*((x+1-μ)^2+y^2)^-1.5 + py
+    dq[4] = - (1-μ)*y    *((x-μ)^2+y^2)^-1.5 - μ*y      *((x+1-μ)^2+y^2)^-1.5 - px
+    return nothing
+end
 nothing # hide
 ```
+Note that `DifferentialEquations` offers interesting alternatives to write
+these equations of motion in a simpler and more convenient way,
+for example, using the macro `@ode_def`,
+see [`ParameterizedFunctions.jl`](https://github.com/JuliaDiffEq/ParameterizedFunctions.jl).
+We have not used that flexibility here because `TaylorIntegration.jl` has
+[`@taylorize`](@ref), which under certain circumstances allows to
+important speed-ups.
 
 We shall define the initial conditions ``q_0 = (x_0, y_0, p_{x,0}, p_{y,0})`` such that
 ``H(q_0) = J_0``, where ``J_0`` is a prescribed value. In order to do this,
@@ -88,7 +101,7 @@ we select ``y_0 = p_{x,0} = 0`` and compute the value of ``p_{y,0}`` for which
 ``H(q_0) = J_0`` holds.
 
 We consider a value for ``J_0`` such that the test particle is
-able to display close encounters with both primaries, but cannot escape to infinity.
+able to display close encounters with *both* primaries, but cannot escape to infinity.
 We may obtain a first
 approximation to the desired value of ``J_0`` if we plot the projection of the
 zero-velocity curves on the ``x``-axis.
@@ -135,8 +148,9 @@ Hamiltonian evaluated at the initial condition is indeed equal to `J0`.
 H(q0) == J0
 ```
 
-Following [the tutorial](http://docs.juliadiffeq.org/latest/tutorials/ode_example.html)
-of `DifferentialEquations.jl`, we define an `ODEProblem` for the integration;
+Following the `DifferentialEquations.jl`
+[tutorial](http://docs.juliadiffeq.org/latest/tutorials/ode_example.html),
+we define an `ODEProblem` for the integration;
 `TaylorIntegration.jl` can be used via its common interface bindings with `DiffEqBase.jl`; both packages need to be loaded explicitly.
 ```@example common
 tspan = (0.0, 1000.0)
@@ -233,18 +247,28 @@ Finally, we comment on the time spent by each integration.
 ```@example common
 @elapsed solve(prob, Vern9(), abstol=1e-20);
 ```
-Clearly, the integration with `TaylorMethod()` takes *much longer* than that using
+The integration with `TaylorMethod()` takes *much longer* than that using
 `Vern9()`. Yet, as shown above, the former preserves the Jacobi constant
-to a high accuracy while displaying the correct dynamics; whereas the latter
+to a high accuracy, whereas the latter
 solution loses accuracy in the sense of not conserving the Jacobi constant,
 which is an important property to trust the result of the integration.
+A fairer comparison is obtained by pushing the native methods of `DiffEqs`
+to reach similar accuracy for the integral of motion, as the one
+obtained by `TaylorIntegration.jl`. Such comparable situation has
+a performance cost, which then makes `TaylorIntegration.jl` comparable
+or even faster in some cases; see [[2]](@ref refsPCR3BP).
 
-Finally, we shall mention here that a way to improve the integration time in
+Finally, as mentioned above, a way to improve the integration time in
 `TaylorIntegration` is using the macro [`@taylorize`](@ref); see
-[this section](@ref taylorize) for details. Yet, using the macro is not
-currently compatible with the common interface with `DifferentialEquations`.
+[this section](@ref taylorize) for details. Under certain circumstances
+it is possible to improve the performance, also with the common interface
+with `DifferentialEquations`, which restricts some of the great
+flexibility that `DifferentialEquations` allows when writing the function
+containing the differential equations.
 
 
 ### [References](@id refsPCR3BP)
 
 [1] Murray, Carl D., Stanley F. Dermott. Solar System dynamics. Cambridge University Press, 1999.
+
+[2] [DiffEqBenchmarks.jl/DynamicalODE](https://nbviewer.jupyter.org/github/JuliaDiffEq/DiffEqBenchmarks.jl/blob/master/DynamicalODE/Henon-Heiles_energy_conservation_benchmark.ipynb)
