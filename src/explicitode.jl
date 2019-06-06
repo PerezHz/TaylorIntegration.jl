@@ -583,7 +583,7 @@ for R in (:Number, :Integer)
                     #
                 t0, abstol, bfloat = promote(trange[1], aabstol, one(Float64))
                 x0, tfloat1 = promote(xx0, t0)
-                taylorinteg(f, x0, similar(trange, typeof(t0)), order, abstol,
+                taylorinteg(f, x0, vec(trange.*one(t0)), order, abstol,
                     params, maxsteps=maxsteps, parse_eqs=parse_eqs)
         end
 

@@ -136,7 +136,7 @@ end
 end
 
 @testset "Falling ball (stepsize)" begin
-    function fallball!(t, x, dx)
+    function fallball!(dx, x, p, t)
         dx[1] = x[2]
         dx[2] = -one(x[1])
         nothing

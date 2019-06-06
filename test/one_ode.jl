@@ -31,7 +31,7 @@ const tT = Taylor1(_order)
     @test tv[end] < 1.0
 
     trange = 0.0:1/8:1.0
-    xv = taylorinteg(eqs_mov, x0, trange, _order, _abstol)
+    xv = taylorinteg(eqs_mov, 1, trange, _order, _abstol)
     @test length(xv) == length(trange)
     @test typeof(xv) == Array{typeof(x0),1}
     @test xv[1] == x0
@@ -80,7 +80,7 @@ end
     δt = (_abstol/x0T.coeffs[end-1])^inv(_order-1)
     @test TaylorIntegration.stepsize(x0T, _abstol) == δt
 
-    tv, xv = taylorinteg(eqs_mov, x0, 0.0, tmax, _order, _abstol)
+    tv, xv = taylorinteg(eqs_mov, x0, 0, tmax, _order, _abstol)
     @test length(tv) < 501
     @test length(xv) < 501
     @test length(tv) == 14
@@ -91,7 +91,7 @@ end
     @test abs(xv[end]-exactsol(tv[end], xv[1])) < 2e-14
 
     tmax = 0.33
-    tv, xv = taylorinteg(eqs_mov, x0, 0.0, tmax, _order, _abstol)
+    tv, xv = taylorinteg(eqs_mov, x0, t0, tmax, _order, _abstol)
     @test length(tv) < 501
     @test length(xv) < 501
     @test length(tv) == 28

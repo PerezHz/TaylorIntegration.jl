@@ -67,14 +67,13 @@ const tf = 1000.0
 end
 
 
-@testset "Scalar case: xdot(x, p, t) = -9.81" begin
-    xdot1(x, p, t) = -9.81 + zero(t) # `zero(t)` is needed; cf #20
-    @taylorize xdot1_parsed(x, p, t) = -9.81 + zero(t) # `zero(t)` can be avoided here
+@testset "Scalar case: xdot(x, p, t) = -10" begin
+    xdot1(x, p, t) = -10 + zero(t) # `zero(t)` is needed; cf #20
+    @taylorize xdot1_parsed(x, p, t) = -10 + zero(t) # `zero(t)` can be avoided here
 
     @test (@isdefined xdot1_parsed)
-
-    tv1, xv1   = taylorinteg( xdot1, 10.0, 1.0, tf, _order, _abstol)
-    tv1p, xv1p = taylorinteg( xdot1_parsed, 10.0, 1.0, tf, _order, _abstol)
+    tv1, xv1   = taylorinteg( xdot1, 10, 1, 20.0, _order, _abstol)
+    tv1p, xv1p = taylorinteg( xdot1_parsed, 10.0, 1.0, 20.0, _order, _abstol)
 
     @test length(tv1) == length(tv1p)
     @test iszero( norm(tv1-tv1p, Inf) )
@@ -82,14 +81,14 @@ end
 
     # Now using `local`
     @taylorize function xdot2(x, p, t)
-        local ggrav = -9.81 + zero(t)  # zero(t) is needed for the parse_eqs=false case
+        local ggrav = -10 + zero(t)  # zero(t) is needed for the parse_eqs=false case
         tmp = ggrav  # needed to avoid an error when parsing
     end
 
     @test (@isdefined xdot2)
 
-    tv2, xv2   = taylorinteg( xdot2, 10.0, 1.0, tf, _order, _abstol, parse_eqs=false)
-    tv2p, xv2p = taylorinteg( xdot2, 10.0, 1.0, tf, _order, _abstol)
+    tv2, xv2   = taylorinteg( xdot2, 10.0, 1.0, 20.0, _order, _abstol, parse_eqs=false)
+    tv2p, xv2p = taylorinteg( xdot2, 10.0, 1, 20.0, _order, _abstol)
 
     @test length(tv2) == length(tv2p)
     @test iszero( norm(tv2-tv2p, Inf) )
@@ -100,9 +99,9 @@ end
 
     @test (@isdefined xdot3)
 
-    tv3, xv3   = taylorinteg( xdot3, 10.0, 1.0, tf, _order, _abstol, -9.81,
+    tv3, xv3   = taylorinteg( xdot3, 10.0, 1.0, 20.0, _order, _abstol, -10,
         parse_eqs=false)
-    tv3p, xv3p = taylorinteg( xdot3, 10.0, 1.0, tf, _order, _abstol, -9.81)
+    tv3p, xv3p = taylorinteg( xdot3, 10, 1.0, 20.0, _order, _abstol, -10)
 
     @test length(tv3) == length(tv3p)
     @test iszero( norm(tv3-tv3p, Inf) )
@@ -117,7 +116,7 @@ end
 
     # Compare to exact solution
     exact_sol(t, g, x0) = x0 + g*(t-1.0)
-    @test norm(xv1p[end] - exact_sol(tv1p[end], -9.81, 10.0), Inf) < 1.0e-15
+    @test norm(xv1p[end] - exact_sol(20, -10, 10), Inf) < 10eps(exact_sol(20, -10, 10))
 end
 
 
