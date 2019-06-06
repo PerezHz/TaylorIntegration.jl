@@ -115,7 +115,7 @@ differentiation.
 
 The current keyword argument are:
 - `maxsteps[=500]`: maximum number of integration steps.
-- `parse_eqs[=true]`: usie the specialized method of `jetcoeffs!` created
+- `parse_eqs[=true]`: use the specialized method of `jetcoeffs!` created
     with [`@taylorize`](@ref).
 - `eventorder[=0]`: order of the derivative of `g` whose roots are computed.
 - `newtoniter[=10]`: maximum Newton-Raphson iterations per detected root.

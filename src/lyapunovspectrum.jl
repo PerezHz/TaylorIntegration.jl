@@ -190,9 +190,6 @@ function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
     δt = stepsize(view(x, 1:dof), abstol)
     δt = min(δt, t1-t0)
 
-    # # Update x0
-    # evaluate!(x, δt, x0)
-    #
     return δt
 end
 
@@ -274,7 +271,7 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
     # Integration
     nsteps = 1
     while t0 < tmax
-        δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, tmax, 
+        δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, tmax,
             order, abstol, _δv, varsaux, params, parse_eqs, jacobianfunc!)
         evaluate!(x, δt, x0) # Update x0
         for ind in eachindex(jt)

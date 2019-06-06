@@ -250,7 +250,7 @@ Finally, we comment on the time spent by each integration.
 The integration with `TaylorMethod()` takes *much longer* than that using
 `Vern9()`. Yet, as shown above, the former preserves the Jacobi constant
 to a high accuracy, whereas the latter
-solution looses accuracy in the sense of not conserving the Jacobi constant,
+solution loses accuracy in the sense of not conserving the Jacobi constant,
 which is an important property to trust the result of the integration.
 A fairer comparison is obtained by pushing the native methods of `DiffEqs`
 to reach similar accuracy for the integral of motion, as the one
