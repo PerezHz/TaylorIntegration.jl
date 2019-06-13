@@ -150,5 +150,5 @@ end
     tv, xv = taylorinteg(fallball!, x0, t0, tmax, order, abstol)
     @test length(tv) < 501
     @test length(xv[:,1]) < 501
-    @test exactsol.(tv, x0[1], x0[2]) == xv[:,1]
+    @test exactsol.(tv, x0[1], x0[2]) ≈ xv[:,1]
 end
