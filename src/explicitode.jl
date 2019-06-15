@@ -140,38 +140,39 @@ function stepsize(q::AbstractArray{Taylor1{U},1}, epsilon::T) where
         @inbounds hi = stepsize( q[i], epsilon )
         h = min( h, hi )
     end
+
+    # If `isinf(h)==true`, we use the maximum (finite)
+    # step-size obtained from all coefficients as above.
+    # Note that the time step is independent from `epsilon.
     if isinf(h)
         h = zero(R)
         for i in eachindex(q)
-            @inbounds hi = _finite_stepsize(q[i], epsilon)
+            @inbounds hi = _second_stepsize(q[i], epsilon)
             h = max( h, hi )
         end
     end
     return h::R
 end
 
-# Helper function to avoid code repetition
-function _stepsize(aux1::U, epsilon::T, k::Int) where {T<:Real, U<:Number}
+"""
+    _stepsize(aux1, epsilon, k)
+
+Helper function to avoid code repetition.
+Returns ``(epsilon/aux1)^(1/k)``.
+"""
+@inline function _stepsize(aux1::U, epsilon::T, k::Int) where {T<:Real, U<:Number}
     aux = epsilon / aux1
     kinv = 1 / k
     return aux^kinv
 end
 
-# If stepsize is `Inf`, we use the maximum (finite)
-# step-size obtained from all coefficients as above.
-# Note that the time step is independent from `epsilon
-# function _finite_stepsize(q::AbstractArray{Taylor1{U},1}, epsilon::T) where
-#         {T<:Real, U<:Number}
-#     R = promote_type(typeof(norm(constant_term(q[1]), Inf)), T)
-#     h = zero(R)
-#     for i in eachindex(q)
-#         @inbounds hi = _finite_stepsize( q[i], epsilon )
-#         !isfinite(hi) && continue
-#         h = max( h, hi )
-#     end
-#     return h::R
-# end
-function _finite_stepsize(x::Taylor1{U}, epsilon::T) where {T<:Real, U<:Number}
+"""
+    _second_stepsize(x, epsilon)
+
+Corresponds to the "second stepsize control" in Jorba and Zou
+(2005) paper. We use it if [`stepsize`](@ref) returns `Inf`.
+"""
+function _second_stepsize(x::Taylor1{U}, epsilon::T) where {T<:Real, U<:Number}
     R = promote_type(typeof(norm(constant_term(x), Inf)), T)
     x == zero(x) && return convert(R, Inf)
     ord = x.order
@@ -225,7 +226,7 @@ function taylorstep!(f, t::Taylor1{T}, x::Taylor1{U}, t0::T, t1::T, order::Int,
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(x, abstol)
     if isinf(δt)
-        δt = _finite_stepsize(x, abstol)
+        δt = _second_stepsize(x, abstol)
     end
     δt = min(δt, t1-t0)
 
