@@ -143,7 +143,7 @@ function stepsize(q::AbstractArray{Taylor1{U},1}, epsilon::T) where
 
     # If `isinf(h)==true`, we use the maximum (finite)
     # step-size obtained from all coefficients as above.
-    # Note that the time step is independent from `epsilon.
+    # Note that the time step is independent from `epsilon`.
     if isinf(h)
         h = zero(R)
         for i in eachindex(q)
