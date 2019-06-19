@@ -473,6 +473,22 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
+    "location": "api/#TaylorIntegration._second_stepsize-Union{Tuple{U}, Tuple{T}, Tuple{Taylor1{U},T}} where U<:Number where T<:Real",
+    "page": "API",
+    "title": "TaylorIntegration._second_stepsize",
+    "category": "method",
+    "text": "_second_stepsize(x, epsilon)\n\nCorresponds to the \"second stepsize control\" in Jorba and Zou (2005) paper. We use it if stepsize returns Inf.\n\n\n\n\n\n"
+},
+
+{
+    "location": "api/#TaylorIntegration._stepsize-Union{Tuple{U}, Tuple{T}, Tuple{U,T,Int64}} where U<:Number where T<:Real",
+    "page": "API",
+    "title": "TaylorIntegration._stepsize",
+    "category": "method",
+    "text": "_stepsize(aux1, epsilon, k)\n\nHelper function to avoid code repetition. Returns (epsilonaux1)^(1k).\n\n\n\n\n\n"
+},
+
+{
     "location": "api/#TaylorIntegration.findroot!-NTuple{18,Any}",
     "page": "API",
     "title": "TaylorIntegration.findroot!",
@@ -533,7 +549,7 @@ var documenterSearchIndex = {"docs": [
     "page": "API",
     "title": "TaylorIntegration.stepsize",
     "category": "method",
-    "text": "stepsize(x, epsilon) -> h\n\nReturns a maximum time-step for a the Taylor expansion x using a prescribed absolute tolerance epsilon and the last two Taylor coefficients of (each component of) x.\n\nNote that x is of type Taylor1{T} or Vector{Taylor1{T}}, including also the cases Taylor1{TaylorN{T}} and Vector{Taylor1{TaylorN{T}}}.\n\n\n\n\n\n"
+    "text": "stepsize(x, epsilon) -> h\n\nReturns a maximum time-step for a the Taylor expansion x using a prescribed absolute tolerance epsilon and the last two Taylor coefficients of (each component of) x.\n\nNote that x is of type Taylor1{U} or Vector{Taylor1{U}}, including also the cases Taylor1{TaylorN{U}} and Vector{Taylor1{TaylorN{U}}}.\n\nDepending of eltype(x), i.e., U<:Number, it may be necessary to overload stepsize, specializing it on the type U, to avoid type instabilities.\n\n\n\n\n\n"
 },
 
 {
