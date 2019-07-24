@@ -1,7 +1,7 @@
 name = "TaylorIntegration"
 uuid = "92b13dbe-c966-51a2-8445-caca9f8a7d42"
 repo = "https://github.com/PerezHz/TaylorIntegration.jl.git"
-version = "0.5.0"
+version = "0.5.1"
 
 [deps]
 DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
