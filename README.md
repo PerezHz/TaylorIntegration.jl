@@ -18,7 +18,7 @@ Documentation:
 [![](https://img.shields.io/badge/docs-latest-blue.svg)](https://PerezHz.github.io/TaylorIntegration.jl/latest) [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://PerezHz.github.io/TaylorIntegration.jl/stable)
 
 DOI (Zenodo):
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2562353.svg)](https://doi.org/10.5281/zenodo.2562353)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3241532.svg)](https://doi.org/10.5281/zenodo.3241532)
 
 ## Authors
 
