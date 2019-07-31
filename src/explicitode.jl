@@ -632,7 +632,7 @@ end
 for R in (:Number, :Integer)
     @eval begin
         function taylorinteg(f, xx0::S, tt0::T, ttmax::U, order::Int, aabstol::V,
-                params = nothing; maxsteps::Int=500, parse_eqs::Bool=true) where
+                params = nothing; maxsteps::Int=500, parse_eqs::Bool=true, dense::Bool=false) where
                     {S<:$R, T<:Real, U<:Real, V<:Real}
 
             # In order to handle mixed input types, we promote types before integrating:
@@ -640,11 +640,11 @@ for R in (:Number, :Integer)
             x0, tfloat1 = promote(xx0, t0)
 
             taylorinteg(f, x0, t0, tmax, order, abstol, params, maxsteps=maxsteps,
-                parse_eqs=parse_eqs)
+                parse_eqs=parse_eqs, dense=dense)
         end
 
         function taylorinteg(f, q0::Array{S,1}, tt0::T, ttmax::U, order::Int, aabstol::V,
-                params = nothing; maxsteps::Int=500, parse_eqs::Bool=true) where
+                params = nothing; maxsteps::Int=500, parse_eqs::Bool=true, dense::Bool=false) where
                     {S<:$R, T<:Real, U<:Real, V<:Real}
 
             #promote to common type before integrating:
@@ -654,7 +654,7 @@ for R in (:Number, :Integer)
             q0_ = convert(Array{typeof(elq0)}, q0)
 
             taylorinteg(f, q0_, t0, tmax, order, abstol, params, maxsteps=maxsteps,
-                parse_eqs=parse_eqs)
+                parse_eqs=parse_eqs, dense=dense)
         end
 
         function taylorinteg(f, xx0::S, trange::AbstractVector{T},

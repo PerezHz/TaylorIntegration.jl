@@ -8,12 +8,12 @@ const _order = 28
 const _abstol = 1.0E-20
 
 @testset "Taylor interpolation: scalar case" begin
-    eqs_mov(t, x) = x^2
+    eqs_mov(x, p, t) = x^2
     exactsol(t, x0) = x0/(1.0-x0*t) #the analytical solution
     t0 = 0.0
     tmax = 0.3
     x0 = 3.0
-    tv, xv = taylorinteg(eqs_mov, x0, t0, tmax, _order, _abstol)
+    tv, xv = taylorinteg(eqs_mov, x0, t0, tmax, _order, _abstol, nothing)
     tv2, xv2 = taylorinteg(eqs_mov, x0, t0, tmax, _order, _abstol, dense=false)
     # taylorinteg should select dense=false by default
     @test tv == tv2
@@ -44,7 +44,7 @@ const _abstol = 1.0E-20
     x0T = Taylor1(tinterp(t0+δt), _order)
     tT = Taylor1(_order)
     tT[0] = t0+δt
-    TaylorIntegration.jetcoeffs!(eqs_mov, tT, x0T)
+    TaylorIntegration.jetcoeffs!(eqs_mov, tT, x0T, nothing)
     difT1 = tinterp(t0+δt+Taylor1(_order)) - x0T
     abs_dif = abs.(difT1.coeffs[1:end-2])
     # `bound_dif` is a bound which worsens as order grows
@@ -53,7 +53,7 @@ const _abstol = 1.0E-20
 end
 
 @testset "Taylor interpolation: vectorial case" begin
-    function f!(t, x, Dx)
+    function f!(Dx, x, p, t)
         Dx[1] = one(t)
         Dx[2] = cos(t)
         nothing
@@ -80,7 +80,7 @@ end
     xT = Taylor1.(x0, _order)
     dxT = similar(xT)
     xaux = similar(xT)
-    TaylorIntegration.jetcoeffs!(f!, tT, xT, dxT, xaux)
+    TaylorIntegration.jetcoeffs!(f!, tT, xT, dxT, xaux, nothing)
     dif1 = xT(δt) - tinterp(δt)
     dif2 = xT(δt) - tinterp(δt+Taylor1(_order))()
     dif3 = xT(δt) - tinterp(Taylor1(_order))(δt)
