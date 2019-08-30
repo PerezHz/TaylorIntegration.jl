@@ -116,7 +116,7 @@ called with the `eventorder=n` keyword argument, `taylorinteg` searches for the
 roots of the `n`-th derivative of `cond2`, which is computed via automatic
 differentiation.
 
-The current keyword argument are:
+The current keyword arguments are:
 - `maxsteps[=500]`: maximum number of integration steps.
 - `parse_eqs[=true]`: use the specialized method of `jetcoeffs!` created
     with [`@taylorize`](@ref).
@@ -158,28 +158,33 @@ xv, tvS, xvS, gvS = taylorinteg(pendulum!, g, x0, tv, 28, 1.0E-20; eventorder=2)
 ```
 
 """
-function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
-        order::Int, abstol::T, params = nothing; maxsteps::Int=500, parse_eqs::Bool=true,
-        eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
+function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T, order::Int,
+        abstol::T, params = nothing; maxsteps::Int=500, parse_eqs::Bool=true,
+        dense::Bool=false, eventorder::Int=0, newtoniter::Int=10,
+        nrabstol::T=eps(T)) where {T <: Real,U <: Number}
 
     @assert order ≥ eventorder "`eventorder` must be less than or equal to `order`"
 
-        # Allocation
+    # Allocation
     tv = Array{T}(undef, maxsteps+1)
     dof = length(q0)
     xv = Array{U}(undef, dof, maxsteps+1)
+    if dense
+        xv_interp = Array{Taylor1{U}}(undef, dof, maxsteps+1)
+    end
 
     # Initialize the vector of Taylor1 expansions
     t = Taylor1(T, order)
     x = Array{Taylor1{U}}(undef, dof)
     dx = Array{Taylor1{U}}(undef, dof)
     xaux = Array{Taylor1{U}}(undef, dof)
+    dx = Array{Taylor1{U}}(undef, dof)
 
     # Initial conditions
     @inbounds t[0] = t0
-    x0 = deepcopy(q0)
     x .= Taylor1.(q0, order)
     dx .= zero.(x)
+    x0 = deepcopy(q0)
     @inbounds tv[1] = t0
     @inbounds xv[:,1] .= q0
     sign_tstep = copysign(1, tmax-t0)
@@ -209,7 +214,6 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
     xvS = similar(xv)
     gvS = similar(tvS)
 
-
     # Integration
     nsteps = 1
     nevents = 1 #number of detected events
@@ -226,8 +230,11 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
         # g_val_old = deepcopy(g_val)
         g_tupl = g(dx, x, params, t)
         nevents = findroot!(t, x, dx, g_tupl_old, g_tupl, eventorder,
-            tvS, xvS, gvS, t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val,
-            nrabstol, newtoniter, nevents)
+        tvS, xvS, gvS, t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val,
+        nrabstol, newtoniter, nevents)
+        if dense
+            xv_interp[:,nsteps] .= deepcopy(x)
+        end
         g_tupl_old = deepcopy(g_tupl)
         for i in eachindex(x0)
             @inbounds x[i][0] = x0[i]
@@ -244,8 +251,11 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
             break
         end
     end
-
-    return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:), view(tvS,1:nevents-1), view(transpose(view(xvS,:,1:nevents-1)),1:nevents-1,:), view(gvS,1:nevents-1)
+    if dense
+        return TaylorInterpolant(view(tv,1:nsteps), view(transpose(view(xv_interp,:,1:nsteps-1)),1:nsteps-1,:)), view(tvS,1:nevents-1), view(transpose(view(xvS,:,1:nevents-1)),1:nevents-1,:), view(gvS,1:nevents-1)
+    else
+        return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:), view(tvS,1:nevents-1), view(transpose(view(xvS,:,1:nevents-1)),1:nevents-1,:), view(gvS,1:nevents-1)
+    end
 end
 
 function taylorinteg(f!, g, q0::Array{U,1}, trange::AbstractVector{T},

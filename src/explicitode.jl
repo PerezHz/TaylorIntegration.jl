@@ -417,10 +417,7 @@ function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T, order::Int, abstol::T,
     x = Array{Taylor1{U}}(undef, dof)
     dx = Array{Taylor1{U}}(undef, dof)
     xaux = Array{Taylor1{U}}(undef, dof)
-    for i in eachindex(q0)
-        @inbounds x[i] = Taylor1( q0[i], order )
-        @inbounds dx[i] = Taylor1( zero(q0[i]), order )
-    end
+    dx .= Taylor1.(zeros(U), order)
 
     # Initial conditions
     @inbounds t[0] = t0
