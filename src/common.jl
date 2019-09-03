@@ -68,9 +68,14 @@ function DiffEqBase.solve(
         else
             parse_eqs = true
         end
-        t, vectimeseries = taylorinteg(prob.f.f, prob.u0, prob.tspan[1],
-            prob.tspan[2], alg.order, abstol, prob.p, maxsteps=maxiters,
-            parse_eqs=parse_eqs)
+        if haskey(kwargs, :saveat)
+            t = prob.tspan[1]:kwargs[:saveat]:prob.tspan[2]
+            vectimeseries = taylorinteg(prob.f.f, prob.u0, t, alg.order, abstol, prob.p, maxsteps=maxiters,
+                parse_eqs=parse_eqs)
+        else
+            t, vectimeseries = taylorinteg(prob.f.f, prob.u0, prob.tspan[1],prob.tspan[2], alg.order, abstol, prob.p, maxsteps=maxiters,
+                parse_eqs=parse_eqs)
+        end
 
     end
 
