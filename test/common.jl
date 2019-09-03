@@ -9,6 +9,11 @@ f(u,p,t) = u
     sol = solve(prob, TaylorMethod(50), abstol=1e-20)
 
     @test sol[end] - 0.5*exp(1) < 1e-12
+    
+    dt = 0.01
+    t = collect(tspan[1]:dt:tspan[2])
+    sol_dt = solve(prob, TaylorMethod(50), abstol=1e-20, saveat = dt)
+    @test all(sol_dt.t .== t)
 end
 
 f(du, u, p, t) = (du .= u)
