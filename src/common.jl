@@ -8,7 +8,7 @@ const warnkeywords =
      :dtmin, :force_dtmin, :internalnorm, :gamma, :beta1, :beta2,
      :qmax, :qmin, :qsteady_min, :qsteady_max, :qoldinit, :failfactor,
      :maxiters, :isoutofdomain, :unstable_check,
-     :calck, :progress, :timeseries_steps, :tstops, :saveat, :dense)
+     :calck, :progress, :timeseries_steps, :tstops, :dense)
 
 global warnlist = Set(warnkeywords)
 
