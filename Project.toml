@@ -13,7 +13,7 @@ Requires = "ae029012-a4dd-5104-9daa-d747884805df"
 TaylorSeries = "6aa5eb33-94cf-58f4-a9d0-e4b2c4fc25ea"
 
 [compat]
-DiffEqBase = "≥ 5.0.0"
+DiffEqBase = "≥ 6.0.0"
 Elliptic = "≥ 0.5.0"
 Espresso = "≥ 0.6.0"
 Reexport = "≥ 0.2.0"
