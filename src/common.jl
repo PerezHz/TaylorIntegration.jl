@@ -29,7 +29,7 @@ function DiffEqBase.solve(
     timeseries=[],ts=[],ks=[];
     verbose=true, abstol = 1e-6, save_start = true,
     timeseries_errors=true, maxiters = 1_000_000,
-    callback=nothing, kwargs...) where
+    kwargs...) where
         {uType, tType, isinplace, AlgType <: TaylorAlgorithm}
 
     if verbose
@@ -37,7 +37,7 @@ function DiffEqBase.solve(
         warned && warn_compat()
     end
 
-    if prob.callback != nothing || callback != nothing
+    if haskey(prob.kwargs, :callback) || haskey(kwargs, :callback)
         error("TaylorIntegration is not compatible with callbacks.")
     end
 

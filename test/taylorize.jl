@@ -195,7 +195,8 @@ end
 
     # Compare to exact solution
     exact_sol(t, p, x0) = x0*exp(p*t)
-    @test norm(abs2(xv1p[end]) - abs2(exact_sol(tv1p[end], cc, cx0)), Inf) < 1.0e-15
+    nn = norm.(abs2.(xv1p)-abs2.(exact_sol.(tv1p, cc, cx0)), Inf)
+    @test maximum(nn) < 3.0e-15
 end
 
 
