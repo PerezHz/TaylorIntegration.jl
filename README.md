@@ -18,7 +18,7 @@ Documentation:
 [![](https://img.shields.io/badge/docs-latest-blue.svg)](https://PerezHz.github.io/TaylorIntegration.jl/latest) [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://PerezHz.github.io/TaylorIntegration.jl/stable)
 
 DOI (Zenodo):
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.3241532.svg)](https://doi.org/10.5281/zenodo.3241532)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.2562352.svg)](https://doi.org/10.5281/zenodo.2562352)
 
 ## Authors
 
@@ -30,9 +30,6 @@ Instituto de Ciencias Físicas, Universidad Nacional Autónoma de México (UNAM)
 Comments, suggestions, and improvements are welcome and appreciated.
 
 ## Examples
-
-> *NOTE: Version 0.5.0 includes breaking changes related with the
-form of the function that defines the equations of motion (which follows now the convention of [`DifferentialEquations.jl`](http://docs.juliadiffeq.org/stable/tutorials/ode_example.html)). Then, code that used to work in previous versions has to be amended.*
 
 + [x'=x^2](http://nbviewer.jupyter.org/github/PerezHz/TaylorIntegration.jl/blob/master/examples/x-dot-equals-x-squared.ipynb)
 + [Kepler problem](http://nbviewer.jupyter.org/github/PerezHz/TaylorIntegration.jl/blob/master/examples/Kepler-problem.ipynb)
@@ -47,4 +44,4 @@ form of the function that defines the equations of motion (which follows now the
 
 ## Acknowledgments
 
-We acknowledge financial support from DGAPA-PAPIIT grants IG-100616.
+We acknowledge financial support from DGAPA-PAPIIT grants IG-100616 and IG-100819.
