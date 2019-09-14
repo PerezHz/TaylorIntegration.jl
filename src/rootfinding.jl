@@ -176,6 +176,7 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
     @inbounds t[0] = t0
     x0 = deepcopy(q0)
     x .= Taylor1.(q0, order)
+    dx .= zero.(x)
     @inbounds tv[1] = t0
     @inbounds xv[:,1] .= q0
 
@@ -190,13 +191,13 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
     end
 
     #Some auxiliary arrays for root-finding/event detection/Poincaré surface of section evaluation
-    g_val = zero(g(x, x, params, t))
+    g_val = zero(g(x, dx, params, t))
     g_val_old = zero(g_val)
-    slope = zero(U)
-    dt_li = zero(U)
-    dt_nr = zero(U)
-    δt = zero(U)
-    δt_old = zero(U)
+    slope = zero(x[1])
+    dt_li = zero(x[1])
+    dt_nr = zero(x[1])
+    δt = zero(x[1])
+    δt_old = zero(x[1])
 
     x_dx = vcat(x, dx)
     g_dg = vcat(g_val, g_val_old)
