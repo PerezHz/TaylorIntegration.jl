@@ -17,6 +17,13 @@ notifications:
 git:
   depth: 99999999
 
+## run Julia on two threads
+env:
+  # JULIA_NUM_THREADS=2
+  matrix:
+    - JULIA_NUM_THREADS=1
+    - JULIA_NUM_THREADS=2
+
 ## Debug documentation in travis
 env:
   global:
