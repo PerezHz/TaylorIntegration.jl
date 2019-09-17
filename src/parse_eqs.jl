@@ -327,7 +327,7 @@ function _newfnbody(fnbody, fnargs, d_indx)
             # Ignore the following cases
             (ex_head == :return) && continue
 
-            # Treat `for` loops and `if` blocks separately
+            # Treat `for` loops, `Threads.@threads for` and `if` blocks separately
             if ex_head == :block
                 newblock, tmp_newindx, tmp_arraydecl = _newfnbody(ex, fnargs, d_indx)
                 push!(newfnbody.args, newblock )
@@ -340,9 +340,14 @@ function _newfnbody(fnbody, fnargs, d_indx)
                 append!(v_newindx, tmp_newindx)
                 append!(v_arraydecl, tmp_arraydecl)
             elseif ex_head == :macrocall
+                # Deal with `Threads.@threads` and `@threads` cases
                 if ex.args[1] in [Expr(:., :Threads, QuoteNode(Symbol("@threads"))), Symbol("@threads")]
                     push!(newfnbody.args, Expr(:macrocall, ex.args[1]))
+                    # Although here `ex.args[2]` is a `LineNumberNode`,
+                    # we add it to `newfnbody` because `@threads` call expressions require 3 args
                     push!(newfnbody.args[end].args, ex.args[2])
+                    # Since `@threads` is called before a `for` loop, we deal
+                    # with `ex.args[3]` as a `for` loop
                     exx = ex.args[3]
                     push!(newfnbody.args[end].args, Expr(:for, exx.args[1]))
                     loopbody, tmp_newindx, tmp_arraydecl = _newfnbody( exx.args[2], fnargs, d_indx )
