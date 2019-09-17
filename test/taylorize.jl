@@ -5,6 +5,7 @@ using Test
 using LinearAlgebra: norm
 using InteractiveUtils: methodswith
 using Elliptic
+using Base.Threads
 
 @testset "Testing `taylorize.jl`" begin
 
@@ -1098,4 +1099,61 @@ using Elliptic
               end
               )
     end
+end
+
+@testset "Test @taylorize with @threads" begin
+    @taylorize function f1!(dq, q, params, t)
+        for i in 1:10
+            dq[i] = q[i]
+        end
+        nothing
+    end
+
+    @taylorize function f1_parsed!(dq, q, params, t)
+        for i in 1:10
+            dq[i] = q[i]
+        end
+        nothing
+    end
+
+    @taylorize function f2!(dq, q, params, t)
+        Threads.@threads for i in 1:10
+            dq[i] = q[i]
+        end
+        nothing
+    end
+
+    @taylorize function f3!(dq, q, params, t)
+        @threads for i in 1:10
+            dq[i] = q[i]
+        end
+        nothing
+    end
+
+    x01 = Taylor1.(rand(10), 10)
+    dx01 = similar(x01)
+    t1 = Taylor1(10)
+    xaux1 = similar(x01)
+
+    x01p = deepcopy(x01)
+    dx01p = similar(x01)
+    t1p = deepcopy(t1)
+
+    x02 = deepcopy(x01)
+    dx02 = similar(x01)
+    t2 = deepcopy(t1)
+
+    x03 = deepcopy(x01)
+    dx03 = similar(x01)
+    t3 = deepcopy(t1)
+
+    TaylorIntegration.jetcoeffs!(f1!, t1, x01, dx01, xaux1, nothing)
+    TaylorIntegration.jetcoeffs!(Val(f1_parsed!), t1p, x01p, dx01p, nothing)
+    TaylorIntegration.jetcoeffs!(Val(f2!), t2, x02, dx02, nothing)
+    TaylorIntegration.jetcoeffs!(Val(f3!), t3, x03, dx03, nothing)
+
+    @test x01 == x01p
+    @test x01p == x02
+    @test x02 == x03
+
 end
