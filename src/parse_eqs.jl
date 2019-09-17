@@ -339,15 +339,20 @@ function _newfnbody(fnbody, fnargs, d_indx)
                 push!(newfnbody.args[end].args, loopbody)
                 append!(v_newindx, tmp_newindx)
                 append!(v_arraydecl, tmp_arraydecl)
-            elseif ex_head == :macrocall && ( ex.args[1] == :(Threads.var"@threads") || ex.args[1] == Symbol("@threads") )
-                push!(newfnbody.args, Expr(:macrocall, ex.args[1]))
-                push!(newfnbody.args[end].args, ex.args[2])
-                exx = ex.args[3]
-                push!(newfnbody.args[end].args, Expr(:for, exx.args[1]))
-                loopbody, tmp_newindx, tmp_arraydecl = _newfnbody( exx.args[2], fnargs, d_indx )
-                push!(newfnbody.args[end].args[end].args, loopbody)
-                append!(v_newindx, tmp_newindx)
-                append!(v_arraydecl, tmp_arraydecl)
+            elseif ex_head == :macrocall
+                if ex.args[1] in [Expr(:., :Threads, QuoteNode(Symbol("@threads"))), Symbol("@threads")]
+                    push!(newfnbody.args, Expr(:macrocall, ex.args[1]))
+                    push!(newfnbody.args[end].args, ex.args[2])
+                    exx = ex.args[3]
+                    push!(newfnbody.args[end].args, Expr(:for, exx.args[1]))
+                    loopbody, tmp_newindx, tmp_arraydecl = _newfnbody( exx.args[2], fnargs, d_indx )
+                    push!(newfnbody.args[end].args[end].args, loopbody)
+                    append!(v_newindx, tmp_newindx)
+                    append!(v_arraydecl, tmp_arraydecl)
+                else
+                    # If macro not implemented, throw an `ArgumentError`
+                    throw(ArgumentError("Macro $(ex.args[1]) is not yet implemented"))
+                end
             elseif ex_head == :if
                 # The first argument of an `if` expression is the condition, the
                 # second one is the block the condition is true, and the third
