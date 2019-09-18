@@ -25,9 +25,9 @@ julia = "≥ 1.0.0"
 [extras]
 Elliptic = "b305315f-e792-5b7a-8f41-49f472929428"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-TaylorSeries = "6aa5eb33-94cf-58f4-a9d0-e4b2c4fc25ea"
 OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
+TaylorSeries = "6aa5eb33-94cf-58f4-a9d0-e4b2c4fc25ea"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["TaylorSeries", "LinearAlgebra", "Test", "Elliptic"]
+test = ["TaylorSeries", "LinearAlgebra", "Test", "Elliptic", "OrdinaryDiffEq"]
