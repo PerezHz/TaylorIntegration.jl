@@ -19,7 +19,9 @@ git:
 
 ## run Julia on two threads
 env:
-  JULIA_NUM_THREADS=4
+  matrix:
+    - JULIA_NUM_THREADS=2
+    - JULIA_NUM_THREADS=4
 
 ## Debug documentation in travis
 env:
