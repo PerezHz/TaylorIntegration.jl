@@ -17,16 +17,10 @@ notifications:
 git:
   depth: 99999999
 
-## run Julia on two threads
-env:
-  matrix:
-    - JULIA_NUM_THREADS=2
-    - JULIA_NUM_THREADS=4
-
-## Debug documentation in travis
 env:
   global:
-    - DOCUMENTER_DEBUG=true
+    - DOCUMENTER_DEBUG=true ## Debug documentation in travis
+    - JULIA_NUM_THREADS=4 ## run Julia on four threads
 
 jobs:
   allow_failures:
