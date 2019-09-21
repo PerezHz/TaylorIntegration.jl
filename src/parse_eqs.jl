@@ -348,10 +348,9 @@ function _newfnbody(fnbody, fnargs, d_indx)
                     push!(newfnbody.args[end].args, ex.args[2])
                     # Since `@threads` is called before a `for` loop, we deal
                     # with `ex.args[3]` as a `for` loop
-                    exx = ex.args[3]
-                    push!(newfnbody.args[end].args, Expr(:for, exx.args[1]))
-                    loopbody, tmp_newindx, tmp_arraydecl = _newfnbody( exx.args[2], fnargs, d_indx )
-                    push!(newfnbody.args[end].args[end].args, loopbody)
+                    push!(newfnbody.args[end].args, Expr(:for, ex.args[3].args[1]))
+                    atthreadsbody, tmp_newindx, tmp_arraydecl = _newfnbody( ex.args[3].args[2], fnargs, d_indx )
+                    push!(newfnbody.args[end].args[end].args, atthreadsbody)
                     append!(v_newindx, tmp_newindx)
                     append!(v_arraydecl, tmp_arraydecl)
                 else
@@ -485,10 +484,17 @@ function _parse_newfnbody!(ex::Expr, preex::Expr,
     # Each line of ex (ex.args) is parsed separately
     for (i, aa) in enumerate(ex.args)
 
-        # Treat for loops, blocks and if blocks separately
+        # Treat for loops, @threads for loops, blocks and if blocks separately
         if (aa.head == :for)
             push!(preex.args, Expr(:for, aa.args[1]))
             _parse_newfnbody!(aa, preex.args[end],
+                v_vars, v_assign, d_indx, v_newindx, v_arraydecl, true)
+            #
+        elseif (aa.head == :macrocall && aa.args[1] in [Expr(:., :Threads, QuoteNode(Symbol("@threads"))), Symbol("@threads")])
+            push!(preex.args, Expr(:macrocall, aa.args[1]))
+            push!(preex.args[end].args, aa.args[2])
+            push!(preex.args[end].args, Expr(:for, aa.args[3].args[1]))
+            _parse_newfnbody!(aa.args[3], preex.args[end].args[end],
                 v_vars, v_assign, d_indx, v_newindx, v_arraydecl, true)
             #
         elseif (aa.head == :block)
@@ -693,7 +699,7 @@ function _defs_preamble!(preamble::Expr, fnargs,
 
         if isa(ex, Expr)
 
-            # Treat :block and :for separately
+            # Treat block, for loops, @threads for loops, if separately
             if (ex.head == :block)
                 newdefspr = _defs_preamble!(ex, fnargs, d_indx,
                     v_newindx, v_arraydecl, v_preamb, d_decl, inloop, ex_aux)
@@ -701,6 +707,12 @@ function _defs_preamble!(preamble::Expr, fnargs,
             elseif (ex.head == :for)
                 push!(ex_aux.args, ex.args[1])
                 newdefspr = _defs_preamble!(ex.args[2], fnargs, d_indx,
+                    v_newindx, v_arraydecl, v_preamb, d_decl, true, ex_aux)
+                append!(defspreamble, newdefspr)
+                pop!(ex_aux.args)
+            elseif (ex.head == :macrocall  && ex.args[1] in [Expr(:., :Threads, QuoteNode(Symbol("@threads"))), Symbol("@threads")])
+                push!(ex_aux.args, ex.args[3].args[1])
+                newdefspr = _defs_preamble!(ex.args[3].args[2], fnargs, d_indx,
                     v_newindx, v_arraydecl, v_preamb, d_decl, true, ex_aux)
                 append!(defspreamble, newdefspr)
                 pop!(ex_aux.args)
