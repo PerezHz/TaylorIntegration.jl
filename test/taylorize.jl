@@ -1156,4 +1156,87 @@ end
     @test x01p == x02
     @test x02 == x03
 
+    # An example involving coupled dofs: a 1D chain of harmonic oscillators
+    @taylorize function harmosc1dchain!(dq, q, params, t)
+        local N = Int(length(q)/2)
+        local _eltype_q_ = eltype(q)
+        local μ = params
+        X = Array{_eltype_q_}(undef, N, N)
+        #Newtonian acceleration
+        newtonX = Array{_eltype_q_}(undef, N)
+        for j in 1:N
+            newtonX[j] = zero(q[1])
+            dq[j] = q[N+j]
+        end
+        #compute point-mass Newtonian accelerations, all bodies
+        for j in 1:N
+            for i in 1:N
+                # i == j && continue
+                if i == j
+                else
+                    X[i,j] = q[i]-q[j]
+                    temp_001 = newtonX[j] + (μ[i]*X[i,j])
+                    newtonX[j] = temp_001
+                end #if i != j
+            end #for, i
+        end #for, j
+        #fill the equations of motion for everyone
+        for i in 1:N
+            dq[N+i] = newtonX[i]
+        end
+        nothing
+    end
+
+    # Same as harmosc1dchain!, but adding a `@threads for`
+    @taylorize function harmosc1dchain_threads!(dq, q, params, t)
+        local N = Int(length(q)/2)
+        local _eltype_q_ = eltype(q)
+        local μ = params
+        X = Array{_eltype_q_}(undef, N, N)
+        #Newtonian acceleration
+        newtonX = Array{_eltype_q_}(undef, N)
+        for j in 1:N
+            newtonX[j] = zero(q[1])
+            dq[j] = q[N+j]
+        end
+        #compute point-mass Newtonian accelerations, all bodies
+        Threads.@threads for j in 1:N
+            for i in 1:N
+                # i == j && continue
+                if i == j
+                else
+                    X[i,j] = q[i]-q[j]
+                    temp_001 = newtonX[j] + (μ[i]*X[i,j])
+                    newtonX[j] = temp_001
+                end #if i != j
+            end #for, i
+        end #for, j
+        #fill the equations of motion for everyone
+        for i in 1:N
+            dq[N+i] = newtonX[i]
+        end
+        nothing
+    end
+
+    N = 200
+    x0 = 10randn(2N)
+    t = Taylor1(25)
+    μ = 1e-7rand(N)
+    x = Taylor1.(x0, t.order)
+    dx = similar(x)
+    t_ = deepcopy(t)
+    x_ = Taylor1.(x0, t.order)
+    dx_ = similar(x_)
+
+    TaylorIntegration.jetcoeffs!(Val(harmosc1dchain!), t, x, dx, μ)
+    @time TaylorIntegration.jetcoeffs!(Val(harmosc1dchain!), t, x, dx, μ)
+
+    TaylorIntegration.jetcoeffs!(Val(harmosc1dchain_threads!), t_, x_, dx_, μ)
+    @time TaylorIntegration.jetcoeffs!(Val(harmosc1dchain_threads!), t_, x_, dx_, μ)
+
+    # @btime TaylorIntegration.jetcoeffs!($Val(harmosc1dchain!), $t, $x, $dx, $μ)
+    # @btime TaylorIntegration.jetcoeffs!($Val(harmosc1dchain_threads!), $t_, $x_, $dx_, $μ)
+
+    @test x == x_
+    @test dx == dx_
 end
