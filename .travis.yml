@@ -20,7 +20,7 @@ git:
 env:
   global:
     - DOCUMENTER_DEBUG=true ## Debug documentation in travis
-    - JULIA_NUM_THREADS=4 ## run Julia on four threads
+    - JULIA_NUM_THREADS=2 ## run Julia on two threads
 
 jobs:
   allow_failures:
