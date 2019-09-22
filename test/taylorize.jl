@@ -1222,6 +1222,8 @@ end
     x_ = Taylor1.(x0, t.order)
     dx_ = similar(x_)
 
+    @show Threads.nthreads()
+
     TaylorIntegration.jetcoeffs!(Val(harmosc1dchain!), t, x, dx, μ)
     @time TaylorIntegration.jetcoeffs!(Val(harmosc1dchain!), t, x, dx, μ)
 
