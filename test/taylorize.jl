@@ -1162,27 +1162,24 @@ end
         local _eltype_q_ = eltype(q)
         local μ = params
         X = Array{_eltype_q_}(undef, N, N)
-        #Newtonian acceleration
-        newtonX = Array{_eltype_q_}(undef, N)
+        accX = Array{_eltype_q_}(undef, N) #acceleration
         for j in 1:N
-            newtonX[j] = zero(q[1])
+            accX[j] = zero(q[1])
             dq[j] = q[N+j]
         end
-        #compute point-mass Newtonian accelerations, all bodies
+        #compute accelerations
         for j in 1:N
             for i in 1:N
-                # i == j && continue
                 if i == j
                 else
                     X[i,j] = q[i]-q[j]
-                    temp_001 = newtonX[j] + (μ[i]*X[i,j])
-                    newtonX[j] = temp_001
+                    temp_001 = accX[j] + (μ[i]*X[i,j])
+                    accX[j] = temp_001
                 end #if i != j
             end #for, i
         end #for, j
-        #fill the equations of motion for everyone
         for i in 1:N
-            dq[N+i] = newtonX[i]
+            dq[N+i] = accX[i]
         end
         nothing
     end
@@ -1193,27 +1190,24 @@ end
         local _eltype_q_ = eltype(q)
         local μ = params
         X = Array{_eltype_q_}(undef, N, N)
-        #Newtonian acceleration
-        newtonX = Array{_eltype_q_}(undef, N)
+        accX = Array{_eltype_q_}(undef, N) #acceleration
         for j in 1:N
-            newtonX[j] = zero(q[1])
+            accX[j] = zero(q[1])
             dq[j] = q[N+j]
         end
-        #compute point-mass Newtonian accelerations, all bodies
+        #compute accelerations
         Threads.@threads for j in 1:N
             for i in 1:N
-                # i == j && continue
                 if i == j
                 else
                     X[i,j] = q[i]-q[j]
-                    temp_001 = newtonX[j] + (μ[i]*X[i,j])
-                    newtonX[j] = temp_001
+                    temp_001 = accX[j] + (μ[i]*X[i,j])
+                    accX[j] = temp_001
                 end #if i != j
             end #for, i
         end #for, j
-        #fill the equations of motion for everyone
         for i in 1:N
-            dq[N+i] = newtonX[i]
+            dq[N+i] = accX[i]
         end
         nothing
     end
