@@ -1130,9 +1130,9 @@ end
         nothing
     end
 
-    x01 = Taylor1.(rand(10), 10)
+    x01 = Taylor1.(rand(10), _order)
     dx01 = similar(x01)
-    t1 = Taylor1(10)
+    t1 = Taylor1(_order)
     xaux1 = similar(x01)
 
     x01p = deepcopy(x01)
@@ -1220,7 +1220,7 @@ end
 
     N = 200
     x0 = 10randn(2N)
-    t = Taylor1(25)
+    t = Taylor1(_order)
     μ = 1e-7rand(N)
     x = Taylor1.(x0, t.order)
     dx = similar(x)
@@ -1234,9 +1234,12 @@ end
     TaylorIntegration.jetcoeffs!(Val(harmosc1dchain_threads!), t_, x_, dx_, μ)
     @time TaylorIntegration.jetcoeffs!(Val(harmosc1dchain_threads!), t_, x_, dx_, μ)
 
-    # @btime TaylorIntegration.jetcoeffs!($Val(harmosc1dchain!), $t, $x, $dx, $μ)
-    # @btime TaylorIntegration.jetcoeffs!($Val(harmosc1dchain_threads!), $t_, $x_, $dx_, $μ)
-
     @test x == x_
     @test dx == dx_
+
+    tv, xv = taylorinteg(harmosc1dchain!, x0, t0, 100.0, _order, _abstol, μ, maxsteps=5)
+    tv_, xv_ = taylorinteg(harmosc1dchain_threads!, x0, t0, 100.0, _order, _abstol, μ, maxsteps=5)
+
+    @test tv == tv_
+    @test xv == xv_
 end
