@@ -1173,14 +1173,10 @@ end
                 if i == j
                 else
                     X[i,j] = q[i]-q[j]
-                    temp_001 = accX[j] + (μ[i]*X[i,j])
-                    accX[j] = temp_001
+                    dq[N+j] = dq[N+j] + (μ[i]*X[i,j])
                 end #if i != j
             end #for, i
         end #for, j
-        for i in 1:N
-            dq[N+i] = accX[i]
-        end
         nothing
     end
 
@@ -1190,10 +1186,9 @@ end
         local _eltype_q_ = eltype(q)
         local μ = params
         X = Array{_eltype_q_}(undef, N, N)
-        accX = Array{_eltype_q_}(undef, N) #acceleration
         for j in 1:N
-            accX[j] = zero(q[1])
             dq[j] = q[N+j]
+            dq[N+j] = zero(q[1]) # initialize acceleration
         end
         #compute accelerations
         Threads.@threads for j in 1:N
