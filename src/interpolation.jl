@@ -7,6 +7,7 @@
         t::AbstractVector{T},
         x::AbstractArray{Taylor1{U},N}
     ) where {T<:Real, U<:Number, N}
+        @assert size(x)[1] == length(t)-1
         return new{T,U,N}(t, x)
     end
 end
