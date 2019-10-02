@@ -1173,7 +1173,8 @@ end
                 if i == j
                 else
                     X[i,j] = q[i]-q[j]
-                    dq[N+j] = dq[N+j] + (μ[i]*X[i,j])
+                    temp = dq[N+j] + (μ[i]*X[i,j])
+                    dq[N+j] = temp
                 end #if i != j
             end #for, i
         end #for, j
