@@ -184,7 +184,7 @@ list some limitations and advices.
 
 - Broadcasting is not recognized by `@taylorize`.
 
--The macro may be used in combination with the [common interface with `DifferentialEquations.jl`](@ref diffeqinterface), for functions using the `(du, u, p, t)` in-place form, as we showed above. Other extensions allowed by `DifferentialEquations` maay not be able to exploit it.
+- The macro may be used in combination with the [common interface with `DifferentialEquations.jl`](@ref diffeqinterface), for functions using the `(du, u, p, t)` in-place form, as we showed above. Other extensions allowed by `DifferentialEquations` may not be able to exploit it.
 
 - `if-else` blocks are recognized in its long form, but short-circuit conditional operators (`&&` and `||`) are not.
 
