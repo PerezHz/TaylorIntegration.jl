@@ -14,7 +14,9 @@ improves the performance.
 
 !!! note
     Currently, the only keyword argument supported by `DiffEqBase.solve` that is
-    implemented in `TaylorIntegration.jl` is `:saveat`.
+    implemented in `TaylorIntegration.jl` is `:saveat`. The keyword argument
+    `:parse_eqs` is available in order to control the use of methods defined
+    via [`@taylorize`](@ref).
 
 The problem we will integrate in this example is the planar circular restricted
 three-body problem (PCR3BP, also capitalized as PCRTBP). The PCR3BP describes
