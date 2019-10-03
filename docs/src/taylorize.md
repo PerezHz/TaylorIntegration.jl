@@ -176,21 +176,39 @@ The construction of the internal function obtained by using
 [`@taylorize`](@ref) is somewhat complicated and limited. Here we
 list some limitations and advices.
 
-- It is useful to have expressions which involve two arguments at most, which imposes the proper use of parenthesis: For example, `res = a+b+c` should be written as `res = (a+b)+c`.
+- It is useful to have expressions which involve two arguments at most, which
+  imposes the proper use of parenthesis: For example, `res = a+b+c` should be
+  written as `res = (a+b)+c`.
 
-- The macro allows to use array declarations through `Array`, but other ways (e.g. `similar`) are not yet implemented.
+- Updating operators such as `+=`, `*=`, etc., are not supported. For
+  example, the expression `x += y` is not recognized by `@taylorize`. Likewise,
+  expressions such as `x = x+y` are not supported by `@taylorize` and should be
+  substituted by equivalent expressions; e.g. `z = x+y; x = z`.
 
-- Avoid using variables prefixed by an underscore, in particular `_T` and `_S`; using them may lead to name collisions with some internal variables.
+- The macro allows to use array declarations through `Array`, but other ways
+  (e.g. `similar`) are not yet implemented.
+
+- Avoid using variables prefixed by an underscore, in particular `_T` and `_S`;
+  using them may lead to name collisions with some internal variables.
 
 - Broadcasting is not recognized by `@taylorize`.
 
-- The macro may be used in combination with the [common interface with `DifferentialEquations.jl`](@ref diffeqinterface), for functions using the `(du, u, p, t)` in-place form, as we showed above. Other extensions allowed by `DifferentialEquations` may not be able to exploit it.
+- The macro may be used in combination with the [common interface with
+  `DifferentialEquations.jl`](@ref diffeqinterface), for functions using the
+  `(du, u, p, t)` in-place form, as we showed above. Other extensions allowed by
+  `DifferentialEquations` may not be able to exploit it.
 
-- `if-else` blocks are recognized in its long form, but short-circuit conditional operators (`&&` and `||`) are not.
+- `if-else` blocks are recognized in its long form, but short-circuit
+  conditional operators (`&&` and `||`) are not.
 
-- Expressions which correspond to function calls (so the `head` field is `:call`) which are not recognized by the parser are simply copied. The heuristics used, specially for vectors, may not work for all cases.
+- Expressions which correspond to function calls (so the `head` field is
+  `:call`) which are not recognized by the parser are simply copied. The
+  heuristics used, specially for vectors, may not work for all cases.
 
-- Use `local` for internal parameters (simple constant values); this improves performance. Do not use it if the variable is Taylor expanded.
+- Use `local` for internal parameters (simple constant values); this improves
+  performance. Do not use it if the variable is Taylor expanded.
+
+- `@taylorize` supports multi-threading via `Threads.@threads`.
 
 It is recommended to skim `test/taylorize.jl`, which implements different
 cases.
