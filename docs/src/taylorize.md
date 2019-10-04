@@ -208,6 +208,8 @@ list some limitations and advices.
 - Use `local` for internal parameters (simple constant values); this improves
   performance. Do not use it if the variable is Taylor expanded.
 
+- `@taylorize` supports multi-threading via `Threads.@threads`.
+
 It is recommended to skim `test/taylorize.jl`, which implements different
 cases.
 
