@@ -1,4 +1,5 @@
-using TaylorIntegration, Test, DiffEqBase, OrdinaryDiffEq
+using TaylorIntegration, Test, DiffEqBase
+using OrdinaryDiffEq: Tsit5
 using LinearAlgebra: norm
 
 @testset "Testing `common.jl`" begin
