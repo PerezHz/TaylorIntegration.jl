@@ -1,5 +1,4 @@
 using TaylorIntegration, Test, DiffEqBase
-using OrdinaryDiffEq: Tsit5
 using LinearAlgebra: norm
 
 @testset "Testing `common.jl`" begin
@@ -25,19 +24,22 @@ using LinearAlgebra: norm
     end
 
     tspan = (0.0,5.0)
-    saveat_inputs = ([], 0:1:tspan[2], 0:1:(tspan[2]+5), 3:1:tspan[2], collect(0:1:tspan[2]))
+    saveat_inputs = ([], 0:1:(tspan[2]+5), 0:1:tspan[2], 3:1:tspan[2], collect(0:1:tspan[2]))
     @testset "Test saveat behavior with numbers in common interface" begin
         u0 = 1.0
         prob = ODEProblem(f, u0, tspan)
-        for s ∈ saveat_inputs
-            if isempty(s)
-                sol = solve(prob, TaylorMethod(20),abstol=1e-20)
-            else
-                sol = solve(prob, Tsit5(),abstol=1e-20, saveat = s)
-            end
-            sol_taylor = solve(prob, TaylorMethod(20),abstol=1e-20, saveat = s)
-
-            @test all(sol.t .== sol_taylor.t)
+        sol = solve(prob, TaylorMethod(20), abstol=1e-20)
+        s = saveat_inputs[1]
+        sol_taylor = solve(prob, TaylorMethod(20), abstol=1e-20, saveat = s)
+        @test all(sol.t .== sol_taylor.t)
+        @test all(sol_taylor.u .== sol.u)
+        @test length(sol_taylor.t) == length(sol_taylor.u)
+        s = saveat_inputs[2]
+        sol_taylor = solve(prob, TaylorMethod(20), abstol=1e-20, saveat = s)
+        @test sol_taylor.t == saveat_inputs[3]
+        for s ∈ saveat_inputs[3:end]
+            sol_taylor = solve(prob, TaylorMethod(20), abstol=1e-20, saveat = s)
+            @test all(s .== sol_taylor.t)
             @test length(sol_taylor.t) == length(sol_taylor.u)
         end
     end
@@ -45,15 +47,18 @@ using LinearAlgebra: norm
     @testset "Test saveat behavior with abstract arrays in common interface" begin
         u0 = rand(2)
         prob = ODEProblem(f!, u0, tspan)
-        for s ∈ saveat_inputs
-            if isempty(s)
-                sol = solve(prob, TaylorMethod(20),abstol=1e-20)
-            else
-                sol = solve(prob, Tsit5(),abstol=1e-20, saveat = s)
-            end
-            sol_taylor = solve(prob, TaylorMethod(20),abstol=1e-20, saveat = s)
-
-            @test all(sol.t .== sol_taylor.t)
+        sol = solve(prob, TaylorMethod(20), abstol=1e-20)
+        s = saveat_inputs[1]
+        sol_taylor = solve(prob, TaylorMethod(20), abstol=1e-20, saveat = s)
+        @test all(sol.t .== sol_taylor.t)
+        @test all(sol_taylor.u .== sol.u)
+        @test length(sol_taylor.t) == length(sol_taylor.u)
+        s = saveat_inputs[2]
+        sol_taylor = solve(prob, TaylorMethod(20), abstol=1e-20, saveat = s)
+        @test sol_taylor.t == saveat_inputs[3]
+        for s ∈ saveat_inputs[3:end]
+            sol_taylor = solve(prob, TaylorMethod(20), abstol=1e-20, saveat = s)
+            @test all(s .== sol_taylor.t)
             @test length(sol_taylor.t) == length(sol_taylor.u)
         end
     end
