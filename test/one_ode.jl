@@ -2,6 +2,7 @@
 
 using TaylorIntegration
 using Test
+using LinearAlgebra: norm
 
 @testset "Testing `one_ode.jl`" begin
 
@@ -111,20 +112,38 @@ using Test
             abstol = 1e-20
             order = 25
             x0 = 0.0 #initial conditions such that x(t)=sin(t)
+
             tv, xv = taylorinteg(f, x0, t0, tmax, order, abstol)
             @test length(tv) < 501
             @test length(xv) < 501
-            # @test length(xT[:,2]) < 501
             @test xv[1] == x0
             @test tv[1] == t0
             @test abs(sin(tmax)-xv[end]) < 1e-14
 
+            # Backward integration
+            tb, xb = taylorinteg(f, sin(tmax), tmax, t0, order, abstol)
+            @test length(tb) < 501
+            @test length(xb) < 501
+            @test xb[1] == sin(tmax)
+            @test tb[1] > tb[end]
+            @test abs(sin(t0)-xb[end]) < 5e-14
+
+            # Tests with a range, for comparison with backward integration
             tmax = 15*(2pi)
-            tv, xv = taylorinteg(f, x0, t0, tmax, order, abstol)
-            @test length(tv) < 501
-            @test length(xv) < 501
+            Δt = (tmax-t0)/1024
+            tspan = t0:Δt:tmax
+            xv = taylorinteg(f, x0, tspan, order, abstol)
             @test xv[1] == x0
             @test abs(sin(tmax)-xv[end]) < 1e-14
+
+            # Backward integration
+            xback = taylorinteg(f, xv[end], reverse(tspan), order, abstol)
+            @test xback[1] == xv[end]
+            @test abs(sin(t0)-xback[end]) < 5e-14
+            @test norm(xv[:]-xback[end:-1:1], Inf) < 5.0e-14
+
+            # Tests if trange is properly sorted
+            @test_throws AssertionError taylorinteg(f, x0, rand(t0:Δt:tmax, 100), order, abstol)
         end
     end
 
