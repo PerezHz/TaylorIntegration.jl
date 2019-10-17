@@ -446,6 +446,10 @@ function taylorinteg(f, x0::U, trange::AbstractVector{T},
         order::Int, abstol::T, params = nothing;
         maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real, U<:Number}
 
+    # Check if trange is increasingly or decreasingly sorted
+    @assert (issorted(trange) ||
+        issorted(reverse(trange))) "`trange` or `reverse(trange)` must be sorted"
+
     # Allocation
     nn = length(trange)
     xv = Array{U}(undef, nn)
@@ -457,7 +461,7 @@ function taylorinteg(f, x0::U, trange::AbstractVector{T},
 
     # Initial conditions
     @inbounds t0, t1, tmax = trange[1], trange[2], trange[end]
-    sign_tstep = copysign(1, convert(eltype(trange.step), trange.step))
+    sign_tstep = copysign(1, tmax-t0)
     @inbounds t[0] = t0
     @inbounds xv[1] = x0
 
@@ -509,6 +513,10 @@ function taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
         order::Int, abstol::T, params = nothing; maxsteps::Int=500,
         parse_eqs::Bool=true) where {T<:Real, U<:Number}
 
+    # Check if trange is increasingly or decreasingly sorted
+    @assert (issorted(trange) ||
+        issorted(reverse(trange))) "`trange` or `reverse(trange)` must be sorted"
+
     # Allocation
     nn = length(trange)
     dof = length(q0)
@@ -533,7 +541,7 @@ function taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
     # Initial conditions
     @inbounds t[0] = trange[1]
     @inbounds t0, t1, tmax = trange[1], trange[2], trange[end]
-    sign_tstep = copysign(1, convert(eltype(trange.step), trange.step))
+    sign_tstep = copysign(1, tmax-t0)
     x .= Taylor1.(q0, order)
     @inbounds x0 .= q0
     @inbounds xv[:,1] .= q0
