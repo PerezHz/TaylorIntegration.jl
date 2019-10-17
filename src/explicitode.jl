@@ -195,7 +195,7 @@ end
 
 One-step Taylor integration for the one-dependent variable ODE ``\dot{x}=dx/dt=f(x, p, t)``
 with initial conditions ``x(t_0)=x_0``.
-Returns the time-step `δt` of the actual integration carried out.
+Returns the time-step `δt` of the actual integration carried out (δt is positive).
 
 Here, `f` is the function defining the RHS of the ODE (see
 [`taylorinteg`](@ref)), `t` is the
@@ -321,6 +321,7 @@ function taylorinteg(f, x0::U, t0::T, tmax::T, order::Int, abstol::T,
     @inbounds t[0] = t0
     @inbounds tv[1] = t0
     @inbounds xv[1] = x0
+    sign_tstep = copysign(1, tmax-t0)
 
     # Determine if specialized jetcoeffs! method exists
     parse_eqs = parse_eqs && (length(methods(jetcoeffs!)) > 2)
@@ -333,9 +334,10 @@ function taylorinteg(f, x0::U, t0::T, tmax::T, order::Int, abstol::T,
     end
 
     # Integration
-    while t0 < tmax
-        δt = taylorstep!(f, t, x, t0, order, abstol, params, parse_eqs)
-        δt = min(δt, tmax-t0)
+    while sign_tstep*t0 < sign_tstep*tmax
+        δt = taylorstep!(f, t, x, t0, order, abstol, params, parse_eqs) # δt is positive!
+        # Below, δt has the proper sign according to the direction of the integration
+        δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
         x0 = evaluate(x, δt) # new initial condition
         @inbounds x[0] = x0
         t0 += δt
@@ -379,6 +381,7 @@ function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T, order::Int, abstol::T,
     x0 = deepcopy(q0)
     @inbounds tv[1] = t0
     @inbounds xv[:,1] .= q0
+    sign_tstep = copysign(1, tmax-t0)
 
     # Determine if specialized jetcoeffs! method exists
     parse_eqs = parse_eqs && (length(methods(jetcoeffs!)) > 2)
@@ -392,9 +395,10 @@ function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T, order::Int, abstol::T,
 
     # Integration
     nsteps = 1
-    while t0 < tmax
-        δt = taylorstep!(f!, t, x, dx, xaux, t0, order, abstol, params, parse_eqs)
-        δt = min(δt, tmax-t0)
+    while sign_tstep*t0 < sign_tstep*tmax
+        δt = taylorstep!(f!, t, x, dx, xaux, t0, order, abstol, params, parse_eqs) # δt is positive!
+        # Below, δt has the proper sign according to the direction of the integration
+        δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
         evaluate!(x, δt, x0) # new initial condition
         for i in eachindex(x0)
             @inbounds x[i][0] = x0[i]
@@ -453,6 +457,7 @@ function taylorinteg(f, x0::U, trange::AbstractVector{T},
 
     # Initial conditions
     @inbounds t0, t1, tmax = trange[1], trange[2], trange[end]
+    sign_tstep = copysign(1, convert(eltype(trange.step), trange.step))
     @inbounds t[0] = t0
     @inbounds xv[1] = x0
 
@@ -469,13 +474,14 @@ function taylorinteg(f, x0::U, trange::AbstractVector{T},
     # Integration
     iter = 2
     nsteps = 1
-    while t0 < tmax
-        δt = taylorstep!(f, t, x, t0, order, abstol, params, parse_eqs)
-        δt = min(δt, tmax-t0)
+    while sign_tstep*t0 < sign_tstep*tmax
+        δt = taylorstep!(f, t, x, t0, order, abstol, params, parse_eqs)# δt is positive!
+        # Below, δt has the proper sign according to the direction of the integration
+        δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
         x0 = evaluate(x, δt) # new initial condition
         tnext = t0+δt
         # Evaluate solution at times within convergence radius
-        while t1 < tnext
+        while sign_tstep*t1 < sign_tstep*tnext
             x1 = evaluate(x, t1-t0)
             @inbounds xv[iter] = x1
             iter += 1
@@ -527,6 +533,7 @@ function taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
     # Initial conditions
     @inbounds t[0] = trange[1]
     @inbounds t0, t1, tmax = trange[1], trange[2], trange[end]
+    sign_tstep = copysign(1, convert(eltype(trange.step), trange.step))
     x .= Taylor1.(q0, order)
     @inbounds x0 .= q0
     @inbounds xv[:,1] .= q0
@@ -544,13 +551,14 @@ function taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
     # Integration
     iter = 2
     nsteps = 1
-    while t0 < tmax
-        δt = taylorstep!(f!, t, x, dx, xaux, t0, order, abstol, params, parse_eqs)
-        δt = min(δt, tmax-t0)
+    while sign_tstep*t0 < sign_tstep*tmax
+        δt = taylorstep!(f!, t, x, dx, xaux, t0, order, abstol, params, parse_eqs) # δt is positive!
+        # Below, δt has the proper sign according to the direction of the integration
+        δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
         evaluate!(x, δt, x0) # new initial condition
         tnext = t0+δt
         # Evaluate solution at times within convergence radius
-        while t1 < tnext
+        while sign_tstep*t1 < sign_tstep*tnext
             evaluate!(x, t1-t0, x1)
             @inbounds xv[:,iter] .= x1
             iter += 1
