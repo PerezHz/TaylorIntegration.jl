@@ -214,7 +214,8 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
     nevents = 1 #number of detected events
     while t0 < tmax
         δt_old = δt
-        δt = taylorstep!(f!, t, x, dx, xaux, t0, tmax, order, abstol, params, parse_eqs)
+        δt = taylorstep!(f!, t, x, dx, xaux, t0, order, abstol, params, parse_eqs)
+        δt = min(δt, tmax-t0)
         evaluate!(x, δt, x0) # new initial condition
         g_val = g(dx, x, params, t)
         nevents = findroot!(t, x, dx, g_val_old, g_val, eventorder,
@@ -308,7 +309,8 @@ function taylorinteg(f!, g, q0::Array{U,1}, trange::AbstractVector{T},
     nevents = 1 #number of detected events
     while t0 < tmax
         δt_old = δt
-        δt = taylorstep!(f!, t, x, dx, xaux, t0, tmax, order, abstol, params, parse_eqs)
+        δt = taylorstep!(f!, t, x, dx, xaux, t0, order, abstol, params, parse_eqs)
+        δt = min(δt, tmax-t0)
         evaluate!(x, δt, x0) # new initial condition
         tnext = t0+δt
         # Evaluate solution at times within convergence radius
