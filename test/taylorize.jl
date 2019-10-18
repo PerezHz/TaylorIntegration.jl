@@ -62,6 +62,11 @@ using Elliptic
         @test iszero( norm(xv1p-xv2p, Inf) )
         @test iszero( norm(xv1p-xv3p, Inf) )
 
+        xv4 = taylorinteg( xdot2, x0, t0:0.5:tf, _order, _abstol, maxsteps=1000,
+            parse_eqs=false)
+        xv4p = taylorinteg( xdot2, x0, t0:0.5:tf, _order, _abstol, maxsteps=1000)
+        @test iszero( norm(xv4-xv4p, Inf) )
+
         # Compare to exact solution
         exact_sol(t, b, x0) = sqrt(b)*((sqrt(b)+x0)-(sqrt(b)-x0)*exp(-2sqrt(b)*t)) /
             ((sqrt(b)+x0)+(sqrt(b)-x0)*exp(-2sqrt(b)*t))

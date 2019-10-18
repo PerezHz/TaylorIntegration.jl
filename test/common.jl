@@ -62,4 +62,18 @@ using LinearAlgebra: norm
             @test length(sol_taylor.t) == length(sol_taylor.u)
         end
     end
+
+    @testset "Test throwing errors in common interface" begin
+        u0 = rand(4, 2)
+        tspan = (0.0, 1.0)
+        prob1 = ODEProblem(f!, u0, tspan)
+        sol = solve(prob1, TaylorMethod(50), abstol=1e-20)
+
+        # `order` is not specified
+        @test_throws ErrorException solve(prob, TaylorMethod(), abstol=1e-20)
+
+        # Using a `callback`
+        prob2 = ODEProblem(f!, u0, tspan, callback=nothing)
+        @test_throws ErrorException solve(prob2, TaylorMethod(10), abstol=1e-20)
+    end
 end

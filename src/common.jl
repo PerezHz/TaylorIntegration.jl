@@ -43,7 +43,7 @@ function DiffEqBase.solve(
         warned && warn_compat()
     end
 
-    if haskey(prob.kwargs, :callback) || haskey(kwargs, :callback)
+    if haskey(prob.kwargs, :callback) || haskey(kwargs, :callback) || !isa(callback, Nothing)
         error("TaylorIntegration is not compatible with callbacks.")
     end
 
