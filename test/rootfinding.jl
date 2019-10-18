@@ -168,8 +168,8 @@ using LinearAlgebra: norm
     @test norm(gvS1rb[:], Inf) < 1E-13
     @test tvS1r[1]() < tvS1r[end]()
     @test tvS1rb[1]() > tvS1rb[end]()
-    @test norm(tvS1r() - reverse(tvS1rb()), Inf) < 1E-14
-    @test norm(xv1r[:,:]() - xv1rb[end:-1:1,:](), Inf) < 1E-14
+    @test norm(tvS1r() - reverse(tvS1rb()), Inf) < 5e-14
+    @test norm(xv1r[:,:]() - xv1rb[end:-1:1,:](), Inf) < 5e-14
 
     @test_throws AssertionError taylorinteg(pendulum!, g, x0, rand(t0:Δt:3Tend, 100),
         _order, _abstol, maxsteps=1000, eventorder=2, newtoniter=2)
