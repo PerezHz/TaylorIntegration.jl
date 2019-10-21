@@ -1099,139 +1099,141 @@ using Base.Threads
               end
               )
     end
-end
 
-@testset "Test @taylorize with @threads" begin
-    @taylorize function f1!(dq, q, params, t)
-        for i in 1:10
-            dq[i] = q[i]
+
+    @testset "Test @taylorize with @threads" begin
+        @taylorize function f1!(dq, q, params, t)
+            for i in 1:10
+                dq[i] = q[i]
+            end
+            nothing
         end
-        nothing
-    end
 
-    @taylorize function f1_parsed!(dq, q, params, t)
-        for i in 1:10
-            dq[i] = q[i]
+        @taylorize function f1_parsed!(dq, q, params, t)
+            for i in 1:10
+                dq[i] = q[i]
+            end
+            nothing
         end
-        nothing
-    end
 
-    @taylorize function f2!(dq, q, params, t)
-        Threads.@threads for i in 1:10
-            dq[i] = q[i]
+        @taylorize function f2!(dq, q, params, t)
+            Threads.@threads for i in 1:10
+                dq[i] = q[i]
+            end
+            nothing
         end
-        nothing
-    end
 
-    @taylorize function f3!(dq, q, params, t)
-        @threads for i in 1:10
-            dq[i] = q[i]
+        @taylorize function f3!(dq, q, params, t)
+            @threads for i in 1:10
+                dq[i] = q[i]
+            end
+            nothing
         end
-        nothing
-    end
 
-    x01 = Taylor1.(rand(10), _order)
-    dx01 = similar(x01)
-    t1 = Taylor1(_order)
-    xaux1 = similar(x01)
+        x01 = Taylor1.(rand(10), _order)
+        dx01 = similar(x01)
+        t1 = Taylor1(_order)
+        xaux1 = similar(x01)
 
-    x01p = deepcopy(x01)
-    dx01p = similar(x01)
-    t1p = deepcopy(t1)
+        x01p = deepcopy(x01)
+        dx01p = similar(x01)
+        t1p = deepcopy(t1)
 
-    x02 = deepcopy(x01)
-    dx02 = similar(x01)
-    t2 = deepcopy(t1)
+        x02 = deepcopy(x01)
+        dx02 = similar(x01)
+        t2 = deepcopy(t1)
 
-    x03 = deepcopy(x01)
-    dx03 = similar(x01)
-    t3 = deepcopy(t1)
+        x03 = deepcopy(x01)
+        dx03 = similar(x01)
+        t3 = deepcopy(t1)
 
-    TaylorIntegration.jetcoeffs!(f1!, t1, x01, dx01, xaux1, nothing)
-    TaylorIntegration.jetcoeffs!(Val(f1_parsed!), t1p, x01p, dx01p, nothing)
-    TaylorIntegration.jetcoeffs!(Val(f2!), t2, x02, dx02, nothing)
-    TaylorIntegration.jetcoeffs!(Val(f3!), t3, x03, dx03, nothing)
+        TaylorIntegration.jetcoeffs!(f1!, t1, x01, dx01, xaux1, nothing)
+        TaylorIntegration.jetcoeffs!(Val(f1_parsed!), t1p, x01p, dx01p, nothing)
+        TaylorIntegration.jetcoeffs!(Val(f2!), t2, x02, dx02, nothing)
+        TaylorIntegration.jetcoeffs!(Val(f3!), t3, x03, dx03, nothing)
 
-    @test x01 == x01p
-    @test x01p == x02
-    @test x02 == x03
+        @test x01 == x01p
+        @test x01p == x02
+        @test x02 == x03
 
-    # An example involving coupled dofs: a 1D chain of harmonic oscillators
-    @taylorize function harmosc1dchain!(dq, q, params, t)
-        local N = Int(length(q)/2)
-        local _eltype_q_ = eltype(q)
-        local μ = params
-        X = Array{_eltype_q_}(undef, N, N)
-        accX = Array{_eltype_q_}(undef, N) #acceleration
-        for j in 1:N
-            accX[j] = zero(q[1])
-            dq[j] = q[N+j]
-        end
-        #compute accelerations
-        for j in 1:N
+        # An example involving coupled dofs: a 1D chain of harmonic oscillators
+        @taylorize function harmosc1dchain!(dq, q, params, t)
+            local N = Int(length(q)/2)
+            local _eltype_q_ = eltype(q)
+            local μ = params
+            X = Array{_eltype_q_}(undef, N, N)
+            accX = Array{_eltype_q_}(undef, N) #acceleration
+            for j in 1:N
+                accX[j] = zero(q[1])
+                dq[j] = q[N+j]
+            end
+            #compute accelerations
+            for j in 1:N
+                for i in 1:N
+                    if i == j
+                    else
+                        X[i,j] = q[i]-q[j]
+                        temp_001 = accX[j] + (μ[i]*X[i,j])
+                        accX[j] = temp_001
+                    end #if i != j
+                end #for, i
+            end #for, j
             for i in 1:N
-                if i == j
-                else
-                    X[i,j] = q[i]-q[j]
-                    temp = dq[N+j] + (μ[i]*X[i,j])
-                    dq[N+j] = temp
-                end #if i != j
-            end #for, i
-        end #for, j
-        nothing
+                dq[N+i] = accX[i]
+            end
+            nothing
+        end
+
+        # Same as harmosc1dchain!, but adding a `@threads for`
+        @taylorize function harmosc1dchain_threads!(dq, q, params, t)
+            local N = Int(length(q)/2)
+            local _eltype_q_ = eltype(q)
+            local μ = params
+            X = Array{_eltype_q_}(undef, N, N)
+            for j in 1:N
+                dq[j] = q[N+j]
+                dq[N+j] = zero(q[1]) # initialize acceleration
+            end
+            #compute accelerations
+            Threads.@threads for j in 1:N
+                for i in 1:N
+                    if i == j
+                    else
+                        X[i,j] = q[i]-q[j]
+                        temp = dq[N+j] + (μ[i]*X[i,j])
+                        dq[N+j] = temp
+                    end #if i != j
+                end #for, i
+            end #for, j
+            nothing
+        end
+
+        N = 200
+        x0 = 10randn(2N)
+        t = Taylor1(_order)
+        μ = 1e-7rand(N)
+        x = Taylor1.(x0, t.order)
+        dx = similar(x)
+        t_ = deepcopy(t)
+        x_ = Taylor1.(x0, t.order)
+        dx_ = similar(x_)
+
+        @show Threads.nthreads()
+
+        TaylorIntegration.jetcoeffs!(Val(harmosc1dchain!), t, x, dx, μ)
+        @time TaylorIntegration.jetcoeffs!(Val(harmosc1dchain!), t, x, dx, μ)
+
+        TaylorIntegration.jetcoeffs!(Val(harmosc1dchain_threads!), t_, x_, dx_, μ)
+        @time TaylorIntegration.jetcoeffs!(Val(harmosc1dchain_threads!), t_, x_, dx_, μ)
+
+        @test x == x_
+        @test dx == dx_
+
+        tv, xv = taylorinteg(harmosc1dchain!, x0, t0, 100.0, _order, _abstol, μ, maxsteps=5)
+        tv_, xv_ = taylorinteg(harmosc1dchain_threads!, x0, t0, 100.0, _order, _abstol, μ, maxsteps=5)
+
+        @test tv == tv_
+        @test xv == xv_
     end
 
-    # Same as harmosc1dchain!, but adding a `@threads for`
-    @taylorize function harmosc1dchain_threads!(dq, q, params, t)
-        local N = Int(length(q)/2)
-        local _eltype_q_ = eltype(q)
-        local μ = params
-        X = Array{_eltype_q_}(undef, N, N)
-        for j in 1:N
-            dq[j] = q[N+j]
-            dq[N+j] = zero(q[1]) # initialize acceleration
-        end
-        #compute accelerations
-        Threads.@threads for j in 1:N
-            for i in 1:N
-                if i == j
-                else
-                    X[i,j] = q[i]-q[j]
-                    temp_001 = accX[j] + (μ[i]*X[i,j])
-                    accX[j] = temp_001
-                end #if i != j
-            end #for, i
-        end #for, j
-        for i in 1:N
-            dq[N+i] = accX[i]
-        end
-        nothing
-    end
-
-    N = 200
-    x0 = 10randn(2N)
-    t = Taylor1(_order)
-    μ = 1e-7rand(N)
-    x = Taylor1.(x0, t.order)
-    dx = similar(x)
-    t_ = deepcopy(t)
-    x_ = Taylor1.(x0, t.order)
-    dx_ = similar(x_)
-
-    @show Threads.nthreads()
-
-    TaylorIntegration.jetcoeffs!(Val(harmosc1dchain!), t, x, dx, μ)
-    @time TaylorIntegration.jetcoeffs!(Val(harmosc1dchain!), t, x, dx, μ)
-
-    TaylorIntegration.jetcoeffs!(Val(harmosc1dchain_threads!), t_, x_, dx_, μ)
-    @time TaylorIntegration.jetcoeffs!(Val(harmosc1dchain_threads!), t_, x_, dx_, μ)
-
-    @test x == x_
-    @test dx == dx_
-
-    tv, xv = taylorinteg(harmosc1dchain!, x0, t0, 100.0, _order, _abstol, μ, maxsteps=5)
-    tv_, xv_ = taylorinteg(harmosc1dchain_threads!, x0, t0, 100.0, _order, _abstol, μ, maxsteps=5)
-
-    @test tv == tv_
-    @test xv == xv_
 end
