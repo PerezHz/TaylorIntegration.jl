@@ -2,7 +2,7 @@
 
 using TaylorIntegration
 using Test
-using LinearAlgebra: Transpose
+using LinearAlgebra: Transpose, norm
 
 @testset "Testing `many_ode.jl`" begin
 
@@ -113,28 +113,45 @@ using LinearAlgebra: Transpose
         abstol = 1e-20
         order = 25
         x0 = [t0, 0.0] #initial conditions such that x(t)=sin(t)
+
         tv, xv = taylorinteg(f!, x0, t0, tmax, order, abstol)
         @test length(tv) < 501
         @test length(xv[:,1]) < 501
         @test length(xv[:,2]) < 501
         @test xv[1,1:end] == x0
-        @test tv[1] == t0
-        @test xv[1,1] == x0[1]
-        @test xv[1,2] == x0[2]
+        @test tv[1] < tv[end]
         @test tv[end] == xv[end,1]
         @test abs(sin(tmax)-xv[end,2]) < 1e-14
 
+        # Backward integration
+        tb, xb = taylorinteg(f!, [tmax, sin(tmax)], tmax, t0, order, abstol)
+        @test length(tb) < 501
+        @test length(xb[:,1]) < 501
+        @test length(xb[:,2]) < 501
+        @test tb[1] > tb[end]
+        @test xb[1,1:end] == [tmax, sin(tmax)]
+        @test tb[end] == xb[end,1]
+        @test abs(sin(t0)-xb[end,2]) < 5e-14
+
+        # Tests with a range, for comparison with backward integration
         tmax = 15*(2pi)
-        tv, xv = taylorinteg(f!, x0, t0, tmax, order, abstol, nothing)
-        @test length(tv) < 501
-        @test length(xv[:,1]) < 501
-        @test length(xv[:,2]) < 501
+        Δt = (tmax-t0)/1024
+        tspan = t0:Δt:tmax
+        xv = taylorinteg(f!, x0, tspan, order, abstol, nothing)
         @test xv[1,1:end] == x0
-        @test tv[1] == t0
-        @test xv[1,1] == x0[1]
-        @test xv[1,2] == x0[2]
-        @test tv[end] == xv[end,1]
+        @test tmax == xv[end,1]
         @test abs(sin(tmax)-xv[end,2]) < 1e-14
+
+        # Backward integration
+        xback = taylorinteg(f!, xv[end, :], reverse(tspan), order, abstol, nothing)
+        @test xback[1,:] == xv[end, :]
+        @test abs(xback[end,1]-x0[1]) < 5.0e-14
+        @test abs(xback[end,2]-x0[2]) < 5.0e-14
+        @test abs(sin(t0)-xback[end,2]) < 5.0e-14
+        @test norm((xv[:,:]-xback[end:-1:1,:]), Inf) < 5.0e-14
+
+        # Tests if trange is properly sorted
+        @test_throws AssertionError taylorinteg(f!, x0, rand(t0:Δt:tmax, 100), order, abstol)
     end
 
     @testset "Falling ball (stepsize)" begin
