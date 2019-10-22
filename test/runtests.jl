@@ -9,7 +9,8 @@ testfiles = (
     "bigfloats.jl",
     "common.jl",
     "rootfinding.jl",
-    "taylorize.jl"
+    "taylorize.jl",
+    "interpolation.jl"
     )
 
 for file in testfiles

@@ -32,6 +32,21 @@ function (tinterp::TaylorInterpolator{T,U,1})(t::T) where {T<:Real, U<:Number}
     end
 end
 
+function (tinterp::TaylorInterpolator{T,U,1})(t::Taylor1{T}) where {T<:Real, U<:Number}
+    t0 = t[0]
+    @assert tinterp.t[1] ≤ t0 ≤ tinterp.t[end] "Evaluation time outside range of interpolation"
+    ind = findlast(x->x≤t0, tinterp.t)
+    if ind == lastindex(tinterp.t)
+        δt = t-tinterp.t[ind-1]
+        return tinterp.x[ind-1](δt)
+    elseif tinterp.t[ind] == t0
+        return tinterp.x[ind]
+    else
+        δt = t-tinterp.t[ind]
+        return tinterp.x[ind](δt)
+    end
+end
+
 function (tinterp::TaylorInterpolator{T,U,2})(t::T) where {T<:Real, U<:Number}
     @assert tinterp.t[1] ≤ t ≤ tinterp.t[end] "Evaluation time outside range of interpolation"
     ind = findlast(x->x≤t, tinterp.t)
@@ -40,6 +55,21 @@ function (tinterp::TaylorInterpolator{T,U,2})(t::T) where {T<:Real, U<:Number}
         return tinterp.x[ind-1,:](δt)
     elseif tinterp.t[ind] == t
         return tinterp.x[ind,:]()
+    else
+        δt = t-tinterp.t[ind]
+        return tinterp.x[ind,:](δt)
+    end
+end
+
+function (tinterp::TaylorInterpolator{T,U,2})(t::Taylor1{T}) where {T<:Real, U<:Number}
+    t0 = t[0]
+    @assert tinterp.t[1] ≤ t0 ≤ tinterp.t[end] "Evaluation time outside range of interpolation"
+    ind = findlast(x->x≤t0, tinterp.t)
+    if ind == lastindex(tinterp.t)
+        δt = t-tinterp.t[ind-1]
+        return tinterp.x[ind-1,:](δt)
+    elseif tinterp.t[ind] == t0
+        return tinterp.x[ind,:]
     else
         δt = t-tinterp.t[ind]
         return tinterp.x[ind,:](δt)
