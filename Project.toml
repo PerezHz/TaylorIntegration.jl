@@ -1,7 +1,7 @@
 name = "TaylorIntegration"
 uuid = "92b13dbe-c966-51a2-8445-caca9f8a7d42"
 repo = "https://github.com/PerezHz/TaylorIntegration.jl.git"
-version = "0.6.1"
+version = "0.7.0"
 
 [deps]
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
