@@ -203,7 +203,7 @@ using Elliptic
         # Compare to exact solution
         exact_sol(t, p, x0) = x0*exp(p*t)
         nn = norm.(abs2.(xv1p)-abs2.(exact_sol.(tv1p, cc, cx0)), Inf)
-        @test maximum(nn) < 3.0e-15
+        @test maximum(nn) < 1.0e-14
     end
 
 
