@@ -214,8 +214,8 @@ to force *not* using (`parse_eqs=false`) the specialized method of `jetcoeffs!`
 created with [`@taylorize`](@ref); the default is `true` (parse the equations).
 
 """
-function taylorstep!(f, t::Taylor1{T}, x::Taylor1{U}, t0::T, order::Int,
-        abstol::T, params, parse_eqs::Bool=true) where {T<:Real, U<:Number}
+function taylorstep!(f, t::Taylor1{T}, x::Taylor1{U}, abstol::T, params,
+        parse_eqs::Bool=true) where {T<:Real, U<:Number}
 
     # Compute the Taylor coefficients
     __jetcoeffs!(Val(parse_eqs), f, t, x, params)
@@ -229,8 +229,8 @@ function taylorstep!(f, t::Taylor1{T}, x::Taylor1{U}, t0::T, order::Int,
     return δt
 end
 
-function taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}}, dx::Vector{Taylor1{U}},
-        xaux::Vector{Taylor1{U}}, t0::T, order::Int, abstol::T, params,
+function taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
+        dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}}, abstol::T, params,
         parse_eqs::Bool=true) where {T<:Real, U<:Number}
 
     # Compute the Taylor coefficients
@@ -335,7 +335,7 @@ function taylorinteg(f, x0::U, t0::T, tmax::T, order::Int, abstol::T,
 
     # Integration
     while sign_tstep*t0 < sign_tstep*tmax
-        δt = taylorstep!(f, t, x, t0, order, abstol, params, parse_eqs) # δt is positive!
+        δt = taylorstep!(f, t, x, abstol, params, parse_eqs) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
         x0 = evaluate(x, δt) # new initial condition
@@ -396,7 +396,7 @@ function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T, order::Int, abstol::T,
     # Integration
     nsteps = 1
     while sign_tstep*t0 < sign_tstep*tmax
-        δt = taylorstep!(f!, t, x, dx, xaux, t0, order, abstol, params, parse_eqs) # δt is positive!
+        δt = taylorstep!(f!, t, x, dx, xaux, abstol, params, parse_eqs) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
         evaluate!(x, δt, x0) # new initial condition
@@ -479,7 +479,7 @@ function taylorinteg(f, x0::U, trange::AbstractVector{T},
     iter = 2
     nsteps = 1
     while sign_tstep*t0 < sign_tstep*tmax
-        δt = taylorstep!(f, t, x, t0, order, abstol, params, parse_eqs)# δt is positive!
+        δt = taylorstep!(f, t, x, abstol, params, parse_eqs)# δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
         x0 = evaluate(x, δt) # new initial condition
@@ -560,7 +560,7 @@ function taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
     iter = 2
     nsteps = 1
     while sign_tstep*t0 < sign_tstep*tmax
-        δt = taylorstep!(f!, t, x, dx, xaux, t0, order, abstol, params, parse_eqs) # δt is positive!
+        δt = taylorstep!(f!, t, x, dx, xaux, abstol, params, parse_eqs) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
         evaluate!(x, δt, x0) # new initial condition
