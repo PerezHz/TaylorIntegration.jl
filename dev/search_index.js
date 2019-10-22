@@ -561,7 +561,7 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
-    "location": "api/#TaylorIntegration.taylorstep!-Union{Tuple{U}, Tuple{T}, Tuple{Any,Taylor1{T},Taylor1{U},T,Int64,T,Any}, Tuple{Any,Taylor1{T},Taylor1{U},T,Int64,T,Any,Bool}} where U<:Number where T<:Real",
+    "location": "api/#TaylorIntegration.taylorstep!-Union{Tuple{U}, Tuple{T}, Tuple{Any,Taylor1{T},Taylor1{U},T,Any}, Tuple{Any,Taylor1{T},Taylor1{U},T,Any,Bool}} where U<:Number where T<:Real",
     "page": "API",
     "title": "TaylorIntegration.taylorstep!",
     "category": "method",
