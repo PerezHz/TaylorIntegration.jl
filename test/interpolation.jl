@@ -36,8 +36,8 @@ using LinearAlgebra: norm, transpose
         sol_interp_exact = @__dot__ tinterp(tv3) - exactsol(tv3, x0)
         @test norm(sol_interp_exact, Inf) < 1e-13
         # Test interpolation evaluated at Taylor1 variables
-        @test tinterp(t0+Taylor1(3)) == tinterp.x[1]
-        dif2 = tinterp(t0+Taylor1(3))(0.1) - tinterp(t0+0.1)
+        @test tinterp(t0+Taylor1(_order)) == tinterp.x[1]
+        dif2 = tinterp(t0+Taylor1(_order))(0.1) - tinterp(t0+0.1)
         @test norm(  dif2, Inf  ) < 1e-14
         # Interpolation polynomial evaluated at Taylor1 should be approximately equal to full Taylor jet expansion
         δt = 1e-8
@@ -47,9 +47,13 @@ using LinearAlgebra: norm, transpose
         TaylorIntegration.jetcoeffs!(eqs_mov, tT, x0T, nothing)
         difT1 = tinterp(t0+δt+Taylor1(_order)) - x0T
         abs_dif = abs.(difT1.coeffs[1:end-2])
-        # `bound_dif` is a bound which worsens as order grows
+        # `bound_dif` is an element-wise bound such that tolerance is higher for higher order
         bound_dif = eps.(x0T.coeffs[1:end-2]).^[1/k for k in eachindex(x0T.coeffs[1:end-2])]
         @test all( abs_dif .≤ bound_dif )
+        # test evaluation of Taylor interpolant with TaylorN
+        dq = set_variables("dq", order=4, numvars=7)
+        @test tinterp(t0+dq[end]*dq[1]-dq[2]) == tinterp.x[1](dq[end]*dq[1]-dq[2])
+        @test tinterp(tinterp.t[2]+dq[end]*dq[1]-dq[2]) == tinterp.x[2](dq[end]*dq[1]-dq[2])
     end
 
     @testset "Taylor interpolation: vectorial case" begin
@@ -89,5 +93,8 @@ using LinearAlgebra: norm, transpose
         @test dif2 == zero.(dif2)
         @test dif3 == zero.(dif3)
         @test dif4 == zero.(dif4)
+        # test evaluation of Taylor interpolant with TaylorN
+        dq = set_variables("dq", order=4, numvars=7)
+        @test tinterp(δt/2+dq[end]*dq[1]-dq[2]) == tinterp.x[1,:](δt/2+dq[end]*dq[1]-dq[2])
     end
 end
