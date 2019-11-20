@@ -346,7 +346,7 @@ function taylorinteg(f, x0::U, t0::T, tmax::T, order::Int, abstol::T,
         @inbounds tv[nsteps] = t0
         @inbounds xv[nsteps] = x0
         if nsteps > maxsteps
-            @info("""
+            @warn("""
             Maximum number of integration steps reached; exiting.
             """)
             break
@@ -410,7 +410,7 @@ function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T, order::Int, abstol::T,
         @inbounds tv[nsteps] = t0
         @inbounds xv[:,nsteps] .= x0
         if nsteps > maxsteps
-            @info("""
+            @warn("""
             Maximum number of integration steps reached; exiting.
             """)
             break
@@ -500,7 +500,7 @@ function taylorinteg(f, x0::U, trange::AbstractVector{T},
         @inbounds t[0] = t0
         nsteps += 1
         if nsteps > maxsteps
-            @info("""
+            @warn("""
             Maximum number of integration steps reached; exiting.
             """)
             break
@@ -584,7 +584,7 @@ function taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
         @inbounds t[0] = t0
         nsteps += 1
         if nsteps > maxsteps
-            @info("""
+            @warn("""
             Maximum number of integration steps reached; exiting.
             """)
             break

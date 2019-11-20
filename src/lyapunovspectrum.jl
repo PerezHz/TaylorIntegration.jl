@@ -293,7 +293,7 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
         end
         x .= Taylor1.( x0, order )
         if nsteps > maxsteps
-            @info("""
+            @warn("""
             Maximum number of integration steps reached; exiting.
             """)
             break
@@ -420,7 +420,7 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
         end
         x .= Taylor1.( x0, order )
         if nsteps > maxsteps
-            @info("""
+            @warn("""
             Maximum number of integration steps reached; exiting.
             """)
             break
