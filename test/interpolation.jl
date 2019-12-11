@@ -54,6 +54,19 @@ using LinearAlgebra: norm, transpose
         dq = set_variables("dq", order=4, numvars=7)
         @test tinterp(t0+dq[end]*dq[1]-dq[2]) == tinterp.x[1](dq[end]*dq[1]-dq[2])
         @test tinterp(tinterp.t[2]+dq[end]*dq[1]-dq[2]) == tinterp.x[2](dq[end]*dq[1]-dq[2])
+        # backward integration
+        g(x, p, t) = cos(t)
+        t0 = 0//1
+        tmax = 10.25*(2pi)
+        x0 = 0.0 #initial conditions such that x(t)=sin(t)
+        xi = taylorinteg(g, x0, t0, tmax, _order, _abstol, dense=true)
+        @test xi(t0) == x0
+        t_rand = t0 .+ (tmax-t0)*rand(10)
+        @test norm(xi.(t_rand) - sin.(t_rand), Inf) < 1e-13
+        xib = taylorinteg(g, sin(tmax), tmax, t0, _order, _abstol, dense=true)
+        @test xib(tmax) == sin(tmax)
+        t_rand = tmax .+ (t0-tmax)*rand(10)
+        @test norm(xib.(t_rand) - sin.(t_rand), Inf) < 1e-13
     end
 
     @testset "Taylor interpolation: vectorial case" begin
@@ -96,5 +109,14 @@ using LinearAlgebra: norm, transpose
         # test evaluation of Taylor interpolant with TaylorN
         dq = set_variables("dq", order=4, numvars=7)
         @test tinterp(δt/2+dq[end]*dq[1]-dq[2]) == tinterp.x[1,:](δt/2+dq[end]*dq[1]-dq[2])
+        # backward integration
+        xi = taylorinteg(f!, x0, t0r, tmax, _order, _abstol, dense=true)
+        @test xi(t0r) == x0
+        t_rand = t0r .+ (tmax-t0r)*rand(10)
+        @test norm(map(x->x[2], xi.(t_rand)) - sin.(t_rand), Inf) < 1e-13
+        xib = taylorinteg(f!, [tmax, sin(tmax)], tmax, t0r, _order, _abstol, dense=true)
+        @test xib(tmax) == [tmax, sin(tmax)]
+        t_rand = tmax .+ (t0r-tmax)*rand(10)
+        @test norm(map(x->x[2], xib.(t_rand)) - sin.(t_rand), Inf) < 1e-13
     end
 end
