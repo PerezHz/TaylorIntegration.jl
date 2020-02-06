@@ -15,7 +15,7 @@ using LinearAlgebra: norm
         nothing
     end
 
-    g(dx, x, p, t) = x[2]
+    g(dx, x, p, t) = (true, x[2])
 
     t0 = 0.0
     x0 = [1.3, 0.0]
