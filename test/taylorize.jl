@@ -9,7 +9,7 @@ using Elliptic
 
     # Constants for the integrations
     local _order = 20
-    local _abstol = 1.0E-20
+    local _abstol = 1.0e-20
     local t0 = 0.0
     local tf = 1000.0
 
@@ -782,13 +782,13 @@ using Elliptic
         #jet transport integration with non-parsed jetcoeffs!
         xvTN = taylorinteg(pendulum!, q0TN, tr, _order, _abstol, maxsteps=100, parse_eqs=false)
         @test xvTN == xvTNp
-        @test norm(xvTNp[:,:]() - xvp, Inf) < 1E-15
+        @test norm(xvTNp[:,:]() - xvp, Inf) < 1e-15
 
         dq = 0.0001rand(2)
         q1 = q0 + dq
         yv = taylorinteg(pendulum!, q1, tr, _order, _abstol, maxsteps=100)
         yv_jt = xvTNp[:,:](dq)
-        @test norm(yv-yv_jt, Inf) < 1E-11
+        @test norm(yv-yv_jt, Inf) < 1e-11
 
         dq = 0.001
         t = Taylor1([0.0, 1.0], 10)
@@ -801,5 +801,62 @@ using Elliptic
         @test xvT1 == xvT1p
         xv_jt = xvT1p[:,:](dq)
         @test norm(xv_jt[end,:]-xv[end,:]) < 20eps(norm(xv[end,:]))
+    end
+
+
+    @testset "Poincare maps with the pendulum" begin
+        @taylorize function pendulum!(dx, x, p, t)
+            dx[1] = x[2]
+            dx[2] = -sin( x[1] )
+            nothing
+        end
+
+        # Function defining the crossing events: the
+        # surface of section is x[2]==0, x[1]>0
+        function g(dx, x, params, t)
+            if constant_term(x[1]) > 0
+                return (true, x[2])
+            else
+                return (false, x[2])
+            end
+        end
+
+        t0 = 0.0
+        x0 = [1.3, 0.0]
+        Tend = 7.019250311844546
+
+        p = set_variables("ξ", numvars=length(x0), order=2)
+        x0N = x0 + p
+        ξ = Taylor1(2)
+        x01 = x0 + [ξ, ξ]
+
+        #warm-up lap and preliminary tests
+        taylorinteg(pendulum!, g, x0, t0, Tend, _order, _abstol, maxsteps=1)
+        @test_throws AssertionError taylorinteg(pendulum!, g, x0, t0, Tend,
+            _order, _abstol, maxsteps=1, eventorder=_order+1)
+
+        #testing 0-th order root-finding
+        tv, xv, tvS, xvS, gvS = taylorinteg(pendulum!, g, x0, t0, 3Tend,
+            _order, _abstol, maxsteps=1000)
+        @test tv[1] == t0
+        @test xv[1,:] == x0
+        @test size(tvS) == (2,)
+        @test norm(tvS-[Tend, 2Tend], Inf) < 1e-13
+        @test norm(gvS, Inf) < eps()
+
+        #testing 0-th order root-finding with time ranges/vectors
+        tvr = [t0, Tend/2, Tend, 3Tend/2, 2Tend, 5Tend/2, 3Tend]
+        taylorinteg(pendulum!, g, x0, view(tvr, :), _order, _abstol, maxsteps=1)
+        @test_throws AssertionError taylorinteg(pendulum!, g, x0, view(tvr, :),
+            _order, _abstol, maxsteps=1, eventorder=_order+1)
+        xvr, tvSr, xvSr, gvSr = taylorinteg(pendulum!, g, x0, view(tvr, :),
+            _order, _abstol, maxsteps=1000)
+        @test xvr[1,:] == x0
+        @test size(tvSr) == (2,)
+        @test norm(tvSr-tvr[3:2:end-1], Inf) < 1e-13
+        @test norm(tvr[3:2:end-1]-tvSr, Inf) < 1e-14
+        @test norm(xvr[3:2:end-1,:]-xvSr, Inf) < 1e-14
+        @test norm(gvSr[:]) < eps()
+        @test norm(tvS-tvSr, Inf) < 5e-15
     end
 end
