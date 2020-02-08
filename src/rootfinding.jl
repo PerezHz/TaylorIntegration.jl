@@ -2,29 +2,29 @@
     surfacecrossing(g_old, g_now, eventorder::Int)
 
 Detect if the solution crossed a root of event function `g`. `g_old` represents
-the last-before-current value of event function `g`; `g_now` represents the
-current value of event function `g`; `eventorder` is the order of the derivative
+the last-before-current value of event function `g`, and `g_now` represents the
+current one; these are `Tuple{Bool,Taylor1{T}}`s. `eventorder` is the order of the derivative
 of the event function `g` whose root we are trying to find. Returns `true` if
-`g_old` and `g_now` have different signs (i.e., if one is positive and the other
-one is negative). Otherwise, if `g_old` and `g_now` have the same sign or if
-either one of them are a `nothing` value, then returns `false`.
+the constant terms of `g_old[2]` and `g_now[2]` have different signs (i.e.,
+if one is positive and the other
+one is negative). Otherwise, if `g_old[2]` and `g_now[2]` have the same sign or if
+the first component of either of them is `false`, then it returns `false`.
 """
-function surfacecrossing(g_old::Taylor1{T}, g_now::Taylor1{T},
+function surfacecrossing(g_old::Tuple{Bool,Taylor1{T}}, g_now::Tuple{Bool,Taylor1{T}},
         eventorder::Int) where {T <: Number}
-    g_product = constant_term(g_old[eventorder])*constant_term(g_now[eventorder])
+    (g_old[1] && g_now[1]) || return false
+    g_product = constant_term(g_old[2][eventorder])*constant_term(g_now[2][eventorder])
     return g_product < zero(g_product)
 end
 
-surfacecrossing(g_old::Taylor1{T}, g_now::Nothing, eventorder::Int) where {T <: Number} = false
-surfacecrossing(g_old::Nothing, g_now::Taylor1{T}, eventorder::Int) where {T <: Number} = false
-surfacecrossing(g_old::Nothing, g_now::Nothing, eventorder::Int) = false
 
 """
     nrconvergencecriterion(g_val, nrabstol::T, nriter::Int, newtoniter::Int) where {T<:Real}
 
 A rudimentary convergence criterion for the Newton-Raphson root-finding process.
 `g_val` may be either a `Real`, `Taylor1{T}` or a `TaylorN{T}`, where `T<:Real`.
-Returns `true` if: 1) the absolute value of `g_val`, the event function `g` evaluated at the
+Returns `true` if: 1) the absolute value of `g_val`, the value of the event function
+`g` evaluated at the
 current estimated root by the Newton-Raphson process, is less than the `nrabstol`
 tolerance; and 2) the number of iterations `nriter` of the Newton-Raphson process
 is less than the maximum allowed number of iterations, `newtoniter`; otherwise,
@@ -34,7 +34,7 @@ nrconvergencecriterion(g_val::U, nrabstol::T, nriter::Int,
         newtoniter::Int) where {U<:Number, T<:Real} = abs(constant_term(g_val)) > nrabstol && nriter ≤ newtoniter
 
 """
-    findroot!(t, x, dx, g_val_old, g_val, eventorder, tvS, xvS, gvS,
+    findroot!(t, x, dx, g_tupl_old, g_tupl, eventorder, tvS, xvS, gvS,
         t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val, nrabstol,
         newtoniter, nevents) -> nevents
 
@@ -44,8 +44,8 @@ a crossing, then the crossing data is stored in `tvS`, `xvS` and `gvS` and
 `t` is a `Taylor1` polynomial which represents the independent
 variable; `x` is an array of `Taylor1` variables which represent the vector of
 dependent variables; `dx` is an array of `Taylor1` variables which represent the
-LHS of the ODE; `g_val_old` is the last-before-current value of event function
-`g`; `g_val` is the current value of the event function `g`; `eventorder` is
+LHS of the ODE; `g_tupl_old` is the last-before-current value returned by event function
+`g` and `g_tupl` is the current one; `eventorder` is
 the order of the derivative of `g` whose roots the user is interested in finding;
 `tvS` stores the surface-crossing instants; `xvS` stores the value of the
 solution at each of the crossings; `gvS` stores the values of the event function
@@ -55,12 +55,14 @@ current time; `δt_old` is the last time-step size; `x_dx`, `x_dx_val`, `g_dg`,
 tolerance; `newtoniter` is the maximum allowed number of Newton-Raphson
 iteration; `nevents` is the current number of detected events/crossings.
 """
-function findroot!(t, x, dx, g_val_old, g_val, eventorder, tvS, xvS, gvS,
+function findroot!(t, x, dx, g_tupl_old, g_tupl, eventorder, tvS, xvS, gvS,
         t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val, nrabstol,
         newtoniter, nevents)
 
-    if surfacecrossing(g_val_old, g_val, eventorder)
+    if surfacecrossing(g_tupl_old, g_tupl, eventorder)
         #auxiliary variables
+        g_val = g_tupl[2]
+        g_val_old = g_tupl_old[2]
         nriter = 1
         dof = length(x)
 
@@ -104,13 +106,14 @@ end
 
 Root-finding method of `taylorinteg`.
 
-Given a function `g(dx, x, params, t)`,
+Given a function `g(dx, x, params, t)::Tuple{Bool, Taylor1{T}}`,
 called the event function, `taylorinteg` checks for the occurrence of a root
-of `g` evaluated at the solution; that is, it checks for the occurrence of an
-event or condition specified by `g=0`. Then, `taylorinteg` attempts to find that
+or event defined by `cond2 == 0` (`cond2::Taylor1{T}`)
+if `cond1::Bool` is satisfied (`true`); `g` is thus assumed to return the
+tuple (cond1, cond2). Then, `taylorinteg` attempts to find that
 root (or event, or crossing) by performing a Newton-Raphson process. When
 called with the `eventorder=n` keyword argument, `taylorinteg` searches for the
-roots of the `n`-th derivative of `g`, which is computed via automatic
+roots of the `n`-th derivative of `cond2`, which is computed via automatic
 differentiation.
 
 The current keyword argument are:
@@ -128,13 +131,13 @@ The current keyword argument are:
 ```julia
 using TaylorIntegration
 
-function pendulum!(t, x, dx)
+function pendulum!(dx, x, params, t)
     dx[1] = x[2]
     dx[2] = -sin(x[1])
     nothing
 end
 
-g(dx, x, params, t) = x[2]
+g(dx, x, params, t) = (true, x[2])
 
 x0 = [1.3, 0.0]
 
@@ -191,9 +194,11 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
         end
     end
 
-    #Some auxiliary arrays for root-finding/event detection/Poincaré surface of section evaluation
-    g_val = zero(g(x, dx, params, t))
-    g_val_old = zero(g_val)
+    # Some auxiliary arrays for root-finding/event detection/Poincaré surface of section evaluation
+    g_tupl = g(dx, x, params, t)
+    g_tupl_old = g(dx, x, params, t)
+    # g_val = zero(gg_tupl[2])
+    # g_val_old = zero(g_val)
     slope = zero(x[1])
     dt_li = zero(x[1])
     dt_nr = zero(x[1])
@@ -201,9 +206,11 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
     δt_old = zero(x[1])
 
     x_dx = vcat(x, dx)
-    g_dg = vcat(g_val, g_val_old)
+    # g_dg = vcat(g_val, g_val_old)
+    g_dg = vcat(g_tupl[2], g_tupl_old[2])
     x_dx_val = Array{U}(undef, length(x_dx) )
-    g_dg_val = vcat(evaluate(g_val), evaluate(g_val_old))
+    # g_dg_val = vcat(evaluate(g_val), evaluate(g_val_old))
+    g_dg_val = vcat(evaluate(g_tupl[2]), evaluate(g_tupl_old[2]))
 
     tvS = Array{U}(undef, maxsteps+1)
     xvS = similar(xv)
@@ -219,11 +226,16 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
         evaluate!(x, δt, x0) # new initial condition
-        g_val = g(dx, x, params, t)
-        nevents = findroot!(t, x, dx, g_val_old, g_val, eventorder,
+        # g_val = g(dx, x, params, t)
+        # nevents = findroot!(t, x, dx, g_val_old, g_val, eventorder,
+        #     tvS, xvS, gvS, t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val,
+        #     nrabstol, newtoniter, nevents)
+        # g_val_old = deepcopy(g_val)
+        g_tupl = g(dx, x, params, t)
+        nevents = findroot!(t, x, dx, g_tupl_old, g_tupl, eventorder,
             tvS, xvS, gvS, t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val,
             nrabstol, newtoniter, nevents)
-        g_val_old = deepcopy(g_val)
+        g_tupl_old = deepcopy(g_tupl)
         for i in eachindex(x0)
             @inbounds x[i][0] = x0[i]
         end
@@ -292,9 +304,11 @@ function taylorinteg(f!, g, q0::Array{U,1}, trange::AbstractVector{T},
         end
     end
 
-    #Some auxiliary arrays for root-finding/event detection/Poincaré surface of section evaluation
-    g_val = zero(g(x, x, params, t))
-    g_val_old = zero(g_val)
+    # Some auxiliary arrays for root-finding/event detection/Poincaré surface of section evaluation
+    g_tupl = g(dx, x, params, t)
+    g_tupl_old = g(dx, x, params, t)
+    # g_val = zero(gg_tupl[2])
+    # g_val_old = zero(g_val)
     slope = zero(U)
     dt_li = zero(U)
     dt_nr = zero(U)
@@ -302,9 +316,11 @@ function taylorinteg(f!, g, q0::Array{U,1}, trange::AbstractVector{T},
     δt_old = zero(U)
 
     x_dx = vcat(x, dx)
-    g_dg = vcat(g_val, g_val_old)
+    # g_dg = vcat(g_val, g_val_old)
+    g_dg = vcat(g_tupl[2], g_tupl_old[2])
     x_dx_val = Array{U}(undef, length(x_dx) )
-    g_dg_val = vcat(evaluate(g_val), evaluate(g_val_old))
+    # g_dg_val = vcat(evaluate(g_val), evaluate(g_val_old))
+    g_dg_val = vcat(evaluate(g_tupl[2]), evaluate(g_tupl_old[2]))
 
     tvS = Array{U}(undef, maxsteps+1)
     xvS = similar(xv)
@@ -332,11 +348,16 @@ function taylorinteg(f!, g, q0::Array{U,1}, trange::AbstractVector{T},
             @inbounds xv[:,iter] .= x0
             break
         end
-        g_val = g(dx, x, params, t)
-        nevents = findroot!(t, x, dx, g_val_old, g_val, eventorder,
+        # g_val = g(dx, x, params, t)
+        # nevents = findroot!(t, x, dx, g_val_old, g_val, eventorder,
+        #     tvS, xvS, gvS, t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val,
+        #     nrabstol, newtoniter, nevents)
+        # g_val_old = deepcopy(g_val)
+        g_tupl = g(dx, x, params, t)
+        nevents = findroot!(t, x, dx, g_tupl_old, g_tupl, eventorder,
             tvS, xvS, gvS, t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val,
             nrabstol, newtoniter, nevents)
-        g_val_old = deepcopy(g_val)
+        g_tupl_old = deepcopy(g_tupl)
         for i in eachindex(x0)
             @inbounds x[i][0] = x0[i]
         end
