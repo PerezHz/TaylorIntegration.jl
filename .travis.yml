@@ -17,18 +17,14 @@ notifications:
 git:
   depth: 99999999
 
-## uncomment the following lines to allow failures on nightly julia
-## (tests will run but not make your overall status red)
-matrix:
-  allow_failures:
-  - julia: nightly
-
 ## Debug documentation in travis
 env:
   global:
     - DOCUMENTER_DEBUG=true
 
 jobs:
+  allow_failures:
+  - julia: nightly
   include:
     - stage: "Documentation"
       julia: 1.0
