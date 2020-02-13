@@ -415,7 +415,7 @@ function _newfnbody(fnbody, fnargs, d_indx)
                     #     !in(vars_nex[1], v_newindx) &&
                     (isindx_lhs || vars_nex[1] != ex_lhs) && push!(v_newindx, vars_nex[1])
                 end
-            elseif (ex_head == :local) || (ex_head == :continue)
+            elseif (ex_head == :local) || (ex_head == :continue) || (ex_head == :break)
                 # If declared as `local` or `continue`, copy `ex` as it is.
                 # In some cases this, using `local` helps performance. Very
                 # useful for including (numeric) constants
