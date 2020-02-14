@@ -129,7 +129,7 @@ using Elliptic
 
     # Pendulum integrtf = 100.0
     @testset "Integration of the pendulum and DiffEqs interface" begin
-        @taylorize function pendulum!(dx, x, p, t)
+        @taylorize function pendulum!(dx::Array{T,1}, x::Array{T,1}, p, t) where {T}
             dx[1] = x[2]
             dx[2] = -sin( x[1] )
             nothing
@@ -858,5 +858,62 @@ using Elliptic
         @test norm(xvr[3:2:end-1,:]-xvSr, Inf) < 1e-14
         @test norm(gvSr[:]) < eps()
         @test norm(tvS-tvSr, Inf) < 5e-15
+    end
+
+    @testset "Tests parsing specific aspects of the expression" begin
+        ex = :(
+            function f!(dq::Array{T,1}, q::Array{T,1}, p, t) where {T}
+                aa = my_simple_function(q, p, t)
+                for i in 1:length(q)
+                    if i == 1
+                        dq[i] = 2q[i]
+                    elseif i == 2
+                        dq[i] = q[i]
+                    elseif i == 3
+                        dq[i] = aa
+                        continue
+                    else
+                        dq[i] = my_complicate_function(q)
+                        break
+                    end
+                end
+                nothing
+            end
+        )
+        newex = TaylorIntegration._make_parsed_jetcoeffs(ex)
+
+        # Ignore declarations in the function
+        @test newex.args[1] == :(
+            TaylorIntegration.jetcoeffs!(::Val{f!}, t::Taylor1{_T},
+                q::AbstractVector{Taylor1{_S}},
+                dq::AbstractVector{Taylor1{_S}}, p) where
+                    {_T <: Real, _S <: Number})
+
+        # Include not recognized functions as they appear
+        @test newex.args[2].args[2] == :(aa = my_simple_function(q, p, t))
+        @test newex.args[2].args[5].args[2].args[2] ==
+            :(aa = my_simple_function(q, p, t))
+
+        # Issue 96: deal with `elseif`s, `continue` and `break`
+        @test newex.args[2].args[5].args[2].args[3] ==
+            :(for i = 1:length(q)
+                  if i == 1
+                      TaylorSeries.mul!(dq[i], 2, q[i], ord)
+                  else
+                      if i == 2
+                          TaylorSeries.identity!(dq[i], q[i], ord)
+                      else
+                          if i == 3
+                              TaylorSeries.identity!(dq[i], aa, ord)
+                              continue
+                          else
+                              dq[i] = my_complicate_function(q)
+                              break
+                          end
+                      end
+                  end
+              end
+              )
+
     end
 end
