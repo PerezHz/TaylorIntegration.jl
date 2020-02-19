@@ -90,7 +90,7 @@ using Elliptic
 
     @testset "Scalar case: xdot(x, p, t) = -10" begin
         xdot1(x, p, t) = -10 + zero(t) # `zero(t)` is needed; cf #20
-        @taylorize xdot1_parsed(x, p, t) = -10 + zero(t) # `zero(t)` can be avoided here
+        @taylorize xdot1_parsed(x, p, t) = -10# `zero(t)` can be avoided here
 
         @test (@isdefined xdot1_parsed)
         tv1, xv1   = taylorinteg( xdot1, 10, 1, 20.0, _order, _abstol)
