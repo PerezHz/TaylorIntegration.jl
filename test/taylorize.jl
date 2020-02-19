@@ -17,7 +17,7 @@ using Elliptic
     @testset "Scalar case: xdot(x, p, t) = b-x^2" begin
         b1 = 3.0
         @taylorize xdot1(x, p, t) = b1-x^2
-        @test length(methods(TaylorIntegration.jetcoeffs!)) == 3
+        # @test length(methods(TaylorIntegration.jetcoeffs!)) == 3
         @test (@isdefined xdot1)
 
         x0 = 1.0
@@ -31,7 +31,7 @@ using Elliptic
 
         # Now using `local` constants
         @taylorize xdot2(x, p, t) = (local b2 = 3; b2-x^2)
-        @test length(methods(TaylorIntegration.jetcoeffs!)) == 4
+        # @test length(methods(TaylorIntegration.jetcoeffs!)) == 4
         @test (@isdefined xdot2)
 
         tv2, xv2 = taylorinteg( xdot2, x0, t0, tf, _order, _abstol, maxsteps=1000,
@@ -44,7 +44,7 @@ using Elliptic
 
         # Passing a parameter
         @taylorize xdot3(x, p, t) = p-x^2
-        @test length(methods(TaylorIntegration.jetcoeffs!)) == 5
+        # @test length(methods(TaylorIntegration.jetcoeffs!)) == 5
         @test (@isdefined xdot3)
 
         tv3, xv3 = taylorinteg( xdot3, x0, t0, tf, _order, _abstol, b1, maxsteps=1000,
@@ -71,12 +71,26 @@ using Elliptic
         exact_sol(t, b, x0) = sqrt(b)*((sqrt(b)+x0)-(sqrt(b)-x0)*exp(-2sqrt(b)*t)) /
             ((sqrt(b)+x0)+(sqrt(b)-x0)*exp(-2sqrt(b)*t))
         @test norm(xv1p[end] - exact_sol(tv1p[end], b1, x0), Inf) < 1.0e-15
+
+        # Check that the parsed `jetcoeffs` produces the correct series in `x`
+        tT = t0 + Taylor1(_order)
+        xT = x0 + zero(tT)
+        TaylorIntegration.__jetcoeffs!(Val(true), xdot1, tT, xT, nothing)
+        @test xT ≈ exact_sol(tT, b1, x0)
+
+        xT = x0 + zero(tT)
+        TaylorIntegration.__jetcoeffs!(Val(true), xdot2, tT, xT, nothing)
+        @test xT ≈ exact_sol(tT, 3.0, x0)
+
+        xT = x0 + zero(tT)
+        TaylorIntegration.__jetcoeffs!(Val(true), xdot2, tT, xT, b1)
+        @test xT ≈ exact_sol(tT, b1, x0)
     end
 
 
     @testset "Scalar case: xdot(x, p, t) = -10" begin
         xdot1(x, p, t) = -10 + zero(t) # `zero(t)` is needed; cf #20
-        @taylorize xdot1_parsed(x, p, t) = -10 + zero(t) # `zero(t)` can be avoided here
+        @taylorize xdot1_parsed(x, p, t) = -10# `zero(t)` can be avoided here
 
         @test (@isdefined xdot1_parsed)
         tv1, xv1   = taylorinteg( xdot1, 10, 1, 20.0, _order, _abstol)
@@ -129,7 +143,7 @@ using Elliptic
 
     # Pendulum integrtf = 100.0
     @testset "Integration of the pendulum and DiffEqs interface" begin
-        @taylorize function pendulum!(dx, x, p, t)
+        @taylorize function pendulum!(dx::Array{T,1}, x::Array{T,1}, p, t) where {T}
             dx[1] = x[2]
             dx[2] = -sin( x[1] )
             nothing
@@ -858,5 +872,62 @@ using Elliptic
         @test norm(xvr[3:2:end-1,:]-xvSr, Inf) < 1e-14
         @test norm(gvSr[:]) < eps()
         @test norm(tvS-tvSr, Inf) < 5e-15
+    end
+
+    @testset "Tests parsing specific aspects of the expression" begin
+        ex = :(
+            function f!(dq::Array{T,1}, q::Array{T,1}, p, t) where {T}
+                aa = my_simple_function(q, p, t)
+                for i in 1:length(q)
+                    if i == 1
+                        dq[i] = 2q[i]
+                    elseif i == 2
+                        dq[i] = q[i]
+                    elseif i == 3
+                        dq[i] = aa
+                        continue
+                    else
+                        dq[i] = my_complicate_function(q)
+                        break
+                    end
+                end
+                nothing
+            end
+        )
+        newex = TaylorIntegration._make_parsed_jetcoeffs(ex)
+
+        # Ignore declarations in the function
+        @test newex.args[1] == :(
+            TaylorIntegration.jetcoeffs!(::Val{f!}, t::Taylor1{_T},
+                q::AbstractVector{Taylor1{_S}},
+                dq::AbstractVector{Taylor1{_S}}, p) where
+                    {_T <: Real, _S <: Number})
+
+        # Include not recognized functions as they appear
+        @test newex.args[2].args[2] == :(aa = my_simple_function(q, p, t))
+        @test newex.args[2].args[5].args[2].args[2] ==
+            :(aa = my_simple_function(q, p, t))
+
+        # Issue 96: deal with `elseif`s, `continue` and `break`
+        @test newex.args[2].args[5].args[2].args[3] ==
+            :(for i = 1:length(q)
+                  if i == 1
+                      TaylorSeries.mul!(dq[i], 2, q[i], ord)
+                  else
+                      if i == 2
+                          TaylorSeries.identity!(dq[i], q[i], ord)
+                      else
+                          if i == 3
+                              TaylorSeries.identity!(dq[i], aa, ord)
+                              continue
+                          else
+                              dq[i] = my_complicate_function(q)
+                              break
+                          end
+                      end
+                  end
+              end
+              )
+
     end
 end

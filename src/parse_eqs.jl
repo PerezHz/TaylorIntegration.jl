@@ -262,7 +262,7 @@ function _preamble_body(fnbody, fnargs, debug=false)
     debug && (println("------ _parse_newfnbody! ------");
         @show(newfnbody); println(); @show(preamble); println();
         @show(v_vars); println(); @show(d_indx); println();
-        @show(v_newindx); println())
+        @show(v_assign); println(); @show(v_newindx); println())
 
     # Include the assignement of indexed auxiliary variables
     defspreamble = _defs_preamble!(preamble, fnargs,
@@ -340,9 +340,17 @@ function _newfnbody(fnbody, fnargs, d_indx)
                 append!(v_newindx, tmp_newindx)
                 append!(v_arraydecl, tmp_arraydecl)
             elseif ex_head == :if
+                # The first argument of an `if` expression is the condition, the
+                # second one is the block the condition is true, and the third
+                # is the `else`-block or an `ifelse`-block.
                 push!(newfnbody.args, Expr(:if, ex.args[1]))
                 for exx in ex.args[2:end]
-                    ifbody, tmp_newindx, tmp_arraydecl = _newfnbody( exx, fnargs, d_indx)
+                    if exx.head == :elseif
+                        exxx = Expr(:block, Expr(:if, exx.args[1].args[2], exx.args[2:end]...))
+                    else #if exx.head == :block  # `then` or `else` blocks
+                        exxx = exx
+                    end
+                    ifbody, tmp_newindx, tmp_arraydecl = _newfnbody(exxx, fnargs, d_indx)
                     push!(newfnbody.args[end].args, ifbody)
                     append!(v_newindx, tmp_newindx)
                     append!(v_arraydecl, tmp_arraydecl)
@@ -407,9 +415,10 @@ function _newfnbody(fnbody, fnargs, d_indx)
                     #     !in(vars_nex[1], v_newindx) &&
                     (isindx_lhs || vars_nex[1] != ex_lhs) && push!(v_newindx, vars_nex[1])
                 end
-            elseif ex_head == :local
-                # If declared as `local`, copy `ex` as it is. In some cases this
-                # helps performance. Very useful for including (numeric) constants
+            elseif (ex_head == :local) || (ex_head == :continue) || (ex_head == :break)
+                # If declared as `local` or `continue`, copy `ex` as it is.
+                # In some cases this, using `local` helps performance. Very
+                # useful for including (numeric) constants
                 push!(newfnbody.args, ex)
                 #
             else
@@ -783,8 +792,8 @@ function _recursionloop(fnargs, retvar)
     ll = length(fnargs)
     if ll == 3
 
-        rec_preamb = sanitize( :( $(fnargs[2])[1] = $(retvar)[0] ) )
-        rec_fnbody = sanitize( :( $(fnargs[2])[ordnext] = $(retvar)[ord]/ordnext ) )
+        rec_preamb = sanitize( :( $(fnargs[1])[1] = $(retvar)[0] ) )
+        rec_fnbody = sanitize( :( $(fnargs[1])[ordnext] = $(retvar)[ord]/ordnext ) )
         #
     elseif ll == 4
 
