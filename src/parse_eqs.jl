@@ -262,7 +262,7 @@ function _preamble_body(fnbody, fnargs, debug=false)
     debug && (println("------ _parse_newfnbody! ------");
         @show(newfnbody); println(); @show(preamble); println();
         @show(v_vars); println(); @show(d_indx); println();
-        @show(v_newindx); println())
+        @show(v_assign); println(); @show(v_newindx); println())
 
     # Include the assignement of indexed auxiliary variables
     defspreamble = _defs_preamble!(preamble, fnargs,
@@ -792,8 +792,8 @@ function _recursionloop(fnargs, retvar)
     ll = length(fnargs)
     if ll == 3
 
-        rec_preamb = sanitize( :( $(fnargs[2])[1] = $(retvar)[0] ) )
-        rec_fnbody = sanitize( :( $(fnargs[2])[ordnext] = $(retvar)[ord]/ordnext ) )
+        rec_preamb = sanitize( :( $(fnargs[1])[1] = $(retvar)[0] ) )
+        rec_fnbody = sanitize( :( $(fnargs[1])[ordnext] = $(retvar)[ord]/ordnext ) )
         #
     elseif ll == 4
 

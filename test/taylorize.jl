@@ -17,7 +17,7 @@ using Elliptic
     @testset "Scalar case: xdot(x, p, t) = b-x^2" begin
         b1 = 3.0
         @taylorize xdot1(x, p, t) = b1-x^2
-        @test length(methods(TaylorIntegration.jetcoeffs!)) == 3
+        # @test length(methods(TaylorIntegration.jetcoeffs!)) == 3
         @test (@isdefined xdot1)
 
         x0 = 1.0
@@ -31,7 +31,7 @@ using Elliptic
 
         # Now using `local` constants
         @taylorize xdot2(x, p, t) = (local b2 = 3; b2-x^2)
-        @test length(methods(TaylorIntegration.jetcoeffs!)) == 4
+        # @test length(methods(TaylorIntegration.jetcoeffs!)) == 4
         @test (@isdefined xdot2)
 
         tv2, xv2 = taylorinteg( xdot2, x0, t0, tf, _order, _abstol, maxsteps=1000,
@@ -44,7 +44,7 @@ using Elliptic
 
         # Passing a parameter
         @taylorize xdot3(x, p, t) = p-x^2
-        @test length(methods(TaylorIntegration.jetcoeffs!)) == 5
+        # @test length(methods(TaylorIntegration.jetcoeffs!)) == 5
         @test (@isdefined xdot3)
 
         tv3, xv3 = taylorinteg( xdot3, x0, t0, tf, _order, _abstol, b1, maxsteps=1000,
@@ -71,6 +71,20 @@ using Elliptic
         exact_sol(t, b, x0) = sqrt(b)*((sqrt(b)+x0)-(sqrt(b)-x0)*exp(-2sqrt(b)*t)) /
             ((sqrt(b)+x0)+(sqrt(b)-x0)*exp(-2sqrt(b)*t))
         @test norm(xv1p[end] - exact_sol(tv1p[end], b1, x0), Inf) < 1.0e-15
+
+        # Check that the parsed `jetcoeffs` produces the correct series in `x`
+        tT = t0 + Taylor1(_order)
+        xT = x0 + zero(tT)
+        TaylorIntegration.__jetcoeffs!(Val(true), xdot1, tT, xT, nothing)
+        @test xT ≈ exact_sol(tT, b1, x0)
+
+        xT = x0 + zero(tT)
+        TaylorIntegration.__jetcoeffs!(Val(true), xdot2, tT, xT, nothing)
+        @test xT ≈ exact_sol(tT, 3.0, x0)
+
+        xT = x0 + zero(tT)
+        TaylorIntegration.__jetcoeffs!(Val(true), xdot2, tT, xT, b1)
+        @test xT ≈ exact_sol(tT, b1, x0)
     end
 
 
