@@ -17,7 +17,6 @@ using Elliptic
     @testset "Scalar case: xdot(x, p, t) = b-x^2" begin
         b1 = 3.0
         @taylorize xdot1(x, p, t) = b1-x^2
-        # @test length(methods(TaylorIntegration.jetcoeffs!)) == 3
         @test (@isdefined xdot1)
 
         x0 = 1.0
@@ -31,7 +30,6 @@ using Elliptic
 
         # Now using `local` constants
         @taylorize xdot2(x, p, t) = (local b2 = 3; b2-x^2)
-        # @test length(methods(TaylorIntegration.jetcoeffs!)) == 4
         @test (@isdefined xdot2)
 
         tv2, xv2 = taylorinteg( xdot2, x0, t0, tf, _order, _abstol, maxsteps=1000,
@@ -44,7 +42,6 @@ using Elliptic
 
         # Passing a parameter
         @taylorize xdot3(x, p, t) = p-x^2
-        # @test length(methods(TaylorIntegration.jetcoeffs!)) == 5
         @test (@isdefined xdot3)
 
         tv3, xv3 = taylorinteg( xdot3, x0, t0, tf, _order, _abstol, b1, maxsteps=1000,
@@ -138,6 +135,20 @@ using Elliptic
         # Compare to exact solution
         exact_sol(t, g, x0) = x0 + g*(t-1.0)
         @test norm(xv1p[end] - exact_sol(20, -10, 10), Inf) < 10eps(exact_sol(20, -10, 10))
+
+        # Check that the parsed `jetcoeffs` produces the correct series in `x`
+        tT = 1.0 + Taylor1(_order)
+        xT = 10.0 + zero(tT)
+        TaylorIntegration.__jetcoeffs!(Val(true), xdot1_parsed, tT, xT, nothing)
+        @test xT ≈ exact_sol(tT, -10, 10)
+
+        xT = 10.0 + zero(tT)
+        TaylorIntegration.__jetcoeffs!(Val(true), xdot2, tT, xT, nothing)
+        @test xT ≈ exact_sol(tT, -10, 10)
+
+        xT = 10.0 + zero(tT)
+        TaylorIntegration.__jetcoeffs!(Val(true), xdot3, tT, xT, -10)
+        @test xT ≈ exact_sol(tT, -10, 10)
     end
 
 
@@ -166,6 +177,12 @@ using Elliptic
 
         @test sol1.t == sol2.t == sol3.t == tv2p
         @test sol1.u[end] == sol2.u[end] == sol3.u[end] == xv2p[end,1:2]
+
+        # Check that the parsed `jetcoeffs` produces the correct series in `x`;
+        # we check that it does not throws an error
+        tT = 0.0 + Taylor1(_order)
+        qT = q0 .+ zero(tT)
+        TaylorIntegration.__jetcoeffs!(Val(true), pendulum!, tT, qT, similar(qT), similar(qT), nothing)
     end
 
 
@@ -280,8 +297,9 @@ using Elliptic
     @testset "Simple harmonic oscillator" begin
         @taylorize function harm_osc!(dx, x, p, t)
             local ω = p[1]
+            local ω2 = ω^2
             dx[1] = x[2]
-            dx[2] = -ω^2 * x[1]
+            dx[2] = - (ω2 * x[1])
             return nothing
         end
 
@@ -300,6 +318,13 @@ using Elliptic
         # Comparing to exact solution
         @test norm(xv1p[end, 1] - cos(p[1]*tv1p[end]), Inf) < 1.0e-12
         @test norm(xv1p[end, 2] + p[1]*sin(p[1]*tv1p[end]), Inf) < 3.0e-12
+
+        # Check that the parsed `jetcoeffs` produces the correct series in `x`
+        tT = t0 + Taylor1(_order)
+        qT = q0 .+ zero(tT)
+        TaylorIntegration.__jetcoeffs!(Val(true), harm_osc!, tT, qT, similar(qT), similar(qT), [1.0])
+        @test qT[1] ≈ cos(tT)
+        @test qT[2] ≈ -sin(tT)
     end
 
 
@@ -366,6 +391,18 @@ using Elliptic
         @test iszero( norm(tv1-tv3, Inf) )
         @test iszero( norm(xv1-xv2, Inf) )
         @test iszero( norm(xv1-xv3, Inf) )
+
+        # Check that the parsed `jetcoeffs` produces the correct series in `x`;
+        # we check that it does not throws an error
+        tT = 0.0 + Taylor1(_order)
+        qT = q0 .+ zero(tT)
+        TaylorIntegration.__jetcoeffs!(Val(true), multpendula1!, tT, qT, similar(qT), similar(qT), (NN, nnrange))
+
+        qT = q0 .+ zero(tT)
+        TaylorIntegration.__jetcoeffs!(Val(true), multpendula2!, tT, qT, similar(qT), similar(qT), nothing)
+
+        qT = q0 .+ zero(tT)
+        TaylorIntegration.__jetcoeffs!(Val(true), multpendula3!, tT, qT, similar(qT), similar(qT), [NN, nnrange])
     end
 
 
@@ -375,7 +412,7 @@ using Elliptic
     local tf = 2π*100.0
     @testset "Kepler problem (using `^`)" begin
         @taylorize function kepler1!(dq, q, p, t)
-            μ = p
+            local μ = p
             r_p3d2 = (q[1]^2+q[2]^2)^1.5
 
             dq[1] = q[3]
@@ -476,6 +513,21 @@ using Elliptic
         # Comparing both integrations
         @test iszero( norm(tv1p-tv3p, Inf) )
         @test iszero( norm(xv1p-xv3p, Inf) )
+
+        # Check that the parsed `jetcoeffs` produces the correct series in `x`;
+        # we check that it does not throws an error
+        tT = 0.0 + Taylor1(_order)
+        qT = q0 .+ zero(tT)
+        TaylorIntegration.__jetcoeffs!(Val(true), kepler1!, tT, qT, similar(qT), similar(qT), -1.0)
+
+        qT = q0 .+ zero(tT)
+        TaylorIntegration.__jetcoeffs!(Val(true), kepler2!, tT, qT, similar(qT), similar(qT), pars)
+
+        qT = q0 .+ zero(tT)
+        TaylorIntegration.__jetcoeffs!(Val(true), kepler3!, tT, qT, similar(qT), similar(qT), nothing)
+
+        qT = q0 .+ zero(tT)
+        TaylorIntegration.__jetcoeffs!(Val(true), kepler4!, tT, qT, similar(qT), similar(qT), nothing)
     end
 
 
@@ -495,7 +547,7 @@ using Elliptic
 
         @taylorize function kepler2!(dq, q, p, t)
             local NN = 2
-            μ = p
+            local μ = p
             r2 = zero(q[1])
             for i = 1:NN
                 r2_aux = r2 + q[i]^2
@@ -533,7 +585,7 @@ using Elliptic
         @test iszero( norm(xv2p-xv2, Inf) )
 
         @taylorize function kepler3!(dq, q, p, t)
-            μ = p
+            local μ = p
             x, y, px, py = q
             r = sqrt(x^2+y^2)
             r_p3d2 = r^3
@@ -587,6 +639,21 @@ using Elliptic
         # Comparing both integrations
         @test iszero( norm(tv1p-tv3p, Inf) )
         @test iszero( norm(xv1p-xv3p, Inf) )
+
+        # Check that the parsed `jetcoeffs` produces the correct series in `x`;
+        # we check that it does not throws an error
+        tT = 0.0 + Taylor1(_order)
+        qT = q0 .+ zero(tT)
+        TaylorIntegration.__jetcoeffs!(Val(true), kepler1!, tT, qT, similar(qT), similar(qT), nothing)
+
+        qT = q0 .+ zero(tT)
+        TaylorIntegration.__jetcoeffs!(Val(true), kepler2!, tT, qT, similar(qT), similar(qT), -1.0)
+
+        qT = q0 .+ zero(tT)
+        TaylorIntegration.__jetcoeffs!(Val(true), kepler3!, tT, qT, similar(qT), similar(qT), -1.0)
+
+        qT = q0 .+ zero(tT)
+        TaylorIntegration.__jetcoeffs!(Val(true), kepler4!, tT, qT, similar(qT), similar(qT), nothing)
     end
 
 
@@ -598,7 +665,7 @@ using Elliptic
         #Lorenz system ODE:
         @taylorize function lorenz1!(dq, q, p, t)
             x, y, z = q
-            σ, ρ, β = p
+            local σ, ρ, β = p
             dq[1] = σ*(y-x)
             dq[2] = x*(ρ-z) - y
             dq[3] = x*y - β*z
@@ -729,6 +796,13 @@ using Elliptic
 
         @test lv6 == lv6p
         @test xv6 == xv6p
+
+        tT = 0.0 + Taylor1(_order)
+        qT = q0 .+ zero(tT)
+        TaylorIntegration.__jetcoeffs!(Val(true), lorenz1!, tT, qT, similar(qT), similar(qT), params)
+
+        qT = q0 .+ zero(tT)
+        TaylorIntegration.__jetcoeffs!(Val(true), lorenz2!, tT, qT, similar(qT), similar(qT), nothing)
     end
 
 
@@ -764,6 +838,34 @@ using Elliptic
             local cos(t)
         end)
         @test_throws BoundsError TaylorIntegration._make_parsed_jetcoeffs(ex)
+
+        # The macro works fine, but the `jetcoeffs!` method does not work
+        # (so the integration would silently run using `parse_eqs=false`)
+        @taylorize function harm_osc!(dx, x, p, t)
+            local ω = p[1]
+            # local ω2 = ω^2    # Needed this to avoid an error
+            dx[1] = x[2]
+            dx[2] = - (ω^2 * x[1])  # ω^2 -> ω2
+            return nothing
+        end
+        tT = t0 + Taylor1(_order)
+        qT = [1.0, 0.0] .+ zero(tT)
+        @test_throws MethodError TaylorIntegration.__jetcoeffs!(Val(true), harm_osc!, tT, qT, similar(qT), similar(qT), [2.0])
+
+        @taylorize function kepler1!(dq, q, p, t)
+            μ = p
+            r_p3d2 = (q[1]^2+q[2]^2)^1.5
+
+            dq[1] = q[3]
+            dq[2] = q[4]
+            dq[3] = μ * q[1]/r_p3d2
+            dq[4] = μ * q[2]/r_p3d2
+
+            return nothing
+        end
+        tT = t0 + Taylor1(_order)
+        qT = [0.2, 0.0, 0.0, 3.0] .+ zero(tT)
+        @test_throws MethodError TaylorIntegration.__jetcoeffs!(Val(true), kepler1!, tT, qT, similar(qT), similar(qT), -1.0)
     end
 
 
@@ -928,6 +1030,5 @@ using Elliptic
                   end
               end
               )
-
     end
 end
