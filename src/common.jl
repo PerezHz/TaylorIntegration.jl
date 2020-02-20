@@ -48,7 +48,7 @@ function DiffEqBase.solve(
     end
 
     sizeu = size(prob.u0)
-    f = prob.f
+    f = prob.f.f
 
     tspan = prob.tspan
 
