@@ -1190,9 +1190,10 @@ using Base.Threads
             local _eltype_q_ = eltype(q)
             local μ = params
             X = Array{_eltype_q_}(undef, N, N)
+            accX = Array{_eltype_q_}(undef, N) #acceleration
             for j in 1:N
+                accX[j] = zero(q[1])
                 dq[j] = q[N+j]
-                dq[N+j] = zero(q[1]) # initialize acceleration
             end
             #compute accelerations
             Threads.@threads for j in 1:N
@@ -1200,11 +1201,14 @@ using Base.Threads
                     if i == j
                     else
                         X[i,j] = q[i]-q[j]
-                        temp = dq[N+j] + (μ[i]*X[i,j])
-                        dq[N+j] = temp
+                        temp_001 = accX[j] + (μ[i]*X[i,j])
+                        accX[j] = temp_001
                     end #if i != j
                 end #for, i
             end #for, j
+            for i in 1:N
+                dq[N+i] = accX[i]
+            end
             nothing
         end
 
@@ -1229,8 +1233,8 @@ using Base.Threads
         @test x == x_
         @test dx == dx_
 
-        tv, xv = taylorinteg(harmosc1dchain!, x0, t0, 100.0, _order, _abstol, μ, maxsteps=5)
-        tv_, xv_ = taylorinteg(harmosc1dchain_threads!, x0, t0, 100.0, _order, _abstol, μ, maxsteps=5)
+        tv, xv = taylorinteg(harmosc1dchain!, x0, t0, 10000.0, _order, _abstol, μ)
+        tv_, xv_ = taylorinteg(harmosc1dchain_threads!, x0, t0, 10000.0, _order, _abstol, μ)
 
         @test tv == tv_
         @test xv == xv_
