@@ -185,14 +185,7 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
     sign_tstep = copysign(1, tmax-t0)
 
     # Determine if specialized jetcoeffs! method exists
-    parse_eqs = parse_eqs && (length(methods(jetcoeffs!)) > 2)
-    if parse_eqs
-        try
-            jetcoeffs!(Val(f!), t, x, dx, params)
-        catch
-            parse_eqs = false
-        end
-    end
+    parse_eqs = _determine_parsing!(parse_eqs, f!, t, x, dx, params)
 
     # Some auxiliary arrays for root-finding/event detection/Poincaré surface of section evaluation
     g_tupl = g(dx, x, params, t)
@@ -295,14 +288,7 @@ function taylorinteg(f!, g, q0::Array{U,1}, trange::AbstractVector{T},
     @inbounds xv[:,1] .= q0
 
     # Determine if specialized jetcoeffs! method exists
-    parse_eqs = parse_eqs && (length(methods(jetcoeffs!)) > 2)
-    if parse_eqs
-        try
-            jetcoeffs!(Val(f!), t, x, dx, params)
-        catch
-            parse_eqs = false
-        end
-    end
+    parse_eqs = _determine_parsing!(parse_eqs, f!, t, x, dx, params)
 
     # Some auxiliary arrays for root-finding/event detection/Poincaré surface of section evaluation
     g_tupl = g(dx, x, params, t)

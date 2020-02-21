@@ -259,14 +259,7 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
     vⱼ = similar(aⱼ)
 
     # Determine if specialized jetcoeffs! method exists
-    parse_eqs = parse_eqs && (length(methods(jetcoeffs!)) > 2)
-    if parse_eqs
-        try
-            jetcoeffs!(Val(f!), t, view(x, 1:dof), view(dx, 1:dof), params)
-        catch
-            parse_eqs = false
-        end
-    end
+    parse_eqs = _determine_parsing!(parse_eqs, f!, t, view(x, 1:dof), view(dx, 1:dof), params)
 
     # Integration
     nsteps = 1
@@ -359,14 +352,7 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
     vⱼ = similar(aⱼ)
 
     # Determine if specialized jetcoeffs! method exists
-    parse_eqs = parse_eqs && (length(methods(jetcoeffs!)) > 2)
-    if parse_eqs
-        try
-            jetcoeffs!(Val(f!), t, view(x, 1:dof), view(dx, 1:dof), params)
-        catch
-            parse_eqs = false
-        end
-    end
+    parse_eqs = _determine_parsing!(parse_eqs, f!, t, view(x, 1:dof), view(dx, 1:dof), params)
 
     # Integration
     iter = 2

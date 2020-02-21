@@ -3,6 +3,7 @@
 using TaylorIntegration, DiffEqBase
 using Test
 using LinearAlgebra: norm
+using InteractiveUtils: methodswith
 using Elliptic
 
 @testset "Testing `taylorize.jl`" begin
@@ -82,6 +83,21 @@ using Elliptic
         xT = x0 + zero(tT)
         TaylorIntegration.__jetcoeffs!(Val(true), xdot2, tT, xT, b1)
         @test xT ≈ exact_sol(tT, b1, x0)
+
+        # The macro returns a (parsed) jetcoeffs! function which yields an error and
+        # therefore it runs with the default jetcoeffs! methdo. A warining is issued.
+        @taylorize function xdot2_err(x, p, t)
+            b2 = 3
+            return b2-x^2
+        end
+
+        @test (@isdefined xdot2_err)
+        @test !isempty(methodswith(Val{xdot2_err}, TaylorIntegration.jetcoeffs!))
+        tv2e, xv2e = taylorinteg( xdot2_err, x0, t0, tf, _order, _abstol, maxsteps=1000)
+        @test length(tv2) == length(tv2e)
+        @test iszero( norm(tv2-tv2e, Inf) )
+        @test iszero( norm(xv2-xv2e, Inf) )
+        @test_throws UndefVarError TaylorIntegration.__jetcoeffs!(Val(true), xdot2_err, tT, qT, similar(qT), similar(qT), [1.0])
     end
 
 
@@ -245,7 +261,7 @@ using Elliptic
         end
         @taylorize function integ_cos2(x, p, t)
             local y = cos(t)  # allows to calculate directly `cos(t)` *once*
-            yy = y   # needed to avoid an error
+            yy = y            # needed to avoid an error
             return yy
         end
 
@@ -325,6 +341,23 @@ using Elliptic
         TaylorIntegration.__jetcoeffs!(Val(true), harm_osc!, tT, qT, similar(qT), similar(qT), [1.0])
         @test qT[1] ≈ cos(tT)
         @test qT[2] ≈ -sin(tT)
+
+        # The macro returns a (parsed) jetcoeffs! function which yields an error and
+        # therefore it runs with the default jetcoeffs! methdo. A warining is issued.
+        @taylorize function harm_osc_error!(dx, x, p, t)
+            local ω = p[1]
+            dx[1] = x[2]
+            dx[2] = - (ω^2 * x[1])
+            return nothing
+        end
+
+        @test !isempty(methodswith(Val{harm_osc_error!}, TaylorIntegration.jetcoeffs!))
+        tv2e, xv2e = taylorinteg(harm_osc_error!, q0, t0, tf, _order, _abstol,
+            p, maxsteps=1000, parse_eqs=true)
+        @test length(tv1) == length(tv1p)
+        @test iszero( norm(tv1-tv2e, Inf) )
+        @test iszero( norm(xv1-xv2e, Inf) )
+        @test_throws MethodError TaylorIntegration.__jetcoeffs!(Val(true), harm_osc_error!, tT, qT, similar(qT), similar(qT), [1.0])
     end
 
 

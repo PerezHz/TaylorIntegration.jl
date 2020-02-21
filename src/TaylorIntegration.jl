@@ -7,6 +7,7 @@ using Reexport
 using LinearAlgebra
 using Markdown
 using Requires
+using InteractiveUtils: methodswith
 
 
 export taylorinteg, lyap_taylorinteg, @taylorize
