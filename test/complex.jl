@@ -84,7 +84,7 @@ using Test
         ts = 0.0:pi:2pi
         zsol3 = taylorinteg(eqs3!, zz0, ts, _order, _abstol, maxsteps=1)
         @test size(zsol3) == (length(ts), length(zz0))
-        zsol3 = taylorinteg(eqs3!, zz0, tr, _order, _abstol, maxsteps=1, nothing)
+        zsol3 = taylorinteg(eqs3!, zz0, tr, _order, _abstol, nothing, maxsteps=1)
         @test size(zsol3) == (length(tr), length(zz0))
         ta = vec(tr)
         zsol3 = taylorinteg(eqs3!, zz0, ta, _order, _abstol, maxsteps=1)

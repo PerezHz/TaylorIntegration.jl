@@ -242,6 +242,47 @@ function taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
     return δt
 end
 
+
+
+"""
+    _determine_parsing!(parse_eqs::Bool, f, t, x, params)
+    _determine_parsing!(parse_eqs::Bool, f, t, x, dx, params)
+
+Check if the parsed method of `jetcoeffs!` exists and check it
+runs without error.
+"""
+function _determine_parsing!(parse_eqs::Bool, f, t, x, params)
+    parse_eqs = parse_eqs &&
+        !isempty(methodswith(Val{f}, TaylorIntegration.jetcoeffs!))
+    if parse_eqs
+        try
+            jetcoeffs!(Val(f), t, x, params)
+        catch
+            @warn("""Unable to use the parsed method of `jetcoeffs!`
+            despite of having `parse_eqs=true`, due to some internal error.
+            Using `parse_eqs = $false`""")
+            parse_eqs = false
+        end
+    end
+    return parse_eqs
+end
+function _determine_parsing!(parse_eqs::Bool, f, t, x, dx, params)
+    parse_eqs = parse_eqs &&
+        !isempty(methodswith(Val{f}, TaylorIntegration.jetcoeffs!))
+    if parse_eqs
+        try
+            jetcoeffs!(Val(f), t, x, dx, params)
+        catch
+            @warn("""Unable to use the parsed method of `jetcoeffs!`
+            despite of having `parse_eqs=true`, due to some internal error.
+            Using `parse_eqs = $false`""")
+            parse_eqs = false
+        end
+    end
+    return parse_eqs
+end
+
+
 # taylorinteg
 @doc doc"""
     taylorinteg(f, x0, t0, tmax, order, abstol, params[=nothing]; kwargs... )
@@ -324,14 +365,7 @@ function taylorinteg(f, x0::U, t0::T, tmax::T, order::Int, abstol::T,
     sign_tstep = copysign(1, tmax-t0)
 
     # Determine if specialized jetcoeffs! method exists
-    parse_eqs = parse_eqs && (length(methods(jetcoeffs!)) > 2)
-    if parse_eqs
-        try
-            jetcoeffs!(Val(f), t, x, params)
-        catch
-            parse_eqs = false
-        end
-    end
+    parse_eqs = _determine_parsing!(parse_eqs, f, t, x, params)
 
     # Integration
     while sign_tstep*t0 < sign_tstep*tmax
@@ -384,14 +418,7 @@ function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T, order::Int, abstol::T,
     sign_tstep = copysign(1, tmax-t0)
 
     # Determine if specialized jetcoeffs! method exists
-    parse_eqs = parse_eqs && (length(methods(jetcoeffs!)) > 2)
-    if parse_eqs
-        try
-            jetcoeffs!(Val(f!), t, x, dx, params)
-        catch
-            parse_eqs = false
-        end
-    end
+    parse_eqs = _determine_parsing!(parse_eqs, f!, t, x, dx, params)
 
     # Integration
     nsteps = 1
@@ -466,14 +493,7 @@ function taylorinteg(f, x0::U, trange::AbstractVector{T},
     @inbounds xv[1] = x0
 
     # Determine if specialized jetcoeffs! method exists
-    parse_eqs = parse_eqs && (length(methods(jetcoeffs!)) > 2)
-    if parse_eqs
-        try
-            jetcoeffs!(Val(f), t, x, params)
-        catch
-            parse_eqs = false
-        end
-    end
+    parse_eqs = _determine_parsing!(parse_eqs, f, t, x, params)
 
     # Integration
     iter = 2
@@ -547,14 +567,7 @@ function taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
     @inbounds xv[:,1] .= q0
 
     # Determine if specialized jetcoeffs! method exists
-    parse_eqs = parse_eqs && (length(methods(jetcoeffs!)) > 2)
-    if parse_eqs
-        try
-            jetcoeffs!(Val(f!), t, x, dx, params)
-        catch
-            parse_eqs = false
-        end
-    end
+    parse_eqs = _determine_parsing!(parse_eqs, f!, t, x, dx, params)
 
     # Integration
     iter = 2
