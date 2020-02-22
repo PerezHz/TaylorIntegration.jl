@@ -251,6 +251,33 @@ using Elliptic
         exact_sol(t, p, x0) = x0*exp(p*t)
         nn = norm.(abs2.(xv1p)-abs2.(exact_sol.(tv1p, cc, cx0)), Inf)
         @test maximum(nn) < 1.0e-14
+
+        eqs1(z, p, t) = -z
+        eqs2(z, p, t) = im*z
+        @taylorize function eqs3!(Dz, z, p, t)
+            local _eltype_z_ = eltype(z)
+            tmp = Array{_eltype_z_}(undef, 2)
+            tmp[1] = eqs1(z[1], p, t)
+            tmp[2] = eqs2(z[2], p, t)
+            Dz[1] = tmp[1]
+            Dz[2] = tmp[2]
+            nothing
+        end
+        @test (@isdefined eqs3!)
+        z0 = complex(0.0, 1.0)
+        zz0 = [z0, z0]
+        ts = 0.0:pi:2pi
+        zsol = taylorinteg(eqs3!, zz0, ts, _order, _abstol, parse_eqs=false, maxsteps=10)
+        zsolp = taylorinteg(eqs3!, zz0, ts, _order, _abstol, maxsteps=10)
+        @test length(tv3) == length(tv3p)
+        @test iszero( norm(tv3-tv3p, Inf) )
+        @test iszero( norm(xv3-xv3p, Inf) )
+
+        tT = t0 + Taylor1(_order)
+        zT = zz0 .+ zero(tT)
+        TaylorIntegration.__jetcoeffs!(Val(true), eqs3!, tT, zT, similar(zT), similar(zT), nothing)
+        @test zT[1] == exact_sol(tT, -1, z0)
+        @test zT[2] == exact_sol(tT, z0, z0)
     end
 
 
@@ -871,6 +898,13 @@ using Elliptic
             local cos(t)
         end)
         @test_throws BoundsError TaylorIntegration._make_parsed_jetcoeffs(ex)
+
+        # ArgumentError; .= is not yet implemented
+        ex = :(function err_bbroadcasting!(Dz, z, p, t)
+            Dz .= z
+            nothing
+        end)
+        @test_throws ArgumentError TaylorIntegration._make_parsed_jetcoeffs(ex)
 
         # The macro works fine, but the `jetcoeffs!` method does not work
         # (so the integration would silently run using `parse_eqs=false`)
