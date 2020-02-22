@@ -1,6 +1,6 @@
 The TaylorIntegration.jl package is licensed under the MIT "Expat" License:
 
-Copyright (c) 2016: Jorge A. Perez and Luis Benet.
+Copyright (c) 2016-2020: Jorge A. Perez and Luis Benet.
 
 Permission is hereby granted, free of charge, to any person obtaining
 a copy of this software and associated documentation files (the
