@@ -85,7 +85,7 @@ using Elliptic
         @test xT ≈ exact_sol(tT, b1, x0)
 
         # The macro returns a (parsed) jetcoeffs! function which yields an error and
-        # therefore it runs with the default jetcoeffs! methdo. A warining is issued.
+        # therefore it runs with the default jetcoeffs! method. A warning is issued.
         @taylorize function xdot2_err(x, p, t)
             b2 = 3
             return b2-x^2
