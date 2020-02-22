@@ -393,6 +393,14 @@ var documenterSearchIndex = {"docs": [
 },
 
 {
+    "location": "api/#TaylorIntegration._determine_parsing!-Tuple{Bool,Any,Any,Any,Any}",
+    "page": "API",
+    "title": "TaylorIntegration._determine_parsing!",
+    "category": "method",
+    "text": "_determine_parsing!(parse_eqs::Bool, f, t, x, params)\n_determine_parsing!(parse_eqs::Bool, f, t, x, dx, params)\n\nCheck if the parsed method of jetcoeffs! exists and check it runs without error.\n\n\n\n\n\n"
+},
+
+{
     "location": "api/#TaylorIntegration._extract_parts-Tuple{Expr}",
     "page": "API",
     "title": "TaylorIntegration._extract_parts",
