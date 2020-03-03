@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Lyapunov spectrum of Lorenz system · TaylorIntegration.jl</title><link href="https://cdnjs.cloudflare.com/ajax/libs/normalize/4.2.0/normalize.min.css" rel="stylesheet" type="text/css"/><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.2.0/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link href="../assets/documenter.css" rel="stylesheet" type="text/css"/></head><body><nav class="toc"><h1>TaylorIntegration.jl</h1><select id="version-selector" onChange="window.location.href=this.value" style="visibility: hidden"></select><form class="search" id="search-form" action="../search/"><input id="search-query" name="q" type="text" placeholder="Search docs"/></form><ul><li><a class="toctext" href="../">Home</a></li><li><span class="toctext">Background</span><ul><li><a class="toctext" href="../taylor_method/">Taylor&#39;s method</a></li><li><a class="toctext" href="../lyapunov_spectrum/">Lyapunov spectrum</a></li><li><a class="toctext" href="../jet_transport/">Jet transport</a></li></ul></li><li><span class="toctext">Examples</span><ul><li><a class="toctext" href="../simple_example/">Infinity in finite time</a></li><li><a class="toctext" href="../kepler/">The Kepler problem</a></li><li class="current"><a class="toctext" href>Lyapunov spectrum of Lorenz system</a><ul class="internal"></ul></li><li><a class="toctext" href="../pendulum/">Jet transport: the simple pendulum</a></li><li><a class="toctext" href="../root_finding/">Poincaré maps</a></li><li><a class="toctext" href="../common/">Interoperability with <code>DifferentialEquations.jl</code></a></li></ul></li><li><a class="toctext" href="../taylorize/">Optimizing: <code>@taylorize</code></a></li><li><a class="toctext" href="../api/">API</a></li></ul></nav><article id="docs"><header><nav><ul><li>Examples</li><li><a href>Lyapunov spectrum of Lorenz system</a></li></ul><a class="edit-page" href="https://github.com/PerezHz/TaylorIntegration.jl/blob/master/docs/src/lorenz_lyapunov.md"><span class="fa"></span> Edit on GitHub</a></nav><hr/><div id="topbar"><span>Lyapunov spectrum of Lorenz system</span><a class="fa fa-bars" href="#"></a></div></header><h1><a class="nav-anchor" id="lyap_lorenz-1" href="#lyap_lorenz-1">Lyapunov spectrum of Lorenz system</a></h1><p>Here, we present the calculation of the Lyapunov spectrum of the <a href="https://en.wikipedia.org/wiki/Lorenz_system">Lorenz system</a>, using <code>TaylorIntegration.jl</code>. The computation involves evaluating the 1st order variational equations <span>$\dot \xi = J \cdot \xi$</span> for this system, where <span>$J = \operatorname{D}f$</span> is the Jacobian. By default, the numerical value of the Jacobian is computed using automatic differentiation techniques implemented in <a href="https://github.com/JuliaDiff/TaylorSeries.jl"><code>TaylorSeries.jl</code></a>, which saves us from writing down explicitly the Jacobian. Conversely, this can be used to check a function implementing the Jacobian. As an alternative, specially important if performance is critical, the user may provide a Jacobian function.</p><p>The Lorenz system is the ODE defined as:</p><div>\[\begin{eqnarray*}
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Lyapunov spectrum of Lorenz system · TaylorIntegration.jl</title><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit">TaylorIntegration.jl</span></div><form class="docs-search" action="../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li><span class="tocitem">Background</span><ul><li><a class="tocitem" href="../taylor_method/">Taylor&#39;s method</a></li><li><a class="tocitem" href="../lyapunov_spectrum/">Lyapunov spectrum</a></li><li><a class="tocitem" href="../jet_transport/">Jet transport</a></li></ul></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../simple_example/">Infinity in finite time</a></li><li><a class="tocitem" href="../kepler/">The Kepler problem</a></li><li class="is-active"><a class="tocitem" href>Lyapunov spectrum of Lorenz system</a></li><li><a class="tocitem" href="../pendulum/">Jet transport: the simple pendulum</a></li><li><a class="tocitem" href="../root_finding/">Poincaré maps</a></li><li><a class="tocitem" href="../common/">Interoperability with <code>DifferentialEquations.jl</code></a></li></ul></li><li><a class="tocitem" href="../taylorize/">Optimizing: <code>@taylorize</code></a></li><li><a class="tocitem" href="../api/">API</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>Lyapunov spectrum of Lorenz system</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Lyapunov spectrum of Lorenz system</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/PerezHz/TaylorIntegration.jl/blob/master/docs/src/lorenz_lyapunov.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="lyap_lorenz-1"><a class="docs-heading-anchor" href="#lyap_lorenz-1">Lyapunov spectrum of Lorenz system</a><a class="docs-heading-anchor-permalink" href="#lyap_lorenz-1" title="Permalink"></a></h1><p>Here, we present the calculation of the Lyapunov spectrum of the <a href="https://en.wikipedia.org/wiki/Lorenz_system">Lorenz system</a>, using <code>TaylorIntegration.jl</code>. The computation involves evaluating the 1st order variational equations <span>$\dot \xi = J \cdot \xi$</span> for this system, where <span>$J = \operatorname{D}f$</span> is the Jacobian. By default, the numerical value of the Jacobian is computed using automatic differentiation techniques implemented in <a href="https://github.com/JuliaDiff/TaylorSeries.jl"><code>TaylorSeries.jl</code></a>, which saves us from writing down explicitly the Jacobian. Conversely, this can be used to check a function implementing the Jacobian. As an alternative, specially important if performance is critical, the user may provide a Jacobian function.</p><p>The Lorenz system is the ODE defined as:</p><div>\[\begin{eqnarray*}
     \dot{x}_1 &amp; = &amp; \sigma(x_2-x_1), \\
     \dot{x}_2 &amp; = &amp; x_1(\rho-x_3)-x_2, \\
     \dot{x}_3 &amp; = &amp; x_1x_2-\beta x_3,
-\end{eqnarray*}\]</div><p>where <span>$\sigma$</span>, <span>$\rho$</span> and <span>$\beta$</span> are constant parameters.</p><p>First, we write a Julia function which evaluates (in-place) the Lorenz system:</p><div><pre><code class="language-julia">#Lorenz system ODE:
+\end{eqnarray*}\]</div><p>where <span>$\sigma$</span>, <span>$\rho$</span> and <span>$\beta$</span> are constant parameters.</p><p>First, we write a Julia function which evaluates (in-place) the Lorenz system:</p><pre><code class="language-julia">#Lorenz system ODE:
 function lorenz!(dq, q, params, t)
     σ, ρ, β = params
     x, y, z = q
@@ -11,11 +11,11 @@ function lorenz!(dq, q, params, t)
     dq[2] = x*(ρ-z)-y
     dq[3] = x*y-β*z
     nothing
-end</code></pre></div><p>Below, we use the the parameters <span>$\sigma = 16.0$</span>, <span>$\beta = 4$</span> and <span>$\rho = 45.92$</span>.</p><div><pre><code class="language-julia">#Lorenz system parameters
+end</code></pre><p>Below, we use the the parameters <span>$\sigma = 16.0$</span>, <span>$\beta = 4$</span> and <span>$\rho = 45.92$</span>.</p><pre><code class="language-julia">#Lorenz system parameters
 #we use the `const` prefix in order to help the compiler speed things up
-const params = [16.0, 45.92, 4.0]</code></pre></div><p>We define the initial conditions, the initial and final integration times for the integration:</p><div><pre><code class="language-julia">const x0 = [19.0, 20.0, 50.0] #the initial condition
+const params = [16.0, 45.92, 4.0]</code></pre><p>We define the initial conditions, the initial and final integration times for the integration:</p><pre><code class="language-julia">const x0 = [19.0, 20.0, 50.0] #the initial condition
 const t0 = 0.0     #the initial time
-const tmax = 100.0 #final time of integration</code></pre></div><p>Since the diagonal of the Jacobian is constant, the sum of the Lyapunov spectrum has to be equal to that value. We calculate this trace using <code>TaylorSeries.jl</code>, and after the numerical integration, we will come back to check if this value is conserved (or approximately conserved) as a function of time.</p><div><pre><code class="language-julia"># Note that TaylorSeries.jl is @reexport-ed by TaylorIntegration.jl
+const tmax = 100.0 #final time of integration</code></pre><p>Since the diagonal of the Jacobian is constant, the sum of the Lyapunov spectrum has to be equal to that value. We calculate this trace using <code>TaylorSeries.jl</code>, and after the numerical integration, we will come back to check if this value is conserved (or approximately conserved) as a function of time.</p><pre><code class="language-julia"># Note that TaylorSeries.jl is @reexport-ed by TaylorIntegration.jl
 # Calculate trace of Lorenz system Jacobian via TaylorSeries.jacobian:
 import LinearAlgebra: tr
 using TaylorIntegration
@@ -24,7 +24,7 @@ x0TN = x0 .+ xi
 dx0TN = similar(x0TN)
 lorenz!(dx0TN, x0TN, params, t0)
 jjac = TaylorSeries.jacobian(dx0TN)
-lorenztr = tr(jjac) #trace of Lorenz system Jacobian matrix</code></pre></div><p>As explained above, the user may provide a function which computes the Jacobian of the ODE in-place:</p><div><pre><code class="language-julia">#Lorenz system Jacobian (in-place):
+lorenztr = tr(jjac) #trace of Lorenz system Jacobian matrix</code></pre><p>As explained above, the user may provide a function which computes the Jacobian of the ODE in-place:</p><pre><code class="language-julia">#Lorenz system Jacobian (in-place):
 function lorenz_jac!(jac, x, params, t)
     σ, ρ, β = params
     jac[1,1] = -σ + zero(x[1])
@@ -37,269 +37,269 @@ function lorenz_jac!(jac, x, params, t)
     jac[3,2] = x[1]
     jac[3,3] = -β + zero(x[1])
     nothing
-end</code></pre></div><div class="admonition note"><div class="admonition-title">Note</div><div class="admonition-text"><p>We use of <code>zero(x[1])</code> in the function <code>lorenz_jac!</code> when the RHS consists of a numeric value; this is needed to allow the proper promotion of the variables to carry out Taylor&#39;s method.</p></div></div><p>We can actually check the consistency of <code>lorenz_jac!</code> with the computation of the jacobian using automatic differentiation techniques. Below we use the initial conditions <code>x0</code>, but it is easy to generalize this.</p><div><pre><code class="language-julia">lorenz_jac!(jjac, x0, params, t0)  # update the matrix `jjac` using Jacobian provided by the user
-TaylorSeries.jacobian(dx0TN) == jjac    # `dx0TN` is obtained via automatic differentiation</code></pre><pre><code class="language-none">true</code></pre></div><p>Now, we are ready to perform the integration using <code>lyap_taylorinteg</code> function, which integrates the 1st variational equations and uses Oseledets&#39; theorem. The expansion order will be <span>$28$</span> and the local absolute tolerance will be <span>$10^{-20}$</span>. <code>lyap_taylorinteg</code> will return three arrays: one with the evaluation times, one with the values of the dependent variables (at the time of evaluation), and another one with the values of the Lyapunov spectrum.</p><p>We first carry out the integration computing internally the Jacobian</p><div><pre><code class="language-julia">tv, xv, λv = lyap_taylorinteg(lorenz!, x0, t0, tmax, 28, 1e-20, params; maxsteps=2000000);</code></pre></div><p>Now, the integration is obtained exploiting <code>lorenz_jac!</code>:</p><div><pre><code class="language-julia">tv_, xv_, λv_ = lyap_taylorinteg(lorenz!, x0, t0, tmax, 28, 1e-20, params, lorenz_jac!; maxsteps=2000000);</code></pre></div><p>In terms of performance the second method is about ~50% faster than the first.</p><p>We check the consistency of the orbits computed by the two methods:</p><div><pre><code class="language-julia">tv == tv_, xv == xv_, λv == λv_</code></pre><pre><code class="language-none">(true, true, true)</code></pre></div><p>As mentioned above, a more subtle check is related to the fact that the trace of the Jacobian is constant in time, which must coincide with the sum of all Lyapunov exponents. Using its initial value <code>lorenztr</code>, we compare it with the final Lyapunov exponents of the computation, and obtain</p><div><pre><code class="language-julia">sum(λv[end,:]) ≈ lorenztr, sum(λv_[end,:]) ≈ lorenztr, sum(λv[end,:]) ≈ sum(λv_[end,:])</code></pre><pre><code class="language-none">(true, true, true)</code></pre></div><p>Above we checked the approximate equality; we now show that the relative error is quite small and comparable with the local machine epsilon value around <code>lorenztr</code>:</p><div><pre><code class="language-julia">abs(sum(λv[end,:])/lorenztr - 1), abs(sum(λv_[end,:])/lorenztr - 1), eps(lorenztr)</code></pre><pre><code class="language-none">(6.217248937900877e-15, 6.217248937900877e-15, 3.552713678800501e-15)</code></pre></div><p>Therefore, the numerical error is dominated by roundoff errors in the floating point arithmetic of the integration. We will now proceed to plot our results. First, we plot Lorenz attractor in phase space</p><div><pre><code class="language-julia">using Plots
+end</code></pre><div class="admonition is-info"><header class="admonition-header">Note</header><div class="admonition-body"><p>We use of <code>zero(x[1])</code> in the function <code>lorenz_jac!</code> when the RHS consists of a numeric value; this is needed to allow the proper promotion of the variables to carry out Taylor&#39;s method.</p></div></div><p>We can actually check the consistency of <code>lorenz_jac!</code> with the computation of the jacobian using automatic differentiation techniques. Below we use the initial conditions <code>x0</code>, but it is easy to generalize this.</p><pre><code class="language-julia">lorenz_jac!(jjac, x0, params, t0)  # update the matrix `jjac` using Jacobian provided by the user
+TaylorSeries.jacobian(dx0TN) == jjac    # `dx0TN` is obtained via automatic differentiation</code></pre><pre><code class="language-none">true</code></pre><p>Now, we are ready to perform the integration using <code>lyap_taylorinteg</code> function, which integrates the 1st variational equations and uses Oseledets&#39; theorem. The expansion order will be <span>$28$</span> and the local absolute tolerance will be <span>$10^{-20}$</span>. <code>lyap_taylorinteg</code> will return three arrays: one with the evaluation times, one with the values of the dependent variables (at the time of evaluation), and another one with the values of the Lyapunov spectrum.</p><p>We first carry out the integration computing internally the Jacobian</p><pre><code class="language-julia">tv, xv, λv = lyap_taylorinteg(lorenz!, x0, t0, tmax, 28, 1e-20, params; maxsteps=2000000);</code></pre><p>Now, the integration is obtained exploiting <code>lorenz_jac!</code>:</p><pre><code class="language-julia">tv_, xv_, λv_ = lyap_taylorinteg(lorenz!, x0, t0, tmax, 28, 1e-20, params, lorenz_jac!; maxsteps=2000000);</code></pre><p>In terms of performance the second method is about ~50% faster than the first.</p><p>We check the consistency of the orbits computed by the two methods:</p><pre><code class="language-julia">tv == tv_, xv == xv_, λv == λv_</code></pre><pre><code class="language-none">(true, true, true)</code></pre><p>As mentioned above, a more subtle check is related to the fact that the trace of the Jacobian is constant in time, which must coincide with the sum of all Lyapunov exponents. Using its initial value <code>lorenztr</code>, we compare it with the final Lyapunov exponents of the computation, and obtain</p><pre><code class="language-julia">sum(λv[end,:]) ≈ lorenztr, sum(λv_[end,:]) ≈ lorenztr, sum(λv[end,:]) ≈ sum(λv_[end,:])</code></pre><pre><code class="language-none">(true, true, true)</code></pre><p>Above we checked the approximate equality; we now show that the relative error is quite small and comparable with the local machine epsilon value around <code>lorenztr</code>:</p><pre><code class="language-julia">abs(sum(λv[end,:])/lorenztr - 1), abs(sum(λv_[end,:])/lorenztr - 1), eps(lorenztr)</code></pre><pre><code class="language-none">(6.217248937900877e-15, 6.217248937900877e-15, 3.552713678800501e-15)</code></pre><p>Therefore, the numerical error is dominated by roundoff errors in the floating point arithmetic of the integration. We will now proceed to plot our results. First, we plot Lorenz attractor in phase space</p><pre><code class="language-julia">using Plots
 plot(xv[:,1], xv[:,2], xv[:,3], leg=false)</code></pre><?xml version="1.0" encoding="utf-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="600" height="400" viewBox="0 0 2400 1600">
 <defs>
-  <clipPath id="clip6800">
+  <clipPath id="clip1900">
     <rect x="0" y="0" width="2400" height="1600"/>
   </clipPath>
 </defs>
-<path clip-path="url(#clip6800)" d="
+<path clip-path="url(#clip1900)" d="
 M0 1600 L2400 1600 L2400 0 L0 0  Z
   " fill="#ffffff" fill-rule="evenodd" fill-opacity="1"/>
 <defs>
-  <clipPath id="clip6801">
+  <clipPath id="clip1901">
     <rect x="480" y="0" width="1681" height="1600"/>
   </clipPath>
 </defs>
 <defs>
-  <clipPath id="clip6802">
+  <clipPath id="clip1902">
     <rect x="86" y="47" width="2267" height="1475"/>
   </clipPath>
 </defs>
-<path clip-path="url(#clip6802)" d="
+<path clip-path="url(#clip1902)" d="
 M86.9921 1433.95 L86.9921 308.423 L916.319 47.2441 L2352.76 134.304 L2352.76 1259.83 L1523.43 1521.01 L86.9921 1433.95  Z
   " fill="#ffffff" fill-rule="evenodd" fill-opacity="1"/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   111.815,1435.45 941.142,1174.27 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   941.142,1174.27 941.142,48.7486 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   337.528,1449.13 1166.86,1187.95 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   1166.86,1187.95 1166.86,62.4286 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   563.241,1462.81 1392.57,1201.63 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   1392.57,1201.63 1392.57,76.1086 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   788.954,1476.49 1618.28,1215.31 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   1618.28,1215.31 1618.28,89.7887 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   1014.67,1490.17 1843.99,1228.99 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   1843.99,1228.99 1843.99,103.469 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   1240.38,1503.85 2069.71,1242.67 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   2069.71,1242.67 2069.71,117.149 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   1466.09,1517.53 2295.42,1256.35 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   2295.42,1256.35 2295.42,130.829 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   1546.53,1513.73 110.09,1426.67 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   110.09,1426.67 110.09,301.149 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   1736.97,1453.76 300.534,1366.7 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   300.534,1366.7 300.534,241.173 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   1927.41,1393.78 490.978,1306.72 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   490.978,1306.72 490.978,181.196 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   2117.86,1333.8 681.422,1246.75 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   681.422,1246.75 681.422,121.22 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   2308.3,1273.83 871.866,1186.77 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   871.866,1186.77 871.866,61.2438 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   86.9921,1348.15 916.319,1086.97 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   916.319,1086.97 2352.76,1174.03 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   86.9921,1198.92 916.319,937.744 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   916.319,937.744 2352.76,1024.8 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   86.9921,1049.69 916.319,788.514 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   916.319,788.514 2352.76,875.574 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   86.9921,900.464 916.319,639.285 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   916.319,639.285 2352.76,726.345 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   86.9921,751.234 916.319,490.055 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   916.319,490.055 2352.76,577.115 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   86.9921,602.005 916.319,340.826 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   916.319,340.826 2352.76,427.885 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   86.9921,452.775 916.319,191.596 
   "/>
-<polyline clip-path="url(#clip6802)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   916.319,191.596 2352.76,278.656 
   "/>
-<polyline clip-path="url(#clip6800)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip1900)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   86.9921,1433.95 1523.43,1521.01 
   "/>
-<polyline clip-path="url(#clip6800)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip1900)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   1523.43,1521.01 2352.76,1259.83 
   "/>
-<polyline clip-path="url(#clip6800)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip1900)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   86.9921,1433.95 86.9921,308.423 
   "/>
-<polyline clip-path="url(#clip6800)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip1900)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   111.815,1435.45 121.767,1432.32 
   "/>
-<polyline clip-path="url(#clip6800)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip1900)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   337.528,1449.13 347.48,1446 
   "/>
-<polyline clip-path="url(#clip6800)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip1900)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   563.241,1462.81 573.193,1459.68 
   "/>
-<polyline clip-path="url(#clip6800)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip1900)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   788.954,1476.49 798.906,1473.36 
   "/>
-<polyline clip-path="url(#clip6800)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip1900)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   1014.67,1490.17 1024.62,1487.04 
   "/>
-<polyline clip-path="url(#clip6800)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip1900)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   1240.38,1503.85 1250.33,1500.72 
   "/>
-<polyline clip-path="url(#clip6800)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip1900)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   1466.09,1517.53 1476.05,1514.4 
   "/>
-<polyline clip-path="url(#clip6800)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip1900)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   1546.53,1513.73 1529.29,1512.69 
   "/>
-<polyline clip-path="url(#clip6800)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip1900)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   1736.97,1453.76 1719.73,1452.71 
   "/>
-<polyline clip-path="url(#clip6800)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip1900)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   1927.41,1393.78 1910.18,1392.74 
   "/>
-<polyline clip-path="url(#clip6800)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip1900)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   2117.86,1333.8 2100.62,1332.76 
   "/>
-<polyline clip-path="url(#clip6800)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip1900)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   2308.3,1273.83 2291.07,1272.78 
   "/>
-<polyline clip-path="url(#clip6800)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip1900)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   86.9921,1348.15 96.9441,1345.02 
   "/>
-<polyline clip-path="url(#clip6800)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip1900)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   86.9921,1198.92 96.9441,1195.79 
   "/>
-<polyline clip-path="url(#clip6800)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip1900)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   86.9921,1049.69 96.9441,1046.56 
   "/>
-<polyline clip-path="url(#clip6800)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip1900)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   86.9921,900.464 96.9441,897.33 
   "/>
-<polyline clip-path="url(#clip6800)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip1900)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   86.9921,751.234 96.9441,748.1 
   "/>
-<polyline clip-path="url(#clip6800)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip1900)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   86.9921,602.005 96.9441,598.871 
   "/>
-<polyline clip-path="url(#clip6800)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip1900)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   86.9921,452.775 96.9441,449.641 
   "/>
-<g clip-path="url(#clip6800)">
+<g clip-path="url(#clip1900)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:middle;" transform="rotate(0, 87.8154, 1489.45)" x="87.8154" y="1489.45">-30</text>
 </g>
-<g clip-path="url(#clip6800)">
+<g clip-path="url(#clip1900)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:middle;" transform="rotate(0, 313.528, 1503.13)" x="313.528" y="1503.13">-20</text>
 </g>
-<g clip-path="url(#clip6800)">
+<g clip-path="url(#clip1900)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:middle;" transform="rotate(0, 539.241, 1516.81)" x="539.241" y="1516.81">-10</text>
 </g>
-<g clip-path="url(#clip6800)">
+<g clip-path="url(#clip1900)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:middle;" transform="rotate(0, 764.954, 1530.49)" x="764.954" y="1530.49">0</text>
 </g>
-<g clip-path="url(#clip6800)">
+<g clip-path="url(#clip1900)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:middle;" transform="rotate(0, 990.667, 1544.17)" x="990.667" y="1544.17">10</text>
 </g>
-<g clip-path="url(#clip6800)">
+<g clip-path="url(#clip1900)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:middle;" transform="rotate(0, 1216.38, 1557.85)" x="1216.38" y="1557.85">20</text>
 </g>
-<g clip-path="url(#clip6800)">
+<g clip-path="url(#clip1900)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:middle;" transform="rotate(0, 1442.09, 1571.53)" x="1442.09" y="1571.53">30</text>
 </g>
-<g clip-path="url(#clip6800)">
+<g clip-path="url(#clip1900)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:middle;" transform="rotate(0, 1570.53, 1567.73)" x="1570.53" y="1567.73">-40</text>
 </g>
-<g clip-path="url(#clip6800)">
+<g clip-path="url(#clip1900)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:middle;" transform="rotate(0, 1760.97, 1507.76)" x="1760.97" y="1507.76">-20</text>
 </g>
-<g clip-path="url(#clip6800)">
+<g clip-path="url(#clip1900)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:middle;" transform="rotate(0, 1951.41, 1447.78)" x="1951.41" y="1447.78">0</text>
 </g>
-<g clip-path="url(#clip6800)">
+<g clip-path="url(#clip1900)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:middle;" transform="rotate(0, 2141.86, 1387.8)" x="2141.86" y="1387.8">20</text>
 </g>
-<g clip-path="url(#clip6800)">
+<g clip-path="url(#clip1900)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:middle;" transform="rotate(0, 2332.3, 1327.83)" x="2332.3" y="1327.83">40</text>
 </g>
-<g clip-path="url(#clip6800)">
+<g clip-path="url(#clip1900)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:end;" transform="rotate(0, 62.9921, 1365.65)" x="62.9921" y="1365.65">10</text>
 </g>
-<g clip-path="url(#clip6800)">
+<g clip-path="url(#clip1900)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:end;" transform="rotate(0, 62.9921, 1216.42)" x="62.9921" y="1216.42">20</text>
 </g>
-<g clip-path="url(#clip6800)">
+<g clip-path="url(#clip1900)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:end;" transform="rotate(0, 62.9921, 1067.19)" x="62.9921" y="1067.19">30</text>
 </g>
-<g clip-path="url(#clip6800)">
+<g clip-path="url(#clip1900)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:end;" transform="rotate(0, 62.9921, 917.964)" x="62.9921" y="917.964">40</text>
 </g>
-<g clip-path="url(#clip6800)">
+<g clip-path="url(#clip1900)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:end;" transform="rotate(0, 62.9921, 768.734)" x="62.9921" y="768.734">50</text>
 </g>
-<g clip-path="url(#clip6800)">
+<g clip-path="url(#clip1900)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:end;" transform="rotate(0, 62.9921, 619.505)" x="62.9921" y="619.505">60</text>
 </g>
-<g clip-path="url(#clip6800)">
+<g clip-path="url(#clip1900)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:end;" transform="rotate(0, 62.9921, 470.275)" x="62.9921" y="470.275">70</text>
 </g>
-<polyline clip-path="url(#clip6802)" style="stroke:#009af9; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip1902)" style="stroke:#009af9; stroke-width:4; stroke-opacity:1; fill:none" points="
   1812.24,632.568 1782.59,592.404 1724.61,580.039 1649.85,594.145 1572.27,628.162 1503.27,674.071 1450.8,725.404 1419.51,778.173 1413.06,828.9 1436.2,872.538 
   1493.56,897.372 1572.29,892.364 1660.88,858.28 1745.45,799.405 1811.09,724.58 1843.47,649.041 1835.47,587.953 1789.33,554.843 1715.72,552.736 1628.15,577.596 
   1541.99,620.477 1466.82,673.387 1410.37,729.69 1375.38,786.608 1363.61,842.357 1378.2,894.386 1429.15,935.402 1504.86,946.221 1598.29,927.046 1699.35,878.085 
@@ -710,7 +710,7 @@ M86.9921 1433.95 L86.9921 308.423 L916.319 47.2441 L2352.76 134.304 L2352.76 125
   1811.48,573.843 1751.54,555.826 1671.52,567.336 1585.54,601.292 1505.66,649.172 1489.38,661.178 
   "/>
 </svg>
-</div><p>We display now the Lyapunov exponents as a function of time:</p><div><pre><code class="language-julia">using Plots
+<p>We display now the Lyapunov exponents as a function of time:</p><pre><code class="language-julia">using Plots
 plot(tv, λv[:,1], label=&quot;L_1&quot;, legend=:right)
 plot!(tv, λv[:,2], label=&quot;L_2&quot;)
 plot!(tv, λv[:,3], label=&quot;L_3&quot;)
@@ -719,132 +719,132 @@ ylabel!(&quot;L_i, i=1,2,3&quot;)
 title!(&quot;Lyapunov exponents vs time&quot;)</code></pre><?xml version="1.0" encoding="utf-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="600" height="400" viewBox="0 0 2400 1600">
 <defs>
-  <clipPath id="clip7100">
+  <clipPath id="clip2500">
     <rect x="0" y="0" width="2400" height="1600"/>
   </clipPath>
 </defs>
-<path clip-path="url(#clip7100)" d="
+<path clip-path="url(#clip2500)" d="
 M0 1600 L2400 1600 L2400 0 L0 0  Z
   " fill="#ffffff" fill-rule="evenodd" fill-opacity="1"/>
 <defs>
-  <clipPath id="clip7101">
+  <clipPath id="clip2501">
     <rect x="480" y="0" width="1681" height="1600"/>
   </clipPath>
 </defs>
-<path clip-path="url(#clip7100)" d="
+<path clip-path="url(#clip2500)" d="
 M102.74 1505.26 L2352.76 1505.26 L2352.76 62.9921 L102.74 62.9921  Z
   " fill="#ffffff" fill-rule="evenodd" fill-opacity="1"/>
 <defs>
-  <clipPath id="clip7102">
+  <clipPath id="clip2502">
     <rect x="102" y="62" width="2251" height="1443"/>
   </clipPath>
 </defs>
-<polyline clip-path="url(#clip7102)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip2502)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   166.42,1505.26 166.42,62.9921 
   "/>
-<polyline clip-path="url(#clip7102)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip2502)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   697.084,1505.26 697.084,62.9921 
   "/>
-<polyline clip-path="url(#clip7102)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip2502)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   1227.75,1505.26 1227.75,62.9921 
   "/>
-<polyline clip-path="url(#clip7102)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip2502)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   1758.41,1505.26 1758.41,62.9921 
   "/>
-<polyline clip-path="url(#clip7102)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip2502)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   2289.08,1505.26 2289.08,62.9921 
   "/>
-<polyline clip-path="url(#clip7102)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip2502)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   102.74,1300.6 2352.76,1300.6 
   "/>
-<polyline clip-path="url(#clip7102)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip2502)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   102.74,1034.77 2352.76,1034.77 
   "/>
-<polyline clip-path="url(#clip7102)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip2502)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   102.74,768.928 2352.76,768.928 
   "/>
-<polyline clip-path="url(#clip7102)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip2502)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   102.74,503.09 2352.76,503.09 
   "/>
-<polyline clip-path="url(#clip7102)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
+<polyline clip-path="url(#clip2502)" style="stroke:#000000; stroke-width:2; stroke-opacity:0.1; fill:none" points="
   102.74,237.252 2352.76,237.252 
   "/>
-<polyline clip-path="url(#clip7100)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip2500)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   102.74,1505.26 2352.76,1505.26 
   "/>
-<polyline clip-path="url(#clip7100)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip2500)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   102.74,1505.26 102.74,62.9921 
   "/>
-<polyline clip-path="url(#clip7100)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip2500)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   166.42,1505.26 166.42,1487.95 
   "/>
-<polyline clip-path="url(#clip7100)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip2500)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   697.084,1505.26 697.084,1487.95 
   "/>
-<polyline clip-path="url(#clip7100)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip2500)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   1227.75,1505.26 1227.75,1487.95 
   "/>
-<polyline clip-path="url(#clip7100)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip2500)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   1758.41,1505.26 1758.41,1487.95 
   "/>
-<polyline clip-path="url(#clip7100)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip2500)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   2289.08,1505.26 2289.08,1487.95 
   "/>
-<polyline clip-path="url(#clip7100)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip2500)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   102.74,1300.6 129.74,1300.6 
   "/>
-<polyline clip-path="url(#clip7100)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip2500)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   102.74,1034.77 129.74,1034.77 
   "/>
-<polyline clip-path="url(#clip7100)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip2500)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   102.74,768.928 129.74,768.928 
   "/>
-<polyline clip-path="url(#clip7100)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip2500)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   102.74,503.09 129.74,503.09 
   "/>
-<polyline clip-path="url(#clip7100)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip2500)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   102.74,237.252 129.74,237.252 
   "/>
-<g clip-path="url(#clip7100)">
+<g clip-path="url(#clip2500)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:middle;" transform="rotate(0, 166.42, 1559.26)" x="166.42" y="1559.26">0</text>
 </g>
-<g clip-path="url(#clip7100)">
+<g clip-path="url(#clip2500)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:middle;" transform="rotate(0, 697.084, 1559.26)" x="697.084" y="1559.26">25</text>
 </g>
-<g clip-path="url(#clip7100)">
+<g clip-path="url(#clip2500)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:middle;" transform="rotate(0, 1227.75, 1559.26)" x="1227.75" y="1559.26">50</text>
 </g>
-<g clip-path="url(#clip7100)">
+<g clip-path="url(#clip2500)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:middle;" transform="rotate(0, 1758.41, 1559.26)" x="1758.41" y="1559.26">75</text>
 </g>
-<g clip-path="url(#clip7100)">
+<g clip-path="url(#clip2500)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:middle;" transform="rotate(0, 2289.08, 1559.26)" x="2289.08" y="1559.26">100</text>
 </g>
-<g clip-path="url(#clip7100)">
+<g clip-path="url(#clip2500)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:end;" transform="rotate(0, 78.7402, 1318.1)" x="78.7402" y="1318.1">-20</text>
 </g>
-<g clip-path="url(#clip7100)">
+<g clip-path="url(#clip2500)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:end;" transform="rotate(0, 78.7402, 1052.27)" x="78.7402" y="1052.27">-15</text>
 </g>
-<g clip-path="url(#clip7100)">
+<g clip-path="url(#clip2500)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:end;" transform="rotate(0, 78.7402, 786.428)" x="78.7402" y="786.428">-10</text>
 </g>
-<g clip-path="url(#clip7100)">
+<g clip-path="url(#clip2500)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:end;" transform="rotate(0, 78.7402, 520.59)" x="78.7402" y="520.59">-5</text>
 </g>
-<g clip-path="url(#clip7100)">
+<g clip-path="url(#clip2500)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:end;" transform="rotate(0, 78.7402, 254.752)" x="78.7402" y="254.752">0</text>
 </g>
-<g clip-path="url(#clip7100)">
+<g clip-path="url(#clip2500)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:84px; text-anchor:middle;" transform="rotate(0, 1227.75, 73.2)" x="1227.75" y="73.2">Lyapunov exponents vs time</text>
 </g>
-<g clip-path="url(#clip7100)">
+<g clip-path="url(#clip2500)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:66px; text-anchor:middle;" transform="rotate(0, 1227.75, 1639.12)" x="1227.75" y="1639.12">time</text>
 </g>
-<g clip-path="url(#clip7100)">
+<g clip-path="url(#clip2500)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:66px; text-anchor:middle;" transform="rotate(-90, -38.4567, 784.126)" x="-38.4567" y="784.126">L_i, i=1,2,3</text>
 </g>
-<polyline clip-path="url(#clip7102)" style="stroke:#009af9; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip2502)" style="stroke:#009af9; stroke-width:4; stroke-opacity:1; fill:none" points="
   166.42,237.252 166.885,894.564 167.343,760.319 167.809,663.213 168.291,572.733 168.799,491.451 169.344,429.866 169.942,386.117 170.603,352.697 171.342,323.987 
   172.123,300.859 172.809,288.376 173.414,285.83 173.955,290.861 174.45,297.729 174.91,298.303 175.353,291.294 175.779,284.414 176.204,282.971 176.641,286.565 
   177.093,291.216 177.576,292.418 178.095,287.992 178.664,278.459 179.297,264.496 180.013,245.966 180.84,222.956 181.546,203.994 182.163,189.756 182.708,180.553 
@@ -1254,7 +1254,7 @@ M102.74 1505.26 L2352.76 1505.26 L2352.76 62.9921 L102.74 62.9921  Z
   2281.18,158.219 2281.81,158.27 2282.5,158.33 2283.28,158.404 2284.03,158.488 2284.68,158.568 2285.27,158.607 2285.79,158.575 2286.28,158.513 2286.73,158.476 
   2287.17,158.476 2287.61,158.508 2288.04,158.549 2288.49,158.582 2288.96,158.604 2289.08,158.609 
   "/>
-<polyline clip-path="url(#clip7102)" style="stroke:#e26f46; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip2502)" style="stroke:#e26f46; stroke-width:4; stroke-opacity:1; fill:none" points="
   166.42,237.252 166.885,269.998 167.343,254.996 167.809,254.402 168.291,278.249 168.799,309.936 169.344,330.048 169.942,333.489 170.603,322.804 171.342,301.458 
   172.123,273.33 172.809,244.897 173.414,216.368 173.955,188.881 174.45,166.941 174.91,157.962 175.353,162.37 175.779,171.691 176.204,179.566 176.641,185.308 
   177.093,191.321 177.576,200.58 178.095,213.259 178.664,227.01 179.297,239.488 180.013,249.797 180.84,257.676 181.546,261.366 182.163,261.995 182.708,259.952 
@@ -1664,7 +1664,7 @@ M102.74 1505.26 L2352.76 1505.26 L2352.76 62.9921 L102.74 62.9921  Z
   2281.18,237.642 2281.81,237.63 2282.5,237.579 2283.28,237.475 2284.03,237.332 2284.68,237.188 2285.27,237.091 2285.79,237.078 2286.28,237.111 2286.73,237.14 
   2287.17,237.151 2287.61,237.151 2288.04,237.16 2288.49,237.191 2288.96,237.24 2289.08,237.253 
   "/>
-<polyline clip-path="url(#clip7102)" style="stroke:#3da44d; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip2502)" style="stroke:#3da44d; stroke-width:4; stroke-opacity:1; fill:none" points="
   166.42,237.252 166.885,663.714 167.343,812.961 167.809,910.66 168.291,977.294 168.799,1026.89 169.344,1068.36 169.942,1108.67 170.603,1152.78 171.342,1202.83 
   172.123,1254.09 172.809,1295 173.414,1326.08 173.955,1348.53 174.45,1363.61 174.91,1372.01 175.353,1374.61 175.779,1372.17 176.204,1365.74 176.641,1356.4 
   177.093,1345.74 177.576,1335.28 178.095,1327.02 178.664,1322.81 179.297,1324.29 180.013,1332.51 180.84,1347.64 181.546,1362.92 182.163,1376.53 182.708,1387.77 
@@ -2074,29 +2074,29 @@ M102.74 1505.26 L2352.76 1505.26 L2352.76 62.9921 L102.74 62.9921  Z
   2281.18,1432.41 2281.81,1432.38 2282.5,1432.37 2283.28,1432.4 2284.03,1432.46 2284.68,1432.52 2285.27,1432.58 2285.79,1432.62 2286.28,1432.65 2286.73,1432.66 
   2287.17,1432.65 2287.61,1432.62 2288.04,1432.57 2288.49,1432.5 2288.96,1432.43 2289.08,1432.41 
   "/>
-<path clip-path="url(#clip7100)" d="
+<path clip-path="url(#clip2500)" d="
 M1960.47 969.586 L2280.76 969.586 L2280.76 727.666 L1960.47 727.666  Z
   " fill="#ffffff" fill-rule="evenodd" fill-opacity="1"/>
-<polyline clip-path="url(#clip7100)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip2500)" style="stroke:#000000; stroke-width:4; stroke-opacity:1; fill:none" points="
   1960.47,969.586 2280.76,969.586 2280.76,727.666 1960.47,727.666 1960.47,969.586 
   "/>
-<polyline clip-path="url(#clip7100)" style="stroke:#009af9; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip2500)" style="stroke:#009af9; stroke-width:4; stroke-opacity:1; fill:none" points="
   1984.47,788.146 2128.47,788.146 
   "/>
-<g clip-path="url(#clip7100)">
+<g clip-path="url(#clip2500)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:start;" transform="rotate(0, 2152.47, 805.646)" x="2152.47" y="805.646">L_1</text>
 </g>
-<polyline clip-path="url(#clip7100)" style="stroke:#e26f46; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip2500)" style="stroke:#e26f46; stroke-width:4; stroke-opacity:1; fill:none" points="
   1984.47,848.626 2128.47,848.626 
   "/>
-<g clip-path="url(#clip7100)">
+<g clip-path="url(#clip2500)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:start;" transform="rotate(0, 2152.47, 866.126)" x="2152.47" y="866.126">L_2</text>
 </g>
-<polyline clip-path="url(#clip7100)" style="stroke:#3da44d; stroke-width:4; stroke-opacity:1; fill:none" points="
+<polyline clip-path="url(#clip2500)" style="stroke:#3da44d; stroke-width:4; stroke-opacity:1; fill:none" points="
   1984.47,909.106 2128.47,909.106 
   "/>
-<g clip-path="url(#clip7100)">
+<g clip-path="url(#clip2500)">
 <text style="fill:#000000; fill-opacity:1; font-family:Arial,Helvetica Neue,Helvetica,sans-serif; font-size:48px; text-anchor:start;" transform="rotate(0, 2152.47, 926.606)" x="2152.47" y="926.606">L_3</text>
 </g>
 </svg>
-</div><p>This plot shows that the calculation of the Lyapunov exponents has converged.</p><footer><hr/><a class="previous" href="../kepler/"><span class="direction">Previous</span><span class="title">The Kepler problem</span></a><a class="next" href="../pendulum/"><span class="direction">Next</span><span class="title">Jet transport: the simple pendulum</span></a></footer></article></body></html>
+<p>This plot shows that the calculation of the Lyapunov exponents has converged.</p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../kepler/">« The Kepler problem</a><a class="docs-footer-nextpage" href="../pendulum/">Jet transport: the simple pendulum »</a></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Tuesday 3 March 2020 00:24">Tuesday 3 March 2020</span>. Using Julia version 1.0.5.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
