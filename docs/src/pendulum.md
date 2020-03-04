@@ -14,10 +14,10 @@ polynomials in time using Taylor's method.
 The simple pendulum is defined by the Hamiltonian ``H(x, p) = \frac{1}{2}p^2-\cos x``;
 the corresponding equations of motion are given by
 ```math
-\begin{eqnarray*}
-\dot{x} &=& p, \\
-\dot{p} &=& -\sin x.
-\end{eqnarray*}
+\begin{aligned}
+\dot{x} & = p, \\
+\dot{p} & = -\sin x.
+\end{aligned}
 ```
 
 We integrate this problem for a neighborhood ``U_0`` around the initial
@@ -28,15 +28,11 @@ energy ``E=H(x_0,p_0)=-\cos x_0`` such that the pendulum's motion in phase space
 is "below" (inside) the region bounded by the separatrix. In this
 case, the libration period ``T`` of the pendulum is
 ```math
-\begin{equation*}
 T=\frac{4}{\sqrt{2}}\int_0^{x_0}\frac{dx}{\sqrt{\cos x_0-\cos x}},
-\end{equation*}
 ```
 which can be expressed in terms of the complete elliptic integral of the first kind, ``K``:
 ```math
-\begin{equation*}
 T=4K(\sin(x_0/2)).
-\end{equation*}
 ```
 
 The Hamiltonian for the simple pendulum is:

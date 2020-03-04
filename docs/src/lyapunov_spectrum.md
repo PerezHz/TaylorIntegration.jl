@@ -10,18 +10,12 @@ equations associated to them.
 
 In general, given a dynamical system defined by the equations of motion
 ```math
-\begin{equation}
-\label{eq-ODE-l}
-\dot{x} = f(t, x),
-\end{equation}
+\dot{x} = f(t, x),\tag{1}
 ```
 along with the initial condition ``x(t_0) = x_0``, then the first-order
 variational equations associated to this system are
 ```math
-\begin{equation}
-\label{var-eqs}
-\dot{\xi} = (\operatorname{D}f)(x(t))\cdot \xi,
-\end{equation}
+\dot{\xi} = (\operatorname{D}f)(x(t))\cdot \xi,\tag{2}
 ```
 where ``(\operatorname{D}f)(x(t))`` is the Jacobian of the function ``f`` with
 respect to the dependent variable ``x``, evaluated at time ``t``, for a given
@@ -40,10 +34,7 @@ matrix and ``R_k`` is an upper triangular ``n\times n`` matrix with positive dia
 elements. The diagonal elements ``R_{ii,k}`` are the growth
 factors from which the ``l``-th Lyapunov exponent is computed at time ``t_k``
 ```math
-\begin{equation}
-\label{lyap-spec}
-\lambda_l = \sum_{m=1}^k \frac{\log (R_{ll,m})}{k\cdot \Delta t}.
-\end{equation}
+\lambda_l = \sum_{m=1}^k \frac{\log (R_{ll,m})}{k\cdot \Delta t}.\tag{3}
 ```
 In turn, the matrix ``Q`` is substituted into ``\xi(t_k)`` as the new (scaled)
 initial condition.

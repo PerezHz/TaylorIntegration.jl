@@ -9,17 +9,11 @@ to obtain it.
 
 We consider the differential equation given by
 ```math
-\begin{equation}
-\label{eq-example1}
-\dot{x} = x^2,
-\end{equation}
+\dot{x} = x^2,\tag{1}
 ```
 with the initial condition ``x(0)=x_0``, whose exact solution reads
 ```math
-\begin{equation}
-\label{eq-sol1}
-x(t) = \frac{x_0}{1-x_0t}.
-\end{equation}
+x(t) = \frac{x_0}{1-x_0t}.\tag{2}
 ```
 We shall implement the construction of this example explicitly, which
 illustrates the way `TaylorIntegration.jl` is conceived.
@@ -27,7 +21,7 @@ illustrates the way `TaylorIntegration.jl` is conceived.
 The initial condition defines the 0-th order approximation, i.e.,
 ``x(t) = x_0 + \mathcal{O}(t^1)``. We now write the solution as
 ``x(t) = x_0 + x_{[1]}t + \mathcal{O}(t^2)``, and we want to determine
-``x_{[1]}``. Substituting this solution into the RHS of (\ref{eq-example1}),
+``x_{[1]}``. Substituting this solution into the RHS of (1),
 yields
 ```math
 x^2 = x_0^2 + 2 x_0 x_{[1]} t + x_{[1]}^2 t^2 =
@@ -48,14 +42,11 @@ where we kept all terms up to order 1. We thus have
 ``f_{[1]}=2 x_0 x_{[1]} = 2 x_0^3``, which then yields ``x_{[2]} = x_0^3``.
 Repeating this calculation, we obtain
 ```math
-\begin{equation}
-\label{eq-solTaylor}
-x(t) = x_0 + x_0^2 t + x_0^3 t^2 + \cdots + x_0^{k+1} t^k + \cdots.
-\end{equation}
+x(t) = x_0 + x_0^2 t + x_0^3 t^2 + \cdots + x_0^{k+1} t^k + \cdots.\tag{3}
 ```
 
-The solution given by Eq. (\ref{eq-solTaylor}) is a geometrical
-series, which is identical to the exact solution, Eq. (\ref{eq-sol1}).
+The solution given by Eq. (3) is a geometrical
+series, which is identical to the exact solution, Eq. (2).
 Yet, it is not obvious from the solution that it is only defined
 for ``t<1/x_0``. To see this, we obtain the step size, as described
 previously, for the series truncated to order ``k``.
@@ -80,8 +71,8 @@ of the expansion.
 ## [Implementation](@id implementation_ex1)
 
 We shall illustrate how to use `TaylorIntegration.jl` to integrate
-Eq. (\ref{eq-example1}) for the initial condition ``x(0)=3``. Notice
-that according to the exact solution Eq. (\ref{eq-sol1}), the solution
+Eq. (1) for the initial condition ``x(0)=3``. Notice
+that according to the exact solution Eq. (2), the solution
 only exists for ``t<t_\mathrm{max} =1/3``; in addition, we note that
 this number can not be represented exactly as a floating-point number.
 

@@ -22,25 +22,21 @@ chosen solver supports computations using *multi-variate polynomial algebra*.
 Following D. Pérez-Palau et al [[1]](@ref refsJT),
 let us consider the differential equations for the harmonic oscillator:
 ```math
-\begin{eqnarray*}
-\dot{x} & = & y, \\
-\dot{y} & = & -x,
-\end{eqnarray*}
+\begin{aligned}
+\dot{x} & = y, \\
+\dot{y} & = -x,
+\end{aligned}
 ```
 with the initial condition ``\mathbf{x}_0=[x_0, y_0]^T``.
 We illustrate jet transport techniques using Euler's method
 ```math
-\begin{equation*}
 \mathbf{x}_{n+1} = \mathbf{x}_n + h \mathbf{f}(\mathbf{x}_n).
-\end{equation*}
 ```
 
 Instead of considering the initial conditions ``\mathbf{x}_0``, we consider
 the time evolution of the polynomial
 ```math
-\begin{equation*}
 P_{0,\mathbf{x}_0}(\delta\mathbf{x}) = [x_0+\delta x, y_0 + \delta y]^T,
-\end{equation*}
 ```
 where ``\delta x`` and ``\delta y`` are small displacements. Below we
 concentrate in polynomials of order 1 in ``\delta x`` and ``\delta y``; since
@@ -49,8 +45,8 @@ no higher order terms.
 
 Using Euler's method we obtain
 ```math
-\begin{eqnarray*}
-  \mathbf{x}_1 & = &
+\begin{aligned}
+  \mathbf{x}_1 & =
   \left(
     \begin{array}{c}
     x_0 + h y_0 \\
@@ -69,7 +65,7 @@ Using Euler's method we obtain
         \delta y
       \end{array}
     \right). \\
-  \mathbf{x}_2 & = &
+  \mathbf{x}_2 & =
   \left(
     \begin{array}{c}
     1-h^2 x_0 + 2 h y_0 \\
@@ -88,7 +84,7 @@ Using Euler's method we obtain
         \delta y
       \end{array}
     \right).
-\end{eqnarray*}
+\end{aligned}
 ```
 
 The first terms in the expressions for ``\mathbf{x}_1`` and ``\mathbf{x}_2``

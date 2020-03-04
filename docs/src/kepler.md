@@ -10,12 +10,12 @@ located at rest at the origin of mass ``M=m_1+m_2``.
 
 In cartesian coordinates, the equations of motion can be written as
 ```math
-\begin{eqnarray*}
-\dot{x} &=& v_x,\\
-\dot{y} &=& v_y,\\
-\dot{v}_x &=& - \frac{G M x}{(x^2 + y^2)^{3/2}},\\
-\dot{v}_y &=& - \frac{G M y}{(x^2 + y^2)^{3/2}}.
-\end{eqnarray*}
+\begin{aligned}
+\dot{x} & = v_x,\\
+\dot{y} & = v_y,\\
+\dot{v}_x & = - \frac{G M x}{(x^2 + y^2)^{3/2}},\\
+\dot{v}_y & = - \frac{G M y}{(x^2 + y^2)^{3/2}}.
+\end{aligned}
 ```
 For concreteness, we fix ``\mu = G M = 1``. The coordinates ``x`` and ``y``
 are the relative coordinates (to the center of mass) of the particle,
@@ -39,12 +39,12 @@ We set the initial conditions for the particle at periapse, which we locate
 on the positive x-axis. Using the semimajor axis and the eccentricity, we
 write them as
 ```math
-\begin{eqnarray*}
-x_0 & = & a (1-e),\\
-y_0 & = & 0,\\
-v_{x_0} & = & 0,\\
-v_{y_0} & = & \frac{l_z}{x_0} = m \frac{\sqrt{\mu a (1-e^2)}}{x_0},
-\end{eqnarray*}
+\begin{aligned}
+x_0 & = a (1-e),\\
+y_0 & = 0,\\
+v_{x_0} & = 0,\\
+v_{y_0} & = \frac{l_z}{x_0} = m \frac{\sqrt{\mu a (1-e^2)}}{x_0},
+\end{aligned}
 ```
 where ``l_z`` is the angular momentum. We set the mass of the particle
 ``m=1``, the semi-major axis ``a=1`` and the eccentricity ``e=0.8``.
