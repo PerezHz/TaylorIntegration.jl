@@ -78,13 +78,13 @@ t, q = taylorinteg(kepler_eqs!, q0, 0.0, 10000*2pi, 25, 1.0e-20, maxsteps=700_00
 t[end], q[end,:]
 ```
 
-We first plot the orbit.
+We first plot the orbit. (For performance reasons only the first 10000 points are considered.)
 ```@example kepler
 x = view(q, :, 1)
 y = view(q, :, 2)
 vx = view(q, :, 3)
 vy = view(q, :, 4)
-plot(x, y, legend=false)
+plot(x[1:10_000], y[1:10_000], legend=false)
 scatter!([0], [0], shape=:circle, ms=5)
 xaxis!("x", (-2.0, 0.5))
 yaxis!("y", (-1.0, 1.0))
