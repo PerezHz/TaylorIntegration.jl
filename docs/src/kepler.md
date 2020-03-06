@@ -113,7 +113,7 @@ the accuracy of the calculation, shown in Figure 2 and 3.
 ```@example kepler
 e0 = energy(q0...)
 δE = (energy.(x,y,vx,vy) .- e0) ./ eps(e0)
-plot(t, δE)
+plot(t[1:3:end], δE[1:3:end])
 xlabel!("t")
 ylabel!("dE")
 title!("Fig. 2")
@@ -122,7 +122,7 @@ title!("Fig. 2")
 ```@example kepler
 lz0 = lz(q0...)
 δlz = (lz.(x,y,vx,vy) .- lz0) ./ eps(lz0)
-plot(t, δlz)
+plot(t[1:3:end], δlz[1:3:end])
 xlabel!("t")
 ylabel!("dlz")
 title!("Fig. 3")
