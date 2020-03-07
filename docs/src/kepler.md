@@ -10,12 +10,12 @@ located at rest at the origin of mass ``M=m_1+m_2``.
 
 In cartesian coordinates, the equations of motion can be written as
 ```math
-\begin{eqnarray*}
-\dot{x} &=& v_x,\\
-\dot{y} &=& v_y,\\
-\dot{v}_x &=& - \frac{G M x}{(x^2 + y^2)^{3/2}},\\
-\dot{v}_y &=& - \frac{G M y}{(x^2 + y^2)^{3/2}}.
-\end{eqnarray*}
+\begin{aligned}
+\dot{x} & = v_x,\\
+\dot{y} & = v_y,\\
+\dot{v}_x & = - \frac{G M x}{(x^2 + y^2)^{3/2}},\\
+\dot{v}_y & = - \frac{G M y}{(x^2 + y^2)^{3/2}}.
+\end{aligned}
 ```
 For concreteness, we fix ``\mu = G M = 1``. The coordinates ``x`` and ``y``
 are the relative coordinates (to the center of mass) of the particle,
@@ -39,12 +39,12 @@ We set the initial conditions for the particle at periapse, which we locate
 on the positive x-axis. Using the semimajor axis and the eccentricity, we
 write them as
 ```math
-\begin{eqnarray*}
-x_0 & = & a (1-e),\\
-y_0 & = & 0,\\
-v_{x_0} & = & 0,\\
-v_{y_0} & = & \frac{l_z}{x_0} = m \frac{\sqrt{\mu a (1-e^2)}}{x_0},
-\end{eqnarray*}
+\begin{aligned}
+x_0 & = a (1-e),\\
+y_0 & = 0,\\
+v_{x_0} & = 0,\\
+v_{y_0} & = \frac{l_z}{x_0} = m \frac{\sqrt{\mu a (1-e^2)}}{x_0},
+\end{aligned}
 ```
 where ``l_z`` is the angular momentum. We set the mass of the particle
 ``m=1``, the semi-major axis ``a=1`` and the eccentricity ``e=0.8``.
@@ -78,13 +78,13 @@ t, q = taylorinteg(kepler_eqs!, q0, 0.0, 10000*2pi, 25, 1.0e-20, maxsteps=700_00
 t[end], q[end,:]
 ```
 
-We first plot the orbit.
+We first plot the orbit. (For performance reasons only the first 10000 points are considered.)
 ```@example kepler
 x = view(q, :, 1)
 y = view(q, :, 2)
 vx = view(q, :, 3)
 vy = view(q, :, 4)
-plot(x, y, legend=false)
+plot(x[1:10_000], y[1:10_000], legend=false)
 scatter!([0], [0], shape=:circle, ms=5)
 xaxis!("x", (-2.0, 0.5))
 yaxis!("y", (-1.0, 1.0))
@@ -113,7 +113,7 @@ the accuracy of the calculation, shown in Figure 2 and 3.
 ```@example kepler
 e0 = energy(q0...)
 δE = (energy.(x,y,vx,vy) .- e0) ./ eps(e0)
-plot(t, δE)
+plot(t[1:3:end], δE[1:3:end])
 xlabel!("t")
 ylabel!("dE")
 title!("Fig. 2")
@@ -122,7 +122,7 @@ title!("Fig. 2")
 ```@example kepler
 lz0 = lz(q0...)
 δlz = (lz.(x,y,vx,vy) .- lz0) ./ eps(lz0)
-plot(t, δlz)
+plot(t[1:3:end], δlz[1:3:end])
 xlabel!("t")
 ylabel!("dlz")
 title!("Fig. 3")

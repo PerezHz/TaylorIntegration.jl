@@ -46,20 +46,14 @@ nothing # hide
 The Hamiltonian for the PCR3BP in the synodic frame (i.e., a frame which rotates
 such that the primaries are at rest on the ``x`` axis) is
 ```math
-\begin{equation}
-\label{eq-pcr3bp-hamiltonian}
-H(x, y, p_x, p_y) = \frac{1}{2}(p_x^2+p_y^2) - (x p_y - y p_x) + V(x, y)
-\end{equation}
+H(x, y, p_x, p_y) = \frac{1}{2}(p_x^2+p_y^2) - (x p_y - y p_x) + V(x, y), \tag{1}
 ```
 where
 ```math
-\begin{equation}
-\label{eq-pcr3bp-potential}
-V(x, y) = - \frac{1-\mu}{\sqrt{(x-\mu)^2+y^2}} - \frac{\mu}{\sqrt{(x+1-\mu)^2+y^2}}.
-\end{equation}
+V(x, y) = - \frac{1-\mu}{\sqrt{(x-\mu)^2+y^2}} - \frac{\mu}{\sqrt{(x+1-\mu)^2+y^2}}.\tag{2}
 ```
 is the gravitational potential associated to the primaries. The RHS of Eq.
-(\ref{eq-pcr3bp-hamiltonian}) is also known as the *Jacobi constant*, since it is a
+(1) is also known as the *Jacobi constant*, since it is a
 preserved quantity of motion in the PCR3BP. We will use this property to check
 the accuracy of the solutions computed.
 ```@example common
@@ -71,13 +65,12 @@ nothing # hide
 
 The equations of motion for the PCR3BP are
 ```math
-\begin{eqnarray}
-\label{eqs-motion-pcr3bp}
-    \dot{x} &=& p_x + y \\
-    \dot{y} &=& p_y - x \\
-    \dot{p_x} &=& - \frac{(1-\mu)(x-\mu)}{((x-\mu)^2+y^2)^{3/2}} - \frac{\mu(x+1-\mu)}{((x+1-\mu)^2+y^2)^{3/2}} + p_y \\
-    \dot{p_y} &=& - \frac{(1-\mu)y      }{((x-\mu)^2+y^2)^{3/2}} - \frac{\mu y       }{((x+1-\mu)^2+y^2)^{3/2}} - p_x.
-\end{eqnarray}
+\begin{aligned}
+    \dot{x} & = p_x + y,\\
+    \dot{y} & = p_y - x,\\
+    \dot{p_x} & = - \frac{(1-\mu)(x-\mu)}{((x-\mu)^2+y^2)^{3/2}} - \frac{\mu(x+1-\mu)}{((x+1-\mu)^2+y^2)^{3/2}} + p_y,\\
+    \dot{p_y} & = - \frac{(1-\mu)y      }{((x-\mu)^2+y^2)^{3/2}} - \frac{\mu y       }{((x+1-\mu)^2+y^2)^{3/2}} - p_x.
+\end{aligned}
 ```
 
 We define this system of ODEs using the most naive approach
