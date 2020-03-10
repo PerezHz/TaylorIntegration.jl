@@ -208,7 +208,12 @@ list some limitations and advices.
 - Use `local` for internal parameters (simple constant values); this improves
   performance. Do not use it if the variable is Taylor expanded.
 
-- `@taylorize` supports multi-threading via `Threads.@threads`.
+- `@taylorize` supports multi-threading via `Threads.@threads`. **WARNING**:
+  this feature is experimental. Since thread-safety depends on the definition
+  of each ODE, we cannot guarantee the resulting code to be thread-safe in
+  advance. The user should check the resulting code to ensure that it is indeed
+  thread-safe. For more information about multi-threading, the reader is
+  referred to the [Julia documentation](https://docs.julialang.org/en/v1/manual/parallel-computing#man-multithreading-1).
 
 It is recommended to skim `test/taylorize.jl`, which implements different
 cases.
