@@ -4,7 +4,6 @@ repo = "https://github.com/PerezHz/TaylorIntegration.jl.git"
 version = "0.8.1"
 
 [deps]
-Threads = "2c2a2de0-fc20-5d86-a1c5-326378dc053c"
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
 DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
 Espresso = "6912e4f1-e036-58b0-9138-08d1e6358ea9"
@@ -26,7 +25,6 @@ TaylorSeries = "0.10.2"
 julia = "1"
 
 [extras]
-Threads = "2c2a2de0-fc20-5d86-a1c5-326378dc053c"
 Elliptic = "b305315f-e792-5b7a-8f41-49f472929428"
 InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
@@ -34,4 +32,4 @@ TaylorSeries = "6aa5eb33-94cf-58f4-a9d0-e4b2c4fc25ea"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["TaylorSeries", "LinearAlgebra", "Test", "Elliptic", "InteractiveUtils", "Threads"]
+test = ["TaylorSeries", "LinearAlgebra", "Test", "Elliptic", "InteractiveUtils"]
