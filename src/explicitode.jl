@@ -395,7 +395,7 @@ function taylorinteg(f, x0::U, t0::T, tmax::T, order::Int, abstol::T,
 
     #return tv, xv
     if dense
-        return TaylorInterpolant(view(tv,1:nsteps), view(xv_interp,1:nsteps-1))
+        return TaylorInterpolant(tv[1], view(tv.-tv[1],1:nsteps), view(xv_interp,1:nsteps-1))
     else
         return view(tv,1:nsteps), view(xv,1:nsteps)
     end
@@ -458,7 +458,7 @@ function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T, order::Int, abstol::T,
     end
 
     if dense
-        return TaylorInterpolant(view(tv,1:nsteps), view(transpose(view(xv_interp,:,1:nsteps-1)),1:nsteps-1,:))
+        return TaylorInterpolant(tv[1], view(tv.-tv[1],1:nsteps), view(transpose(view(xv_interp,:,1:nsteps-1)),1:nsteps-1,:))
     else
         return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:)
     end
