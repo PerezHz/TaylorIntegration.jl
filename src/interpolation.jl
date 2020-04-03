@@ -21,12 +21,17 @@ function TaylorInterpolant(t0::T, t::AbstractVector{T},
     return TaylorInterpolant{T,U,N}(t0, t, x)
 end
 
+# function TaylorInterpolant(t::AbstractVector{T},
+#         x::AbstractArray{Taylor1{U},N}) where {T<:Real, U<:Number, N}
+#     return TaylorInterpolant{T,U,N}(t[1], t.-t[1], x)
+# end
+
 # return time vector index corresponding to interpolation range
 function getinterpindex(tinterp::TaylorInterpolant{T,U,N}, t::T) where {T<:Real, U<:Number, N}
     tmin, tmax = minmax(tinterp.t[end], tinterp.t[1])
     Δt = t-tinterp.t0
     @assert tmin ≤ Δt ≤ tmax "Evaluation time outside range of interpolation"
-    if Δt == tinterp.t[end] # expand
+    if Δt == tinterp.t[end] # compute solution at final time from last step expansion
         ind = lastindex(tinterp.t)-1
     elseif issorted(tinterp.t) # forward integration
         ind = searchsortedlast(tinterp.t, Δt)
