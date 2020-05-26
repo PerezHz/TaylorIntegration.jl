@@ -260,7 +260,7 @@ function _determine_parsing!(parse_eqs::Bool, f, t, x, params)
         catch
             @warn("""Unable to use the parsed method of `jetcoeffs!`
             despite of having `parse_eqs=true`, due to some internal error.
-            Using `parse_eqs = $false`""")
+            Using `parse_eqs = false`""")
             parse_eqs = false
         end
     end
@@ -275,7 +275,7 @@ function _determine_parsing!(parse_eqs::Bool, f, t, x, dx, params)
         catch
             @warn("""Unable to use the parsed method of `jetcoeffs!`
             despite of having `parse_eqs=true`, due to some internal error.
-            Using `parse_eqs = $false`""")
+            Using `parse_eqs = false`""")
             parse_eqs = false
         end
     end
