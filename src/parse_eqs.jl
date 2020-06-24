@@ -869,7 +869,7 @@ See the [documentation](@ref taylorize) for more details and limitations.
 macro taylorize( ex )
     nex = _make_parsed_jetcoeffs(ex)
     quote
-        eval( $(esc(ex)) )  # evals to calling scope the passed function
-        eval( $(esc(nex)) ) # evals the new method of `jetcoeffs!`
+        $(esc(ex))  # evals to calling scope the passed function
+        $(esc(nex)) # evals the new method of `TaylorIntegration.jetcoeffs!`
     end
 end
