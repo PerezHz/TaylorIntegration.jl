@@ -623,7 +623,7 @@ for R in (:Number, :Integer)
                 parse_eqs=parse_eqs)
         end
 
-        function taylorinteg(f, q0::Array{S,1}, tt0::T, ttmax::U, order::Int, aabstol::V,
+        function taylorinteg(f, q0::AbstractArray{S,1}, tt0::T, ttmax::U, order::Int, aabstol::V,
                 params = nothing; maxsteps::Int=500, parse_eqs::Bool=true) where
                     {S<:$R, T<:Real, U<:Real, V<:Real}
 
