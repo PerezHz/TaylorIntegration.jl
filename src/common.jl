@@ -48,7 +48,30 @@ function DiffEqBase.solve(
     end
 
     sizeu = size(prob.u0)
-    f = prob.f.f
+    if prob.f isa DynamicalODEFunction
+      if isinplace
+        f = (du,u,p,t) -> 
+        @inbounds begin
+          dv1 = view(du, firstindex(du):lastindex(du)÷2)
+          dv2 = view(du, lastindex(du)÷2+1:lastindex(du))
+          v1 = view(u, firstindex(u):lastindex(u)÷2)
+          v2 = view(u, lastindex(u)÷2+1:lastindex(u))
+          prob.f.f1(dv1, v1, v2, p, t)
+          prob.f.f2(dv1, v1, v2, p, t)
+          return nothing
+        end
+      else
+        f = (u,p,t) ->
+        @inbounds begin
+          v1 = view(u, firstindex(u):lastindex(u)÷2)
+          v2 = view(u, lastindex(u)÷2+1:lastindex(u))
+          typeof(u)(vcat(prob.f.f1(v1, v2, p, t),
+                         prob.f.f2(v1, v2, p, t)))
+        end
+      end
+    else
+      f = prob.f
+    end
 
     tspan = prob.tspan
 
