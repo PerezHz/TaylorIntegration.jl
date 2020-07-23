@@ -418,7 +418,8 @@ function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T, order::Int, abstol::T,
     sign_tstep = copysign(1, tmax-t0)
 
     # Determine if specialized jetcoeffs! method exists
-    parse_eqs = _determine_parsing!(parse_eqs, f!, t, x, dx, params)
+    # parse_eqs = _determine_parsing!(parse_eqs, f!, t, x, dx, params)
+    parse_eqs = false
 
     # Integration
     nsteps = 1
