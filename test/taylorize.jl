@@ -6,6 +6,7 @@ using LinearAlgebra: norm
 using InteractiveUtils: methodswith
 using Elliptic
 using Base.Threads
+import Pkg
 
 @testset "Testing `taylorize.jl`" begin
 
@@ -1240,4 +1241,18 @@ using Base.Threads
         @test xv == xv_
     end
 
+
+    # Issue 106: allow calls to macro from Julia packages
+    @testset "Test @taylorize use in modules/packages" begin
+        # Pkg.add(url="https://github.com/PerezHz/MyPkg", rev="f0f5868", preserve=Pkg.PRESERVE_ALL)
+        Pkg.develop(path="/Users/Jorge/projects/MyPkg")
+        using MyPkg
+        nex1_ = TaylorIntegration._make_parsed_jetcoeffs(MyPkg.ex1)
+        nex2_ = TaylorIntegration._make_parsed_jetcoeffs(MyPkg.ex2)
+        nex3_ = TaylorIntegration._make_parsed_jetcoeffs(MyPkg.ex3)
+        @test length(MyPkg.nex1.args[2].args) == length(nex1_.args[2].args)
+        @test length(MyPkg.nex2.args[2].args) == length(nex2_.args[2].args)
+        @test length(MyPkg.nex3.args[2].args) == length(nex3_.args[2].args)
+        Pkg.rm("MyPkg")
+    end
 end
