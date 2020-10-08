@@ -1244,7 +1244,7 @@ import Pkg
 
     # Issue 106: allow calls to macro from Julia packages
     @testset "Test @taylorize use in modules/packages" begin
-        Pkg.add(url="https://github.com/PerezHz/MyPkg", rev="c2ea4a0")
+        Pkg.add(Pkg.PackageSpec(url="https://github.com/PerezHz/MyPkg", rev="c2ea4a0"))
         using MyPkg
         nex1_ = TaylorIntegration._make_parsed_jetcoeffs(MyPkg.ex1)
         nex2_ = TaylorIntegration._make_parsed_jetcoeffs(MyPkg.ex2)
