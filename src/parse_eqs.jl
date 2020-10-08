@@ -949,11 +949,10 @@ See the [documentation](@ref taylorize) for more details and limitations.
     results carefully.
 
 """
-macro taylorize( ex, debug=false )
-    nex = _make_parsed_jetcoeffs(ex, debug)
-    debug && println(nex)
-    quote
-        $(esc(ex))  # evals to calling scope the passed function
-        $(esc(nex)) # evals the new method of `TaylorIntegration.jetcoeffs!`
-    end
+macro taylorize( ex )
+    nex = _make_parsed_jetcoeffs(ex)
+    esc(quote
+        $ex  # evals to calling scope the passed function
+        $nex # evals the new method of `TaylorIntegration.jetcoeffs!`
+    end)
 end
