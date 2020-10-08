@@ -2,8 +2,95 @@
 
 # Load necessary components of Espresso
 using Espresso: subs, simplify, ExGraph, ExH, to_expr, sanitize, genname,
-    find_vars, findex, find_indices, isindexed
+    find_vars, findex, find_indices, isindexed, to_context, preprocess, @get,
+    rename_repeated, canonical, parse!, eval_tracked!, fuse_assigned,
+    parse_call_args, AbstractExGraph, ExNode, @get_or_create, get_caller_module,
+    add_renaming!, CONST_OPS, force_bitness
 
+mutable struct ExGraph_taylor <: AbstractExGraph
+    tape::Vector{ExNode}           # list of ExNode-s
+    idx::Dict{Symbol, ExNode}      # map from var name to its node in the graph
+    ctx::Dict{Any,Any}             # settings and caches
+end
+
+# an adapted version of Espresso.parse!; Copyright (c) 2016: Andrei Zhabinski, MIT-licensed
+parse_taylor!(g::ExGraph_taylor, ex::Expr) = parse_taylor!(g, ExH(ex))
+parse_taylor!(g::ExGraph_taylor, s::Symbol) = rename_repeated(g, s)
+
+function parse_taylor!(g::ExGraph_taylor, x::Number)
+    if haskey(g.ctx, :bitness)
+        x = force_bitness(x, Val(g.ctx[:bitness]))
+    end
+    var = push!(g, :constant, genname(), x; val=x)
+    return var
+end
+
+function parse_taylor!(gt::ExGraph_taylor, ex::ExH{:(=)})
+    lhs, rhs = ex.args
+    rhs = rename_repeated(gt, rhs)
+    dep = parse_taylor!(gt, rhs)
+    if isa(lhs, Symbol)
+        if haskey(gt, lhs)
+            lhs = add_renaming!(gt, lhs)
+        end
+        push!(gt, :(=), lhs, dep)
+        return lhs
+    elseif isa(lhs, Expr) && lhs.head == :tuple
+        last_vname = nothing
+        for (i, vname) in enumerate(lhs.args)
+            parse_taylor!(gt, :($vname = $dep[$i]))
+        end
+        return last_vname
+    else
+        error("LHS of $(Expr(ex)) is neither variable, nor tuple")
+    end
+end
+
+function parse_taylor!(g::ExGraph_taylor, ex::ExH{:call})
+    ex = rename_repeated(g, ex)
+    op = ex.args[1] # canonical_taylor(g.ctx[:mod], ex.args[1])
+    args, kw_args = parse_call_args(ex)
+    meta = isempty(kw_args) ? Dict() : Dict(:kw => kw_args)
+    deps = [parse_taylor!(g, arg) for arg in args]
+    pex = Expr(:call, op, deps...)
+    if op in CONST_OPS && isempty(meta)
+        var = push!(g, :constant, genname(), pex)
+    else
+        var = push!(g, :call, genname(), pex; meta=meta)
+    end
+    return var
+end
+
+# an adapted version of Espresso.ExGraph; Copyright (c) 2016: Andrei Zhabinski, MIT-licensed
+function ExGraph_taylor(; ctx=Dict(), inputs...)
+    ctx = to_context(ctx)
+    # @get_or_create(ctx, :mod, @__MODULE__)
+    @get_or_create(ctx, :mod, get_caller_module())
+    g = ExGraph_taylor(ExNode[], Dict(), ctx)
+    for (var, val) in inputs
+        push!(g, :input, var, var; val=val)
+    end
+    return g
+end
+
+function ExGraph_taylor(ex::Expr; fuse=true, ctx=Dict(), inputs...)
+    ex = preprocess(ex)
+    ctx = to_context(ctx)
+    g = ExGraph_taylor(;ctx=ctx, inputs...)
+    g.ctx[:expr] = ex
+    method = @get(g.ctx, :method, :parse)
+    if method == :parse
+        parse_taylor!(g, ex)
+    elseif method == :track
+        eval_tracked!(g, ex, inputs...)
+    else
+        error("Method $method is not supported")
+    end
+    if fuse
+        g = fuse_assigned(g)
+    end
+    return g
+end
 
 # Define some constants to create the new (parsed) functions
 # The (irrelevant) `nothing` below is there to have a :block Expr; deleted later
@@ -408,9 +495,11 @@ function _newfnbody(fnbody, fnargs, d_indx)
 
                 # Unfold AST graph
                 nex = deepcopy(ex)
+                # @show to_expr(ExGraph_taylor(simplify(ex)))
                 try
-                    nex = to_expr(ExGraph(simplify(ex)))
+                    nex = to_expr(ExGraph_taylor(simplify(ex)))
                 catch
+                    @show "catch ExGraph_taylor" ex
                     # copy `ex` as it is, if it is not "recognized"
                     push!(newfnbody.args, ex)
                     continue
@@ -845,8 +934,6 @@ function _recursionloop(fnargs, retvar)
     return rec_preamb, rec_fnbody
 end
 
-
-
 """
 `@taylorize expr`
 
@@ -862,8 +949,9 @@ See the [documentation](@ref taylorize) for more details and limitations.
     results carefully.
 
 """
-macro taylorize( ex )
-    nex = _make_parsed_jetcoeffs(ex)
+macro taylorize( ex, debug=false )
+    nex = _make_parsed_jetcoeffs(ex, debug)
+    debug && println(nex)
     quote
         $(esc(ex))  # evals to calling scope the passed function
         $(esc(nex)) # evals the new method of `TaylorIntegration.jetcoeffs!`
