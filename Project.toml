@@ -17,7 +17,6 @@ TaylorSeries = "6aa5eb33-94cf-58f4-a9d0-e4b2c4fc25ea"
 [compat]
 DataStructures = "0.17.2"
 DiffEqBase = "6"
-Elliptic = "0.5, 1.0"
 Espresso = "0.6"
 Reexport = "0.2"
 Requires = "0.5.2, 1.0"
@@ -28,8 +27,9 @@ julia = "1"
 Elliptic = "b305315f-e792-5b7a-8f41-49f472929428"
 InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 TaylorSeries = "6aa5eb33-94cf-58f4-a9d0-e4b2c4fc25ea"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["TaylorSeries", "LinearAlgebra", "Test", "Elliptic", "InteractiveUtils"]
+test = ["TaylorSeries", "LinearAlgebra", "Test", "Elliptic", "InteractiveUtils", "Pkg"]
