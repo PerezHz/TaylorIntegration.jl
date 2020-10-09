@@ -16,6 +16,7 @@ TaylorSeries = "6aa5eb33-94cf-58f4-a9d0-e4b2c4fc25ea"
 
 [compat]
 DiffEqBase = "6"
+Elliptic = "0.5, 1.0"
 Espresso = "0.6.1"
 OrdinaryDiffEq = "5"
 Reexport = "0.2"
