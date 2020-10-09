@@ -408,13 +408,14 @@ function _newfnbody(fnbody, fnargs, d_indx)
 
                 # Unfold AST graph
                 nex = deepcopy(ex)
-                try
-                    nex = to_expr(ExGraph(simplify(ex)))
-                catch
-                    # copy `ex` as it is, if it is not "recognized"
-                    push!(newfnbody.args, ex)
-                    continue
-                end
+                # try
+                #     nex = to_expr(ExGraph(simplify(ex)))
+                # catch
+                #     # copy `ex` as it is, if it is not "recognized"
+                #     push!(newfnbody.args, ex)
+                #     continue
+                # end
+                nex = to_expr(ExGraph(simplify(ex)))
                 push!(newfnbody.args, nex.args[2:end]...)
 
                 # Bookkeeping of indexed vars, to define assignements
