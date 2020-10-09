@@ -1,6 +1,7 @@
-using DiffEqBase, DataStructures
+using DiffEqBase
 
 import DiffEqBase: ODEProblem, solve
+import OrdinaryDiffEq: tstop_saveat_disc_handling
 
 const warnkeywords =
     (:save_idxs, :d_discontinuities, :unstable_check, :save_everystep,
@@ -134,61 +135,4 @@ function DiffEqBase.solve(
 
     DiffEqBase.build_solution(prob,  alg, _t, _timeseries,
         timeseries_errors = timeseries_errors, retcode = :Success)
-end
-
-# This function is part of OrdinaryDiffEq.jl; MIT-licensed
-# https://github.com/JuliaDiffEq/OrdinaryDiffEq.jl/blob/8b5af68ee4126d3772fe690a7128468f1334b4d6/src/solve.jl#L411
-function tstop_saveat_disc_handling(tstops, saveat, d_discontinuities, tspan)
-    t0, tf = tspan
-    tType = eltype(tspan)
-    tdir = sign(tf - t0)
-
-    tdir_t0 = tdir * t0
-    tdir_tf = tdir * tf
-
-    # time stops
-    tstops_internal = BinaryMinHeap{tType}()
-    if isempty(d_discontinuities) && isempty(tstops) # TODO: Specialize more
-      push!(tstops_internal, tdir_tf)
-    else
-      for t in tstops
-        tdir_t = tdir * t
-        tdir_t0 < tdir_t ≤ tdir_tf && push!(tstops_internal, tdir_t)
-      end
-
-      for t in d_discontinuities
-        tdir_t = tdir * t
-        tdir_t0 < tdir_t ≤ tdir_tf && push!(tstops_internal, tdir_t)
-      end
-
-      push!(tstops_internal, tdir_tf)
-    end
-
-    # saving time points
-    saveat_internal = BinaryMinHeap{tType}()
-    if typeof(saveat) <: Number
-      if (t0:saveat:tf)[end] == tf
-        for t in (t0 + saveat):saveat:tf
-          push!(saveat_internal, tdir * t)
-        end
-      else
-        for t in (t0 + saveat):saveat:(tf - saveat)
-          push!(saveat_internal, tdir * t)
-        end
-      end
-    elseif !isempty(saveat)
-      for t in saveat
-        tdir_t = tdir * t
-        tdir_t0 < tdir_t < tdir_tf && push!(saveat_internal, tdir_t)
-      end
-    end
-
-    # discontinuities
-    d_discontinuities_internal = BinaryMinHeap{tType}()
-    sizehint!(d_discontinuities_internal.valtree, length(d_discontinuities))
-    for t in d_discontinuities
-      push!(d_discontinuities_internal, tdir * t)
-    end
-
-    tstops_internal, saveat_internal, d_discontinuities_internal
 end
