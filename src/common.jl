@@ -5,9 +5,10 @@ import DiffEqBase: ODEProblem, solve, ODE_DEFAULT_NORM, @..
 import OrdinaryDiffEq: OrdinaryDiffEqAdaptiveAlgorithm,
 OrdinaryDiffEqConstantCache, OrdinaryDiffEqMutableCache,
 alg_order, alg_cache, initialize!, perform_step!, @muladd, @unpack,
-constvalue, @cache, tuple, stepsize_controller!, isfsal
+constvalue, @cache, tuple, stepsize_controller!, isfsal,
+step_accept_controller!
 
-# const warnkeywords =
+const warnkeywords = () # TODO: check which keywords work fine
 # (:save_idxs, :d_discontinuities, :unstable_check, :save_everystep,
 # :save_end, :initialize_save, :adaptive, :dt, :reltol, :dtmax,
 # :dtmin, :force_dtmin, :internalnorm, :gamma, :beta1, :beta2,
@@ -15,7 +16,7 @@ constvalue, @cache, tuple, stepsize_controller!, isfsal
 # :isoutofdomain, :unstable_check,
 # :calck, :progress, :timeseries_steps, :tstops, :dense)
 
-# global warnlist = Set(warnkeywords)
+global warnlist = Set(warnkeywords)
 
 
 
@@ -57,7 +58,7 @@ struct TaylorMethodCache{uType, rateType, tTType, uTType} <: OrdinaryDiffEqMutab
     uT::uTType
     duT::uTType
     uauxT::uTType
-    parse_eqs::Bool
+    parse_eqs::Ref{Bool}
 end
 
 full_cache(c::TaylorMethodCache) = begin
@@ -82,7 +83,6 @@ struct TaylorMethodConstantCache <: OrdinaryDiffEqConstantCache end
 function alg_cache(alg::_TaylorMethod, u, rate_prototype, uEltypeNoUnits,
         uBottomEltypeNoUnits, tTypeNoUnits, uprev, uprev2, f, t, dt, reltol, p,
         calck,::Val{true})
-    @show "alg_cache"
     TaylorMethodCache(
         u,
         u,
@@ -93,7 +93,7 @@ function alg_cache(alg::_TaylorMethod, u, rate_prototype, uEltypeNoUnits,
         Taylor1.(u, alg.order),
         zero.(Taylor1.(u, alg.order)),
         zero.(Taylor1.(u, alg.order)),
-        alg.parse_eqs
+        Ref(alg.parse_eqs)
         )
 end
 
@@ -125,14 +125,15 @@ alg_cache(alg::_TaylorMethod, u, rate_prototype, uEltypeNoUnits,
 #   integrator.u = u
 # end
 
-function initialize!(integrator, cache::TaylorMethodCache)
+function initialize!(integrator, c::TaylorMethodCache)
     @unpack u, t, f, p = integrator
-    @unpack k, fsalfirst, tT, uT, duT, uauxT, parse_eqs = cache
-    tT = Taylor1(t, integrator.alg.order)
-    uT = Taylor1.(u, tT.order)
-    duT = similar(uT)
-    uauxT = similar(uT)
-    parse_eqs = _determine_parsing!(parse_eqs, f.f, tT, uT, duT, p)
+    @unpack k, fsalfirst, tT, uT, duT, uauxT, parse_eqs = c
+    tT .= Taylor1(t, integrator.alg.order)
+    uT .= Taylor1.(u, c.tT.order)
+    duT .= similar(c.uT)
+    uauxT .= similar(c.uT)
+    parse_eqs.x = _determine_parsing!(parse_eqs.x, f.f, tT, uT, duT, p)
+    __jetcoeffs!(Val(parse_eqs.x), f.f, tT, uT, duT, uauxT, p)
     integrator.fsalfirst = fsalfirst
     integrator.fsallast = k
     f(integrator.fsalfirst, integrator.uprev, p, integrator.t) # For the interpolation, needs k at the updated point
@@ -146,27 +147,38 @@ function perform_step!(integrator, cache::TaylorMethodCache)
     for i in eachindex(u)
         @inbounds uT[i][0] = u[i]
     end
-    __jetcoeffs!(Val(parse_eqs), f.f, tT, uT, duT, uauxT, p)
+    __jetcoeffs!(Val(parse_eqs.x), f.f, tT, uT, duT, uauxT, p)
     evaluate!(uT, dt, u)
     f(integrator.fsallast, u, p, t+dt) # For the interpolation, needs k at the updated point
     integrator.destats.nf += 1
 end
 
-# TODO: find how to actually implement time-stepping control using TaylorIntegration.stepsize
-# perhaps (???):
-# stepsize_controller!(integrator,alg::TaylorMethod) = stepsize(integrator.cache.uT, integrator.opts.abstol)
+stepsize_controller!(integrator,alg::_TaylorMethod) = stepsize(integrator.cache.uT, integrator.opts.abstol)
+step_accept_controller!(integrator, alg::_TaylorMethod, q) = q
+
 function DiffEqBase.solve(
         prob::DiffEqBase.AbstractODEProblem{uType, tupType, isinplace},
         alg::TaylorMethod, args...;
+        verbose=true,
         kwargs...) where
         {uType, tupType, isinplace}
+
+    if verbose
+        warned = !isempty(kwargs) && check_keywords(alg, kwargs, warnlist)
+        warned && warn_compat()
+    end
+
+    sizeu = size(prob.u0)
+    f = prob.f.f
 
     if !isinplace && typeof(prob.u0) <: Vector{Float64}
         f! = (du, u, p, t) -> (du .= f(u, p, t); 0)
         _alg = _TaylorMethod(alg.order, parse_eqs = false)
+        prob.f.f = f!
     elseif !isinplace && typeof(prob.u0) <: AbstractArray
         f! = (du, u, p, t) -> (du .= vec(f(reshape(u, sizeu), p, t)); 0)
         _alg = _TaylorMethod(alg.order, parse_eqs = false)
+        prob.f.f = f!
     # TODO: allowing matrices in jetcoeffs!, stepsize, evaluate! would solve the case below
     # elseif isinplace && typeof(prob.u0) <: AbstractArray{eltype(uType),2}
     #     f! = (du, u, p, t) -> (
@@ -179,5 +191,9 @@ function DiffEqBase.solve(
         _alg = _TaylorMethod(alg.order)
     end
 
-    DiffEqBase.solve(prob, _alg, args...; kwargs...)
+    # DiffEqBase.solve(prob, _alg, args...; kwargs...)
+    integrator = DiffEqBase.__init(prob, _alg, args...; kwargs...)
+    integrator.dt = stepsize(integrator.cache.uT, integrator.opts.abstol) # override handle_dt! setting of initial dt
+    DiffEqBase.solve!(integrator)
+    integrator.sol
 end
