@@ -8,13 +8,13 @@ alg_order, alg_cache, initialize!, perform_step!, @muladd, @unpack,
 constvalue, @cache, tuple, stepsize_controller!, isfsal,
 step_accept_controller!
 
-const warnkeywords = () # TODO: check which keywords work fine
-# (:save_idxs, :d_discontinuities, :unstable_check, :save_everystep,
-# :save_end, :initialize_save, :adaptive, :dt, :reltol, :dtmax,
-# :dtmin, :force_dtmin, :internalnorm, :gamma, :beta1, :beta2,
-# :qmax, :qmin, :qsteady_min, :qsteady_max, :qoldinit, :failfactor,
-# :isoutofdomain, :unstable_check,
-# :calck, :progress, :timeseries_steps, :tstops, :dense)
+# TODO: check which keywords work fine
+const warnkeywords = (:save_idxs, :d_discontinuities, :unstable_check, :save_everystep,
+:save_end, :initialize_save, :adaptive, :dt, :reltol, :dtmax,
+:dtmin, :force_dtmin, :internalnorm, :gamma, :beta1, :beta2,
+:qmax, :qmin, :qsteady_min, :qsteady_max, :qoldinit, :failfactor,
+:isoutofdomain, :unstable_check,
+:calck, :progress, :timeseries_steps, :dense)
 
 global warnlist = Set(warnkeywords)
 
@@ -78,7 +78,10 @@ end
 #   parse_eqs::Bool
 # end) )
 
-struct TaylorMethodConstantCache <: OrdinaryDiffEqConstantCache end
+struct TaylorMethodConstantCache{uTType} <: OrdinaryDiffEqConstantCache
+    uT::uTType
+    parse_eqs::Ref{Bool}
+end
 
 function alg_cache(alg::_TaylorMethod, u, rate_prototype, uEltypeNoUnits,
         uBottomEltypeNoUnits, tTypeNoUnits, uprev, uprev2, f, t, dt, reltol, p,
@@ -99,41 +102,52 @@ end
 
 alg_cache(alg::_TaylorMethod, u, rate_prototype, uEltypeNoUnits,
     uBottomEltypeNoUnits, tTypeNoUnits, uprev, uprev2, f, t, dt, reltol, p, calck,
-    ::Val{false}) = TaylorMethodConstantCache()
+    ::Val{false}) = TaylorMethodConstantCache(Taylor1(u, alg.order), Ref(alg.parse_eqs))
 
-# TODO: handle oop methods
-# function initialize!(integrator,cache::TaylorMethodConstantCache)
-#   integrator.kshortsize = 2
-#   integrator.k = typeof(integrator.k)(undef, integrator.kshortsize)
-#   integrator.fsalfirst = integrator.f(integrator.uprev, integrator.p, integrator.t) # Pre-start fsal
-#   integrator.destats.nf += 1
-
-#   # Avoid undefined entries if k is an array of arrays
-#   integrator.fsallast = zero(integrator.fsalfirst)
-#   integrator.k[1] = integrator.fsalfirst
-#   integrator.k[2] = integrator.fsallast
-# end
-
-# function perform_step!(integrator,cache::TaylorMethodConstantCache)
-#   @unpack t,dt,uprev,f,p = integrator
-#   @muladd u = @.. uprev + dt*integrator.fsalfirst
-#   k = f(u, p, t+dt) # For the interpolation, needs k at the updated point
-#   integrator.destats.nf += 1
-#   integrator.fsallast = k
-#   integrator.k[1] = integrator.fsalfirst
-#   integrator.k[2] = integrator.fsallast
-#   integrator.u = u
-# end
-
-function initialize!(integrator, c::TaylorMethodCache)
+function initialize!(integrator, c::TaylorMethodConstantCache)
     @unpack u, t, f, p = integrator
-    @unpack k, fsalfirst, tT, uT, duT, uauxT, parse_eqs = c
-    tT .= Taylor1(t, integrator.alg.order)
-    uT .= Taylor1.(u, c.tT.order)
-    duT .= similar(c.uT)
-    uauxT .= similar(c.uT)
+    tT = Taylor1(typeof(t), integrator.alg.order)
+    tT[0] = t
+    c.uT .= Taylor1(u, tT.order)
+    c.parse_eqs.x = _determine_parsing!(c.parse_eqs.x, f.f, tT, c.uT, p)
+    __jetcoeffs!(Val(c.parse_eqs.x), f.f, tT, c.uT, p)
+    # FSAL stuff
+    integrator.kshortsize = 2
+    integrator.k = typeof(integrator.k)(undef, integrator.kshortsize)
+    integrator.fsalfirst = integrator.f(integrator.uprev, integrator.p, integrator.t) # Pre-start fsal
+    integrator.destats.nf += 1
+    # Avoid undefined entries if k is an array of arrays
+    integrator.fsallast = zero(integrator.fsalfirst)
+    integrator.k[1] = integrator.fsalfirst
+    integrator.k[2] = integrator.fsallast
+end
+
+function perform_step!(integrator,cache::TaylorMethodConstantCache)
+    @unpack u, t, dt, f, p = integrator
+    tT = Taylor1(typeof(t), integrator.alg.order)
+    tT[0] = t+dt
+    u = evaluate(cache.uT, dt)
+    cache.uT[0] = u
+    __jetcoeffs!(Val(cache.parse_eqs.x), f.f, tT, cache.uT, p)
+    k = f(u, p, t+dt) # For the interpolation, needs k at the updated point
+    integrator.destats.nf += 1
+    integrator.fsallast = k
+    integrator.k[1] = integrator.fsalfirst
+    integrator.k[2] = integrator.fsallast
+    integrator.u = u
+end
+
+function initialize!(integrator, cache::TaylorMethodCache)
+    @unpack u, t, f, p = integrator
+    @unpack k, fsalfirst, tT, uT, duT, uauxT, parse_eqs = cache
+    tT .= Taylor1(typeof(t), integrator.alg.order)
+    tT[0] = t
+    uT .= Taylor1.(u, tT.order)
+    duT .= zero.(Taylor1.(u, tT.order))
+    uauxT .= similar(uT)
     parse_eqs.x = _determine_parsing!(parse_eqs.x, f.f, tT, uT, duT, p)
     __jetcoeffs!(Val(parse_eqs.x), f.f, tT, uT, duT, uauxT, p)
+    # FSAL stuff
     integrator.fsalfirst = fsalfirst
     integrator.fsallast = k
     f(integrator.fsalfirst, integrator.uprev, p, integrator.t) # For the interpolation, needs k at the updated point
@@ -141,14 +155,15 @@ function initialize!(integrator, c::TaylorMethodCache)
 end
 
 function perform_step!(integrator, cache::TaylorMethodCache)
-    @unpack t, dt, uprev, u, f, p = integrator
+    @unpack t, dt, u, f, p = integrator
     @unpack tT, uT, duT, uauxT, parse_eqs = cache
-    tT[0] = t
+    evaluate!(uT, dt, u)
+    tT[0] = t+dt
     for i in eachindex(u)
         @inbounds uT[i][0] = u[i]
+        duT[i].coeffs .= zero(duT[i][0])
     end
     __jetcoeffs!(Val(parse_eqs.x), f.f, tT, uT, duT, uauxT, p)
-    evaluate!(uT, dt, u)
     f(integrator.fsallast, u, p, t+dt) # For the interpolation, needs k at the updated point
     integrator.destats.nf += 1
 end
@@ -196,4 +211,15 @@ function DiffEqBase.solve(
     integrator.dt = stepsize(integrator.cache.uT, integrator.opts.abstol) # override handle_dt! setting of initial dt
     DiffEqBase.solve!(integrator)
     integrator.sol
+end
+
+import TaylorSeries: evaluate!
+function evaluate!(x::Array{Taylor1{T},N}, δt::S,
+        x0::Union{Array{T,N},SubArray{T,N}}) where {T<:Number, S<:Number, N}
+
+    # @assert length(x) == length(x0)
+    @inbounds for i in eachindex(x, x0)
+        x0[i] = evaluate( x[i], δt )
+    end
+    nothing
 end
