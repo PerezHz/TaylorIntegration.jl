@@ -193,12 +193,6 @@ function DiffEqBase.solve(
         f! = (du, u, p, t) -> (du .= vec(f(reshape(u, sizeu), p, t)); 0)
         _alg = _TaylorMethod(alg.order, parse_eqs = false)
         prob.f.f = f!
-    # TODO: allowing matrices in jetcoeffs!, stepsize, evaluate! would solve the case below
-    # elseif isinplace && typeof(prob.u0) <: AbstractArray{eltype(uType),2}
-    #     f! = (du, u, p, t) -> (
-    #             dd = reshape(du, sizeu); uu = reshape(u, sizeu);
-    #             f(dd, uu, p, t); u = vec(uu); du = vec(dd); 0)
-    #     u0 = vec(prob.u0)
     elseif haskey(kwargs, :parse_eqs)
         _alg = _TaylorMethod(alg.order, parse_eqs = kwargs[:parse_eqs])
     else
