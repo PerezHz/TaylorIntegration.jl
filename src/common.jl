@@ -40,7 +40,7 @@ alg_order(alg::_TaylorMethod) = alg.order
 # definition needed here, so we in principle should support FSAL
 # isfsal(::TaylorMethod) = true # see discussion above
 
-TaylorMethod() = error("Maximum order must be specified for the TaylorMethod method")
+TaylorMethod() = error("Maximum order must be specified for the Taylor method")
 
 export TaylorMethod
 
