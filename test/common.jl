@@ -4,13 +4,18 @@ using LinearAlgebra: norm
 @testset "Testing `common.jl`" begin
 
     f(u,p,t) = u
+    g(u,p,t) = cos(t)
     @testset "Test integration of ODE with numbers in common interface" begin
         u0 = 0.5
         tspan = (0.0, 1.0)
         prob = ODEProblem(f, u0, tspan)
         sol = solve(prob, TaylorMethod(50), abstol=1e-20)
-
         @test abs(sol[end] - u0*exp(1)) < 1e-12
+        u0 = 0.0
+        tspan = (0.0, 11pi)
+        prob = ODEProblem(g, u0, tspan)
+        sol = solve(prob, TaylorMethod(50), abstol=1e-20)
+        @test abs(sol[end] - sin(sol.t[end])) < 1e-12
     end
 
     f!(du, u, p, t) = (du .= u)
@@ -75,11 +80,9 @@ using LinearAlgebra: norm
     prob = ODEProblem(harmosc!, u0, tspan)
     @testset "Test consistency with taylorinteg" begin
         sol = solve(prob, TaylorMethod(order), abstol=abstol)
-        @time sol = solve(prob, TaylorMethod(order), abstol=abstol)
         tv1, xv1 = taylorinteg(harmosc!, u0, tspan[1], tspan[2], order, abstol)
-        @time tv1, xv1 = taylorinteg(harmosc!, u0, tspan[1], tspan[2], order, abstol)
         @test sol.t == tv1
-        @test xv1[end,:] == sol.u[end]
+        @test xv1[end,:] == sol[end]
         tT = Taylor1(tspan[1], order)
         xT = Taylor1.(u0, order)
     end
@@ -94,8 +97,8 @@ using LinearAlgebra: norm
         sol = solve(prob, TaylorMethod(order), abstol=abstol, tstops=[t_cb], callback=cb)
         @test sol.t[4] == t_cb
         @test sol.t[4] == sol.t[5]
-        @test sol.u[4][1] != sol.u[5][1]
-        @test abs(sol.u[5][1] - sol.u[4][1] - 0.1) < 1e-14
+        @test sol[4][1] != sol[5][1]
+        @test abs(sol[5][1] - sol[4][1] - 0.1) < 1e-14
     end
 
     @testset "Test parsed jetcoeffs! method in common interface" begin
@@ -114,9 +117,9 @@ using LinearAlgebra: norm
         @test length(sol1.t) == length(sol2.t)
         @test sol1.t == sol2.t
         @test sol1.u == sol2.u
-        @time tv, xv = taylorinteg(integ_vec, x0, tspan[1], tspan[2], order, abstol, [1.0])
-        @test norm(sol1.u[end][1] - sin(sol1.t[end]), Inf) < 1.0e-15
-        @test norm(sol1.u[end][2] - cos(sol1.t[end]), Inf) < 1.0e-15
+        tv, xv = taylorinteg(integ_vec, x0, tspan[1], tspan[2], order, abstol, [1.0])
+        @test norm(sol1[end][1] - sin(sol1.t[end]), Inf) < 1.0e-15
+        @test norm(sol1[end][2] - cos(sol1.t[end]), Inf) < 1.0e-15
     end
 
     @testset "Test throwing errors in common interface" begin
