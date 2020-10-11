@@ -4,9 +4,8 @@ import DiffEqBase: ODEProblem, solve, ODE_DEFAULT_NORM, @..
 
 import OrdinaryDiffEq: OrdinaryDiffEqAdaptiveAlgorithm,
 OrdinaryDiffEqConstantCache, OrdinaryDiffEqMutableCache,
-alg_order, alg_cache, initialize!, perform_step!, @muladd, @unpack,
-constvalue, @cache, tuple, stepsize_controller!, isfsal,
-step_accept_controller!
+alg_order, alg_cache, initialize!, perform_step!, @unpack,
+@cache, stepsize_controller!, step_accept_controller!
 
 # TODO: check which keywords work fine
 const warnkeywords = (:save_idxs, :d_discontinuities, :unstable_check, :save_everystep,
