@@ -10,7 +10,7 @@ using LinearAlgebra: norm
         prob = ODEProblem(f, u0, tspan)
         sol = solve(prob, TaylorMethod(50), abstol=1e-20)
 
-        @test sol[end] - 0.5*exp(1) < 1e-12
+        @test abs(sol[end] - u0*exp(1)) < 1e-12
     end
 
     f!(du, u, p, t) = (du .= u)
@@ -63,6 +63,62 @@ using LinearAlgebra: norm
         end
     end
 
+    function harmosc!(dx, x, p, t)
+        dx[1] = x[2]
+        dx[2] = - x[1]
+        return nothing
+    end
+    tspan = (0.0, 10pi)
+    abstol=1e-20 # 1e-16
+    order = 25 # Taylor expansion order wrt time
+    u0 = [1.0; 0.0]
+    prob = ODEProblem(harmosc!, u0, tspan)
+    @testset "Test consistency with taylorinteg" begin
+        sol = solve(prob, TaylorMethod(order), abstol=abstol)
+        @time sol = solve(prob, TaylorMethod(order), abstol=abstol)
+        tv1, xv1 = taylorinteg(harmosc!, u0, tspan[1], tspan[2], order, abstol)
+        @time tv1, xv1 = taylorinteg(harmosc!, u0, tspan[1], tspan[2], order, abstol)
+        @test sol.t == tv1
+        @test xv1[end,:] == sol.u[end]
+        tT = Taylor1(tspan[1], order)
+        xT = Taylor1.(u0, order)
+    end
+
+    @testset "Test use of callbacks in common interface" begin
+        # discrete callback: example taken from DifferentialEquations.jl docs:
+        # https://diffeq.sciml.ai/dev/features/callback_functions/#Using-Callbacks
+        t_cb = 1.0pi
+        condition(u,t,integrator) = t == t_cb
+        affect!(integrator) = integrator.u[1] += 0.1
+        cb = DiscreteCallback(condition,affect!)
+        sol = solve(prob, TaylorMethod(order), abstol=abstol, tstops=[t_cb], callback=cb)
+        @test sol.t[4] == t_cb
+        @test sol.t[4] == sol.t[5]
+        @test sol.u[4][1] != sol.u[5][1]
+        @test abs(sol.u[5][1] - sol.u[4][1] - 0.1) < 1e-14
+    end
+
+    @testset "Test parsed jetcoeffs! method in common interface" begin
+        @taylorize function integ_vec(dx, x, p, t)
+            local λ = p[1]
+            dx[1] = cos(t)
+            dx[2] = -λ*sin(t)
+            return dx
+        end
+        @test (@isdefined integ_vec)
+        x0 = [0.0, 1.0]
+        tspan = (0.0, pi)
+        prob = ODEProblem(integ_vec, x0, tspan, [1.0])
+        sol1 = solve(prob, TaylorMethod(order), abstol=abstol, parse_eqs=false)
+        sol2 = solve(prob, TaylorMethod(order), abstol=abstol) # parse_eqs=true
+        @test length(sol1.t) == length(sol2.t)
+        @test sol1.t == sol2.t
+        @test sol1.u == sol2.u
+        @time tv, xv = taylorinteg(integ_vec, x0, tspan[1], tspan[2], order, abstol, [1.0])
+        @test norm(sol1.u[end][1] - sin(sol1.t[end]), Inf) < 1.0e-15
+        @test norm(sol1.u[end][2] - cos(sol1.t[end]), Inf) < 1.0e-15
+    end
+
     @testset "Test throwing errors in common interface" begin
         u0 = rand(4, 2)
         tspan = (0.0, 1.0)
@@ -71,9 +127,5 @@ using LinearAlgebra: norm
 
         # `order` is not specified
         @test_throws ErrorException solve(prob, TaylorMethod(), abstol=1e-20)
-
-        # Using a `callback`
-        prob2 = ODEProblem(f!, u0, tspan, callback=nothing)
-        @test_throws ErrorException solve(prob2, TaylorMethod(10), abstol=1e-20)
     end
 end
