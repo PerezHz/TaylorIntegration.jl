@@ -408,13 +408,14 @@ function _newfnbody(fnbody, fnargs, d_indx)
 
                 # Unfold AST graph
                 nex = deepcopy(ex)
-                try
-                    nex = to_expr(ExGraph(simplify(ex)))
-                catch
-                    # copy `ex` as it is, if it is not "recognized"
-                    push!(newfnbody.args, ex)
-                    continue
-                end
+                # try
+                #     nex = to_expr(ExGraph(simplify(ex)))
+                # catch
+                #     # copy `ex` as it is, if it is not "recognized"
+                #     push!(newfnbody.args, ex)
+                #     continue
+                # end
+                nex = to_expr(ExGraph(simplify(ex)))
                 push!(newfnbody.args, nex.args[2:end]...)
 
                 # Bookkeeping of indexed vars, to define assignements
@@ -845,8 +846,6 @@ function _recursionloop(fnargs, retvar)
     return rec_preamb, rec_fnbody
 end
 
-
-
 """
 `@taylorize expr`
 
@@ -864,8 +863,8 @@ See the [documentation](@ref taylorize) for more details and limitations.
 """
 macro taylorize( ex )
     nex = _make_parsed_jetcoeffs(ex)
-    quote
-        $(esc(ex))  # evals to calling scope the passed function
-        $(esc(nex)) # evals the new method of `TaylorIntegration.jetcoeffs!`
-    end
+    esc(quote
+        $ex  # evals to calling scope the passed function
+        $nex # evals the new method of `TaylorIntegration.jetcoeffs!`
+    end)
 end

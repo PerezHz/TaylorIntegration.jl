@@ -6,6 +6,7 @@ using LinearAlgebra: norm
 using InteractiveUtils: methodswith
 using Elliptic
 using Base.Threads
+import Pkg
 
 @testset "Testing `taylorize.jl`" begin
 
@@ -1240,4 +1241,23 @@ using Base.Threads
         @test xv == xv_
     end
 
+
+    # Issue 106: allow calls to macro from Julia packages
+    @testset "Test @taylorize use in modules/packages" begin
+        # TestPkg is a local (unregistered) Julia package which tests the use
+        # of @taylorize inside module TestPkg. We test the direct use of
+        # @taylorize, as well as _make_parsed_jetcoeffs, to check that
+        # everything is compiled fine. Finally, we check that the parsed
+        # jetcoeffs! expressions (nex1, nex2, nex3) generated from inside Test Pkg
+        # are equivalent to (nex_1, nex_2, nex_3) generated here
+        Pkg.develop(  Pkg.PackageSpec( path=joinpath(@__DIR__, "TestPkg") )  )
+        using TestPkg
+        nex1_ = TaylorIntegration._make_parsed_jetcoeffs(TestPkg.ex1)
+        nex2_ = TaylorIntegration._make_parsed_jetcoeffs(TestPkg.ex2)
+        nex3_ = TaylorIntegration._make_parsed_jetcoeffs(TestPkg.ex3)
+        @test length(TestPkg.nex1.args[2].args) == length(nex1_.args[2].args)
+        @test length(TestPkg.nex2.args[2].args) == length(nex2_.args[2].args)
+        @test length(TestPkg.nex3.args[2].args) == length(nex3_.args[2].args)
+        Pkg.rm("TestPkg")
+    end
 end
