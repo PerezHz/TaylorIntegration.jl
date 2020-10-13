@@ -1244,6 +1244,12 @@ import Pkg
 
     # Issue 106: allow calls to macro from Julia packages
     @testset "Test @taylorize use in modules/packages" begin
+        # TestPkg is a local (unregistered) Julia package which tests the use
+        # of @taylorize inside module TestPkg. We test the direct use of
+        # @taylorize, as well as _make_parsed_jetcoeffs, to check that
+        # everything is compiled fine. Finally, we check that the parsed
+        # jetcoeffs! expressions (nex1, nex2, nex3) generated from inside Test Pkg
+        # are equivalent to (nex_1, nex_2, nex_3) generated here
         Pkg.develop(  Pkg.PackageSpec( path=joinpath(@__DIR__, "TestPkg") )  )
         using TestPkg
         nex1_ = TaylorIntegration._make_parsed_jetcoeffs(TestPkg.ex1)
