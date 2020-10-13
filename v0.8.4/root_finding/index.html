@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Poincaré maps · TaylorIntegration.jl</title><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.11.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.11.1/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit">TaylorIntegration.jl</span></div><form class="docs-search" action="../search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li><span class="tocitem">Background</span><ul><li><a class="tocitem" href="../taylor_method/">Taylor&#39;s method</a></li><li><a class="tocitem" href="../lyapunov_spectrum/">Lyapunov spectrum</a></li><li><a class="tocitem" href="../jet_transport/">Jet transport</a></li></ul></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../simple_example/">Infinity in finite time</a></li><li><a class="tocitem" href="../kepler/">The Kepler problem</a></li><li><a class="tocitem" href="../lorenz_lyapunov/">Lyapunov spectrum of Lorenz system</a></li><li><a class="tocitem" href="../pendulum/">Jet transport: the simple pendulum</a></li><li class="is-active"><a class="tocitem" href>Poincaré maps</a><ul class="internal"><li><a class="tocitem" href="#Monte-Carlo-simulation"><span>Monte Carlo simulation</span></a></li><li><a class="tocitem" href="#jettransport2"><span>Jet transport</span></a></li></ul></li><li><a class="tocitem" href="../common/">Interoperability with <code>DifferentialEquations.jl</code></a></li></ul></li><li><a class="tocitem" href="../taylorize/">Optimizing: <code>@taylorize</code></a></li><li><a class="tocitem" href="../api/">API</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>Poincaré maps</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Poincaré maps</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/PerezHz/TaylorIntegration.jl/blob/master/docs/src/root_finding.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="rootfinding"><a class="docs-heading-anchor" href="#rootfinding">Poincaré maps</a><a id="rootfinding-1"></a><a class="docs-heading-anchor-permalink" href="#rootfinding" title="Permalink"></a></h1><p>In this example, we shall illustrate how to construct a Poincaré map associated with the surface of section <span>$x=0$</span>, <span>$\dot x&gt;0$</span>, for <span>$E=0.1025$</span> for the <a href="https://en.wikipedia.org/wiki/Hénon–Heiles_system">Hénon-Heiles system</a>. This is equivalent to find the roots of an appropriate function <code>g(dx, x, params, t)</code>. We illustrate the implementation using many initial conditions (Monte Carlo like implementation), and then compare the results with the use of <a href="../jet_transport/#jettransport">jet transport techniques</a>.</p><h2 id="Monte-Carlo-simulation"><a class="docs-heading-anchor" href="#Monte-Carlo-simulation">Monte Carlo simulation</a><a id="Monte-Carlo-simulation-1"></a><a class="docs-heading-anchor-permalink" href="#Monte-Carlo-simulation" title="Permalink"></a></h2><p>The Hénon-Heiles system is a 2-dof Hamiltonian system used to model the (planar) motion of a star around a galactic center. The Hamiltonian is given by <span>$H = (p_x^2+p_y^2)/2 + (x^2+y^2)/2 + \lambda (x^2y-y^3/3)$</span>, from which the equations of motion can be obtained; below we concentrate in the case <span>$\lambda=1$</span>.</p><pre><code class="language-julia"># Hamiltonian
+V(x,y) = 0.5*( x^2 + y^2 )+( x^2*y - y^3/3)
+H(x,y,p,q) = 0.5*(p^2+q^2) + V(x, y)
+H(x) = H(x...)
+
+# Equations of motion
+function henonheiles!(dq, q, p, t)
+    x, y, px, py = q
+    dq[1] = px
+    dq[2] = py
+    dq[3] = -x-2y*x
+    dq[4] = -y-(x^2-y^2)
+    nothing
+end</code></pre><p>We set the initial energy, which is a conserved quantity; <code>x0</code> corresponds to the initial condition, which will be properly adjusted to be in the correct energy surface.</p><pre><code class="language-julia"># initial energy and initial condition
+const E0 = 0.1025
+x0 = [0.0, 0.45335, 0.0, 0.0]</code></pre><p>In order to be able to generate (random) initial conditions with the appropriate energy, we write a function <code>px</code>, which depends on <code>x</code>, <code>y</code>, <code>py</code> and the energy <code>E</code>, that returns the value of <code>px&gt;0</code> for which the initial condition <code>[x, y, px, py]</code> has energy <code>E</code>:</p><pre><code class="language-julia"># px: select px0&gt;0 such that E=E0
+px(x, E) = sqrt(2(E-V(x[1], x[2]))-x[4]^2)
+
+# px!: in-place version of px; returns the modified initial condition `x0`
+function px!(x, E)
+    mypx = px(x, E)
+    x[3] = mypx
+    return x
+end
+
+# run px!
+px!(x0, E0)</code></pre><pre class="documenter-example-output">4-element Array{Float64,1}:
+ 0.0
+ 0.45335
+ 0.24817464176177093
+ 0.0</pre><p>Let&#39;s check that the initial condition <code>x0</code> has actually energy equal to <code>E0</code>, up to roundoff accuracy:</p><pre><code class="language-julia">H(x0)</code></pre><pre class="documenter-example-output">0.1025</pre><p>The scalar function <code>g</code>, which may depend on the time <code>t</code>, the vector of dependent variables <code>x</code>, the velocities <code>dx</code>, and perhaps some parameters <code>params</code>, following again the convention of <code>DifferentialEquations.jl</code>, defines the surface of section by means of the condition <span>$g(dx, x, params, t) = 0$</span>. Internally, the function <code>g</code> is assumed to return a <code>Tuple{Bool, Taylor1{T}}</code>, where <code>T</code> corresponds to <code>eltype(x[1])</code> (<code>x::Vector{Taylor1{T}}</code>). In the particular case that the user wishes to discard a particular crossing (or crossings), the function <code>g</code> must return a <code>false</code> value, as will be illustrated below.</p><p>For the present example, we are looking for crossings through the surface <span>$x=0$</span>, which corresponds to <code>x[1]==0</code>, restricting the crossings to satisfy <span>$\dot x &gt; 0$</span>. i.e., <code>x[3]&gt;0</code>. We thus define the function <code>g</code> as</p><pre><code class="language-julia"># x=0, px&gt;0 section
+function g(dx, x, p, t)
+    px_ = constant_term(x[3])
+    # if px &gt; 0...
+    if px_ &gt; zero(px_)
+        return (true, x[1])
+    else
+        #otherwise, discard the crossing
+        return (false, x[1])
+    end
+end</code></pre><div class="admonition is-info"><header class="admonition-header">Note</header><div class="admonition-body"><p>Note that in the definition of <code>g</code> we want to make sure that we only take the &quot;positive&quot; crossings through the surface of section <span>$x=0$</span>; hence the <code>if...else...</code> block.</p></div></div><p>We initialize some auxiliary arrays, where we shall save the solutions:</p><pre><code class="language-julia"># number of initial conditions
+nconds = 100
+tvSv = Vector{Vector{Float64}}(undef, nconds)
+xvSv = Vector{Matrix{Float64}}(undef, nconds)
+gvSv = Vector{Vector{Float64}}(undef, nconds)
+x_ini = similar(x0)</code></pre><p>We generate <code>nconds</code> random initial conditions in a small neighborhood around <code>x0</code> and integrate the equations of motion from <code>t0=0</code> to <code>tmax=135</code>, using a polynomial of order 25 and absolute tolerance <code>1e-25</code>:</p><pre><code class="language-julia">using TaylorIntegration
+
+for i in 1:nconds
+    rand1 = rand()
+    rand2 = rand()
+    x_ini .= x0 .+ 0.005 .* [0.0, sqrt(rand1)*cos(2pi*rand2), 0.0, sqrt(rand1)*sin(2pi*rand2)]
+    px!(x_ini, E0)   # ensure initial energy is E0
+
+    tv_i, xv_i, tvS_i, xvS_i, gvS_i = taylorinteg(henonheiles!, g, x_ini, 0.0, 135.0,
+        25, 1e-25, maxsteps=30000);
+    tvSv[i] = vcat(0.0, tvS_i)
+    xvSv[i] = vcat(transpose(x_ini), xvS_i)
+    gvSv[i] = vcat(0.0, gvS_i)
+end</code></pre><p>We generate an animation with the solutions</p><pre><code class="language-julia">using Plots
+poincare_anim1 = @animate for i=1:21
+    scatter(map(x-&gt;x[i,2], xvSv), map(x-&gt;x[i,4], xvSv), label=&quot;$(i-1)-th iterate&quot;,
+        m=(1,stroke(0)), ratio=:equal)
+    xlims!(0.08, 0.48)
+    ylims!(-0.13, 0.13)
+    xlabel!(&quot;y&quot;)
+    ylabel!(&quot;py&quot;)
+    title!(&quot;Hénon-Heiles Poincaré map (21 iterates)&quot;)
+end
+gif(poincare_anim1, &quot;poincareanim1.gif&quot;, fps = 2);</code></pre><pre class="documenter-example-output">/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+┌ Info: Saved animation to
+└   fn = &quot;/home/travis/build/PerezHz/TaylorIntegration.jl/docs/build/poincareanim1.gif&quot;</pre><p><img src="../assets/figures/poincareanim1.gif" alt="Poincaré map for the Hénon Heiles system"/></p><h2 id="jettransport2"><a class="docs-heading-anchor" href="#jettransport2">Jet transport</a><a id="jettransport2-1"></a><a class="docs-heading-anchor-permalink" href="#jettransport2" title="Permalink"></a></h2><p>Now, we illustrate the use of jet transport techniques in the same example, that is, we propagate a neighborhood around <code>x0</code>, which will be plotted in the Poincaré map. We first define the vector of small increments of the phase space variables, <code>xTN</code>; we fix the maximum order of the polynomial expansion in these variables to be <code>4</code>. Then, <code>x0TN</code> is the neighborhood in the 4-dimensional phase space around <span>$x0$</span>.</p><pre><code class="language-julia">xTN = set_variables(&quot;δx δy δpx δpy&quot;, numvars=length(x0), order=4)
+x0TN = x0 .+ xTN</code></pre><p>As it was shown above, <span>$x0$</span> belongs to the energy surface <span>$H(x0) = E_0 = 0.1025$</span>; yet, as it was defined above, the set of phase space points denoted by <code>x0TN</code> includes points that belong to other energy surfaces. This can be noticed by computing <code>H(x0TN)</code></p><pre><code class="language-julia">H(x0TN)</code></pre><pre class="documenter-example-output"> 0.1025 + 0.2478237775 δy + 0.24817464176177093 δpx + 0.9533499999999999 δx² + 0.046650000000000025 δy² + 0.5 δpx² + 0.5 δpy² + 1.0 δx² δy - 0.3333333333333333 δy³ + 𝒪(‖x‖⁵)</pre><p>Clearly, the expression above may contain points whose energy is different from <code>E0</code>. As it was done above, we shall fix the <code>px</code> component of <code>x0TN</code> so <em>all</em> points of the neighborhood are in the same energy surface.</p><pre><code class="language-julia">px!(x0TN, E0) # Impose that all variations are on the proper energy shell!
+H(x0TN)</code></pre><pre class="documenter-example-output"> 0.1025 + 2.7755575615628914e-17 δy + 5.551115123125783e-17 δy² - 4.440892098500626e-16 δx² δy - 5.551115123125783e-17 δy³ - 1.7763568394002505e-15 δx² δy² + 8.881784197001252e-16 δx² δpy² + 4.440892098500626e-16 δy⁴ + 8.881784197001252e-16 δy² δpy² + 4.440892098500626e-16 δpy⁴ + 𝒪(‖x‖⁵)</pre><p>We notice that the coefficients of all monomials whose order is not zero are very small, and the constant_term is <code>E0</code>.</p><p>In order to properly handle this case, we need to extend the definition of <code>g</code> to be useful for <code>Taylor1{TaylorN{T}}</code> vectors.</p><pre><code class="language-julia">#specialized method of g for Taylor1{TaylorN{T}}&#39;s
+function g(dx::Array{Taylor1{TaylorN{T}},1}, x::Array{Taylor1{TaylorN{T}},1},
+        p, t) where {T&lt;:Number}
+    px_ = constant_term(constant_term(x[3]))
+    if px_ &gt; zero( T )
+        return (true, x[1])
+    else
+        return (false, x[1])
+    end
+end</code></pre><p>We are now set to carry out the integration.</p><pre><code class="language-julia">tvTN, xvTN, tvSTN, xvSTN, gvSTN = taylorinteg(henonheiles!, g, x0TN, 0.0, 135.0, 25, 1e-25, maxsteps=30000);</code></pre><p>We define some auxiliary arrays, and then make an animation with the results for plotting.</p><pre><code class="language-julia">#some auxiliaries:
+xvSTNaa = Array{Array{TaylorN{Float64},1}}(undef, length(tvSTN)+1 );
+xvSTNaa[1] = x0TN
+for ind in 2:length(tvSTN)+1
+    whatever = xvSTN[ind-1,:]
+    xvSTNaa[ind] = whatever
+end
+tvSTNaa = union([zero(tvSTN[1])], tvSTN);
+
+myrnd  = 0:0.01:1
+npoints = length(myrnd)
+ncrosses = length(tvSTN)
+yS = Array{Float64}(undef, ncrosses+1, npoints)
+pS = Array{Float64}(undef, ncrosses+1, npoints)
+
+myrad=0.005
+ξy = @. myrad * cos(2pi*myrnd)
+ξp = @. myrad * sin(2pi*myrnd)
+
+for indpoint in 1:npoints
+    yS[1,indpoint] = x0[2] + ξy[indpoint]
+    pS[1,indpoint] = x0[4] + ξp[indpoint]
+    mycond = [0.0, ξy[indpoint], 0.0, ξp[indpoint]]
+    for indS in 2:ncrosses+1
+        temp = evaluate(xvSTNaa[indS], mycond)
+        yS[indS,indpoint] = temp[2]
+        pS[indS,indpoint] = temp[4]
+    end
+end
+
+poincare_anim2 = @animate for i=1:21
+    scatter(map(x-&gt;x[i,2], xvSv), map(x-&gt;x[i,4], xvSv), marker=(:circle, stroke(0)),
+        markersize=0.01, label=&quot;Monte Carlo&quot;)
+    plot!(yS[i,:], pS[i,:], width=0.1, label=&quot;Jet transport&quot;)
+    xlims!(0.09,0.5)
+    ylims!(-0.11,0.11)
+    xlabel!(&quot;y&quot;)
+    ylabel!(&quot;py&quot;)
+    title!(&quot;Poincaré map: 4th-order jet transport vs Monte Carlo&quot;)
+end
+gif(poincare_anim2, &quot;poincareanim2.gif&quot;, fps = 2);</code></pre><pre class="documenter-example-output">/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+┌ Info: Saved animation to
+└   fn = &quot;/home/travis/build/PerezHz/TaylorIntegration.jl/docs/build/poincareanim2.gif&quot;</pre><p><img src="../assets/figures/poincareanim2.gif" alt="Poincaré map: Jet transport vs Monte Carlo"/></p><p>The next animation is the same as before, adapting the scale.</p><pre><code class="language-julia">poincare_anim3 = @animate for i=1:21
+    scatter(map(x-&gt;x[i,2], xvSv), map(x-&gt;x[i,4], xvSv), marker=(:circle, stroke(0)),
+        markersize=0.01, label=&quot;Monte Carlo&quot;)
+    plot!(yS[i,:], pS[i,:], width=0.1, label=&quot;Jet transport&quot;)
+    xlabel!(&quot;y&quot;)
+    ylabel!(&quot;py&quot;)
+    title!(&quot;Poincaré map: 4th-order jet transport vs Monte Carlo&quot;)
+end
+gif(poincare_anim3, &quot;poincareanim3.gif&quot;, fps = 2);</code></pre><pre class="documenter-example-output">/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+/home/travis/.julia/packages/GR/BwGt2/src/../deps/gr/bin/gksqt: error while loading shared libraries: libQt5Widgets.so.5: cannot open shared object file: No such file or directory
+connect: Connection refused
+GKS: can&#39;t connect to GKS socket application
+
+GKS: Open failed in routine OPEN_WS
+GKS: GKS not in proper state. GKS must be either in the state WSOP or WSAC in routine ACTIVATE_WS
+┌ Info: Saved animation to
+└   fn = &quot;/home/travis/build/PerezHz/TaylorIntegration.jl/docs/build/poincareanim3.gif&quot;</pre><p><img src="../assets/figures/poincareanim3.gif" alt="Poincaré map: Jet transport vs Monte Carlo"/></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../pendulum/">« Jet transport: the simple pendulum</a><a class="docs-footer-nextpage" href="../common/">Interoperability with <code>DifferentialEquations.jl</code> »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> on <span class="colophon-date" title="Tuesday 13 October 2020 23:58">Tuesday 13 October 2020</span>. Using Julia version 1.5.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
