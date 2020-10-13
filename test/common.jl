@@ -95,8 +95,7 @@ using LinearAlgebra: norm
         sol = solve(prob, TaylorMethod(order), abstol=abstol, tstops=[t_cb], callback=cb)
         @test sol.t[4] == t_cb
         @test sol.t[4] == sol.t[5]
-        @test sol[4][1] != sol[5][1]
-        @test abs(sol[5][1] - sol[4][1] - 0.1) < 1e-14
+        @test sol[4][1] + 0.1 == sol[5][1]
     end
 
     @testset "Test parsed jetcoeffs! method in common interface" begin
