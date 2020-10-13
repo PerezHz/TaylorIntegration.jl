@@ -83,8 +83,6 @@ using LinearAlgebra: norm
         tv1, xv1 = taylorinteg(harmosc!, u0, tspan[1], tspan[2], order, abstol)
         @test sol.t == tv1
         @test xv1[end,:] == sol[end]
-        tT = Taylor1(tspan[1], order)
-        xT = Taylor1.(u0, order)
     end
 
     @testset "Test use of callbacks in common interface" begin
