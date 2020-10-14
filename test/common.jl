@@ -85,7 +85,7 @@ using LinearAlgebra: norm
         @test xv1[end,:] == sol[end]
     end
 
-    @testset "Test use of callbacks in common interface" begin
+    @testset "Test discrete callback in common interface" begin
         # discrete callback: example taken from DifferentialEquations.jl docs:
         # https://diffeq.sciml.ai/dev/features/callback_functions/#Using-Callbacks
         t_cb = 1.0pi
@@ -97,6 +97,34 @@ using LinearAlgebra: norm
         @test sol.t[4] == sol.t[5]
         @test sol[4][1] + 0.1 == sol[5][1]
     end
+
+    # TODO: fix this test (currently not working)
+    # @testset "Test continuous callback in common interface" begin
+    #     # discrete callback: example taken from DifferentialEquations.jl docs:
+    #     # https://diffeq.sciml.ai/stable/features/callback_functions/#Example-1:-Bouncing-Ball
+    #     @taylorize function f(du,u,p,t)
+    #         local g_acc = p
+    #         du[1] = u[2]
+    #         du[2] = -g_acc
+    #     end
+    #     function condition(u,t,integrator)
+    #         @show u
+    #         u[1]
+    #     end
+    #     function affect!(integrator)
+    #         integrator.u[2] = -integrator.u[2]
+    #     end
+    #     cb = ContinuousCallback(condition,affect!)
+    #     u0 = [50.0,0.0]
+    #     tspan = (0.0,15.0)
+    #     p = 9.8
+    #     prob = ODEProblem(f,u0,tspan,p)
+    #     using Plots
+    #     sol = solve(prob, TaylorMethod(25), abstol=1e-16, callback=cb)
+    #     @show sol
+    #     p = plot(sol)
+    #     display(p)
+    # end
 
     @testset "Test parsed jetcoeffs! method in common interface" begin
         @taylorize function integ_vec(dx, x, p, t)
