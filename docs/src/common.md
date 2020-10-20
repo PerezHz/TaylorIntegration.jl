@@ -13,8 +13,10 @@ aspects, we do not rely on them simply because using properly `@taylorize`
 improves the performance.
 
 !!! note
-    Currently, the only keyword argument supported by `DiffEqBase.solve` that is
-    implemented in `TaylorIntegration.jl` is `:saveat`. The keyword argument
+    Currently, the only keyword arguments supported by `DiffEqBase.solve` that
+    are implemented in `TaylorIntegration.jl` are `:saveat` and `:tstops`. There
+    is also experimental support for `:callback`, both discrete and continuous;
+    some examples may be found in `test/common.jl`. The keyword argument
     `:parse_eqs` is available in order to control the use of methods defined
     via [`@taylorize`](@ref).
 
@@ -270,4 +272,4 @@ containing the differential equations.
 
 [1] Murray, Carl D., Stanley F. Dermott. Solar System dynamics. Cambridge University Press, 1999.
 
-[2] [DiffEqBenchmarks.jl/DynamicalODE](https://nbviewer.jupyter.org/github/JuliaDiffEq/DiffEqBenchmarks.jl/blob/master/DynamicalODE/Henon-Heiles_energy_conservation_benchmark.ipynb)
+[2] [SciMLBenchmarks.jl/DynamicalODE](https://benchmarks.sciml.ai/html/DynamicalODE/Henon-Heiles_energy_conservation_benchmark.html)
