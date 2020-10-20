@@ -17,8 +17,8 @@ end)
 );
 
 const _HEAD_PARSEDFN_VECTOR = sanitize(:(
-function TaylorIntegration.jetcoeffs!( ::Val{__fn}, __tT::Taylor1{_T}, __x::AbstractVector{Taylor1{_S}},
-        __dx::AbstractVector{Taylor1{_S}}, __params) where {_T<:Real, _S<:Number}
+function TaylorIntegration.jetcoeffs!( ::Val{__fn}, __tT::Taylor1{_T}, __x::AbstractArray{Taylor1{_S}, _N},
+        __dx::AbstractArray{Taylor1{_S}, _N}, __params) where {_T<:Real, _S<:Number, _N}
 
     order = __tT.order
     nothing
