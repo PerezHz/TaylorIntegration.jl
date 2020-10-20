@@ -210,6 +210,17 @@ function DiffEqBase.solve(
     integrator.sol
 end
 
+# used in continuous callbacks and related methods to update Taylor expansions cache
+function update_jetcoeffs_cache!(integrator)
+    @unpack tT, uT, duT, uauxT, parse_eqs = integrator.cache
+    for i in eachindex(integrator.u)
+        @inbounds uT[i][0] = integrator.u[i]
+        duT[i].coeffs .= zero(duT[i][0])
+    end
+    __jetcoeffs!(Val(parse_eqs.x), integrator.f.f, tT, uT, duT, uauxT, integrator.p)
+    return nothing
+end
+
 import TaylorSeries: evaluate!
 function evaluate!(x::AbstractArray{Taylor1{T},N}, δt::S,
         x0::AbstractArray{T,N}) where {T<:Number, S<:Number, N}
