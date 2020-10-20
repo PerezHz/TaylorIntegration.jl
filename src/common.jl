@@ -87,8 +87,8 @@ function alg_cache(alg::_TaylorMethod, u, rate_prototype, uEltypeNoUnits,
         calck,::Val{true})
     TaylorMethodCache(
         u,
-        u,
-        zero(u),
+        uprev,
+        similar(u),
         zero(rate_prototype),
         zero(rate_prototype),
         Taylor1(t, alg.order),
@@ -146,16 +146,20 @@ function initialize!(integrator, cache::TaylorMethodCache)
     uauxT .= similar(uT)
     parse_eqs.x = _determine_parsing!(parse_eqs.x, f.f, tT, uT, duT, p)
     __jetcoeffs!(Val(parse_eqs.x), f.f, tT, uT, duT, uauxT, p)
-    # FSAL stuff
+    # FSAL for interpolation
     integrator.fsalfirst = fsalfirst
     integrator.fsallast = k
-    f(integrator.fsalfirst, integrator.uprev, p, integrator.t) # For the interpolation, needs k at the updated point
+    integrator.kshortsize = 1
+    resize!(integrator.k, integrator.kshortsize)
+    integrator.k[1] = integrator.fsalfirst
+    # integrator.f(integrator.fsalfirst,integrator.uprev,integrator.p,integrator.t)
+    integrator.fsalfirst = duT()
     integrator.destats.nf += 1
 end
 
 function perform_step!(integrator, cache::TaylorMethodCache)
     @unpack t, dt, u, f, p = integrator
-    @unpack tT, uT, duT, uauxT, parse_eqs = cache
+    @unpack k, tT, uT, duT, uauxT, parse_eqs = cache
     evaluate!(uT, dt, u)
     tT[0] = t+dt
     for i in eachindex(u)
@@ -163,7 +167,7 @@ function perform_step!(integrator, cache::TaylorMethodCache)
         duT[i].coeffs .= zero(duT[i][0])
     end
     __jetcoeffs!(Val(parse_eqs.x), f.f, tT, uT, duT, uauxT, p)
-    f(integrator.fsallast, u, p, t+dt) # For the interpolation, needs k at the updated point
+    k = duT() # For the interpolation, needs k at the updated point
     integrator.destats.nf += 1
 end
 
@@ -207,8 +211,8 @@ function DiffEqBase.solve(
 end
 
 import TaylorSeries: evaluate!
-function evaluate!(x::Array{Taylor1{T},N}, δt::S,
-        x0::Union{Array{T,N},SubArray{T,N}}) where {T<:Number, S<:Number, N}
+function evaluate!(x::AbstractArray{Taylor1{T},N}, δt::S,
+        x0::AbstractArray{T,N}) where {T<:Number, S<:Number, N}
 
     # @assert length(x) == length(x0)
     @inbounds for i in eachindex(x, x0)
