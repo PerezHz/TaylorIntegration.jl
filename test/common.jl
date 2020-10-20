@@ -10,6 +10,8 @@ using LinearAlgebra: norm
         tspan = (0.0, 1.0)
         prob = ODEProblem(f, u0, tspan)
         sol = solve(prob, TaylorMethod(50), abstol=1e-20)
+        @test TaylorIntegration.alg_order(TaylorMethod(50)) == 50
+        @test TaylorIntegration.alg_order(sol.alg) == TaylorIntegration.alg_order(TaylorMethod(50))
         @test abs(sol[end] - u0*exp(1)) < 1e-12
         u0 = 0.0
         tspan = (0.0, 11pi)
@@ -113,12 +115,7 @@ using LinearAlgebra: norm
         function affect!(integrator)
             integrator.u[2] = -integrator.u[2]
             # after affecting current state, Taylor expansions in cache should be updated as well
-            DiffEqBase.@unpack tT, uT, duT, uauxT, parse_eqs = integrator.cache
-            for i in eachindex(integrator.u)
-                @inbounds uT[i][0] = integrator.u[i]
-                duT[i].coeffs .= zero(duT[i][0])
-            end
-            TaylorIntegration.__jetcoeffs!(Val(parse_eqs.x), integrator.f.f, tT, uT, duT, uauxT, integrator.p)
+            TaylorIntegration.update_jetcoeffs_cache!(integrator)
             return nothing
         end
         cb = ContinuousCallback(condition,affect!)
@@ -127,7 +124,6 @@ using LinearAlgebra: norm
         p = 9.8
         prob = ODEProblem(f,u0,tspan,p)
         sol = solve(prob, TaylorMethod(25), abstol=1e-16, callback=cb)
-        @test TaylorIntegration.alg_order(sol.alg) == 25
         tb = sqrt(2*50/9.8) # bounce time
         @test abs(tb - sol.t[9]) < 1e-14
         @test sol.t[9] == sol.t[10]
@@ -137,6 +133,54 @@ using LinearAlgebra: norm
         @test sol.t[19] == sol.t[20]
         @test sol[19][1] == sol[20][1]
         @test sol[19][2] == -sol[20][2] # check that callback was applied correctly (2nd bounce)
+    end
+
+    @testset "Test vector continuous callback in common interface" begin
+        # vector continuous callback: example taken from DifferentialEquations.jl docs:
+        # https://diffeq.sciml.ai/dev/features/callback_functions/#VectorContinuousCallback-Example
+        @taylorize function f(du,u,p,t)
+            local g_acc = p
+            du[1] = u[2]
+            du[2] = -g_acc + zero(u[2])
+            du[3] = u[4]
+            du[4] = zero(u[4])
+        end
+
+        function condition(out,u,t,integrator) # Event when event_f(u,t) == 0
+            out[1] = u[1]
+            out[2] = (u[3] - 10.0)u[3]
+        end
+
+        #### TODO: fix main loop so that it's not necessary to update cache manually
+        function affect!(integrator, idx)
+            if idx == 1
+                integrator.u[2] = -0.9integrator.u[2]
+            elseif idx == 2
+                integrator.u[4] = -0.9integrator.u[4]
+            end
+            # after affecting current state, Taylor expansions in cache should be updated as well
+            TaylorIntegration.update_jetcoeffs_cache!(integrator)
+        end
+
+        cb = VectorContinuousCallback(condition, affect!, 2)
+
+        u0 = [50.0, 0.0, 0.0, 2.0]
+        tspan = (0.0, 15.0)
+        p = 9.8
+        prob = ODEProblem(f, u0, tspan, p)
+        sol = solve(prob, TaylorMethod(25), abstol=1e-16, callback=cb)
+        tb = sqrt(2*50/9.8) # bounce time
+        @test abs(tb - sol.t[8]) < 1e-14
+        @test sol.t[8] == sol.t[9]
+        @test sol[9][1] == sol[8][1]
+        @test sol[9][2] == -0.9sol[8][2]
+        @test sol[9][3] == sol[8][3]
+        @test sol[9][4] == sol[8][4]
+        @test sol.t[13] == sol.t[14]
+        @test sol[14][1] == sol[13][1]
+        @test sol[14][2] == sol[13][2]
+        @test sol[14][3] == sol[13][3]
+        @test sol[14][4] == -0.9sol[13][4]
     end
 
     @testset "Test parsed jetcoeffs! method in common interface" begin
