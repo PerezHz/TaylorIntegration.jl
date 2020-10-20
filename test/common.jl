@@ -1,4 +1,4 @@
-using TaylorIntegration, Test, DiffEqBase
+using Test, DiffEqBase, TaylorIntegration
 using LinearAlgebra: norm
 
 @testset "Testing `common.jl`" begin
@@ -98,33 +98,46 @@ using LinearAlgebra: norm
         @test sol[4][1] + 0.1 == sol[5][1]
     end
 
-    # TODO: fix this test (currently not working)
-    # @testset "Test continuous callback in common interface" begin
-    #     # discrete callback: example taken from DifferentialEquations.jl docs:
-    #     # https://diffeq.sciml.ai/stable/features/callback_functions/#Example-1:-Bouncing-Ball
-    #     @taylorize function f(du,u,p,t)
-    #         local g_acc = p
-    #         du[1] = u[2]
-    #         du[2] = -g_acc
-    #     end
-    #     function condition(u,t,integrator)
-    #         @show u
-    #         u[1]
-    #     end
-    #     function affect!(integrator)
-    #         integrator.u[2] = -integrator.u[2]
-    #     end
-    #     cb = ContinuousCallback(condition,affect!)
-    #     u0 = [50.0,0.0]
-    #     tspan = (0.0,15.0)
-    #     p = 9.8
-    #     prob = ODEProblem(f,u0,tspan,p)
-    #     using Plots
-    #     sol = solve(prob, TaylorMethod(25), abstol=1e-16, callback=cb)
-    #     @show sol
-    #     p = plot(sol)
-    #     display(p)
-    # end
+    @testset "Test continuous callback in common interface" begin
+        # continuous callback: example taken from DifferentialEquations.jl docs:
+        # https://diffeq.sciml.ai/stable/features/callback_functions/#Example-1:-Bouncing-Ball
+        @taylorize function f(du,u,p,t)
+            local g_acc = p
+            du[1] = u[2]
+            du[2] = -g_acc + zero(u[2])
+        end
+        function condition(u,t,integrator)
+            u[1]
+        end
+        #### TODO: fix main loop so that it's not necessary to update cache manually
+        function affect!(integrator)
+            integrator.u[2] = -integrator.u[2]
+            # after affecting current state, Taylor expansions in cache should be updated as well
+            DiffEqBase.@unpack tT, uT, duT, uauxT, parse_eqs = integrator.cache
+            for i in eachindex(integrator.u)
+                @inbounds uT[i][0] = integrator.u[i]
+                duT[i].coeffs .= zero(duT[i][0])
+            end
+            TaylorIntegration.__jetcoeffs!(Val(parse_eqs.x), integrator.f.f, tT, uT, duT, uauxT, integrator.p)
+            return nothing
+        end
+        cb = ContinuousCallback(condition,affect!)
+        u0 = [50.0,0.0]
+        tspan = (0.0,15.0)
+        p = 9.8
+        prob = ODEProblem(f,u0,tspan,p)
+        sol = solve(prob, TaylorMethod(25), abstol=1e-16, callback=cb)
+        @test TaylorIntegration.alg_order(sol.alg) == 25
+        tb = sqrt(2*50/9.8) # bounce time
+        @test abs(tb - sol.t[9]) < 1e-14
+        @test sol.t[9] == sol.t[10]
+        @test sol[9][1] == sol[10][1]
+        @test sol[9][2] == -sol[10][2] # check that callback was applied correctly (1st bounce)
+        @test abs(3tb - sol.t[19]) < 1e-14
+        @test sol.t[19] == sol.t[20]
+        @test sol[19][1] == sol[20][1]
+        @test sol[19][2] == -sol[20][2] # check that callback was applied correctly (2nd bounce)
+    end
 
     @testset "Test parsed jetcoeffs! method in common interface" begin
         @taylorize function integ_vec(dx, x, p, t)
