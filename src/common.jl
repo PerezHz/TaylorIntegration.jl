@@ -189,12 +189,8 @@ function DiffEqBase.solve(
     sizeu = size(prob.u0)
     f = prob.f.f
 
-    if !isinplace && typeof(prob.u0) <: Vector{Float64}
+    if !isinplace && typeof(prob.u0) <: AbstractArray
         f! = (du, u, p, t) -> (du .= f(u, p, t); 0)
-        _alg = _TaylorMethod(alg.order, parse_eqs = false)
-        prob.f.f = f!
-    elseif !isinplace && typeof(prob.u0) <: AbstractArray
-        f! = (du, u, p, t) -> (du .= vec(f(reshape(u, sizeu), p, t)); 0)
         _alg = _TaylorMethod(alg.order, parse_eqs = false)
         prob.f.f = f!
     elseif haskey(kwargs, :parse_eqs)
