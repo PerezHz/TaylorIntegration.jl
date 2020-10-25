@@ -197,12 +197,10 @@ using StaticArrays
         prob = ODEProblem(integ_vec, x0, tspan, [1.0])
         sol1 = solve(prob, TaylorMethod(order), abstol=abstol, parse_eqs=false)
         sol2 = solve(prob, TaylorMethod(order), abstol=abstol) # parse_eqs=true
-        @time sol2 = solve(prob, TaylorMethod(order), abstol=abstol) # parse_eqs=true
         @test length(sol1.t) == length(sol2.t)
         @test sol1.t == sol2.t
         @test sol1.u == sol2.u
         tv, xv = taylorinteg(integ_vec, x0, tspan[1], tspan[2], order, abstol, [1.0])
-        @time tv, xv = taylorinteg(integ_vec, x0, tspan[1], tspan[2], order, abstol, [1.0])
         @test sol1.t == tv
         @test sol1[1,:] == xv[:,1]
         @test sol1[2,:] == xv[:,2]
