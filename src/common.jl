@@ -108,8 +108,8 @@ function initialize!(integrator, c::TaylorMethodConstantCache)
     tT = Taylor1(typeof(t), integrator.alg.order)
     tT[0] = t
     c.uT .= Taylor1(u, tT.order)
-    c.parse_eqs.x = _determine_parsing!(c.parse_eqs.x, f.f, tT, c.uT, p)
-    __jetcoeffs!(Val(c.parse_eqs.x), f.f, tT, c.uT, p)
+    c.parse_eqs.x = _determine_parsing!(c.parse_eqs.x, f, tT, c.uT, p)
+    __jetcoeffs!(Val(c.parse_eqs.x), f, tT, c.uT, p)
     # FSAL stuff
     integrator.kshortsize = 2
     integrator.k = typeof(integrator.k)(undef, integrator.kshortsize)
@@ -127,7 +127,7 @@ function perform_step!(integrator,cache::TaylorMethodConstantCache)
     tT[0] = t+dt
     u = evaluate(cache.uT, dt)
     cache.uT[0] = u
-    __jetcoeffs!(Val(cache.parse_eqs.x), f.f, tT, cache.uT, p)
+    __jetcoeffs!(Val(cache.parse_eqs.x), f, tT, cache.uT, p)
     k = f(u, p, t+dt) # For the interpolation, needs k at the updated point
     integrator.destats.nf += 1
     integrator.fsallast = k
@@ -144,8 +144,8 @@ function initialize!(integrator, cache::TaylorMethodCache)
     uT .= Taylor1.(u, tT.order)
     duT .= zero.(Taylor1.(u, tT.order))
     uauxT .= similar(uT)
-    parse_eqs.x = _determine_parsing!(parse_eqs.x, f.f, tT, uT, duT, p)
-    __jetcoeffs!(Val(parse_eqs.x), f.f, tT, uT, duT, uauxT, p)
+    parse_eqs.x = _determine_parsing!(parse_eqs.x, f, tT, uT, duT, p)
+    __jetcoeffs!(Val(parse_eqs.x), f, tT, uT, duT, uauxT, p)
     # FSAL for interpolation
     integrator.fsalfirst = fsalfirst
     integrator.fsallast = k
@@ -153,7 +153,7 @@ function initialize!(integrator, cache::TaylorMethodCache)
     resize!(integrator.k, integrator.kshortsize)
     integrator.k[1] = integrator.fsalfirst
     # integrator.f(integrator.fsalfirst,integrator.uprev,integrator.p,integrator.t)
-    integrator.fsalfirst = duT()
+    integrator.fsalfirst = constant_term.(duT)
     integrator.destats.nf += 1
 end
 
@@ -166,8 +166,8 @@ function perform_step!(integrator, cache::TaylorMethodCache)
         @inbounds uT[i][0] = u[i]
         duT[i].coeffs .= zero(duT[i][0])
     end
-    __jetcoeffs!(Val(parse_eqs.x), f.f, tT, uT, duT, uauxT, p)
-    k = duT() # For the interpolation, needs k at the updated point
+    __jetcoeffs!(Val(parse_eqs.x), f, tT, uT, duT, uauxT, p)
+    k = constant_term.(duT) # For the interpolation, needs k at the updated point
     integrator.destats.nf += 1
 end
 
@@ -187,20 +187,50 @@ function DiffEqBase.solve(
     end
 
     sizeu = size(prob.u0)
-    f = prob.f.f
-
-    if !isinplace && typeof(prob.u0) <: AbstractArray
-        f! = (du, u, p, t) -> (du .= f(u, p, t); 0)
+    if prob.f isa DynamicalODEFunction
         _alg = _TaylorMethod(alg.order, parse_eqs = false)
-        prob.f.f = f!
-    elseif haskey(kwargs, :parse_eqs)
-        _alg = _TaylorMethod(alg.order, parse_eqs = kwargs[:parse_eqs])
+        if isinplace
+            f = (du,u,p,t) ->
+            @inbounds begin
+                dv1 = view(du, firstindex(du):lastindex(du)÷2)
+                dv2 = view(du, lastindex(du)÷2+1:lastindex(du))
+                v1 = view(u, firstindex(u):lastindex(u)÷2)
+                v2 = view(u, lastindex(u)÷2+1:lastindex(u))
+                prob.f.f1(dv1, v1, v2, p, t)
+                prob.f.f2(dv2, v1, v2, p, t)
+                return nothing
+            end
+        else
+            f = (du,u,p,t) ->
+            @inbounds begin
+                dv1 = view(du, firstindex(du):lastindex(du)÷2)
+                dv2 = view(du, lastindex(du)÷2+1:lastindex(du))
+                v1 = view(u, firstindex(u):lastindex(u)÷2)
+                v2 = view(u, lastindex(u)÷2+1:lastindex(u))
+                dv1 = prob.f.f1(v1, v2, p, t)
+                dv2 = prob.f.f2(v1, v2, p, t)
+                return nothing
+            end
+        end
+        _u0 = convert(Array{eltype(prob.u0)}, prob.u0)
+        _prob = ODEProblem(f, _u0, prob.tspan, prob.p; prob.kwargs...)
+        # DiffEqBase.solve(prob, _alg, args...; kwargs...)
+        integrator = DiffEqBase.__init(_prob, _alg, args...; kwargs...)
     else
-        _alg = _TaylorMethod(alg.order)
+        f = prob.f
+        if !isinplace && typeof(prob.u0) <: AbstractArray
+            f! = (du, u, p, t) -> (du .= f(u, p, t); 0)
+            _alg = _TaylorMethod(alg.order, parse_eqs = false)
+            prob.f = f!
+        elseif haskey(kwargs, :parse_eqs)
+            _alg = _TaylorMethod(alg.order, parse_eqs = kwargs[:parse_eqs])
+        else
+            _alg = _TaylorMethod(alg.order)
+        end
+        # DiffEqBase.solve(prob, _alg, args...; kwargs...)
+        integrator = DiffEqBase.__init(prob, _alg, args...; kwargs...)
     end
 
-    # DiffEqBase.solve(prob, _alg, args...; kwargs...)
-    integrator = DiffEqBase.__init(prob, _alg, args...; kwargs...)
     integrator.dt = stepsize(integrator.cache.uT, integrator.opts.abstol) # override handle_dt! setting of initial dt
     DiffEqBase.solve!(integrator)
     integrator.sol
@@ -213,7 +243,7 @@ function update_jetcoeffs_cache!(integrator)
         @inbounds uT[i][0] = integrator.u[i]
         duT[i].coeffs .= zero(duT[i][0])
     end
-    __jetcoeffs!(Val(parse_eqs.x), integrator.f.f, tT, uT, duT, uauxT, integrator.p)
+    __jetcoeffs!(Val(parse_eqs.x), integrator.f, tT, uT, duT, uauxT, integrator.p)
     return nothing
 end
 
