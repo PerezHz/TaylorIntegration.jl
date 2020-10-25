@@ -1,5 +1,6 @@
 using Test, DiffEqBase, TaylorIntegration
 using LinearAlgebra: norm
+using StaticArrays
 
 @testset "Testing `common.jl`" begin
 
@@ -196,10 +197,16 @@ using LinearAlgebra: norm
         prob = ODEProblem(integ_vec, x0, tspan, [1.0])
         sol1 = solve(prob, TaylorMethod(order), abstol=abstol, parse_eqs=false)
         sol2 = solve(prob, TaylorMethod(order), abstol=abstol) # parse_eqs=true
+        @time sol2 = solve(prob, TaylorMethod(order), abstol=abstol) # parse_eqs=true
         @test length(sol1.t) == length(sol2.t)
         @test sol1.t == sol2.t
         @test sol1.u == sol2.u
         tv, xv = taylorinteg(integ_vec, x0, tspan[1], tspan[2], order, abstol, [1.0])
+        @time tv, xv = taylorinteg(integ_vec, x0, tspan[1], tspan[2], order, abstol, [1.0])
+        @test sol1.t == tv
+        @test sol1[1,:] == xv[:,1]
+        @test sol1[2,:] == xv[:,2]
+        @test transpose(sol1[:,:]) == xv[:,:]
         @test norm(sol1[end][1] - sin(sol1.t[end]), Inf) < 1.0e-15
         @test norm(sol1[end][2] - cos(sol1.t[end]), Inf) < 1.0e-15
     end
@@ -213,4 +220,51 @@ using LinearAlgebra: norm
         # `order` is not specified
         @test_throws ErrorException solve(prob, TaylorMethod(), abstol=1e-20)
     end
+
+    @testset "Test integration of DynamicalODEPoblem" begin
+        function iip_q̇(dq,p,q,params,t)
+            dq[1] = p[1]
+            dq[2] = p[2]
+        end
+
+        function iip_ṗ(dp,p,q,params,t)
+            dp[1] = -q[1] * (1 + 2q[2])
+            dp[2] = -q[2] - (q[1]^2 - q[2]^2)
+        end
+
+        iip_q0 = [0.1, 0.]
+        iip_p0 = [0., 0.5]
+
+
+        function oop_q̇(p, q, params, t)
+            p
+        end
+
+        function oop_ṗ(p, q, params, t)
+            dp1 = -q[1] * (1 + 2q[2])
+            dp2 = -q[2] - (q[1]^2 - q[2]^2)
+            @SVector [dp1, dp2]
+        end
+
+        oop_q0 = @SVector [0.1, 0.]
+        oop_p0 = @SVector [0., 0.5]
+
+        T(p) = 1//2 * (p[1]^2 + p[2]^2)
+        V(q) = 1//2 * (q[1]^2 + q[2]^2 + 2q[1]^2 * q[2]- 2//3 * q[2]^3)
+        H(p,q, params) = T(p) + V(q)
+
+        E = H(iip_p0, iip_q0, nothing)
+
+        energy_err(sol) = maximum(i->H([sol[1,i], sol[2,i]], [sol[3,i], sol[4,i]], nothing)-E, 1:length(sol.u))
+
+        iip_prob = DynamicalODEProblem(iip_ṗ, iip_q̇, iip_p0, iip_q0, (0., 100.))
+        oop_prob = DynamicalODEProblem(oop_ṗ, oop_q̇, oop_p0, oop_q0, (0., 100.))
+
+        sol1 = solve(iip_prob, TaylorMethod(50), abstol=1e-20)
+        @test energy_err(sol1) < 1e-10
+
+        sol2 = solve(oop_prob, TaylorMethod(50), abstol=1e-20)
+        @test energy_err(sol2) < 1e-10
+    end
+
 end
