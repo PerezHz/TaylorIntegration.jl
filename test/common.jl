@@ -112,11 +112,8 @@ using StaticArrays
         function condition(u,t,integrator)
             u[1]
         end
-        #### TODO: fix main loop so that it's not necessary to update cache manually
         function affect!(integrator)
             integrator.u[2] = -integrator.u[2]
-            # after affecting current state, Taylor expansions in cache should be updated as well
-            TaylorIntegration.update_jetcoeffs_cache!(integrator)
             return nothing
         end
         cb = ContinuousCallback(condition,affect!)
@@ -152,15 +149,12 @@ using StaticArrays
             out[2] = (u[3] - 10.0)u[3]
         end
 
-        #### TODO: fix main loop so that it's not necessary to update cache manually
         function affect!(integrator, idx)
             if idx == 1
                 integrator.u[2] = -0.9integrator.u[2]
             elseif idx == 2
                 integrator.u[4] = -0.9integrator.u[4]
             end
-            # after affecting current state, Taylor expansions in cache should be updated as well
-            TaylorIntegration.update_jetcoeffs_cache!(integrator)
         end
 
         cb = VectorContinuousCallback(condition, affect!, 2)

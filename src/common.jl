@@ -1,6 +1,6 @@
 using DiffEqBase, OrdinaryDiffEq
 
-import DiffEqBase: ODEProblem, solve, ODE_DEFAULT_NORM, @..
+import DiffEqBase: ODEProblem, solve, ODE_DEFAULT_NORM, @.., addsteps!
 
 import OrdinaryDiffEq: OrdinaryDiffEqAdaptiveAlgorithm,
 OrdinaryDiffEqConstantCache, OrdinaryDiffEqMutableCache,
@@ -237,14 +237,32 @@ function DiffEqBase.solve(
 end
 
 # used in continuous callbacks and related methods to update Taylor expansions cache
-function update_jetcoeffs_cache!(integrator)
-    @unpack tT, uT, duT, uauxT, parse_eqs = integrator.cache
-    for i in eachindex(integrator.u)
-        @inbounds uT[i][0] = integrator.u[i]
+function update_jetcoeffs_cache!(u,f,p,cache::TaylorMethodCache)
+    @unpack tT, uT, duT, uauxT, parse_eqs = cache
+    for i in eachindex(u)
+        @inbounds uT[i][0] = u[i]
         duT[i].coeffs .= zero(duT[i][0])
     end
-    __jetcoeffs!(Val(parse_eqs.x), integrator.f, tT, uT, duT, uauxT, integrator.p)
+    __jetcoeffs!(Val(parse_eqs.x), f, tT, uT, duT, uauxT, p)
     return nothing
+end
+
+# DiffEqBase.addsteps! overload for ::TaylorMethodCache
+function DiffEqBase.addsteps!(k,t,uprev,u,dt,f,p,cache::TaylorMethodCache,always_calc_begin = false,allow_calc_end = true,force_calc_end = false)
+    if length(k)<2 || always_calc_begin
+        if typeof(cache) <: OrdinaryDiffEqMutableCache
+        rtmp = similar(u, eltype(eltype(k)))
+        f(rtmp,uprev,p,t)
+        copyat_or_push!(k,1,rtmp)
+        f(rtmp,u,p,t+dt)
+        copyat_or_push!(k,2,rtmp)
+        else
+        copyat_or_push!(k,1,f(uprev,p,t))
+        copyat_or_push!(k,2,f(u,p,t+dt))
+        end
+    end
+    update_jetcoeffs_cache!(u,f,p,cache)
+    nothing
 end
 
 import TaylorSeries: evaluate!
