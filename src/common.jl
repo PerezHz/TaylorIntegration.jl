@@ -187,6 +187,8 @@ function DiffEqBase.solve(
     end
 
     sizeu = size(prob.u0)
+    # This if block handles DynamicalODEProblems
+    # credit to @SebastianM-C for coming up with this solution
     if prob.f isa DynamicalODEFunction
         _alg = _TaylorMethod(alg.order, parse_eqs = false)
         if isinplace
@@ -247,7 +249,9 @@ function update_jetcoeffs_cache!(u,f,p,cache::TaylorMethodCache)
     return nothing
 end
 
-# DiffEqBase.addsteps! overload for ::TaylorMethodCache
+# This function was modified from OrdinaryDiffEq.jl; MIT-licensed
+# DiffEqBase.addsteps! overload for ::TaylorMethodCache to handle continuous
+# and vector callbacks with TaylorIntegration.jl via the common interface
 function DiffEqBase.addsteps!(k,t,uprev,u,dt,f,p,cache::TaylorMethodCache,always_calc_begin = false,allow_calc_end = true,force_calc_end = false)
     if length(k)<2 || always_calc_begin
         if typeof(cache) <: OrdinaryDiffEqMutableCache
@@ -265,6 +269,8 @@ function DiffEqBase.addsteps!(k,t,uprev,u,dt,f,p,cache::TaylorMethodCache,always
     nothing
 end
 
+# This function was modified from TaylorSeries.jl; MIT-licensed
+# evaluate! overload to handle AbstractArray
 import TaylorSeries: evaluate!
 function evaluate!(x::AbstractArray{Taylor1{T},N}, δt::S,
         x0::AbstractArray{T,N}) where {T<:Number, S<:Number, N}
