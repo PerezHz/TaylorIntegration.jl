@@ -197,12 +197,12 @@ function DiffEqBase.solve(
             dv2 = view(du, lastindex(du)÷2+1:lastindex(du))
             v1 = view(u, firstindex(u):lastindex(u)÷2)
             v2 = view(u, lastindex(u)÷2+1:lastindex(u))
-            dv1 = prob.f.f1(v1, v2, p, t)
-            dv2 = prob.f.f2(v1, v2, p, t)
+            dv1 .= prob.f.f1(v1, v2, p, t)
+            dv2 .= prob.f.f2(v1, v2, p, t)
             return nothing
         end
-        _u0 = convert(Array{eltype(prob.u0)}, prob.u0)
-        _prob = ODEProblem(f, _u0, prob.tspan, prob.p; prob.kwargs...)
+        u0 = convert(Array{eltype(prob.u0)}, prob.u0)
+        _prob = ODEProblem(f, u0, prob.tspan, prob.p; prob.kwargs...)
         # DiffEqBase.solve(prob, _alg, args...; kwargs...)
         integrator = DiffEqBase.__init(_prob, _alg, args...; kwargs...)
     else

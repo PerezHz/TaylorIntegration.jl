@@ -257,6 +257,9 @@ using StaticArrays
 
         sol2 = solve(oop_prob, TaylorMethod(50), abstol=1e-20)
         @test energy_err(sol2) < 1e-10
+
+        @test sol1.t == sol2.t
+        @test sol1[:,:] == sol2[:,:]
     end
 
 end
