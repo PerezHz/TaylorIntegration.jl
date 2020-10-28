@@ -189,30 +189,17 @@ function DiffEqBase.solve(
     sizeu = size(prob.u0)
     # This if block handles DynamicalODEProblems
     # credit to @SebastianM-C for coming up with this solution
-    if prob.f isa DynamicalODEFunction
+    if prob.f isa DynamicalODEFunction && !isinplace
         _alg = _TaylorMethod(alg.order, parse_eqs = false)
-        if isinplace
-            f = (du,u,p,t) ->
-            @inbounds begin
-                dv1 = view(du, firstindex(du):lastindex(du)÷2)
-                dv2 = view(du, lastindex(du)÷2+1:lastindex(du))
-                v1 = view(u, firstindex(u):lastindex(u)÷2)
-                v2 = view(u, lastindex(u)÷2+1:lastindex(u))
-                prob.f.f1(dv1, v1, v2, p, t)
-                prob.f.f2(dv2, v1, v2, p, t)
-                return nothing
-            end
-        else
-            f = (du,u,p,t) ->
-            @inbounds begin
-                dv1 = view(du, firstindex(du):lastindex(du)÷2)
-                dv2 = view(du, lastindex(du)÷2+1:lastindex(du))
-                v1 = view(u, firstindex(u):lastindex(u)÷2)
-                v2 = view(u, lastindex(u)÷2+1:lastindex(u))
-                dv1 = prob.f.f1(v1, v2, p, t)
-                dv2 = prob.f.f2(v1, v2, p, t)
-                return nothing
-            end
+        f = (du,u,p,t) ->
+        @inbounds begin
+            dv1 = view(du, firstindex(du):lastindex(du)÷2)
+            dv2 = view(du, lastindex(du)÷2+1:lastindex(du))
+            v1 = view(u, firstindex(u):lastindex(u)÷2)
+            v2 = view(u, lastindex(u)÷2+1:lastindex(u))
+            dv1 = prob.f.f1(v1, v2, p, t)
+            dv2 = prob.f.f2(v1, v2, p, t)
+            return nothing
         end
         _u0 = convert(Array{eltype(prob.u0)}, prob.u0)
         _prob = ODEProblem(f, _u0, prob.tspan, prob.p; prob.kwargs...)
