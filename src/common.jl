@@ -186,40 +186,28 @@ function DiffEqBase.solve(
         warned && warn_compat()
     end
 
-    sizeu = size(prob.u0)
-    # This if block handles DynamicalODEProblems
-    # credit to @SebastianM-C for coming up with this solution
-    if prob.f isa DynamicalODEFunction && !isinplace
-        _alg = _TaylorMethod(alg.order, parse_eqs = false)
-        f = (du,u,p,t) ->
-        @inbounds begin
-            dv1 = view(du, firstindex(du):lastindex(du)÷2)
-            dv2 = view(du, lastindex(du)÷2+1:lastindex(du))
-            v1 = view(u, firstindex(u):lastindex(u)÷2)
-            v2 = view(u, lastindex(u)÷2+1:lastindex(u))
-            dv1 .= prob.f.f1(v1, v2, p, t)
-            dv2 .= prob.f.f2(v1, v2, p, t)
-            return nothing
-        end
-        u0 = convert(Array{eltype(prob.u0)}, prob.u0)
-        _prob = ODEProblem(f, u0, prob.tspan, prob.p; prob.kwargs...)
-        # DiffEqBase.solve(prob, _alg, args...; kwargs...)
-        integrator = DiffEqBase.__init(_prob, _alg, args...; kwargs...)
-    else
-        f = prob.f
-        if !isinplace && typeof(prob.u0) <: AbstractArray
+    f = prob.f
+    if !isinplace && typeof(prob.u0) <: AbstractArray
+        if prob.f isa DynamicalODEFunction
+            f1! = (dv, v, u, p, t) -> (dv .= prob.f.f1(v, u, p, t); 0)
+            f2! = (du, v, u, p, t) -> (du .= prob.f.f2(v, u, p, t); 0)
+            _alg = _TaylorMethod(alg.order, parse_eqs = false)
+            _prob = DynamicalODEProblem(f1!, f2!, prob.u0.x[1], prob.u0.x[2], prob.tspan, prob.p; prob.kwargs...)
+        else
             f! = (du, u, p, t) -> (du .= f(u, p, t); 0)
             _alg = _TaylorMethod(alg.order, parse_eqs = false)
-            prob.f = f!
-        elseif haskey(kwargs, :parse_eqs)
-            _alg = _TaylorMethod(alg.order, parse_eqs = kwargs[:parse_eqs])
-        else
-            _alg = _TaylorMethod(alg.order)
+            _prob = ODEProblem(f!, prob.u0, prob.tspan, prob.p; prob.kwargs...)
         end
-        # DiffEqBase.solve(prob, _alg, args...; kwargs...)
-        integrator = DiffEqBase.__init(prob, _alg, args...; kwargs...)
+    elseif haskey(kwargs, :parse_eqs)
+        _alg = _TaylorMethod(alg.order, parse_eqs = kwargs[:parse_eqs])
+        _prob = prob
+    else
+        _alg = _TaylorMethod(alg.order)
+        _prob = prob
     end
 
+    # DiffEqBase.solve(prob, _alg, args...; kwargs...)
+    integrator = DiffEqBase.__init(_prob, _alg, args...; kwargs...)
     integrator.dt = stepsize(integrator.cache.uT, integrator.opts.abstol) # override handle_dt! setting of initial dt
     DiffEqBase.solve!(integrator)
     integrator.sol
