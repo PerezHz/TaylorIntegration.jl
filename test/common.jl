@@ -27,8 +27,13 @@ using StaticArrays
         tspan = (0.0, 1.0)
         prob = ODEProblem(f!, u0, tspan)
         sol = solve(prob, TaylorMethod(50), abstol=1e-20)
-
         @test norm(sol[end] - u0.*exp(1)) < 1e-12
+        f_oop(u, p, t) = u
+        prob_oop = ODEProblem(f_oop, u0, tspan)
+        sol_oop = solve(prob_oop, TaylorMethod(50), abstol=1e-20)
+        @test norm(sol_oop[end] - u0.*exp(1)) < 1e-12
+        @test sol.t == sol_oop.t
+        @test sol.u == sol_oop.u
     end
 
     tspan = (0.0,5.0)
@@ -213,6 +218,7 @@ using StaticArrays
         @test_throws ErrorException solve(prob, TaylorMethod(), abstol=1e-20)
     end
 
+    ### DynamicalODEProblem tests (see #108, #109)
     @testset "Test integration of DynamicalODEPoblem" begin
         function iip_q̇(dq,p,q,params,t)
             dq[1] = p[1]
@@ -235,11 +241,11 @@ using StaticArrays
         function oop_ṗ(p, q, params, t)
             dp1 = -q[1] * (1 + 2q[2])
             dp2 = -q[2] - (q[1]^2 - q[2]^2)
-            @SVector [dp1, dp2]
+            [dp1, dp2]
         end
 
-        oop_q0 = @SVector [0.1, 0.]
-        oop_p0 = @SVector [0., 0.5]
+        oop_q0 = [0.1, 0.]
+        oop_p0 = [0., 0.5]
 
         T(p) = 1//2 * (p[1]^2 + p[2]^2)
         V(q) = 1//2 * (q[1]^2 + q[2]^2 + 2q[1]^2 * q[2]- 2//3 * q[2]^3)
