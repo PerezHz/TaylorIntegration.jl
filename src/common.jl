@@ -1,4 +1,6 @@
 using DiffEqBase, OrdinaryDiffEq
+using StaticArrays: SVector, SizedArray
+using RecursiveArrayTools: ArrayPartition
 
 import DiffEqBase: ODEProblem, solve, ODE_DEFAULT_NORM, @.., addsteps!
 
@@ -85,16 +87,21 @@ end
 function alg_cache(alg::_TaylorMethod, u, rate_prototype, uEltypeNoUnits,
         uBottomEltypeNoUnits, tTypeNoUnits, uprev, uprev2, f, t, dt, reltol, p,
         calck,::Val{true})
+    tT = Taylor1(typeof(t), alg.order)
+    tT[0] = t
+    uT = Taylor1.(u, tT.order)
+    duT = zero.(Taylor1.(u, tT.order))
+    uauxT = similar(uT)
     TaylorMethodCache(
         u,
         uprev,
         similar(u),
         zero(rate_prototype),
         zero(rate_prototype),
-        Taylor1(t, alg.order),
-        Taylor1.(u, alg.order),
-        zero.(Taylor1.(u, alg.order)),
-        zero.(Taylor1.(u, alg.order)),
+        tT,
+        uT,
+        duT,
+        uauxT,
         Ref(alg.parse_eqs)
         )
 end
@@ -139,11 +146,6 @@ end
 function initialize!(integrator, cache::TaylorMethodCache)
     @unpack u, t, f, p = integrator
     @unpack k, fsalfirst, tT, uT, duT, uauxT, parse_eqs = cache
-    tT .= Taylor1(typeof(t), integrator.alg.order)
-    tT[0] = t
-    uT .= Taylor1.(u, tT.order)
-    duT .= zero.(Taylor1.(u, tT.order))
-    uauxT .= similar(uT)
     parse_eqs.x = _determine_parsing!(parse_eqs.x, f, tT, uT, duT, p)
     __jetcoeffs!(Val(parse_eqs.x), f, tT, uT, duT, uauxT, p)
     # FSAL for interpolation
@@ -192,7 +194,12 @@ function DiffEqBase.solve(
             f1! = (dv, v, u, p, t) -> (dv .= prob.f.f1(v, u, p, t); 0)
             f2! = (du, v, u, p, t) -> (du .= prob.f.f2(v, u, p, t); 0)
             _alg = _TaylorMethod(alg.order, parse_eqs = false)
-            _prob = DynamicalODEProblem(f1!, f2!, prob.u0.x[1], prob.u0.x[2], prob.tspan, prob.p; prob.kwargs...)
+            if eltype(prob.u0.x) <: SVector
+                _u0 = ArrayPartition(SizedArray{Tuple{length(prob.u0.x[1])}}.(prob.u0.x))
+            else
+                _u0 = prob.u0
+            end
+            _prob = DynamicalODEProblem(f1!, f2!, _u0.x[1], _u0.x[2], prob.tspan, prob.p; prob.kwargs...)
         else
             f! = (du, u, p, t) -> (du .= f(u, p, t); 0)
             _alg = _TaylorMethod(alg.order, parse_eqs = false)

@@ -241,11 +241,11 @@ using StaticArrays
         function oop_ṗ(p, q, params, t)
             dp1 = -q[1] * (1 + 2q[2])
             dp2 = -q[2] - (q[1]^2 - q[2]^2)
-            [dp1, dp2]
+            @SVector [dp1, dp2]
         end
 
-        oop_q0 = [0.1, 0.]
-        oop_p0 = [0., 0.5]
+        oop_q0 = @SVector [0.1, 0.]
+        oop_p0 = @SVector [0., 0.5]
 
         T(p) = 1//2 * (p[1]^2 + p[2]^2)
         V(q) = 1//2 * (q[1]^2 + q[2]^2 + 2q[1]^2 * q[2]- 2//3 * q[2]^3)
