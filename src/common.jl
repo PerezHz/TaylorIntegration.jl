@@ -194,6 +194,8 @@ function DiffEqBase.solve(
             f1! = (dv, v, u, p, t) -> (dv .= prob.f.f1(v, u, p, t); 0)
             f2! = (du, v, u, p, t) -> (du .= prob.f.f2(v, u, p, t); 0)
             _alg = _TaylorMethod(alg.order, parse_eqs = false)
+            ### workaround use of `SVector` with oop `DynamicalODEProblem`
+            ### TODO: add proper support for oop problems with arrays
             if eltype(prob.u0.x) <: SVector
                 _u0 = ArrayPartition(SizedArray{Tuple{length(prob.u0.x[1])}}.(prob.u0.x))
             else
