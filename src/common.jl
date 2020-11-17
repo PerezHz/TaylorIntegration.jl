@@ -11,11 +11,11 @@ alg_order, alg_cache, initialize!, perform_step!, @unpack,
 
 # TODO: check which keywords work fine
 const warnkeywords = (:save_idxs, :d_discontinuities, :unstable_check, :save_everystep,
-:save_end, :initialize_save, :adaptive, :dt, :reltol, :dtmax,
-:dtmin, :force_dtmin, :internalnorm, :gamma, :beta1, :beta2,
-:qmax, :qmin, :qsteady_min, :qsteady_max, :qoldinit, :failfactor,
-:isoutofdomain, :unstable_check,
-:calck, :progress, :timeseries_steps, :dense)
+    :save_end, :initialize_save, :adaptive, :dt, :reltol, :dtmax,
+    :dtmin, :force_dtmin, :internalnorm, :gamma, :beta1, :beta2,
+    :qmax, :qmin, :qsteady_min, :qsteady_max, :qoldinit, :failfactor,
+    :isoutofdomain, :unstable_check,
+    :calck, :progress, :timeseries_steps, :dense)
 
 global warnlist = Set(warnkeywords)
 
@@ -24,22 +24,12 @@ global warnlist = Set(warnkeywords)
 abstract type TaylorAlgorithm <: OrdinaryDiffEqAdaptiveAlgorithm end
 struct TaylorMethod <: TaylorAlgorithm
     order::Int
-end
-struct _TaylorMethod <: TaylorAlgorithm
-    order::Int
     parse_eqs::Bool
 end
 
-_TaylorMethod(order; parse_eqs=true) = _TaylorMethod(order, parse_eqs) # set `parse_eqs` to `true` by default
+TaylorMethod(order; parse_eqs=true) = TaylorMethod(order, parse_eqs) # set `parse_eqs` to `true` by default
 
 alg_order(alg::TaylorMethod) = alg.order
-alg_order(alg::_TaylorMethod) = alg.order
-
-# Regarding `isfsal`, thought about setting isfsal to false, but low order
-# interpolation may be helpful (since Taylor interpolation is memory-intensive),
-# so let's set isfsal to true for now, which is the default, so no method
-# definition needed here, so we in principle should support FSAL
-# isfsal(::TaylorMethod) = true # see discussion above
 
 TaylorMethod() = error("Maximum order must be specified for the Taylor method")
 
@@ -66,25 +56,12 @@ full_cache(c::TaylorMethodCache) = begin
     tuple(c.u, c.uprev, c.tmp, c.k, c.fsalfirst, c.tT, c.uT, c.duT, c.uauxT, c.parse_eqs)
 end
 
-# @show macroexpand(@__MODULE__, :(@cache struct TaylorMethodCache{uType,rateType,tTType,uTType} <: OrdinaryDiffEqMutableCache
-#   u::uType
-#   uprev::uType
-#   tmp::uType
-#   k::rateType
-#   fsalfirst::rateType
-#   tT::tTType
-#   uT::uTType
-#   duT::uTType
-#   uauxT::uTType
-#   parse_eqs::Bool
-# end) )
-
 struct TaylorMethodConstantCache{uTType} <: OrdinaryDiffEqConstantCache
     uT::uTType
     parse_eqs::Ref{Bool}
 end
 
-function alg_cache(alg::_TaylorMethod, u, rate_prototype, uEltypeNoUnits,
+function alg_cache(alg::TaylorMethod, u, rate_prototype, uEltypeNoUnits,
         uBottomEltypeNoUnits, tTypeNoUnits, uprev, uprev2, f, t, dt, reltol, p,
         calck,::Val{true})
     tT = Taylor1(typeof(t), alg.order)
@@ -106,7 +83,7 @@ function alg_cache(alg::_TaylorMethod, u, rate_prototype, uEltypeNoUnits,
         )
 end
 
-alg_cache(alg::_TaylorMethod, u, rate_prototype, uEltypeNoUnits,
+alg_cache(alg::TaylorMethod, u, rate_prototype, uEltypeNoUnits,
     uBottomEltypeNoUnits, tTypeNoUnits, uprev, uprev2, f, t, dt, reltol, p, calck,
     ::Val{false}) = TaylorMethodConstantCache(Taylor1(u, alg.order), Ref(alg.parse_eqs))
 
@@ -173,8 +150,8 @@ function perform_step!(integrator, cache::TaylorMethodCache)
     integrator.destats.nf += 1
 end
 
-stepsize_controller!(integrator,alg::_TaylorMethod) = stepsize(integrator.cache.uT, integrator.opts.abstol)
-step_accept_controller!(integrator, alg::_TaylorMethod, q) = q
+stepsize_controller!(integrator,alg::TaylorMethod) = stepsize(integrator.cache.uT, integrator.opts.abstol)
+step_accept_controller!(integrator, alg::TaylorMethod, q) = q
 
 function DiffEqBase.solve(
         prob::DiffEqBase.AbstractODEProblem{uType, tupType, isinplace},
@@ -193,7 +170,7 @@ function DiffEqBase.solve(
         if prob.f isa DynamicalODEFunction
             f1! = (dv, v, u, p, t) -> (dv .= prob.f.f1(v, u, p, t); 0)
             f2! = (du, v, u, p, t) -> (du .= prob.f.f2(v, u, p, t); 0)
-            _alg = _TaylorMethod(alg.order, parse_eqs = false)
+            _alg = TaylorMethod(alg.order, parse_eqs = false)
             ### workaround use of `SVector` with oop `DynamicalODEProblem`
             ### TODO: add proper support for oop problems with arrays
             if eltype(prob.u0.x) <: SVector
@@ -204,19 +181,20 @@ function DiffEqBase.solve(
             _prob = DynamicalODEProblem(f1!, f2!, _u0.x[1], _u0.x[2], prob.tspan, prob.p; prob.kwargs...)
         else
             f! = (du, u, p, t) -> (du .= f(u, p, t); 0)
-            _alg = _TaylorMethod(alg.order, parse_eqs = false)
+            _alg = TaylorMethod(alg.order, parse_eqs = false)
             _prob = ODEProblem(f!, prob.u0, prob.tspan, prob.p; prob.kwargs...)
         end
     elseif haskey(kwargs, :parse_eqs)
-        _alg = _TaylorMethod(alg.order, parse_eqs = kwargs[:parse_eqs])
+        _alg = TaylorMethod(alg.order, parse_eqs = kwargs[:parse_eqs])
         _prob = prob
     else
-        _alg = _TaylorMethod(alg.order)
+        _alg = TaylorMethod(alg.order)
         _prob = prob
     end
 
     # DiffEqBase.solve(prob, _alg, args...; kwargs...)
     integrator = DiffEqBase.__init(_prob, _alg, args...; kwargs...)
+    @show integrator.opts.abstol
     integrator.dt = stepsize(integrator.cache.uT, integrator.opts.abstol) # override handle_dt! setting of initial dt
     DiffEqBase.solve!(integrator)
     integrator.sol
@@ -236,17 +214,18 @@ end
 # This function was modified from OrdinaryDiffEq.jl; MIT-licensed
 # DiffEqBase.addsteps! overload for ::TaylorMethodCache to handle continuous
 # and vector callbacks with TaylorIntegration.jl via the common interface
-function DiffEqBase.addsteps!(k,t,uprev,u,dt,f,p,cache::TaylorMethodCache,always_calc_begin = false,allow_calc_end = true,force_calc_end = false)
+function DiffEqBase.addsteps!(k, t, uprev, u, dt, f, p, cache::TaylorMethodCache,
+        always_calc_begin = false, allow_calc_end = true,force_calc_end = false)
     if length(k)<2 || always_calc_begin
         if typeof(cache) <: OrdinaryDiffEqMutableCache
-        rtmp = similar(u, eltype(eltype(k)))
-        f(rtmp,uprev,p,t)
-        copyat_or_push!(k,1,rtmp)
-        f(rtmp,u,p,t+dt)
-        copyat_or_push!(k,2,rtmp)
+            rtmp = similar(u, eltype(eltype(k)))
+            f(rtmp,uprev,p,t)
+            copyat_or_push!(k,1,rtmp)
+            f(rtmp,u,p,t+dt)
+            copyat_or_push!(k,2,rtmp)
         else
-        copyat_or_push!(k,1,f(uprev,p,t))
-        copyat_or_push!(k,2,f(u,p,t+dt))
+            copyat_or_push!(k,1,f(uprev,p,t))
+            copyat_or_push!(k,2,f(u,p,t+dt))
         end
     end
     update_jetcoeffs_cache!(u,f,p,cache)
