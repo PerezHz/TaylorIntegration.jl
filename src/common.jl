@@ -194,7 +194,6 @@ function DiffEqBase.solve(
 
     # DiffEqBase.solve(prob, _alg, args...; kwargs...)
     integrator = DiffEqBase.__init(_prob, _alg, args...; kwargs...)
-    @show integrator.opts.abstol
     integrator.dt = stepsize(integrator.cache.uT, integrator.opts.abstol) # override handle_dt! setting of initial dt
     DiffEqBase.solve!(integrator)
     integrator.sol
