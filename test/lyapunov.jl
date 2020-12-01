@@ -113,13 +113,13 @@ using Test
         @test_throws AssertionError lyap_taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol; maxsteps=2)
         xi = set_variables("δ", order=1, numvars=length(q0))
 
-        #Test lyap_taylorinteg with autodiff-computed Jacobian, maxsteps=2
+        #Test lyap_taylorinteg with autodiff-computed Jacobian, maxsteps=5
         tv, xv, λv = lyap_taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol, nothing; maxsteps=5)
         @test size(tv) == (6,)
         @test size(xv) == (6,3)
         @test size(λv) == (6,3)
 
-        #Test lyap_taylorinteg with user-defined Jacobian, maxsteps=2
+        #Test lyap_taylorinteg with user-defined Jacobian, maxsteps=5
         tv2, xv2, λv2 = lyap_taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol, nothing, lorenz_jac!; maxsteps=5)
         @test size(tv2) == (6,)
         @test size(xv2) == (6,3)
@@ -143,6 +143,10 @@ using Test
         t_, x_ = taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol; maxsteps=2000)
         @test t_ == tv
         @test x_ == xv
+        # test backward integration
+        tvb, xvb, λvb = lyap_taylorinteg(lorenz!, q0, t0, -tmax, _order, _abstol; maxsteps=2000)
+        @test isapprox(sum(λvb[1,:]), lorenztr) == false
+        @test isapprox(sum(λvb[end,:]), lorenztr)
 
         #Test lyap_taylorinteg with user-defined Jacobian, maxsteps=2000
         tv2, xv2, λv2 = lyap_taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol, nothing, lorenz_jac!; maxsteps=2000)
@@ -161,6 +165,10 @@ using Test
         # Check integration consistency (orbit should not depend on variational eqs)
         @test t_ == tv2
         @test x_ == xv2
+        # test backward integration
+        tv2b, xv2b, λv2b = lyap_taylorinteg(lorenz!, q0, t0, -tmax, _order, _abstol, nothing, lorenz_jac!; maxsteps=2000)
+        @test isapprox(sum(λv2b[1,:]), lorenztr) == false
+        @test isapprox(sum(λv2b[end,:]), lorenztr)
     end
 
     @testset "Test Lyapunov spectrum integrator (trange): Lorenz system" begin
