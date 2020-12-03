@@ -230,16 +230,3 @@ function DiffEqBase.addsteps!(k, t, uprev, u, dt, f, p, cache::TaylorMethodCache
     update_jetcoeffs_cache!(u,f,p,cache)
     nothing
 end
-
-# This function was modified from TaylorSeries.jl; MIT-licensed
-# evaluate! overload to handle AbstractArray
-import TaylorSeries: evaluate!
-function evaluate!(x::AbstractArray{Taylor1{T},N}, δt::S,
-        x0::AbstractArray{T,N}) where {T<:Number, S<:Number, N}
-
-    # @assert length(x) == length(x0)
-    @inbounds for i in eachindex(x, x0)
-        x0[i] = evaluate( x[i], δt )
-    end
-    nothing
-end
