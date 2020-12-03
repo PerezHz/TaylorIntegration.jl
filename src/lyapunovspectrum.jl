@@ -169,9 +169,9 @@ via automatic differentiation using `TaylorSeries.jl`.
 function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
         dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}},
         δx::Array{TaylorN{Taylor1{U}},1}, dδx::Array{TaylorN{Taylor1{U}},1},
-        jac::Array{Taylor1{U},2}, t0::T, t1::T, order::Int,
-        abstol::T, _δv::Vector{TaylorN{Taylor1{U}}}, varsaux::Array{Taylor1{U},3},
-        params, parse_eqs::Bool=true, jacobianfunc! =nothing) where {T<:Real, U<:Number}
+        jac::Array{Taylor1{U},2}, abstol::T, _δv::Vector{TaylorN{Taylor1{U}}},
+        varsaux::Array{Taylor1{U},3}, params, parse_eqs::Bool=true,
+        jacobianfunc! =nothing) where {T<:Real, U<:Number}
 
     # Dimensions of phase-space: dof
     nx = length(x)
@@ -188,7 +188,6 @@ function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
 
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(view(x, 1:dof), abstol)
-    δt = min(δt, t1-t0)
 
     return δt
 end
@@ -229,6 +228,7 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
     x0 = vcat(q0, reshape(jt, dof*dof))
     nx0 = length(x0)
     t00 = t0
+    sign_tstep = copysign(1, tmax-t0)
 
     # Initialize the vector of Taylor1 expansions
     t = Taylor1(T, order)
@@ -263,9 +263,11 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
 
     # Integration
     nsteps = 1
-    while t0 < tmax
-        δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, tmax,
-            order, abstol, _δv, varsaux, params, parse_eqs, jacobianfunc!)
+    while sign_tstep*t0 < sign_tstep*tmax
+        δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac,
+            abstol, _δv, varsaux, params, parse_eqs, jacobianfunc!) # δt is positive!
+        # Below, δt has the proper sign according to the direction of the integration
+        δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
         evaluate!(x, δt, x0) # Update x0
         for ind in eachindex(jt)
             @inbounds jt[ind] = x0[dof+ind]
@@ -326,6 +328,7 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
     x .= Taylor1.( x0, order )
     @inbounds t[0] = trange[1]
     @inbounds t0, t1, tmax = trange[1], trange[2], trange[end]
+    sign_tstep = copysign(1, tmax-t0)
     t00 = trange[1]
     tspan = zero(T)
 
@@ -357,9 +360,11 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
     # Integration
     iter = 2
     nsteps = 1
-    while t0 < tmax
-        δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, tmax,
-            order, abstol, _δv, varsaux, params, parse_eqs, jacobianfunc!)
+    while sign_tstep*t0 < sign_tstep*tmax
+        δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac,
+            abstol, _δv, varsaux, params, parse_eqs, jacobianfunc!) # δt is positive!
+        # Below, δt has the proper sign according to the direction of the integration
+        δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
         evaluate!(x, δt, x0) # Update x0
         tnext = t0+δt
         # # Evaluate solution at times within convergence radius
