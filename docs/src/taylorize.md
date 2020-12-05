@@ -188,8 +188,8 @@ list some limitations and advices.
 - The macro allows to use array declarations through `Array`, but other ways
   (e.g. `similar`) are not yet implemented.
 
-- Avoid using variables prefixed by an underscore, in particular `_T` and `_S`;
-  using them may lead to name collisions with some internal variables.
+- Avoid using variables prefixed by an underscore, in particular `_T`, `_S` and
+  `_N`; using them may lead to name collisions with some internal variables.
 
 - Broadcasting is not recognized by `@taylorize`.
 

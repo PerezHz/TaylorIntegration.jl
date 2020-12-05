@@ -1070,9 +1070,9 @@ import Pkg
         # Ignore declarations in the function
         @test newex.args[1] == :(
             TaylorIntegration.jetcoeffs!(::Val{f!}, t::Taylor1{_T},
-                q::AbstractVector{Taylor1{_S}},
-                dq::AbstractVector{Taylor1{_S}}, p) where
-                    {_T <: Real, _S <: Number})
+                q::AbstractArray{Taylor1{_S}, _N},
+                dq::AbstractArray{Taylor1{_S}, _N}, p) where
+                    {_T <: Real, _S <: Number, _N})
 
         # Include not recognized functions as they appear
         @test newex.args[2].args[2] == :(aa = my_simple_function(q, p, t))

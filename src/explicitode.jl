@@ -61,8 +61,8 @@ computes recursively the high-order derivates back into `x`.
 
 """
 function jetcoeffs!(eqsdiff!::Function, t::Taylor1{T},
-        x::AbstractVector{Taylor1{U}}, dx::AbstractVector{Taylor1{U}},
-        xaux::AbstractVector{Taylor1{U}}, params) where {T<:Real, U<:Number}
+        x::AbstractArray{Taylor1{U}, N}, dx::AbstractArray{Taylor1{U}, N},
+        xaux::AbstractArray{Taylor1{U}, N}, params) where {T<:Real, U<:Number, N}
     order = x[1].order
     for ord in 0:order-1
         ordnext = ord+1
@@ -132,8 +132,8 @@ function stepsize(x::Taylor1{U}, epsilon::T) where {T<:Real, U<:Number}
     return h::R
 end
 
-function stepsize(q::AbstractArray{Taylor1{U},1}, epsilon::T) where
-        {T<:Real, U<:Number}
+function stepsize(q::AbstractArray{Taylor1{U}, N}, epsilon::T) where
+        {T<:Real, U<:Number, N}
     R = promote_type(typeof(norm(constant_term(q[1]), Inf)), T)
     h = convert(R, Inf)
     for i in eachindex(q)

@@ -1,16 +1,24 @@
 using TaylorIntegration, Test, DiffEqBase
 using LinearAlgebra: norm
+using StaticArrays
 
 @testset "Testing `common.jl`" begin
 
     f(u,p,t) = u
+    g(u,p,t) = cos(t)
     @testset "Test integration of ODE with numbers in common interface" begin
         u0 = 0.5
         tspan = (0.0, 1.0)
         prob = ODEProblem(f, u0, tspan)
         sol = solve(prob, TaylorMethod(50), abstol=1e-20)
-
-        @test sol[end] - 0.5*exp(1) < 1e-12
+        @test TaylorIntegration.alg_order(TaylorMethod(50)) == 50
+        @test TaylorIntegration.alg_order(sol.alg) == TaylorIntegration.alg_order(TaylorMethod(50))
+        @test abs(sol[end] - u0*exp(1)) < 1e-12
+        u0 = 0.0
+        tspan = (0.0, 11pi)
+        prob = ODEProblem(g, u0, tspan)
+        sol = solve(prob, TaylorMethod(50), abstol=1e-20)
+        @test abs(sol[end] - sin(sol.t[end])) < 1e-12
     end
 
     f!(du, u, p, t) = (du .= u)
@@ -19,8 +27,13 @@ using LinearAlgebra: norm
         tspan = (0.0, 1.0)
         prob = ODEProblem(f!, u0, tspan)
         sol = solve(prob, TaylorMethod(50), abstol=1e-20)
-
         @test norm(sol[end] - u0.*exp(1)) < 1e-12
+        f_oop(u, p, t) = u
+        prob_oop = ODEProblem(f_oop, u0, tspan)
+        sol_oop = solve(prob_oop, TaylorMethod(50), abstol=1e-20)
+        @test norm(sol_oop[end] - u0.*exp(1)) < 1e-12
+        @test sol.t == sol_oop.t
+        @test sol.u == sol_oop.u
     end
 
     tspan = (0.0,5.0)
@@ -63,6 +76,138 @@ using LinearAlgebra: norm
         end
     end
 
+    function harmosc!(dx, x, p, t)
+        dx[1] = x[2]
+        dx[2] = - x[1]
+        return nothing
+    end
+    tspan = (0.0, 10pi)
+    abstol=1e-20 # 1e-16
+    order = 25 # Taylor expansion order wrt time
+    u0 = [1.0; 0.0]
+    prob = ODEProblem(harmosc!, u0, tspan)
+    @testset "Test consistency with taylorinteg" begin
+        sol = solve(prob, TaylorMethod(order), abstol=abstol)
+        tv1, xv1 = taylorinteg(harmosc!, u0, tspan[1], tspan[2], order, abstol)
+        @test sol.t == tv1
+        @test xv1[end,:] == sol[end]
+    end
+
+    @testset "Test discrete callback in common interface" begin
+        # discrete callback: example taken from DifferentialEquations.jl docs:
+        # https://diffeq.sciml.ai/dev/features/callback_functions/#Using-Callbacks
+        t_cb = 1.0pi
+        condition(u,t,integrator) = t == t_cb
+        affect!(integrator) = integrator.u[1] += 0.1
+        cb = DiscreteCallback(condition,affect!)
+        sol = solve(prob, TaylorMethod(order), abstol=abstol, tstops=[t_cb], callback=cb)
+        @test sol.t[4] == t_cb
+        @test sol.t[4] == sol.t[5]
+        @test sol[4][1] + 0.1 == sol[5][1]
+    end
+
+    @testset "Test continuous callback in common interface" begin
+        # continuous callback: example taken from DifferentialEquations.jl docs:
+        # https://diffeq.sciml.ai/stable/features/callback_functions/#Example-1:-Bouncing-Ball
+        @taylorize function f(du,u,p,t)
+            local g_acc = p
+            du[1] = u[2]
+            du[2] = -g_acc + zero(u[2])
+        end
+        function condition(u,t,integrator)
+            u[1]
+        end
+        function affect!(integrator)
+            integrator.u[2] = -integrator.u[2]
+            return nothing
+        end
+        cb = ContinuousCallback(condition,affect!)
+        u0 = [50.0,0.0]
+        tspan = (0.0,15.0)
+        p = 9.8
+        prob = ODEProblem(f,u0,tspan,p)
+        sol = solve(prob, TaylorMethod(25), abstol=1e-16, callback=cb)
+        tb = sqrt(2*50/9.8) # bounce time
+        @test abs(tb - sol.t[9]) < 1e-14
+        @test sol.t[9] == sol.t[10]
+        @test sol[9][1] == sol[10][1]
+        @test sol[9][2] == -sol[10][2] # check that callback was applied correctly (1st bounce)
+        @test abs(3tb - sol.t[19]) < 1e-14
+        @test sol.t[19] == sol.t[20]
+        @test sol[19][1] == sol[20][1]
+        @test sol[19][2] == -sol[20][2] # check that callback was applied correctly (2nd bounce)
+    end
+
+    @testset "Test vector continuous callback in common interface" begin
+        # vector continuous callback: example taken from DifferentialEquations.jl docs:
+        # https://diffeq.sciml.ai/dev/features/callback_functions/#VectorContinuousCallback-Example
+        @taylorize function f(du,u,p,t)
+            local g_acc = p
+            du[1] = u[2]
+            du[2] = -g_acc + zero(u[2])
+            du[3] = u[4]
+            du[4] = zero(u[4])
+        end
+
+        function condition(out,u,t,integrator) # Event when event_f(u,t) == 0
+            out[1] = u[1]
+            out[2] = (u[3] - 10.0)u[3]
+        end
+
+        function affect!(integrator, idx)
+            if idx == 1
+                integrator.u[2] = -0.9integrator.u[2]
+            elseif idx == 2
+                integrator.u[4] = -0.9integrator.u[4]
+            end
+        end
+
+        cb = VectorContinuousCallback(condition, affect!, 2)
+
+        u0 = [50.0, 0.0, 0.0, 2.0]
+        tspan = (0.0, 15.0)
+        p = 9.8
+        prob = ODEProblem(f, u0, tspan, p)
+        sol = solve(prob, TaylorMethod(25), abstol=1e-16, callback=cb)
+        tb = sqrt(2*50/9.8) # bounce time
+        @test abs(tb - sol.t[8]) < 1e-14
+        @test sol.t[8] == sol.t[9]
+        @test sol[9][1] == sol[8][1]
+        @test sol[9][2] == -0.9sol[8][2]
+        @test sol[9][3] == sol[8][3]
+        @test sol[9][4] == sol[8][4]
+        @test sol.t[13] == sol.t[14]
+        @test sol[14][1] == sol[13][1]
+        @test sol[14][2] == sol[13][2]
+        @test sol[14][3] == sol[13][3]
+        @test sol[14][4] == -0.9sol[13][4]
+    end
+
+    @testset "Test parsed jetcoeffs! method in common interface" begin
+        @taylorize function integ_vec(dx, x, p, t)
+            local λ = p[1]
+            dx[1] = cos(t)
+            dx[2] = -λ*sin(t)
+            return dx
+        end
+        @test (@isdefined integ_vec)
+        x0 = [0.0, 1.0]
+        tspan = (0.0, pi)
+        prob = ODEProblem(integ_vec, x0, tspan, [1.0])
+        sol1 = solve(prob, TaylorMethod(order), abstol=abstol, parse_eqs=false)
+        sol2 = solve(prob, TaylorMethod(order), abstol=abstol) # parse_eqs=true
+        @test length(sol1.t) == length(sol2.t)
+        @test sol1.t == sol2.t
+        @test sol1.u == sol2.u
+        tv, xv = taylorinteg(integ_vec, x0, tspan[1], tspan[2], order, abstol, [1.0])
+        @test sol1.t == tv
+        @test sol1[1,:] == xv[:,1]
+        @test sol1[2,:] == xv[:,2]
+        @test transpose(sol1[:,:]) == xv[:,:]
+        @test norm(sol1[end][1] - sin(sol1.t[end]), Inf) < 1.0e-15
+        @test norm(sol1[end][2] - cos(sol1.t[end]), Inf) < 1.0e-15
+    end
+
     @testset "Test throwing errors in common interface" begin
         u0 = rand(4, 2)
         tspan = (0.0, 1.0)
@@ -71,9 +216,56 @@ using LinearAlgebra: norm
 
         # `order` is not specified
         @test_throws ErrorException solve(prob, TaylorMethod(), abstol=1e-20)
-
-        # Using a `callback`
-        prob2 = ODEProblem(f!, u0, tspan, callback=nothing)
-        @test_throws ErrorException solve(prob2, TaylorMethod(10), abstol=1e-20)
     end
+
+    ### DynamicalODEProblem tests (see #108, #109)
+    @testset "Test integration of DynamicalODEPoblem" begin
+        function iip_q̇(dq,p,q,params,t)
+            dq[1] = p[1]
+            dq[2] = p[2]
+        end
+
+        function iip_ṗ(dp,p,q,params,t)
+            dp[1] = -q[1] * (1 + 2q[2])
+            dp[2] = -q[2] - (q[1]^2 - q[2]^2)
+        end
+
+        iip_q0 = [0.1, 0.]
+        iip_p0 = [0., 0.5]
+
+
+        function oop_q̇(p, q, params, t)
+            p
+        end
+
+        function oop_ṗ(p, q, params, t)
+            dp1 = -q[1] * (1 + 2q[2])
+            dp2 = -q[2] - (q[1]^2 - q[2]^2)
+            @SVector [dp1, dp2]
+        end
+
+        oop_q0 = @SVector [0.1, 0.]
+        oop_p0 = @SVector [0., 0.5]
+
+        T(p) = 1//2 * (p[1]^2 + p[2]^2)
+        V(q) = 1//2 * (q[1]^2 + q[2]^2 + 2q[1]^2 * q[2]- 2//3 * q[2]^3)
+        H(p,q, params) = T(p) + V(q)
+
+        E = H(iip_p0, iip_q0, nothing)
+
+        energy_err(sol) = maximum(i->H([sol[1,i], sol[2,i]], [sol[3,i], sol[4,i]], nothing)-E, 1:length(sol.u))
+
+        iip_prob = DynamicalODEProblem(iip_ṗ, iip_q̇, iip_p0, iip_q0, (0., 100.))
+        oop_prob = DynamicalODEProblem(oop_ṗ, oop_q̇, oop_p0, oop_q0, (0., 100.))
+
+        sol1 = solve(iip_prob, TaylorMethod(50), abstol=1e-20)
+        @test energy_err(sol1) < 1e-10
+
+        sol2 = solve(oop_prob, TaylorMethod(50), abstol=1e-20)
+        @test energy_err(sol2) < 1e-10
+
+        @test sol1.t == sol2.t
+        @test sol1[:,:] == sol2[:,:]
+    end
+
 end

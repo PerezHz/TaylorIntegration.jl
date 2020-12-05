@@ -1,194 +1,232 @@
-using DiffEqBase, DataStructures
+using DiffEqBase, OrdinaryDiffEq
+using StaticArrays: SVector, SizedArray
+using RecursiveArrayTools: ArrayPartition
 
-import DiffEqBase: ODEProblem, solve
+import DiffEqBase: ODEProblem, solve, ODE_DEFAULT_NORM, @.., addsteps!
 
-const warnkeywords =
-    (:save_idxs, :d_discontinuities, :unstable_check, :save_everystep,
-     :save_end, :initialize_save, :adaptive, :dt, :reltol, :dtmax,
-     :dtmin, :force_dtmin, :internalnorm, :gamma, :beta1, :beta2,
-     :qmax, :qmin, :qsteady_min, :qsteady_max, :qoldinit, :failfactor,
-     :maxiters, :isoutofdomain, :unstable_check,
-     :calck, :progress, :timeseries_steps, :tstops, :dense)
+import OrdinaryDiffEq: OrdinaryDiffEqAdaptiveAlgorithm,
+OrdinaryDiffEqConstantCache, OrdinaryDiffEqMutableCache,
+alg_order, alg_cache, initialize!, perform_step!, @unpack,
+@cache, stepsize_controller!, step_accept_controller!
+
+# TODO: check which keywords work fine
+const warnkeywords = (:save_idxs, :d_discontinuities, :unstable_check, :save_everystep,
+    :save_end, :initialize_save, :adaptive, :dt, :reltol, :dtmax,
+    :dtmin, :force_dtmin, :internalnorm, :gamma, :beta1, :beta2,
+    :qmax, :qmin, :qsteady_min, :qsteady_max, :qoldinit, :failfactor,
+    :isoutofdomain, :unstable_check,
+    :calck, :progress, :timeseries_steps, :dense)
 
 global warnlist = Set(warnkeywords)
 
 
 
-abstract type TaylorAlgorithm <: DiffEqBase.DEAlgorithm end
+abstract type TaylorAlgorithm <: OrdinaryDiffEqAdaptiveAlgorithm end
 struct TaylorMethod <: TaylorAlgorithm
     order::Int
+    parse_eqs::Bool
 end
+
+TaylorMethod(order; parse_eqs=true) = TaylorMethod(order, parse_eqs) # set `parse_eqs` to `true` by default
+
+alg_order(alg::TaylorMethod) = alg.order
 
 TaylorMethod() = error("Maximum order must be specified for the Taylor method")
 
 export TaylorMethod
 
-function DiffEqBase.solve(
-    prob::DiffEqBase.AbstractODEProblem{uType,tupType,isinplace},
-    alg::AlgType,
-    timeseries=[],ts=[],ks=[];
-    verbose=true,
-    saveat=eltype(tupType)[],
-    abstol = 1e-6,
-    save_start =  isempty(saveat) || saveat isa Number || prob.tspan[1] in saveat,
-    save_end   =  isempty(saveat) || saveat isa Number || prob.tspan[2] in saveat,
-    timeseries_errors=true, maxiters = 1_000_000,
-    callback=nothing, kwargs...) where
-        {uType, tupType, isinplace, AlgType <: TaylorAlgorithm}
+# overload DiffEqBase.ODE_DEFAULT_NORM for Taylor1 arrays
+ODE_DEFAULT_NORM(x::AbstractArray{Taylor1{T}, N},y) where {T<:Number, N} = norm(x, Inf)
 
-    tType = eltype(tupType)
+### cache stuff
+struct TaylorMethodCache{uType, rateType, tTType, uTType} <: OrdinaryDiffEqMutableCache
+    u::uType
+    uprev::uType
+    tmp::uType
+    k::rateType
+    fsalfirst::rateType
+    tT::tTType
+    uT::uTType
+    duT::uTType
+    uauxT::uTType
+    parse_eqs::Ref{Bool}
+end
+
+full_cache(c::TaylorMethodCache) = begin
+    tuple(c.u, c.uprev, c.tmp, c.k, c.fsalfirst, c.tT, c.uT, c.duT, c.uauxT, c.parse_eqs)
+end
+
+struct TaylorMethodConstantCache{uTType} <: OrdinaryDiffEqConstantCache
+    uT::uTType
+    parse_eqs::Ref{Bool}
+end
+
+function alg_cache(alg::TaylorMethod, u, rate_prototype, uEltypeNoUnits,
+        uBottomEltypeNoUnits, tTypeNoUnits, uprev, uprev2, f, t, dt, reltol, p,
+        calck,::Val{true})
+    tT = Taylor1(typeof(t), alg.order)
+    tT[0] = t
+    uT = Taylor1.(u, tT.order)
+    duT = zero.(Taylor1.(u, tT.order))
+    uauxT = similar(uT)
+    TaylorMethodCache(
+        u,
+        uprev,
+        similar(u),
+        zero(rate_prototype),
+        zero(rate_prototype),
+        tT,
+        uT,
+        duT,
+        uauxT,
+        Ref(alg.parse_eqs)
+        )
+end
+
+alg_cache(alg::TaylorMethod, u, rate_prototype, uEltypeNoUnits,
+    uBottomEltypeNoUnits, tTypeNoUnits, uprev, uprev2, f, t, dt, reltol, p, calck,
+    ::Val{false}) = TaylorMethodConstantCache(Taylor1(u, alg.order), Ref(alg.parse_eqs))
+
+function initialize!(integrator, c::TaylorMethodConstantCache)
+    @unpack u, t, f, p = integrator
+    tT = Taylor1(typeof(t), integrator.alg.order)
+    tT[0] = t
+    c.uT .= Taylor1(u, tT.order)
+    c.parse_eqs.x = _determine_parsing!(c.parse_eqs.x, f, tT, c.uT, p)
+    __jetcoeffs!(Val(c.parse_eqs.x), f, tT, c.uT, p)
+    # FSAL stuff
+    integrator.kshortsize = 2
+    integrator.k = typeof(integrator.k)(undef, integrator.kshortsize)
+    integrator.fsalfirst = integrator.f(integrator.uprev, integrator.p, integrator.t) # Pre-start fsal
+    integrator.destats.nf += 1
+    # Avoid undefined entries if k is an array of arrays
+    integrator.fsallast = zero(integrator.fsalfirst)
+    integrator.k[1] = integrator.fsalfirst
+    integrator.k[2] = integrator.fsallast
+end
+
+function perform_step!(integrator,cache::TaylorMethodConstantCache)
+    @unpack u, t, dt, f, p = integrator
+    tT = Taylor1(typeof(t), integrator.alg.order)
+    tT[0] = t+dt
+    u = evaluate(cache.uT, dt)
+    cache.uT[0] = u
+    __jetcoeffs!(Val(cache.parse_eqs.x), f, tT, cache.uT, p)
+    k = f(u, p, t+dt) # For the interpolation, needs k at the updated point
+    integrator.destats.nf += 1
+    integrator.fsallast = k
+    integrator.k[1] = integrator.fsalfirst
+    integrator.k[2] = integrator.fsallast
+    integrator.u = u
+end
+
+function initialize!(integrator, cache::TaylorMethodCache)
+    @unpack u, t, f, p = integrator
+    @unpack k, fsalfirst, tT, uT, duT, uauxT, parse_eqs = cache
+    parse_eqs.x = _determine_parsing!(parse_eqs.x, f, tT, uT, duT, p)
+    __jetcoeffs!(Val(parse_eqs.x), f, tT, uT, duT, uauxT, p)
+    # FSAL for interpolation
+    integrator.fsalfirst = fsalfirst
+    integrator.fsallast = k
+    integrator.kshortsize = 1
+    resize!(integrator.k, integrator.kshortsize)
+    integrator.k[1] = integrator.fsalfirst
+    # integrator.f(integrator.fsalfirst,integrator.uprev,integrator.p,integrator.t)
+    integrator.fsalfirst = constant_term.(duT)
+    integrator.destats.nf += 1
+end
+
+function perform_step!(integrator, cache::TaylorMethodCache)
+    @unpack t, dt, u, f, p = integrator
+    @unpack k, tT, uT, duT, uauxT, parse_eqs = cache
+    evaluate!(uT, dt, u)
+    tT[0] = t+dt
+    for i in eachindex(u)
+        @inbounds uT[i][0] = u[i]
+        duT[i].coeffs .= zero(duT[i][0])
+    end
+    __jetcoeffs!(Val(parse_eqs.x), f, tT, uT, duT, uauxT, p)
+    k = constant_term.(duT) # For the interpolation, needs k at the updated point
+    integrator.destats.nf += 1
+end
+
+stepsize_controller!(integrator,alg::TaylorMethod) = stepsize(integrator.cache.uT, integrator.opts.abstol)
+step_accept_controller!(integrator, alg::TaylorMethod, q) = q
+
+function DiffEqBase.solve(
+        prob::DiffEqBase.AbstractODEProblem{uType, tupType, isinplace},
+        alg::TaylorMethod, args...;
+        verbose=true,
+        kwargs...) where
+        {uType, tupType, isinplace}
 
     if verbose
         warned = !isempty(kwargs) && check_keywords(alg, kwargs, warnlist)
         warned && warn_compat()
     end
 
-    if haskey(prob.kwargs, :callback) || haskey(kwargs, :callback) || !isa(callback, Nothing)
-        error("TaylorIntegration is not compatible with callbacks.")
-    end
-
-    sizeu = size(prob.u0)
-    f = prob.f.f
-
-    tspan = prob.tspan
-
-    _, saveat_vec_, _ = tstop_saveat_disc_handling(1,saveat,1,tspan)
-    saveat_vec = sort(saveat_vec_.valtree)
-
-    if !isempty(saveat) && save_end && saveat_vec[end] != tspan[2]
-        push!(saveat_vec,tspan[2])
-    end
-    if !isempty(saveat) && saveat_vec[1] != tspan[1]
-        prepend!(saveat_vec,tspan[1])
-    end
-
-    if !isinplace && typeof(prob.u0) <: Vector{Float64}
-        f! = (du, u, p, t) -> (du .= f(u, p, t); 0)
-        if isempty(saveat_vec)
-            t, vectimeseries = taylorinteg(f!, prob.u0, prob.tspan[1], prob.tspan[2],
-                alg.order, abstol, prob.p, maxsteps=maxiters, parse_eqs=false)
+    f = prob.f
+    if !isinplace && typeof(prob.u0) <: AbstractArray
+        if prob.f isa DynamicalODEFunction
+            f1! = (dv, v, u, p, t) -> (dv .= prob.f.f1(v, u, p, t); 0)
+            f2! = (du, v, u, p, t) -> (du .= prob.f.f2(v, u, p, t); 0)
+            _alg = TaylorMethod(alg.order, parse_eqs = false)
+            ### workaround use of `SVector` with oop `DynamicalODEProblem`
+            ### TODO: add proper support for oop problems with arrays
+            if eltype(prob.u0.x) <: SVector
+                _u0 = ArrayPartition(SizedArray{Tuple{length(prob.u0.x[1])}}.(prob.u0.x))
+            else
+                _u0 = prob.u0
+            end
+            _prob = DynamicalODEProblem(f1!, f2!, _u0.x[1], _u0.x[2], prob.tspan, prob.p; prob.kwargs...)
         else
-            t = saveat_vec
-            vectimeseries = taylorinteg(f!, prob.u0, t,
-                alg.order, abstol, prob.p, maxsteps=maxiters, parse_eqs=false)
+            f! = (du, u, p, t) -> (du .= f(u, p, t); 0)
+            _alg = TaylorMethod(alg.order, parse_eqs = false)
+            _prob = ODEProblem(f!, prob.u0, prob.tspan, prob.p; prob.kwargs...)
         end
-
-    elseif !isinplace && typeof(prob.u0) <: AbstractArray
-        f! = (du, u, p, t) -> (du .= vec(f(reshape(u, sizeu), p, t)); 0)
-        if isempty(saveat_vec)
-            t, vectimeseries = taylorinteg(f!, prob.u0, prob.tspan[1], prob.tspan[2],
-                alg.order, abstol, prob.p, maxsteps=maxiters, parse_eqs=false)
-        else
-            t = saveat_vec
-            vectimeseries = taylorinteg(f!, prob.u0, t,
-                alg.order, abstol, prob.p, maxsteps=maxiters, parse_eqs=false)
-        end
-
-    elseif isinplace && typeof(prob.u0) <: AbstractArray{eltype(uType),2}
-        f! = (du, u, p, t) -> (
-                dd = reshape(du, sizeu); uu = reshape(u, sizeu);
-                f(dd, uu, p, t); u = vec(uu); du = vec(dd); 0)
-        u0 = vec(prob.u0)
-        if isempty(saveat_vec)
-            t, vectimeseries = taylorinteg(f!, u0, prob.tspan[1], prob.tspan[2],
-                alg.order, abstol, prob.p, maxsteps=maxiters, parse_eqs=false)
-        else
-            t = saveat_vec
-            vectimeseries = taylorinteg(f!, prob.u0, t,
-                alg.order, abstol, prob.p, maxsteps=maxiters, parse_eqs=false)
-        end
+    elseif haskey(kwargs, :parse_eqs)
+        _alg = TaylorMethod(alg.order, parse_eqs = kwargs[:parse_eqs])
+        _prob = prob
     else
-        if haskey(kwargs, :parse_eqs)
-            parse_eqs = kwargs[:parse_eqs]
-        else
-            parse_eqs = true
-        end
-        if isempty(saveat_vec)
-            t, vectimeseries = taylorinteg(f, prob.u0, prob.tspan[1],
-                prob.tspan[2], alg.order, abstol, prob.p, maxsteps=maxiters,
-                parse_eqs=parse_eqs)
-        else
-            t = saveat_vec
-            vectimeseries = taylorinteg(f, prob.u0, t,
-                alg.order, abstol, prob.p, maxsteps=maxiters,
-                parse_eqs=parse_eqs)
-        end
+        _alg = TaylorMethod(alg.order)
+        _prob = prob
     end
 
-    if save_start
-      start_idx = 1
-      _t = t
-    else
-      start_idx = 2
-      _t = t[2:end]
-    end
-
-    if typeof(prob.u0) <: AbstractArray
-      _timeseries = Vector{uType}(undef, 0)
-      for i=start_idx:size(vectimeseries, 1)
-          push!(_timeseries, reshape(view(vectimeseries, i, :, )', sizeu))
-      end
-    else
-      _timeseries = vec(vectimeseries)[start_idx:end]
-    end
-
-    DiffEqBase.build_solution(prob,  alg, _t, _timeseries,
-        timeseries_errors = timeseries_errors, retcode = :Success)
+    # DiffEqBase.solve(prob, _alg, args...; kwargs...)
+    integrator = DiffEqBase.__init(_prob, _alg, args...; kwargs...)
+    integrator.dt = stepsize(integrator.cache.uT, integrator.opts.abstol) # override handle_dt! setting of initial dt
+    DiffEqBase.solve!(integrator)
+    integrator.sol
 end
 
-# This function is part of OrdinaryDiffEq.jl; MIT-licensed
-# https://github.com/JuliaDiffEq/OrdinaryDiffEq.jl/blob/8b5af68ee4126d3772fe690a7128468f1334b4d6/src/solve.jl#L411
-function tstop_saveat_disc_handling(tstops, saveat, d_discontinuities, tspan)
-    t0, tf = tspan
-    tType = eltype(tspan)
-    tdir = sign(tf - t0)
-
-    tdir_t0 = tdir * t0
-    tdir_tf = tdir * tf
-
-    # time stops
-    tstops_internal = BinaryMinHeap{tType}()
-    if isempty(d_discontinuities) && isempty(tstops) # TODO: Specialize more
-      push!(tstops_internal, tdir_tf)
-    else
-      for t in tstops
-        tdir_t = tdir * t
-        tdir_t0 < tdir_t ≤ tdir_tf && push!(tstops_internal, tdir_t)
-      end
-
-      for t in d_discontinuities
-        tdir_t = tdir * t
-        tdir_t0 < tdir_t ≤ tdir_tf && push!(tstops_internal, tdir_t)
-      end
-
-      push!(tstops_internal, tdir_tf)
+# used in continuous callbacks and related methods to update Taylor expansions cache
+function update_jetcoeffs_cache!(u,f,p,cache::TaylorMethodCache)
+    @unpack tT, uT, duT, uauxT, parse_eqs = cache
+    for i in eachindex(u)
+        @inbounds uT[i][0] = u[i]
+        duT[i].coeffs .= zero(duT[i][0])
     end
+    __jetcoeffs!(Val(parse_eqs.x), f, tT, uT, duT, uauxT, p)
+    return nothing
+end
 
-    # saving time points
-    saveat_internal = BinaryMinHeap{tType}()
-    if typeof(saveat) <: Number
-      if (t0:saveat:tf)[end] == tf
-        for t in (t0 + saveat):saveat:tf
-          push!(saveat_internal, tdir * t)
+# This function was modified from OrdinaryDiffEq.jl; MIT-licensed
+# DiffEqBase.addsteps! overload for ::TaylorMethodCache to handle continuous
+# and vector callbacks with TaylorIntegration.jl via the common interface
+function DiffEqBase.addsteps!(k, t, uprev, u, dt, f, p, cache::TaylorMethodCache,
+        always_calc_begin = false, allow_calc_end = true,force_calc_end = false)
+    if length(k)<2 || always_calc_begin
+        if typeof(cache) <: OrdinaryDiffEqMutableCache
+            rtmp = similar(u, eltype(eltype(k)))
+            f(rtmp,uprev,p,t)
+            copyat_or_push!(k,1,rtmp)
+            f(rtmp,u,p,t+dt)
+            copyat_or_push!(k,2,rtmp)
+        else
+            copyat_or_push!(k,1,f(uprev,p,t))
+            copyat_or_push!(k,2,f(u,p,t+dt))
         end
-      else
-        for t in (t0 + saveat):saveat:(tf - saveat)
-          push!(saveat_internal, tdir * t)
-        end
-      end
-    elseif !isempty(saveat)
-      for t in saveat
-        tdir_t = tdir * t
-        tdir_t0 < tdir_t < tdir_tf && push!(saveat_internal, tdir_t)
-      end
     end
-
-    # discontinuities
-    d_discontinuities_internal = BinaryMinHeap{tType}()
-    sizehint!(d_discontinuities_internal.valtree, length(d_discontinuities))
-    for t in d_discontinuities
-      push!(d_discontinuities_internal, tdir * t)
-    end
-
-    tstops_internal, saveat_internal, d_discontinuities_internal
+    update_jetcoeffs_cache!(u,f,p,cache)
+    nothing
 end
