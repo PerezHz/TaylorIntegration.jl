@@ -46,6 +46,7 @@ jobs:
       - uses: codecov/codecov-action@v1
         with:
           file: lcov.info
-      - uses: julia-actions/julia-uploadcoveralls@v1
-        env:
-          COVERALLS_TOKEN: ${{ secrets.COVERALLS_TOKEN }}
+      - uses: coverallsapp/github-action@master
+        with:
+          path-to-lcov: lcov.info
+          github-token: ${{ secrets.GITHUB_TOKEN }}
