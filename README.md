@@ -3,8 +3,7 @@
 ODE integration using Taylor's method in [Julia](http://julialang.org).
 
 Build status:
-[![travis][travis-img]](https://travis-ci.org/PerezHz/TaylorIntegration.jl)
-[![appveyor][appveyor-img]](https://ci.appveyor.com/project/PerezHz/taylorintegration-jl/branch/master)
+[![Build status](https://github.com/PerezHz/TaylorIntegration.jl/workflows/CI/badge.svg)](https://github.com/PerezHz/TaylorIntegration.jl/actions)
 
 Coverage:
 [![Coverage Status](https://coveralls.io/repos/github/PerezHz/TaylorIntegration.jl/badge.svg?branch=master)](https://coveralls.io/github/PerezHz/TaylorIntegration.jl?branch=master) [![codecov](https://codecov.io/gh/PerezHz/TaylorIntegration.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/PerezHz/TaylorIntegration.jl)
