@@ -224,7 +224,7 @@ nothing # hide
 
 We plot first the value of the Jacobi constant as function of time.
 ```@example common
-plot(solT.t, H.(solT.u), label="TaylorMethod(25)", fmt = :png)
+plot(solT.t, H.(solT.u), label="TaylorMethod(25)", fmt = :png, yformatter = :plain)
 plot!(solV.t, H.(solV.u), label="Vern9()")
 xlabel!("t")
 ylabel!("H")
@@ -236,9 +236,9 @@ solution suffers sudden jumps during the integration.
 We now plot, in log scale, the `abs` of the absolute error in the Jacobi
 constant as a function of time, for both solutions:
 ```@example common
-plot(solT.t, abs.(δET), yscale=:log10, label="TaylorMethod(25)", legend=:topleft, fmt = :png)
+plot(solT.t, abs.(δET), yscale=:log10, label="TaylorMethod(25)", legend=:topleft, fmt = :png, yformatter = :plain)
 plot!(solV.t, abs.(δEV), label="Vern9()")
-ylims!(10^-18, 10^-8)
+ylims!(10^-16, 10^-10)
 xlabel!("t")
 ylabel!("dE")
 ```
@@ -249,15 +249,20 @@ displays sudden jumps earlier in the integration and has variations close to
 
 Finally, we comment on the time spent by each integration.
 ```@example common
-@elapsed solve(prob, TaylorMethod(25), abstol=1e-15);
+using BenchmarkTools
+bT = @benchmark solve($prob, $(TaylorMethod(25)), abstol=1e-15)
+bV = @benchmark solve($prob, $(Vern9()), abstol=1e-15, reltol=1e-15)
+nothing # hide
 ```
 ```@example common
-@elapsed solve(prob, Vern9(), abstol=1e-15, reltol=1e-15);
+bT # TaylorMethod(25) benchmark
 ```
-We notice that the `TaylorMethod(25)` integration and the `Vern9()` one
-have similar performances, with the latter performing slightly better. Yet, as
-shown above, the former preserves the Jacobi constant to a higher accuracy by
-at least one order of magnitude.
+```@example common
+bV # Vern9 benchmark
+```
+We notice that the `TaylorMethod(25)` and the `Vern9()` integrations perform
+similarly. Yet, as shown above, the former preserves the Jacobi constant to a
+higher accuracy by about one order of magnitude.
 
 A fairer comparison is obtained by pushing the native methods of `DiffEqs`
 to reach similar accuracy for the integral of motion, as the one
