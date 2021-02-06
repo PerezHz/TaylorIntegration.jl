@@ -239,8 +239,8 @@ using StaticArrays
         sol2 = solve(prob, TaylorMethod(order), abstol=abstol, parse_eqs=false)
         @time sol2 = solve(prob, TaylorMethod(order), abstol=abstol, parse_eqs=false)
         @test sol2.alg.parse_eqs == false
-        @test norm( H_pcr3bp(sol1.u[end]) - J0 ) < 1e-12
-        @test norm( H_pcr3bp(sol2.u[end]) - J0 ) < 1e-12
+        @test norm( H_pcr3bp(sol1.u[end]) - J0 ) < 1e-10
+        @test norm( H_pcr3bp(sol2.u[end]) - J0 ) < 1e-10
         @test sol1.u == sol2.u
         @test sol1.t == sol2.t
     end
