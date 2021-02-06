@@ -283,4 +283,4 @@ supports the use of `@taylorize` via the common interface with
 
 [1] Murray, Carl D., Stanley F. Dermott. Solar System dynamics. Cambridge University Press, 1999.
 
-[3] [SciMLBenchmarks.jl/DynamicalODE](https://benchmarks.sciml.ai/html/DynamicalODE/Henon-Heiles_energy_conservation_benchmark.html)
+[2] [SciMLBenchmarks.jl/DynamicalODE](https://benchmarks.sciml.ai/html/DynamicalODE/Henon-Heiles_energy_conservation_benchmark.html)
