@@ -243,9 +243,9 @@ xlabel!("t")
 ylabel!("dE")
 ```
 We notice that the Jacobi constant absolute error for the `TaylorMethod(25)`
-solution remains bounded below ``10^{-11}``, while the `Vern9()` solution
-displays sudden jumps earlier in the integration and has variations close to
-``10^{-9}``.
+solution remains bounded below ``2\times 10^{-14}``, while the `Vern9()` solution
+displays sudden jumps earlier in the integration and has variations larger than
+``10^{-13}``.
 
 Finally, we comment on the time spent by each integration.
 ```@example common
