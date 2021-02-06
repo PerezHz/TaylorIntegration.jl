@@ -75,26 +75,31 @@ The equations of motion for the PCR3BP are
 \end{aligned}
 ```
 
-We define this system of ODEs using the most naive approach
+We define this system of ODEs in a way that allows the use of the [`@taylorize`](@ref)
+macro from `TaylorIntegration.jl`, which for the present example allows
+important speed-ups. For more details about the specifics of the use of [`@taylorize`](@ref),
+see [this section](@ref taylorize).
 ```@example common
-function f(dq, q, param, t)
+using TaylorIntegration
+@taylorize function pcr3bp!(dq, q, param, t)
     local μ = param[1]
-    x, y, px, py = q
-    dq[1] = px + y
-    dq[2] = py - x
-    dq[3] = - (1-μ)*(x-μ)*((x-μ)^2+y^2)^-1.5 - μ*(x+1-μ)*((x+1-μ)^2+y^2)^-1.5 + py
-    dq[4] = - (1-μ)*y    *((x-μ)^2+y^2)^-1.5 - μ*y      *((x+1-μ)^2+y^2)^-1.5 - px
+    local onemμ = 1 - μ
+    x1 = q[1]-μ
+    x1sq = x1^2
+    y = q[2]
+    ysq = y^2
+    r1_1p5 = (x1sq+ysq)^1.5
+    x2 = q[1]+onemμ
+    x2sq = x2^2
+    r2_1p5 = (x2sq+ysq)^1.5
+    dq[1] = q[3] + q[2]
+    dq[2] = q[4] - q[1]
+    dq[3] = (-((onemμ*x1)/r1_1p5) - ((μ*x2)/r2_1p5)) + q[4]
+    dq[4] = (-((onemμ*y )/r1_1p5) - ((μ*y )/r2_1p5)) - q[3]
     return nothing
 end
 nothing # hide
 ```
-Note that `DifferentialEquations` offers interesting alternatives to write
-these equations of motion in a simpler and more convenient way,
-for example, using the macro `@ode_def`,
-see [`ParameterizedFunctions.jl`](https://github.com/JuliaDiffEq/ParameterizedFunctions.jl).
-We have not used that flexibility here because `TaylorIntegration.jl` has
-[`@taylorize`](@ref), which under certain circumstances allows to
-important speed-ups.
 
 We shall define the initial conditions ``q_0 = (x_0, y_0, p_{x,0}, p_{y,0})`` such that
 ``H(q_0) = J_0``, where ``J_0`` is a prescribed value. In order to do this,
@@ -109,7 +114,7 @@ zero-velocity curves on the ``x``-axis.
 ```@example common
 ZVC(x) =  -x^2/2 + V(x, zero(x)) # projection of the zero-velocity curves on the x-axis
 
-plot(ZVC, -2:0.001:2, label="zero-vel. curve", legend=:topleft)
+plot(ZVC, -2:0.001:2, label="zero-vel. curve", legend=:topleft, fmt = :png)
 plot!([-2, 2], [-1.58, -1.58], label="J0 = -1.58")
 ylims!(-1.7, -1.45)
 xlabel!("x")
@@ -150,37 +155,42 @@ H(q0) == J0
 ```
 
 Following the `DifferentialEquations.jl`
-[tutorial](http://docs.juliadiffeq.org/latest/tutorials/ode_example.html),
-we define an `ODEProblem` for the integration;
-`TaylorIntegration.jl` can be used via its common interface bindings with `DiffEqBase.jl`; both packages need to be loaded explicitly.
+[tutorial](https://diffeq.sciml.ai/stable/tutorials/ode_example/),
+we define an `ODEProblem` for the integration; `TaylorIntegration` can be used
+via its common interface bindings with `DiffEqBase.jl`; both packages need to
+be loaded explicitly.
 ```@example common
-tspan = (0.0, 1000.0)
+tspan = (0.0, 2000.0)
 p = [μ]
 
 using TaylorIntegration, DiffEqBase
-prob = ODEProblem(f, q0, tspan, p)
+prob = ODEProblem(pcr3bp!, q0, tspan, p)
 ```
 
-We solve `prob` using a 25-th order Taylor method, with a local absolute tolerance ``\epsilon_\mathrm{tol} = 10^{-20}``.
+We solve `prob` using a 25-th order Taylor method, with a local absolute tolerance ``\epsilon_\mathrm{tol} = 10^{-15}``.
 ```@example common
-solT = solve(prob, TaylorMethod(25), abstol=1e-20);
+solT = solve(prob, TaylorMethod(25), abstol=1e-15);
 ```
 
 As mentioned above, we load `OrdinaryDiffEq` in order to solve the same problem `prob`
-now with the `Vern9` method, which the `DifferentialEquations.jl`
-[documentation](http://docs.juliadiffeq.org/latest/solvers/ode_solve.html#Non-Stiff-Problems-1)
+now with the `Vern9` method, which the `DifferentialEquations`
+[documentation](https://diffeq.sciml.ai/stable/solvers/ode_solve/#Non-Stiff-Problems)
 recommends for high-accuracy (i.e., very low tolerance) integrations of
-non-stiff problems.
+non-stiff problems. Note that, besides setting an absolute tolerance `abstol=1e-15`,
+we're setting a relative tolerance `reltol=1e-15` [[2]](@ref refsPCR3BP). We have found that for the
+current problem this is a good balance between speed and accuracy for the `Vern9`
+method, i.e., the `Vern9` integration becomes noticeably slower (although more
+accurate) if either `abstol` or `reltol` are set to lower values.
 ```@example common
 using OrdinaryDiffEq
 
-solV = solve(prob, Vern9(), abstol=1e-20); #solve `prob` with the `Vern9` method
+solV = solve(prob, Vern9(), abstol=1e-15, reltol=1e-15); #solve `prob` with the `Vern9` method
 ```
 
 We plot in the ``x-y`` synodic plane the solution obtained
-with `TaylorIntegration.jl`:
+with `TaylorIntegration`:
 ```@example common
-plot(solT, vars=(1, 2), linewidth=1)
+plot(solT, vars=(1, 2), linewidth=1, fmt = :png)
 scatter!([μ, -1+μ], [0,0], leg=false) # positions of the primaries
 xlims!(-1+μ-0.2, 1+μ+0.2)
 ylims!(-0.8, 0.8)
@@ -194,19 +204,17 @@ For comparison, we now plot the orbit corresponding to the
 solution obtained with the `Vern9()` integration; note that
 the scales are identical.
 ```@example common
-plot(solV, vars=(1, 2), linewidth=1)
+plot(solV, vars=(1, 2), linewidth=1, fmt = :png)
 scatter!([μ, -1+μ], [0,0], leg=false) # positions of the primaries
 xlims!(-1+μ-0.2, 1+μ+0.2)
 ylims!(-0.8, 0.8)
 xlabel!("x")
 ylabel!("y")
 ```
-We note that the orbits do not display the same qualitative features. In particular,
-the `Vern9()` integration displays an orbit which does not visit the secondary,
-as it was the case in the integration using Taylor's method, and stays far
-enough from ``m_1``. The question is which integration should we trust?
-
-We can obtain a quantitative comparison of the validity of both integrations
+We note that both orbits display the same qualitative features, and also some
+differences. For instance, the `TaylorMethod(25)` solution gets closer to the
+primary than that the `Vern9()`. We can obtain a
+quantitative comparison of the validity of both integrations
 through the preservation of the Jacobi constant:
 ```@example common
 ET = H.(solT.u)
@@ -218,57 +226,62 @@ nothing # hide
 
 We plot first the value of the Jacobi constant as function of time.
 ```@example common
-plot(solT.t, H.(solT.u), label="TaylorIntegration.jl")
+plot(solT.t, H.(solT.u), label="TaylorMethod(25)", fmt = :png, yformatter = :plain)
 plot!(solV.t, H.(solV.u), label="Vern9()")
 xlabel!("t")
 ylabel!("H")
 ```
-Clearly, the integration with `Vern9()` does not conserve the Jacobi constant;
-actually, the fact that its value is strongly reduced leads to the artificial trapping
-displayed above around ``m_1``. We notice that the loss of conservation of the
-Jacobi constant is actually not related to a close approach with ``m_1``.
+In the scale shown we observe that, while both solutions
+display a preservation of the Jacobi constant to a certain degree, the `Vern9()`
+solution suffers sudden jumps during the integration.
 
 We now plot, in log scale, the `abs` of the absolute error in the Jacobi
 constant as a function of time, for both solutions:
 ```@example common
-plot(solT.t, abs.(δET), yscale=:log10, label="TaylorIntegration.jl")
+plot(solT.t, abs.(δET), yscale=:log10, label="TaylorMethod(25)", legend=:topleft, fmt = :png, yformatter = :plain)
 plot!(solV.t, abs.(δEV), label="Vern9()")
-ylims!(10^-18, 10^4)
+ylims!(10^-16, 10^-10)
 xlabel!("t")
 ylabel!("dE")
 ```
-We notice that the Jacobi constant absolute error for the `TaylorIntegration.jl`
-solution remains bounded below ``5\times 10^{-14}``, despite of the fact that
-the solution displays many close approaches with ``m_2``.
+We notice that the Jacobi constant absolute error for the `TaylorMethod(25)`
+solution remains bounded below ``10^{-13}``. The `Vern9()` solution is, at the
+end of the integration time, two orders of magnitude above the former for the
+same quantity.
 
 Finally, we comment on the time spent by each integration.
 ```@example common
-@elapsed solve(prob, TaylorMethod(25), abstol=1e-20);
+using BenchmarkTools
+bT = @benchmark solve($prob, $(TaylorMethod(25)), abstol=1e-15)
+bV = @benchmark solve($prob, $(Vern9()), abstol=1e-15, reltol=1e-15)
+nothing # hide
 ```
 ```@example common
-@elapsed solve(prob, Vern9(), abstol=1e-20);
+bT # TaylorMethod(25) benchmark
 ```
-The integration with `TaylorMethod()` takes *much longer* than that using
-`Vern9()`. Yet, as shown above, the former preserves the Jacobi constant
-to a high accuracy, whereas the latter
-solution loses accuracy in the sense of not conserving the Jacobi constant,
-which is an important property to trust the result of the integration.
+```@example common
+bV # Vern9 benchmark
+```
+We notice that the `TaylorMethod(25)` and the `Vern9()` integrations perform
+similarly. Yet, as shown above, the former preserves the Jacobi constant to a
+higher accuracy by two orders of magnitude.
+
 A fairer comparison is obtained by pushing the native methods of `DiffEqs`
 to reach similar accuracy for the integral of motion, as the one
-obtained by `TaylorIntegration.jl`. Such comparable situation has
-a performance cost, which then makes `TaylorIntegration.jl` comparable
-or even faster in some cases; see [[2]](@ref refsPCR3BP).
+obtained by `TaylorIntegration`. For example, for the `Vern9()` method we
+can set `abstol=1e-20, reltol=1e-15` to get better accuracies. Such
+situation has a performance cost, which then makes `TaylorIntegration`
+comparable or even faster in some cases; see [[2]](@ref refsPCR3BP).
 
-Finally, as mentioned above, a way to improve the integration time in
-`TaylorIntegration` is using the macro [`@taylorize`](@ref); see
-[this section](@ref taylorize) for details. Under certain circumstances
-it is possible to improve the performance, also with the common interface
-with `DifferentialEquations`, which restricts some of the great
-flexibility that `DifferentialEquations` allows when writing the function
-containing the differential equations.
+Finally, as mentioned above, a crucial way in which `TaylorIntegration`
+provides high accuracy at competitive speeds is through the use of
+the [`@taylorize`](@ref) macro; see
+[this section](@ref taylorize) for details. Currently, `TaylorIntegration`
+supports the use of `@taylorize` via the common interface with
+`DifferentialEquations` only for in-place `ODEProblem`.
 
 
-### [References](@id refsPCR3BP)
+### [References and notes](@id refsPCR3BP)
 
 [1] Murray, Carl D., Stanley F. Dermott. Solar System dynamics. Cambridge University Press, 1999.
 

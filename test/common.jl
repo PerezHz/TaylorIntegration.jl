@@ -82,7 +82,7 @@ using StaticArrays
         return nothing
     end
     tspan = (0.0, 10pi)
-    abstol=1e-20 # 1e-16
+    abstol = 1e-20
     order = 25 # Taylor expansion order wrt time
     u0 = [1.0; 0.0]
     prob = ODEProblem(harmosc!, u0, tspan)
@@ -184,6 +184,19 @@ using StaticArrays
     end
 
     @testset "Test parsed jetcoeffs! method in common interface" begin
+        b1 = 3.0
+        @taylorize xdot1(x, p, t) = b1-x^2
+        @test (@isdefined xdot1)
+        x0 = 1.0
+        tspan = (0.0, 1000.0)
+        prob = ODEProblem(xdot1, x0, tspan)
+        sol1 = solve(prob, TaylorMethod(order), abstol=abstol, parse_eqs=false)
+        @test sol1.alg.parse_eqs == false
+        sol2 = solve(prob, TaylorMethod(order), abstol=abstol)
+        @test sol2.alg.parse_eqs == true
+        @test sol1.t == sol2.t
+        @test sol1.u == sol2.u
+
         @taylorize function integ_vec(dx, x, p, t)
             local λ = p[1]
             dx[1] = cos(t)
@@ -192,10 +205,11 @@ using StaticArrays
         end
         @test (@isdefined integ_vec)
         x0 = [0.0, 1.0]
-        tspan = (0.0, pi)
+        tspan = (0.0, 11pi)
         prob = ODEProblem(integ_vec, x0, tspan, [1.0])
         sol1 = solve(prob, TaylorMethod(order), abstol=abstol, parse_eqs=false)
         sol2 = solve(prob, TaylorMethod(order), abstol=abstol) # parse_eqs=true
+        @test sol2.alg.parse_eqs == true
         @test length(sol1.t) == length(sol2.t)
         @test sol1.t == sol2.t
         @test sol1.u == sol2.u
@@ -203,9 +217,43 @@ using StaticArrays
         @test sol1.t == tv
         @test sol1[1,:] == xv[:,1]
         @test sol1[2,:] == xv[:,2]
-        @test transpose(sol1[:,:]) == xv[:,:]
-        @test norm(sol1[end][1] - sin(sol1.t[end]), Inf) < 1.0e-15
-        @test norm(sol1[end][2] - cos(sol1.t[end]), Inf) < 1.0e-15
+        @test norm(sol1[end][1] - sin(sol1.t[end]), Inf) < 1.0e-14
+        @test norm(sol1[end][2] - cos(sol1.t[end]), Inf) < 1.0e-14
+
+        V(x, y) = - (1-μ)/sqrt((x-μ)^2+y^2) - μ/sqrt((x+1-μ)^2+y^2)
+        H_pcr3bp(x, y, px, py) = (px^2+py^2)/2 - (x*py-y*px) + V(x, y)
+        H_pcr3bp(x) = H_pcr3bp(x...)
+        J0 = -1.58 # Jacobi constant
+        q0 = [-0.8, 0.0, 0.0, -0.6276410653920694] # initial condition
+        μ = 0.01 # mass parameter
+        tspan = (0.0, 1000.0)
+        p = [μ]
+        @taylorize function pcr3bp!(dq, q, param, t)
+            local μ = param[1]
+            local onemμ = 1 - μ
+            x1 = q[1]-μ
+            x1sq = x1^2
+            y = q[2]
+            ysq = y^2
+            r1_1p5 = (x1sq+ysq)^1.5
+            x2 = q[1]+onemμ
+            x2sq = x2^2
+            r2_1p5 = (x2sq+ysq)^1.5
+            dq[1] = q[3] + q[2]
+            dq[2] = q[4] - q[1]
+            dq[3] = (-((onemμ*x1)/r1_1p5) - ((μ*x2)/r2_1p5)) + q[4]
+            dq[4] = (-((onemμ*y )/r1_1p5) - ((μ*y )/r2_1p5)) - q[3]
+            return nothing
+        end
+        prob = ODEProblem(pcr3bp!, q0, tspan, p)
+        sol1 = solve(prob, TaylorMethod(order), abstol=abstol)
+        @test sol1.alg.parse_eqs == true
+        sol2 = solve(prob, TaylorMethod(order), abstol=abstol, parse_eqs=false)
+        @test sol2.alg.parse_eqs == false
+        @test norm( H_pcr3bp(sol1.u[end]) - J0 ) < 1e-10
+        @test norm( H_pcr3bp(sol2.u[end]) - J0 ) < 1e-10
+        @test sol1.u == sol2.u
+        @test sol1.t == sol2.t
     end
 
     @testset "Test throwing errors in common interface" begin
