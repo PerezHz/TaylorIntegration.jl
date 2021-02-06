@@ -230,3 +230,15 @@ function DiffEqBase.addsteps!(k, t, uprev, u, dt, f, p, cache::TaylorMethodCache
     update_jetcoeffs_cache!(u,f,p,cache)
     nothing
 end
+
+@inline __jetcoeffs!(::Val{false}, f::ODEFunction, t, x, params) =
+    jetcoeffs!(f.f, t, x, params)
+@inline __jetcoeffs!(::Val{true},  f::ODEFunction, t, x, params) =
+    jetcoeffs!(Val(f.f), t, x, params)
+@inline __jetcoeffs!(::Val{false}, f::ODEFunction, t, x, dx, xaux, params) =
+    jetcoeffs!(f.f, t, x, dx, xaux, params)
+@inline __jetcoeffs!(::Val{true},  f::ODEFunction, t, x, dx, xaux, params) =
+    jetcoeffs!(Val(f.f), t, x, dx, params)
+
+_determine_parsing!(parse_eqs::Bool, f::ODEFunction, t, x, params) = _determine_parsing!(parse_eqs::Bool, f.f, t, x, params)
+_determine_parsing!(parse_eqs::Bool, f::ODEFunction, t, x, dx, params) = _determine_parsing!(parse_eqs::Bool, f.f, t, x, dx, params)

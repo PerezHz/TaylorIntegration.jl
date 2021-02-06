@@ -192,10 +192,11 @@ using StaticArrays
         end
         @test (@isdefined integ_vec)
         x0 = [0.0, 1.0]
-        tspan = (0.0, pi)
+        tspan = (0.0, 11pi)
         prob = ODEProblem(integ_vec, x0, tspan, [1.0])
         sol1 = solve(prob, TaylorMethod(order), abstol=abstol, parse_eqs=false)
         sol2 = solve(prob, TaylorMethod(order), abstol=abstol) # parse_eqs=true
+        @test sol2.alg.parse_eqs == true
         @test length(sol1.t) == length(sol2.t)
         @test sol1.t == sol2.t
         @test sol1.u == sol2.u
@@ -203,9 +204,8 @@ using StaticArrays
         @test sol1.t == tv
         @test sol1[1,:] == xv[:,1]
         @test sol1[2,:] == xv[:,2]
-        @test transpose(sol1[:,:]) == xv[:,:]
-        @test norm(sol1[end][1] - sin(sol1.t[end]), Inf) < 1.0e-15
-        @test norm(sol1[end][2] - cos(sol1.t[end]), Inf) < 1.0e-15
+        @test norm(sol1[end][1] - sin(sol1.t[end]), Inf) < 1.0e-14
+        @test norm(sol1[end][2] - cos(sol1.t[end]), Inf) < 1.0e-14
     end
 
     @testset "Test throwing errors in common interface" begin
