@@ -94,8 +94,8 @@ using TaylorIntegration
     r2_1p5 = (x2sq+ysq)^1.5
     dq[1] = q[3] + q[2]
     dq[2] = q[4] - q[1]
-    dq[3] = -((onemμ*x1)/r1_1p5) - ((μ*x2)/r2_1p5) + q[4]
-    dq[4] = -((onemμ*y )/r1_1p5) - ((μ*y )/r2_1p5) - q[3]
+    dq[3] = (-((onemμ*x1)/r1_1p5) - ((μ*x2)/r2_1p5)) + q[4]
+    dq[4] = (-((onemμ*y )/r1_1p5) - ((μ*y )/r2_1p5)) - q[3]
     return nothing
 end
 nothing # hide
@@ -155,7 +155,7 @@ H(q0) == J0
 ```
 
 Following the `DifferentialEquations.jl`
-[tutorial](http://docs.juliadiffeq.org/latest/tutorials/ode_example.html),
+[tutorial](https://diffeq.sciml.ai/stable/tutorials/ode_example/),
 we define an `ODEProblem` for the integration; `TaylorIntegration` can be used
 via its common interface bindings with `DiffEqBase.jl`; both packages need to
 be loaded explicitly.
@@ -163,7 +163,7 @@ be loaded explicitly.
 tspan = (0.0, 2000.0)
 p = [μ]
 
-using DiffEqBase
+using TaylorIntegration, DiffEqBase
 prob = ODEProblem(pcr3bp!, q0, tspan, p)
 ```
 
@@ -174,7 +174,7 @@ solT = solve(prob, TaylorMethod(25), abstol=1e-15);
 
 As mentioned above, we load `OrdinaryDiffEq` in order to solve the same problem `prob`
 now with the `Vern9` method, which the `DifferentialEquations`
-[documentation](http://docs.juliadiffeq.org/latest/solvers/ode_solve.html#Non-Stiff-Problems-1)
+[documentation](https://diffeq.sciml.ai/stable/solvers/ode_solve/#Non-Stiff-Problems)
 recommends for high-accuracy (i.e., very low tolerance) integrations of
 non-stiff problems. Note that, besides setting an absolute tolerance `abstol=1e-15`,
 we're setting a relative tolerance `reltol=1e-15` [[2]](@ref refsPCR3BP). We have found that for the
@@ -211,7 +211,9 @@ ylims!(-0.8, 0.8)
 xlabel!("x")
 ylabel!("y")
 ```
-We note that both orbits display the same qualitative features. We can obtain a
+We note that both orbits display the same qualitative features, and also some
+differences. For instance, the `TaylorMethod(25)` solution gets closer to the
+primary than that the `Vern9()`. We can obtain a
 quantitative comparison of the validity of both integrations
 through the preservation of the Jacobi constant:
 ```@example common
@@ -243,9 +245,9 @@ xlabel!("t")
 ylabel!("dE")
 ```
 We notice that the Jacobi constant absolute error for the `TaylorMethod(25)`
-solution remains bounded below ``2\times 10^{-14}``, while the `Vern9()` solution
-displays sudden jumps earlier in the integration and has variations larger than
-``10^{-13}``.
+solution remains bounded below ``10^{-13}``. The `Vern9()` solution is, at the
+end of the integration time, two orders of magnitude above the former for the
+same quantity.
 
 Finally, we comment on the time spent by each integration.
 ```@example common
