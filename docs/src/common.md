@@ -75,26 +75,29 @@ The equations of motion for the PCR3BP are
 \end{aligned}
 ```
 
-We define this system of ODEs using the most naive approach
+We define this system of ODEs in a way that allows the use of the [`@taylorize`](@ref taylorize)
+macro from `TaylorIntegration.jl`, which under certain circumstances allows
+important speed-ups.
 ```@example common
-function f(dq, q, param, t)
+function pcr3bp!(dq, q, param, t)
     local μ = param[1]
-    x, y, px, py = q
-    dq[1] = px + y
-    dq[2] = py - x
-    dq[3] = - (1-μ)*(x-μ)*((x-μ)^2+y^2)^-1.5 - μ*(x+1-μ)*((x+1-μ)^2+y^2)^-1.5 + py
-    dq[4] = - (1-μ)*y    *((x-μ)^2+y^2)^-1.5 - μ*y      *((x+1-μ)^2+y^2)^-1.5 - px
+    local onemμ = 1 - μ
+    x1 = q[1]-μ
+    x1sq = x1^2
+    y = q[2]
+    ysq = y^2
+    r1_1p5 = (x1sq+ysq)^1.5
+    x2 = q[1]+onemμ
+    x2sq = x2^2
+    r2_1p5 = (x2sq+ysq)^1.5
+    dq[1] = q[3] + q[2]
+    dq[2] = q[4] - q[1]
+    dq[3] = -((onemμ*x1)/r1_1p5) - ((μ*x2)/r2_1p5) + q[4]
+    dq[4] = -((onemμ*y )/r1_1p5) - ((μ*y )/r2_1p5) - q[3]
     return nothing
 end
 nothing # hide
 ```
-Note that `DifferentialEquations` offers interesting alternatives to write
-these equations of motion in a simpler and more convenient way,
-for example, using the macro `@ode_def`,
-see [`ParameterizedFunctions.jl`](https://github.com/JuliaDiffEq/ParameterizedFunctions.jl).
-We have not used that flexibility here because `TaylorIntegration.jl` has
-[`@taylorize`](@ref), which under certain circumstances allows to
-important speed-ups.
 
 We shall define the initial conditions ``q_0 = (x_0, y_0, p_{x,0}, p_{y,0})`` such that
 ``H(q_0) = J_0``, where ``J_0`` is a prescribed value. In order to do this,
@@ -158,7 +161,7 @@ tspan = (0.0, 1000.0)
 p = [μ]
 
 using TaylorIntegration, DiffEqBase
-prob = ODEProblem(f, q0, tspan, p)
+prob = ODEProblem(pcr3bp!, q0, tspan, p)
 ```
 
 We solve `prob` using a 25-th order Taylor method, with a local absolute tolerance ``\epsilon_\mathrm{tol} = 10^{-20}``.
@@ -174,7 +177,7 @@ non-stiff problems.
 ```@example common
 using OrdinaryDiffEq
 
-solV = solve(prob, Vern9(), abstol=1e-20); #solve `prob` with the `Vern9` method
+solV = solve(prob, Vern9(), abstol=1e-15, reltol=1e-15); #solve `prob` with the `Vern9` method
 ```
 
 We plot in the ``x-y`` synodic plane the solution obtained
@@ -246,7 +249,7 @@ Finally, we comment on the time spent by each integration.
 @elapsed solve(prob, TaylorMethod(25), abstol=1e-20);
 ```
 ```@example common
-@elapsed solve(prob, Vern9(), abstol=1e-20);
+@elapsed solve(prob, Vern9(), abstol=1e-15, reltol=1e-15);
 ```
 The integration with `TaylorMethod()` takes *much longer* than that using
 `Vern9()`. Yet, as shown above, the former preserves the Jacobi constant
