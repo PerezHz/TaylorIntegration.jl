@@ -264,7 +264,7 @@ bV # Vern9 benchmark
 ```
 We notice that the `TaylorMethod(25)` and the `Vern9()` integrations perform
 similarly. Yet, as shown above, the former preserves the Jacobi constant to a
-higher accuracy by about one order of magnitude.
+higher accuracy by two orders of magnitude.
 
 A fairer comparison is obtained by pushing the native methods of `DiffEqs`
 to reach similar accuracy for the integral of motion, as the one
