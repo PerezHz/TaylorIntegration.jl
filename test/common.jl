@@ -194,7 +194,6 @@ using StaticArrays
         @test sol1.alg.parse_eqs == false
         sol2 = solve(prob, TaylorMethod(order), abstol=abstol)
         @test sol2.alg.parse_eqs == true
-
         @test sol1.t == sol2.t
         @test sol1.u == sol2.u
 
@@ -248,10 +247,8 @@ using StaticArrays
         end
         prob = ODEProblem(pcr3bp!, q0, tspan, p)
         sol1 = solve(prob, TaylorMethod(order), abstol=abstol)
-        @time sol1 = solve(prob, TaylorMethod(order), abstol=abstol)
         @test sol1.alg.parse_eqs == true
         sol2 = solve(prob, TaylorMethod(order), abstol=abstol, parse_eqs=false)
-        @time sol2 = solve(prob, TaylorMethod(order), abstol=abstol, parse_eqs=false)
         @test sol2.alg.parse_eqs == false
         @test norm( H_pcr3bp(sol1.u[end]) - J0 ) < 1e-10
         @test norm( H_pcr3bp(sol2.u[end]) - J0 ) < 1e-10
