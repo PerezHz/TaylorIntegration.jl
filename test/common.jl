@@ -82,7 +82,7 @@ using StaticArrays
         return nothing
     end
     tspan = (0.0, 10pi)
-    abstol=1e-20 # 1e-16
+    abstol = 1e-20
     order = 25 # Taylor expansion order wrt time
     u0 = [1.0; 0.0]
     prob = ODEProblem(harmosc!, u0, tspan)
@@ -184,6 +184,20 @@ using StaticArrays
     end
 
     @testset "Test parsed jetcoeffs! method in common interface" begin
+        b1 = 3.0
+        @taylorize xdot1(x, p, t) = b1-x^2
+        @test (@isdefined xdot1)
+        x0 = 1.0
+        tspan = (0.0, 1000.0)
+        prob = ODEProblem(xdot1, x0, tspan)
+        sol1 = solve(prob, TaylorMethod(order), abstol=abstol, parse_eqs=false)
+        @test sol1.alg.parse_eqs == false
+        sol2 = solve(prob, TaylorMethod(order), abstol=abstol)
+        @test sol2.alg.parse_eqs == true
+
+        @test sol1.t == sol2.t
+        @test sol1.u == sol2.u
+
         @taylorize function integ_vec(dx, x, p, t)
             local λ = p[1]
             dx[1] = cos(t)
@@ -228,8 +242,8 @@ using StaticArrays
             r2_1p5 = (x2sq+ysq)^1.5
             dq[1] = q[3] + q[2]
             dq[2] = q[4] - q[1]
-            dq[3] = -((onemμ*x1)/r1_1p5) - ((μ*x2)/r2_1p5) + q[4]
-            dq[4] = -((onemμ*y )/r1_1p5) - ((μ*y )/r2_1p5) - q[3]
+            dq[3] = (-((onemμ*x1)/r1_1p5) - ((μ*x2)/r2_1p5)) + q[4]
+            dq[4] = (-((onemμ*y )/r1_1p5) - ((μ*y )/r2_1p5)) - q[3]
             return nothing
         end
         prob = ODEProblem(pcr3bp!, q0, tspan, p)
