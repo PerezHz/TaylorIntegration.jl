@@ -14,11 +14,11 @@ function.
 
 The Lorenz system is the ODE defined as:
 ```math
-\begin{eqnarray*}
-    \dot{x}_1 & = & \sigma(x_2-x_1), \\
-    \dot{x}_2 & = & x_1(\rho-x_3)-x_2, \\
-    \dot{x}_3 & = & x_1x_2-\beta x_3,
-\end{eqnarray*}
+\begin{aligned}
+    \dot{x}_1 & =  \sigma(x_2-x_1), \\
+    \dot{x}_2 & =  x_1(\rho-x_3)-x_2, \\
+    \dot{x}_3 & =  x_1x_2-\beta x_3,
+\end{aligned}
 ```
 where ``\sigma``, ``\rho`` and ``\beta`` are constant parameters.
 
