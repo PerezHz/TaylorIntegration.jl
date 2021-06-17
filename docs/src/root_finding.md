@@ -139,13 +139,16 @@ using Plots
 poincare_anim1 = @animate for i=1:21
     scatter(map(x->x[i,2], xvSv), map(x->x[i,4], xvSv), label="$(i-1)-th iterate",
         m=(1,stroke(0)), ratio=:equal)
-    xlims!(0.08, 0.48)
-    ylims!(-0.13, 0.13)
+    xlims!(0.09,0.51)
+    ylims!(-0.11,0.11)
     xlabel!("y")
     ylabel!("py")
     title!("Hénon-Heiles Poincaré map (21 iterates)")
 end
+```
+```@example poincare
 gif(poincare_anim1, "poincareanim1.gif", fps = 2)
+nothing # hide
 ```
 ![Poincaré map for the Hénon Heiles system](assets/figures/poincareanim1.gif)
 
@@ -240,13 +243,16 @@ poincare_anim2 = @animate for i=1:21
     scatter(map(x->x[i,2], xvSv), map(x->x[i,4], xvSv), marker=(:circle, stroke(0)),
         markersize=0.01, label="Monte Carlo")
     plot!(yS[i,:], pS[i,:], width=0.1, label="Jet transport")
-    xlims!(0.09,0.5)
+    xlims!(0.09,0.51)
     ylims!(-0.11,0.11)
     xlabel!("y")
     ylabel!("py")
     title!("Poincaré map: 4th-order jet transport vs Monte Carlo")
 end
+```
+```@example poincare
 gif(poincare_anim2, "poincareanim2.gif", fps = 2)
+nothing # hide
 ```
 ![Poincaré map: Jet transport vs Monte Carlo](./assets/figures/poincareanim2.gif)
 
@@ -254,12 +260,15 @@ The next animation is the same as before, adapting the scale.
 ```@example poincare
 poincare_anim3 = @animate for i=1:21
     scatter(map(x->x[i,2], xvSv), map(x->x[i,4], xvSv), marker=(:circle, stroke(0)),
-        markersize=0.01, label="Monte Carlo")
-    plot!(yS[i,:], pS[i,:], width=0.1, label="Jet transport")
+        markersize=0.1, label="Monte Carlo")
+    plot!(yS[i,:], pS[i,:], width=0.5, label="Jet transport")
     xlabel!("y")
     ylabel!("py")
     title!("Poincaré map: 4th-order jet transport vs Monte Carlo")
 end
+```
+```@example poincare
 gif(poincare_anim3, "poincareanim3.gif", fps = 2)
+nothing # hide
 ```
 ![Poincaré map: Jet transport vs Monte Carlo](assets/figures/poincareanim3.gif)
