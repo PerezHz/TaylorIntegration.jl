@@ -1,4 +1,5 @@
 .DS_Store
+Manifest.toml
 examples/.ipynb_checkpoints
 examples/JuliaCon2017/.ipynb_checkpoints/
 docs/build/
