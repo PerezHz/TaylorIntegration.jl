@@ -129,30 +129,30 @@ function TaylorIntegration.jetcoeffs!(::Val{f2!}, t::Taylor1{_T}, q::AbstractVec
 end
 
 ex1 = :(function f3!(dq, q, params, t)
-local N = Int(length(q)/2)
-local _eltype_q_ = eltype(q)
-local μ = params
-X = Array{_eltype_q_}(undef, N, N)
-accX = Array{_eltype_q_}(undef, N) #acceleration
-for j in 1:N
-    accX[j] = zero(q[1])
-    dq[j] = q[N+j]
-end
-#compute accelerations
-for j in 1:N
+    local N = Int(length(q)/2)
+    local _eltype_q_ = eltype(q)
+    local μ = params
+    X = Array{_eltype_q_}(undef, N, N)
+    accX = Array{_eltype_q_}(undef, N) #acceleration
+    for j in 1:N
+        accX[j] = zero(q[1])
+        dq[j] = q[N+j]
+    end
+    #compute accelerations
+    for j in 1:N
+        for i in 1:N
+            if i == j
+            else
+                X[i,j] = q[i]-q[j]
+                temp_001 = accX[j] + (μ[i]*X[i,j])
+                accX[j] = temp_001
+            end #if i != j
+        end #for, i
+    end #for, j
     for i in 1:N
-        if i == j
-        else
-            X[i,j] = q[i]-q[j]
-            temp_001 = accX[j] + (μ[i]*X[i,j])
-            accX[j] = temp_001
-        end #if i != j
-    end #for, i
-end #for, j
-for i in 1:N
-    dq[N+i] = accX[i]
-end
-nothing
+        dq[N+i] = accX[i]
+    end
+    nothing
 end)
 
 ex2 = :(xdot2(x, p, t) = b1-x^2)
@@ -165,9 +165,9 @@ ex3 = :(function harm_osc!(dx, x, p, t)
     return nothing
 end)
 
-nex1 = TaylorIntegration._make_parsed_jetcoeffs(ex1)
-nex2 = TaylorIntegration._make_parsed_jetcoeffs(ex2)
-nex3 = TaylorIntegration._make_parsed_jetcoeffs(ex3)
+nex1, narr1 = TaylorIntegration._make_parsed_jetcoeffs(ex1)
+nex2, narr2 = TaylorIntegration._make_parsed_jetcoeffs(ex2)
+nex3, narr3 = TaylorIntegration._make_parsed_jetcoeffs(ex3)
 
 greet(f, parse_eqs) = begin
     t = Taylor1(order)
