@@ -352,17 +352,17 @@ function _preamble_body(fnbody, fnargs, debug=false)
         @show(prealloc); println(); @show(bkkeep); println())
 
     # Include the assignement of indexed auxiliary variables
-    defsprealloc = _defs_preamble!(prealloc, fnargs, bkkeep, false)
-    defspreamble = _defs_preamble!(preamble, fnargs, bkkeep, false)
-
+    defsprealloc = _defs_allocs!(prealloc, fnargs, bkkeep, false)
+    preamble = subs(preamble, bkkeep.d_indx)
+    defspreamble = Expr[preamble.args...]
     # Bring back substitutions
     newfnbody = subs(newfnbody, bkkeep.d_indx)
 
     # Define retvar; for scalar eqs is the last entry included in v_newvars
     bkkeep.retvar = length(fnargs) == 3 ? subs(bkkeep.v_newvars[end], bkkeep.d_indx) : fnargs[1]
 
-    debug && (println("------ _defs_preamble! ------");
-        @show(defsprealloc); println(); @show(defspreamble); println();
+    debug && (println("------ _defs_allocs! ------");
+        @show(defsprealloc); println(); @show(preamble); println();
         @show(newfnbody); println(); @show(bkkeep); println())
 
     return defspreamble, defsprealloc, newfnbody, bkkeep
@@ -600,8 +600,12 @@ function _parse_newfnbody!(ex::Expr, preex::Expr, prealloc::Expr, bkkeep::BookKe
             push!(preex.args, Expr(:macrocall, aa.args[1]))
             push!(preex.args[end].args, aa.args[2])
             push!(preex.args[end].args, Expr(:for, aa.args[3].args[1]))
+            push!(prealloc.args, Expr(:macrocall, aa.args[1]))
+            push!(prealloc.args[end].args, aa.args[2])
+            push!(prealloc.args[end].args, Expr(:for, aa.args[3].args[1]))
 
-            _parse_newfnbody!(aa.args[3], preex.args[end].args[end], prealloc, bkkeep, true)
+            _parse_newfnbody!(aa.args[3], preex.args[end].args[end], prealloc.args[end].args[end],
+                bkkeep, true)
 
         elseif (aa.head == :block)
             push!(preex.args, Expr(:block))
@@ -861,7 +865,7 @@ end
 
 
 """
-`_defs_preamble!(preamble, fnargs, bkkeep, [inloop=false, ex_aux::Expr(:block,)])`
+`_defs_allocs!(preamble, fnargs, bkkeep, [inloop=false, ex_aux::Expr(:block,)])`
 
 Returns a vector with expressions defining the auxiliary variables
 in the preamble, and the declaration of the arrays. This function
@@ -869,7 +873,7 @@ may modify `bkkeep.d_indx` if new variables are introduced.
 `bkkeep.v_preamb` is for bookkeeping the introduced variables.
 
 """
-function _defs_preamble!(preamble::Expr, fnargs, bkkeep::BookKeeping,
+function _defs_allocs!(preamble::Expr, fnargs, bkkeep::BookKeeping,
     inloop::Bool, ex_aux::Expr = Expr(:block,))
 
     # Initializations
@@ -884,14 +888,14 @@ function _defs_preamble!(preamble::Expr, fnargs, bkkeep::BookKeeping,
 
         # Treat block, for loops, @threads for loops, if separately
         if (ex.head == :block)
-            newdefspr = _defs_preamble!(ex, fnargs, bkkeep, inloop, ex_aux)
+            newdefspr = _defs_allocs!(ex, fnargs, bkkeep, inloop, ex_aux)
 
             append!(defspreamble, newdefspr)
 
         elseif (ex.head == :for)
             push!(ex_aux.args, ex.args[1])
 
-            newdefspr = _defs_preamble!(ex.args[2], fnargs, bkkeep, true, ex_aux)
+            newdefspr = _defs_allocs!(ex.args[2], fnargs, bkkeep, true, ex_aux)
 
             append!(defspreamble, newdefspr)
             pop!(ex_aux.args)
@@ -899,14 +903,14 @@ function _defs_preamble!(preamble::Expr, fnargs, bkkeep::BookKeeping,
         elseif (ex.head == :macrocall && ex.args[1] in v_threads_args)
             push!(ex_aux.args, ex.args[3].args[1])
 
-            newdefspr = _defs_preamble!(ex.args[3].args[2], fnargs, bkkeep, true, ex_aux)
+            newdefspr = _defs_allocs!(ex.args[3].args[2], fnargs, bkkeep, true, ex_aux)
 
             append!(defspreamble, newdefspr)
             pop!(ex_aux.args)
 
         elseif (ex.head == :if)
             for exx in ex.args[2:end]
-                newdefspr = _defs_preamble!(exx, fnargs, bkkeep, inloop, ex_aux)
+                newdefspr = _defs_allocs!(exx, fnargs, bkkeep, inloop, ex_aux)
 
                 append!(defspreamble, newdefspr)
             end
