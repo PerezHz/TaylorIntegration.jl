@@ -92,6 +92,37 @@ function alg_cache(alg::TaylorMethod, u, rate_prototype, uEltypeNoUnits,
         )
 end
 
+# This method is used for DynamicalODEFunction's (`parse_eqs=false`): tmpT1 and arrT1
+# have to have the correct type to build `TaylorMethodCache`
+function alg_cache(alg::TaylorMethod, u::ArrayPartition, rate_prototype, uEltypeNoUnits,
+    uBottomEltypeNoUnits, tTypeNoUnits, uprev, uprev2, f, t, dt, reltol, p,
+    calck,::Val{true})
+    order = alg.order
+    tT = Taylor1(typeof(t), order)
+    tT[0] = t
+    uT = Taylor1.(u, order)
+    duT = zero.(Taylor1.(u, order))
+    uauxT = similar(uT)
+    parse_eqs, _, _ = _determine_parsing!(alg.parse_eqs, f, tT, uT, duT, p)
+    ## `tmpT1` must have the same type than `uT` and `arrT1` is a `[tmpT1]`
+    tmpTaylor = similar(uT,0)
+    arrTaylor = similar([tmpTaylor], 0)
+    TaylorMethodCache(
+        u,
+        uprev,
+        similar(u),
+        zero(rate_prototype),
+        zero(rate_prototype),
+        tT,
+        uT,
+        duT,
+        uauxT,
+        Ref(parse_eqs),
+        tmpTaylor,
+        arrTaylor
+        )
+end
+
 function alg_cache(alg::TaylorMethod, u, rate_prototype, uEltypeNoUnits,
         uBottomEltypeNoUnits, tTypeNoUnits, uprev, uprev2, f, t, dt, reltol, p, calck,
         ::Val{false})
@@ -181,7 +212,9 @@ function DiffEqBase.solve(
     end
 
     f = prob.f
+    parse_eqs = haskey(kwargs, :parse_eqs) ? kwargs[:parse_eqs] : true # `true` is the default
     if !isinplace && typeof(prob.u0) <: AbstractArray
+        ### TODO: allow `parse_eqs=true` for DynamicalODEFunction
         if prob.f isa DynamicalODEFunction
             f1! = (dv, v, u, p, t) -> (dv .= prob.f.f1(v, u, p, t); 0)
             f2! = (du, v, u, p, t) -> (du .= prob.f.f2(v, u, p, t); 0)
@@ -196,14 +229,11 @@ function DiffEqBase.solve(
             _prob = DynamicalODEProblem(f1!, f2!, _u0.x[1], _u0.x[2], prob.tspan, prob.p; prob.kwargs...)
         else
             f! = (du, u, p, t) -> (du .= f(u, p, t); 0)
-            _alg = TaylorMethod(alg.order, parse_eqs = false)
+            _alg = TaylorMethod(alg.order, parse_eqs = parse_eqs)
             _prob = ODEProblem(f!, prob.u0, prob.tspan, prob.p; prob.kwargs...)
         end
-    elseif haskey(kwargs, :parse_eqs)
-        _alg = TaylorMethod(alg.order, parse_eqs = kwargs[:parse_eqs])
-        _prob = prob
     else
-        _alg = TaylorMethod(alg.order)
+        _alg = TaylorMethod(alg.order, parse_eqs = parse_eqs)
         _prob = prob
     end
 
