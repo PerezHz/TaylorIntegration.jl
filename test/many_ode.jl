@@ -83,8 +83,8 @@ using LinearAlgebra: Transpose, norm
         @test tv[end] < 1/3
         @test tv[end] == tmax
         @test xv[end,1] == xv[end,2]
-        @test abs(xv[end,1]-exactsol(tv[end], xv[1,1])) < 2e-14
-        @test abs(xv[end,2]-exactsol(tv[end], xv[1,2])) < 2e-14
+        @test abs(xv[end,1]-exactsol(tv[end], xv[1,1])) < 5e-14
+        @test abs(xv[end,2]-exactsol(tv[end], xv[1,2])) < 5e-14
 
         tmax = 0.33
         tv, xv = taylorinteg(eqs_mov!, [3, 3], 0.0, tmax, _order, _abstol)
@@ -98,8 +98,8 @@ using LinearAlgebra: Transpose, norm
         @test tv[end] < 1/3
         @test tv[end] == tmax
         @test xv[end,1] == xv[end,2]
-        @test abs(xv[end,1]-exactsol(tv[end], xv[1,1])) < 5e-12
-        @test abs(xv[end,2]-exactsol(tv[end], xv[1,2])) < 5e-12
+        @test abs(xv[end,1]-exactsol(tv[end], xv[1,1])) < 1e-11
+        @test abs(xv[end,2]-exactsol(tv[end], xv[1,2])) < 1e-11
     end
 
     @testset "Test non-autonomous ODE (2): dot{x}=cos(t)" begin

@@ -313,7 +313,7 @@ using StaticArrays
         @test energy_err(sol2) < 1e-10
 
         @test sol1.t == sol2.t
-        @test sol1[:,:] == sol2[:,:]
+        @test sol1.u == sol2.u
     end
 
 end
