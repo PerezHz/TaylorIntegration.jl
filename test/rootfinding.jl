@@ -155,7 +155,7 @@ using LinearAlgebra: norm
 
     # Tests if trange is properly sorted
     Δt = (3Tend-t0)/1000
-    tspan = t0:Δt:3Tend
+    tspan = t0:Δt:(3Tend-0.125)
     xv1r, tvS1r, xvS1r, gvS1r = taylorinteg(pendulum!, g, x01, tspan,
         _order, _abstol, maxsteps=1000, eventorder=2)
     xv1rb, tvS1rb, xvS1rb, gvS1rb = taylorinteg(pendulum!, g, xv1r[end,:], reverse(tspan),

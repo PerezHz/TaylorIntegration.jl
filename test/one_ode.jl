@@ -91,7 +91,7 @@ using LinearAlgebra: norm
         @test xv[1] == x0
         @test tv[end] < 1/3
         @test tv[end] == tmax
-        @test abs(xv[end]-exactsol(tv[end], xv[1])) < 2e-14
+        @test abs(xv[end]-exactsol(tv[end], xv[1])) < 5e-14
 
         tmax = 0.33
         tv, xv = taylorinteg(eqs_mov, x0, t0, tmax, _order, _abstol)
@@ -102,7 +102,7 @@ using LinearAlgebra: norm
         @test xv[1] == x0
         @test tv[end] < 1/3
         @test tv[end] == tmax
-        @test abs(xv[end]-exactsol(tv[end], xv[1])) < 5e-12
+        @test abs(xv[end]-exactsol(tv[end], xv[1])) < 1e-11
     end
 
     @testset "Test non-autonomous ODE (1): dot{x}=cos(t)" begin
