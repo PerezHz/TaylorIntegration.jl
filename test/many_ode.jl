@@ -106,8 +106,8 @@ using LinearAlgebra: Transpose, norm
         @test tv[end] < 1/3
         @test tv[end] == tmax
         @test xv[end,1] == xv[end,2]
-        @test abs(xv[end,1]-exactsol(tv[end], xv[1,1])) < 5e-12
-        @test abs(xv[end,2]-exactsol(tv[end], xv[1,2])) < 5e-12
+        @test abs(xv[end,1]-exactsol(tv[end], xv[1,1])) < 1.0e-11
+        @test abs(xv[end,2]-exactsol(tv[end], xv[1,2])) < 1.0e-11
 
         # Output includes Taylor polynomial solution
         tv, xv, polynV = taylorinteg(eqs_mov!, q0, 0, tmax, _order, _abstol, Val(true), nothing)
