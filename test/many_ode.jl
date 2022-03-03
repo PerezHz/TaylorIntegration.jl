@@ -59,6 +59,14 @@ using LinearAlgebra: Transpose, norm
         @test (isnan(xv2[end,1]) && isnan(xv2[end,2]))
         @test abs(xv2[3,2] - 4/3) ≤ eps(4/3)
         @test abs(xv2[2,1] - 4.8) ≤ eps(4.8)
+
+        # Output includes Taylor polynomial solution
+        tv, xv, polynV = taylorinteg(eqs_mov!, q0, 0, 0.5, _order, _abstol, Val(true), nothing, maxsteps=2)
+        @test size(polynV) == (3, 2)
+        @test xv[1,:] == q0
+        @test polynV[1,:] == Taylor1.(q0, _order)
+        @test xv[2,:] == evaluate.(polynV[2, :], tv[2]-tv[1])
+        @test polynV[2,2] == Taylor1(ones(_order+1))
     end
 
     @testset "Tests: dot{x}=x.^2, x(0) = [3, 3]" begin
@@ -98,8 +106,15 @@ using LinearAlgebra: Transpose, norm
         @test tv[end] < 1/3
         @test tv[end] == tmax
         @test xv[end,1] == xv[end,2]
-        @test abs(xv[end,1]-exactsol(tv[end], xv[1,1])) < 1e-11
-        @test abs(xv[end,2]-exactsol(tv[end], xv[1,2])) < 1e-11
+        @test abs(xv[end,1]-exactsol(tv[end], xv[1,1])) < 1.0e-11
+        @test abs(xv[end,2]-exactsol(tv[end], xv[1,2])) < 1.0e-11
+
+        # Output includes Taylor polynomial solution
+        tv, xv, polynV = taylorinteg(eqs_mov!, q0, 0, tmax, _order, _abstol, Val(true), nothing)
+        @test size(polynV) == size(xv)
+        @test polynV[1,:] == Taylor1.(q0, _order)
+        @test xv[end,1] == evaluate.(polynV[end, 1], tv[end]-tv[end-1])
+        @test polynV[:,1] == polynV[:,2]
     end
 
     @testset "Test non-autonomous ODE (2): dot{x}=cos(t)" begin

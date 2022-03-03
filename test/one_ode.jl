@@ -68,6 +68,14 @@ using LinearAlgebra: norm
         @test xv2[1] == x0
         @test isnan(xv2[end])
         @test abs(xv2[5] - 2.0) ≤ eps(2.0)
+
+        # Output includes Taylor polynomial solution
+        tv, xv, polynV = taylorinteg(eqs_mov, x0, 0, 0.5, _order, _abstol, Val(true), maxsteps=2)
+        @test length(polynV) == 3
+        @test xv[1] == x0
+        @test polynV[1] == Taylor1(x0, _order)
+        @test xv[2] == evaluate(polynV[2], tv[2]-tv[1])
+        @test polynV[2] == Taylor1(ones(_order+1))
     end
 
     @testset "Tests: dot{x}=x^2, x(0) = 3; nsteps <= maxsteps" begin
