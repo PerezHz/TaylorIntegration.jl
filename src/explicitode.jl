@@ -435,11 +435,12 @@ function taylorinteg(f, x0::U, t0::T, tmax::T, order::Int, abstol::T,
     sign_tstep = copysign(1, tmax-t0)
 
     # Determine if specialized jetcoeffs! method exists
-    parse_eqs = _determine_parsing!(parse_eqs, f, t, x, params)
+    parse_eqs, tmpTaylor, arrTaylor = _determine_parsing!(parse_eqs, f, t, x, params)
+
 
     # Integration
     while sign_tstep*t0 < sign_tstep*tmax
-        δt = taylorstep!(f, t, x, abstol, params, parse_eqs) # δt is positive!
+        δt = taylorstep!(f, t, x, abstol, params, tmpTaylor, arrTaylor, parse_eqs) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
         x0 = evaluate(x, δt) # new initial condition
@@ -548,12 +549,12 @@ function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T, order::Int, abstol::T,
     sign_tstep = copysign(1, tmax-t0)
 
     # Determine if specialized jetcoeffs! method exists
-    parse_eqs = _determine_parsing!(parse_eqs, f!, t, x, dx, params)
+    parse_eqs, tmpTaylor, arrTaylor = _determine_parsing!(parse_eqs, f!, t, x, dx, params)
 
     # Integration
     nsteps = 1
     while sign_tstep*t0 < sign_tstep*tmax
-        δt = taylorstep!(f!, t, x, dx, xaux, abstol, params, parse_eqs) # δt is positive!
+        δt = taylorstep!(f!, t, x, dx, xaux, abstol, params, tmpTaylor, arrTaylor, parse_eqs) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
         evaluate!(x, δt, x0) # new initial condition
