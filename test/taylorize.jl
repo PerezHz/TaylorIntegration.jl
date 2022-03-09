@@ -132,7 +132,8 @@ import Logging: Warn
             tmpTaylor, arrTaylor)
 
         # Output includes Taylor polynomial solution
-        tv3t, xv3t, polynV3t = taylorinteg(xdot3, x0, t0, tf, _order, _abstol, Val(true), 0.0, maxsteps=2)
+        tv3t, xv3t, polynV3t = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+            xdot3, x0, t0, tf, _order, _abstol, Val(true), 0.0, maxsteps=2))
         @test length(polynV3t) == 3
         @test xv3t[1] == x0
         @test polynV3t[1] == Taylor1(x0, _order)
@@ -1240,7 +1241,6 @@ import Logging: Warn
             end)
     end
 
-
     @testset "Test @taylorize with @threads" begin
         @taylorize function f1!(dq, q, params, t)
             for i in 1:10
@@ -1397,7 +1397,6 @@ import Logging: Warn
         @test tv == tv_
         @test xv == xv_
     end
-
 
     # Issue 106: allow calls to macro from Julia packages
     @testset "Test @taylorize use in modules/packages" begin

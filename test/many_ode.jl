@@ -68,7 +68,8 @@ import Logging: Warn
         @test abs(xv2[2,1] - 4.8) ≤ eps(4.8)
 
         # Output includes Taylor polynomial solution
-        tv, xv, polynV = taylorinteg(eqs_mov!, q0, 0, 0.5, _order, _abstol, Val(true), nothing, maxsteps=2)
+        tv, xv, polynV = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+            eqs_mov!, q0, 0, 0.5, _order, _abstol, Val(true), nothing, maxsteps=2))
         @test size(polynV) == (3, 2)
         @test xv[1,:] == q0
         @test polynV[1,:] == Taylor1.(q0, _order)
