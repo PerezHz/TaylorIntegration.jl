@@ -199,7 +199,16 @@ list some limitations and advices.
   `DifferentialEquations` may not be able to exploit it.
 
 - `if-else` blocks are recognized in its long form, but short-circuit
-  conditional operators (`&&` and `||`) are not.
+  conditional operators (`&&` and `||`) are not.  When comparands are subject to
+  Taylor expansion, use operators such as `iszero` for `if-else` tests
+  rather than comparing against numeric literals.
+
+- Input and output lengths should be determined at the time of `@taylorize`
+  application, not at runtime.  Do not use the length of the input as an
+  implicit indicator of whether or not to write all elements of the output.  If
+  conditional output of auxiliary equations is desired, use explicit methods,
+  such as through parameters or by setting auxiliary `t0` vector elements
+  to zero, and assigning unwanted auxiliary outputs zero.
 
 - Expressions which correspond to function calls (so the `head` field is
   `:call`) which are not recognized by the parser are simply copied. The
