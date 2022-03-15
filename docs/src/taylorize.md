@@ -1,18 +1,18 @@
 # [Optimizing: `@taylorize`](@id taylorize)
 
 Here, we describe the use of the macro [`@taylorize`](@ref), which
-parses the functions containing the ODEs to be integrated, allowing to speed up
-[`taylorinteg`](@ref) and [`lyap_taylorinteg`](@ref).
+parses the functions containing the ODEs to be integrated, allowing
+[`taylorinteg`](@ref) and [`lyap_taylorinteg`](@ref) to be sped up.
 
 !!! warning
-    The macro [`@taylorize`](@ref) is still in an experimental phase;
+    The macro [`@taylorize`](@ref) is still in an experimental state;
     be cautious of the resulting integration, which has to be tested
     carefully.
 
 ## [Some context and the idea](@id idea)
 
-The way in which [`taylorinteg`](@ref) works by default is by calling
-repeatedly the function where the ODEs of the problem are defined, in
+The way in which [`taylorinteg`](@ref) works by default is repeatedly calling
+the function where the ODEs of the problem are defined, in
 order to compute the recurrence relations that are used to construct
 the Taylor expansion of the solution. This is done for each order of
 the series in [`TaylorIntegration.jetcoeffs!`](@ref). These computations are
@@ -113,10 +113,10 @@ We can check that both integrations yield the same results.
 t1 == t2 && x1 == x2
 ```
 
-As stated above, in order to allow to opt-out from using the specialized method
+As stated above, in order to allow opting out of using the specialized method
 created by [`@taylorize`](@ref), [`taylorinteg`](@ref) and
 [`lyap_taylorinteg`](@ref) recognize the keyword argument `parse_eqs`;
-setting it to `false` imposes using the standard method.
+setting it to `false` causes the standard method to be used.
 ```@example taylorize
 taylorinteg(pendulum!, q0, t0, tf, 25, 1e-20, maxsteps=1500, parse_eqs=false); # warm-up run
 
@@ -136,7 +136,7 @@ e4 = @elapsed solve(prob, TaylorMethod(25), abstol=1e-20, parse_eqs=true);
 
 e1/e4
 ```
-Note that there is a marginal cost of using `solve` in comparison
+Note that there is an additional marginal cost to using `solve` in comparison
 with `taylorinteg`.
 
 The speed-up obtained comes from the design of the new (specialized) method of
@@ -165,27 +165,28 @@ new_ex = TaylorIntegration._make_parsed_jetcoeffs(ex)
 
 This function has a similar structure as the hard-coded method of
 `TaylorIntegration.jetcoeffs!`, but uses low-level functions in `TaylorSeries`
-(e.g., `sincos!` above) and explicitly allocates the needed temporary arrays.
-More complex functions become easily very difficult to read. Note that,
+(e.g., `sincos!` above) and explicitly allocates the necessary temporary arrays.
+More complex functions quickly become very difficult to read. Note that,
 if necessary, one can further optimize `new_ex` manually.
 
 
-## Limitations and some advices
+## Limitations and some advice
 
 The construction of the internal function obtained by using
 [`@taylorize`](@ref) is somewhat complicated and limited. Here we
-list some limitations and advices.
+list some limitations and advice.
 
-- It is useful to have expressions which involve two arguments at most, which
-  imposes the proper use of parenthesis: For example, `res = a+b+c` should be
-  written as `res = (a+b)+c`.
+- It is best to have expressions which involve two arguments at most, which
+  requires parentheses be appropriately used: For example, `res = a+b+c` should
+  be written as `res = (a+b)+c`.
 
 - Updating operators such as `+=`, `*=`, etc., are not supported. For
   example, the expression `x += y` is not recognized by `@taylorize`. Likewise,
   expressions such as `x = x+y` are not supported by `@taylorize` and should be
-  substituted by equivalent expressions; e.g. `z = x+y; x = z`.
+  replaced by equivalent expressions in which variables appear only on one side
+  of the assignment; e.g. `z = x+y; x = z`.
 
-- The macro allows to use array declarations through `Array`, but other ways
+- The macro allows the use of array declarations through `Array`, but other ways
   (e.g. `similar`) are not yet implemented.
 
 - Avoid using variables prefixed by an underscore, in particular `_T`, `_S` and
@@ -198,12 +199,21 @@ list some limitations and advices.
   `(du, u, p, t)` in-place form, as we showed above. Other extensions allowed by
   `DifferentialEquations` may not be able to exploit it.
 
-- `if-else` blocks are recognized in its long form, but short-circuit
-  conditional operators (`&&` and `||`) are not.
+- `if-else` blocks are recognized in their long form, but short-circuit
+  conditional operators (`&&` and `||`) are not.  When comparands are subject to
+  Taylor expansion, use operators such as `iszero` for `if-else` tests
+  rather than comparing against numeric literals.
+
+- Input and output lengths should be determined at the time of `@taylorize`
+  application, not at runtime.  Do not use the length of the input as an
+  implicit indicator of whether or not to write all elements of the output.  If
+  conditional output of auxiliary equations is desired, use explicit methods,
+  such as through parameters or by setting auxiliary `t0` vector elements
+  to zero, and assigning unwanted auxiliary outputs zero.
 
 - Expressions which correspond to function calls (so the `head` field is
   `:call`) which are not recognized by the parser are simply copied. The
-  heuristics used, specially for vectors, may not work for all cases.
+  heuristics used, especially for vectors, may not work for all cases.
 
 - Use `local` for internal parameters (simple constant values); this improves
   performance. Do not use it if the variable is Taylor expanded.
