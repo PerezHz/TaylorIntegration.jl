@@ -93,10 +93,10 @@ function alg_cache(alg::TaylorMethod, u, rate_prototype, uEltypeNoUnits,
 end
 
 # This method is used for DynamicalODEFunction's (`parse_eqs=false`): tmpT1 and arrT1
-# have to have the correct type to build `TaylorMethodCache`
+# must have the proper type to build `TaylorMethodCache`
 function alg_cache(alg::TaylorMethod, u::ArrayPartition, rate_prototype, uEltypeNoUnits,
-    uBottomEltypeNoUnits, tTypeNoUnits, uprev, uprev2, f, t, dt, reltol, p,
-    calck,::Val{true})
+        uBottomEltypeNoUnits, tTypeNoUnits, uprev, uprev2, f, t, dt, reltol, p,
+        calck, ::Val{true})
     order = alg.order
     tT = Taylor1(typeof(t), order)
     tT[0] = t
@@ -105,8 +105,8 @@ function alg_cache(alg::TaylorMethod, u::ArrayPartition, rate_prototype, uEltype
     uauxT = similar(uT)
     parse_eqs, _, _ = _determine_parsing!(alg.parse_eqs, f, tT, uT, duT, p)
     ## `tmpT1` must have the same type than `uT` and `arrT1` is a `[tmpT1]`
-    tmpTaylor = similar(uT,0)
-    arrTaylor = similar([tmpTaylor], 0)
+    tmpT1 = similar(uT)
+    arrT1 = similar([tmpT1])
     TaylorMethodCache(
         u,
         uprev,
@@ -118,8 +118,8 @@ function alg_cache(alg::TaylorMethod, u::ArrayPartition, rate_prototype, uEltype
         duT,
         uauxT,
         Ref(parse_eqs),
-        tmpTaylor,
-        arrTaylor
+        tmpT1,
+        arrT1
         )
 end
 
