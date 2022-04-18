@@ -29,7 +29,7 @@ defining the equations of motion by parsing its expression. This new
 method performs in principle *exactly* the same operations, but avoids
 the extra allocations; to do the latter, the macro also creates an *internal*
 function `TaylorIntegration._allocate_jetcoeffs!`, which allocates all temporary
-`Taylor1` objects as well as the declared `Array{Taylo1,1}`s.
+`Taylor1` objects as well as the declared `Array{Taylor1,1}`s.
 
 
 ## An example
