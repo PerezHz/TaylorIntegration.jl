@@ -3,12 +3,16 @@
 using TaylorIntegration
 using Test
 using LinearAlgebra: norm
+using Logging
+import Logging: Warn
 
 @testset "Testing `one_ode.jl`" begin
 
     local _order = 28
     local _abstol = 1.0E-20
     local tT = Taylor1(_order)
+
+    max_iters_reached() = "Maximum number of integration steps reached; exiting.\n"
 
     @testset "Tests: dot{x}=x^2, x(0) = 1" begin
         eqs_mov(x, p, t) = x^2
@@ -21,46 +25,53 @@ using LinearAlgebra: norm
         δt = _abstol^inv(_order-1)
         @test TaylorIntegration.stepsize(x0T, _abstol) == δt
 
-        tv, xv = taylorinteg(eqs_mov, 1, 0.0, 1.0, _order, _abstol)
+        tv, xv = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+            eqs_mov, 1, 0.0, 1.0, _order, _abstol))
         @test length(tv) == 501
         @test length(xv) == 501
         @test xv[1] == x0
         @test tv[end] < 1.0
 
-        tv, xv = taylorinteg(eqs_mov, x0, 0.0, 1.0, _order, _abstol, nothing)
+        tv, xv = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+            eqs_mov, x0, 0.0, 1.0, _order, _abstol, nothing))
         @test length(tv) == 501
         @test length(xv) == 501
         @test xv[1] == x0
         @test tv[end] < 1.0
 
         trange = 0.0:1/8:1.0
-        xv = taylorinteg(eqs_mov, 1, trange, _order, _abstol)
+        xv = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+            eqs_mov, 1, trange, _order, _abstol))
         @test length(xv) == length(trange)
         @test typeof(xv) == Array{typeof(x0),1}
         @test xv[1] == x0
         @test isnan(xv[end])
         @test abs(xv[5] - 2.0) ≤ eps(2.0)
-        tvr, xvr = taylorinteg(eqs_mov, x0, trange[1], trange[end-1], _order, _abstol)
+        tvr, xvr = (@test_logs min_level=Logging.Warn taylorinteg(
+            eqs_mov, x0, trange[1], trange[end-1], _order, _abstol))
         @test tvr[1] == trange[1]
         @test tvr[end] == trange[end-1]
         @test xvr[1] == xv[1]
         @test xvr[end] == xv[end-1]
 
         trange = 0.0:1/8:1.0
-        xv = taylorinteg(eqs_mov, x0, trange, _order, _abstol, nothing)
+        xv = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+            eqs_mov, x0, trange, _order, _abstol, nothing))
         @test length(xv) == length(trange)
         @test typeof(xv) == Array{typeof(x0),1}
         @test xv[1] == x0
         @test isnan(xv[end])
         @test abs(xv[5] - 2.0) ≤ eps(2.0)
-        tvr, xvr = taylorinteg(eqs_mov, x0, trange[1], trange[end-1], _order, _abstol, nothing)
+        tvr, xvr = (@test_logs min_level=Logging.Warn taylorinteg(
+            eqs_mov, x0, trange[1], trange[end-1], _order, _abstol, nothing))
         @test tvr[1] == trange[1]
         @test tvr[end] == trange[end-1]
         @test xvr[1] == xv[1]
         @test xvr[end] == xv[end-1]
 
         tarray = vec(trange)
-        xv2 = taylorinteg(eqs_mov, x0, tarray, _order, _abstol)
+        xv2 = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+            eqs_mov, x0, tarray, _order, _abstol))
         @test xv[1:end-1] == xv2[1:end-1]
         @test xv2[1:end-1] ≈ xv[1:end-1] atol=eps() rtol=0.0
         @test length(xv2) == length(tarray)
@@ -70,7 +81,8 @@ using LinearAlgebra: norm
         @test abs(xv2[5] - 2.0) ≤ eps(2.0)
 
         # Output includes Taylor polynomial solution
-        tv, xv, polynV = taylorinteg(eqs_mov, x0, 0, 0.5, _order, _abstol, Val(true), maxsteps=2)
+        tv, xv, polynV = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+            eqs_mov, x0, 0, 0.5, _order, _abstol, Val(true), maxsteps=2))
         @test length(polynV) == 3
         @test xv[1] == x0
         @test polynV[1] == Taylor1(x0, _order)
@@ -91,7 +103,8 @@ using LinearAlgebra: norm
         δt = (_abstol/x0T.coeffs[end-1])^inv(_order-1)
         @test TaylorIntegration.stepsize(x0T, _abstol) == δt
 
-        tv, xv = taylorinteg(eqs_mov, x0, 0, tmax, _order, _abstol)
+        tv, xv = (@test_logs min_level=Logging.Warn taylorinteg(
+            eqs_mov, x0, 0, tmax, _order, _abstol))
         @test length(tv) < 501
         @test length(xv) < 501
         @test length(tv) == 14
@@ -102,7 +115,8 @@ using LinearAlgebra: norm
         @test abs(xv[end]-exactsol(tv[end], xv[1])) < 5e-14
 
         tmax = 0.33
-        tv, xv = taylorinteg(eqs_mov, x0, t0, tmax, _order, _abstol)
+        tv, xv = (@test_logs min_level=Logging.Warn taylorinteg(
+            eqs_mov, x0, t0, tmax, _order, _abstol))
         @test length(tv) < 501
         @test length(xv) < 501
         @test length(tv) == 28
@@ -121,7 +135,8 @@ using LinearAlgebra: norm
             order = 25
             x0 = 0.0 #initial conditions such that x(t)=sin(t)
 
-            tv, xv = taylorinteg(f, x0, t0, tmax, order, abstol)
+            tv, xv = (@test_logs min_level=Logging.Warn taylorinteg(
+                f, x0, t0, tmax, order, abstol))
             @test length(tv) < 501
             @test length(xv) < 501
             @test xv[1] == x0
@@ -129,7 +144,8 @@ using LinearAlgebra: norm
             @test abs(sin(tmax)-xv[end]) < 1e-14
 
             # Backward integration
-            tb, xb = taylorinteg(f, sin(tmax), tmax, t0, order, abstol)
+            tb, xb = (@test_logs min_level=Logging.Warn taylorinteg(
+                f, sin(tmax), tmax, t0, order, abstol))
             @test length(tb) < 501
             @test length(xb) < 501
             @test xb[1] == sin(tmax)
@@ -140,12 +156,14 @@ using LinearAlgebra: norm
             tmax = 15*(2pi)
             Δt = (tmax-t0)/1024
             tspan = t0:Δt:tmax
-            xv = taylorinteg(f, x0, tspan, order, abstol)
+            xv = (@test_logs min_level=Logging.Warn taylorinteg(
+                f, x0, tspan, order, abstol))
             @test xv[1] == x0
             @test abs(sin(tmax)-xv[end]) < 1e-14
 
             # Backward integration
-            xback = taylorinteg(f, xv[end], reverse(tspan), order, abstol)
+            xback = (@test_logs min_level=Logging.Warn taylorinteg(
+                f, xv[end], reverse(tspan), order, abstol))
             @test xback[1] == xv[end]
             @test abs(sin(t0)-xback[end]) < 5e-14
             @test norm(xv[:]-xback[end:-1:1], Inf) < 5.0e-14

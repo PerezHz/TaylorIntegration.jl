@@ -3,9 +3,14 @@
 using TaylorIntegration
 using Test
 using LinearAlgebra: norm
+using Logging
+import Logging: Warn
 
 @testset "Testing `rootfinding.jl`" begin
 
+    max_iters_reached() = "Maximum number of integration steps reached; exiting.\n"
+
+    err_newton_raphson() = "Newton-Raphson did not converge for prescribed tolerance and maximum allowed iterations.\n"
     local _order = 28
     local _abstol = 1.0E-20
 
@@ -27,8 +32,8 @@ using LinearAlgebra: norm
     x01 = x0 + [ξ, ξ]
 
     #warm-up lap and preliminary tests
-    tv, xv, tvS, xvS, gvS = taylorinteg(pendulum!, g, x0, t0, Tend,
-        _order, _abstol, maxsteps=1)
+    tv, xv, tvS, xvS, gvS = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        pendulum!, g, x0, t0, Tend, _order, _abstol, maxsteps=1))
     @test size(tv) == (2,)
     @test tv[1] == t0
     @test size(xv) == (2,2)
@@ -37,8 +42,8 @@ using LinearAlgebra: norm
     @test size(xvS) == (0,2)
     @test size(gvS) == (0,)
 
-    tvN, xvN, tvSN, xvSN, gvSN = taylorinteg(pendulum!, g, x0N, t0, 3Tend,
-        _order, _abstol, maxsteps=1)
+    tvN, xvN, tvSN, xvSN, gvSN = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        pendulum!, g, x0N, t0, 3Tend, _order, _abstol, maxsteps=1))
     @test eltype(tvN) == Float64
     @test eltype(xvN) == TaylorN{Float64}
     @test eltype(tvSN) == TaylorN{Float64}
@@ -52,8 +57,8 @@ using LinearAlgebra: norm
     @test size(xvSN) == (0,2)
     @test size(gvSN) == (0,)
 
-    tv1, xv1, tvS1, xvS1, gvS1 = taylorinteg(pendulum!, g, x01, t0, 3Tend,
-        _order, _abstol, maxsteps=1)
+    tv1, xv1, tvS1, xvS1, gvS1 = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        pendulum!, g, x01, t0, 3Tend, _order, _abstol, maxsteps=1))
     @test eltype(tv1) == Float64
     @test eltype(xv1) == Taylor1{Float64}
     @test eltype(tvS1) == Taylor1{Float64}
@@ -68,8 +73,8 @@ using LinearAlgebra: norm
     @test size(gvS1) == (0,)
 
     #testing 0-th order root-finding
-    tv, xv, tvS, xvS, gvS = taylorinteg(pendulum!, g, x0, t0, 3Tend,
-        _order, _abstol, maxsteps=1000)
+    tv, xv, tvS, xvS, gvS = (@test_logs min_level=Logging.Warn taylorinteg(
+        pendulum!, g, x0, t0, 3Tend, _order, _abstol, maxsteps=1000))
     @test tv[1] == t0
     @test xv[1,:] == x0
     @test size(tvS) == (5,)
@@ -80,8 +85,8 @@ using LinearAlgebra: norm
     tvr = [t0, Tend/2, Tend, 3Tend/2, 2Tend, 5Tend/2, 3Tend]
     @test_throws AssertionError taylorinteg(pendulum!, g, x0, view(tvr, :),
         _order, _abstol, maxsteps=1000, eventorder=_order+1)
-    xvr, tvSr, xvSr, gvSr = taylorinteg(pendulum!, g, x0, view(tvr, :),
-        _order, _abstol, maxsteps=1000)
+    xvr, tvSr, xvSr, gvSr = (@test_logs min_level=Logging.Warn taylorinteg(
+        pendulum!, g, x0, view(tvr, :), _order, _abstol, maxsteps=1000))
     @test xvr[1,:] == x0
     @test size(tvSr) == (5,)
     @test size(tvSr) == size(tvr[2:end-1])
@@ -92,8 +97,8 @@ using LinearAlgebra: norm
     @test norm(tvS-tvSr, Inf) < 5E-15
 
     #testing 0-th order root-finding + TaylorN jet transport
-    tvN, xvN, tvSN, xvSN, gvSN = taylorinteg(pendulum!, g, x0N, t0, 3Tend,
-        _order, _abstol, maxsteps=1000)
+    tvN, xvN, tvSN, xvSN, gvSN = (@test_logs min_level=Logging.Warn taylorinteg(
+        pendulum!, g, x0N, t0, 3Tend, _order, _abstol, maxsteps=1000))
     @test size(tvSN) == size(tvS)
     @test size(xvSN) == size(xvS)
     @test size(gvSN) == size(gvS)
@@ -102,8 +107,8 @@ using LinearAlgebra: norm
     @test norm( xvSN()-xvS, Inf ) < 1E-14
 
     #testing 0-th root-finding + Taylor1 jet transport
-    tv1, xv1, tvS1, xvS1, gvS1 = taylorinteg(pendulum!, g, x01, t0, 3Tend,
-        _order, _abstol, maxsteps=1000)
+    tv1, xv1, tvS1, xvS1, gvS1 = (@test_logs min_level=Logging.Warn taylorinteg(
+        pendulum!, g, x01, t0, 3Tend, _order, _abstol, maxsteps=1000))
     @test size(tvS1) == size(tvS)
     @test size(xvS1) == size(xvS)
     @test size(gvS1) == size(gvS)
@@ -115,8 +120,8 @@ using LinearAlgebra: norm
     @test_throws AssertionError taylorinteg(pendulum!, g, x0, t0, 3Tend,
         _order, _abstol, maxsteps=1000, eventorder=_order+1, newtoniter=2)
 
-    tv, xv, tvS, xvS, gvS = taylorinteg(pendulum!, g, x0, t0, 3Tend,
-        _order, _abstol, maxsteps=1000, eventorder=2, newtoniter=2)
+    tv, xv, tvS, xvS, gvS = (@test_logs (Warn, err_newton_raphson()) match_mode=:any taylorinteg(
+        pendulum!, g, x0, t0, 3Tend, _order, _abstol, maxsteps=1000, eventorder=2, newtoniter=2))
     @test tv[1] < tv[end]
     @test tv[1] == t0
     @test xv[1,:] == x0
@@ -125,8 +130,8 @@ using LinearAlgebra: norm
     @test norm(gvS[:]) < 1E-15
 
     # testing backward integrations
-    tvb, xvb, tvSb, xvSb, gvSb = taylorinteg(pendulum!, g, xv[end,:], 3Tend, t0,
-        _order, _abstol, maxsteps=1000, eventorder=2, newtoniter=2)
+    tvb, xvb, tvSb, xvSb, gvSb = (@test_logs (Warn, err_newton_raphson()) match_mode=:any taylorinteg(
+        pendulum!, g, xv[end,:], 3Tend, t0, _order, _abstol, maxsteps=1000, eventorder=2, newtoniter=2))
     @test tvb[1] > tvb[end]
     @test tvSb[1] > tvSb[end]
     @test norm(gvSb[:]) < 1E-14
@@ -134,8 +139,8 @@ using LinearAlgebra: norm
     @test norm( xvSb[2:end,:] .- xvS[end:-1:1,:], Inf ) < 1E-13
 
     #testing higher order root-finding + TaylorN jet transport
-    tvN, xvN, tvSN, xvSN, gvSN = taylorinteg(pendulum!, g, x0N, t0, 3Tend,
-        _order, _abstol, maxsteps=1000, eventorder=2)
+    tvN, xvN, tvSN, xvSN, gvSN = (@test_logs min_level=Logging.Warn taylorinteg(
+        pendulum!, g, x0N, t0, 3Tend, _order, _abstol, maxsteps=1000, eventorder=2))
     @test size(tvSN) == size(tvS)
     @test size(xvSN) == size(xvS)
     @test size(gvSN) == size(gvS)
@@ -144,8 +149,8 @@ using LinearAlgebra: norm
     @test norm(xvSN()-xvS, Inf) < 1E-14
 
     #testing higher root-finding + Taylor1 jet transport
-    tv1, xv1, tvS1, xvS1, gvS1 = taylorinteg(pendulum!, g, x01, t0, 3Tend,
-        _order, _abstol, maxsteps=1000, eventorder=2)
+    tv1, xv1, tvS1, xvS1, gvS1 = (@test_logs min_level=Logging.Warn taylorinteg(
+        pendulum!, g, x01, t0, 3Tend, _order, _abstol, maxsteps=1000, eventorder=2))
     @test size(tvS1) == size(tvS)
     @test size(xvS1) == size(xvS)
     @test size(gvS1) == size(gvS)
@@ -156,10 +161,10 @@ using LinearAlgebra: norm
     # Tests if trange is properly sorted
     Δt = (3Tend-t0)/1000
     tspan = t0:Δt:(3Tend-0.125)
-    xv1r, tvS1r, xvS1r, gvS1r = taylorinteg(pendulum!, g, x01, tspan,
-        _order, _abstol, maxsteps=1000, eventorder=2)
-    xv1rb, tvS1rb, xvS1rb, gvS1rb = taylorinteg(pendulum!, g, xv1r[end,:], reverse(tspan),
-        _order, _abstol, maxsteps=1000, eventorder=2)
+    xv1r, tvS1r, xvS1r, gvS1r = (@test_logs min_level=Logging.Warn taylorinteg(
+        pendulum!, g, x01, tspan, _order, _abstol, maxsteps=1000, eventorder=2))
+    xv1rb, tvS1rb, xvS1rb, gvS1rb = (@test_logs min_level=Logging.Warn taylorinteg(
+        pendulum!, g, xv1r[end,:], reverse(tspan), _order, _abstol, maxsteps=1000, eventorder=2))
     @test size(xv1r) == size(xv1rb)
     @test size(tvS1r) == size(tvS1rb)
     @test size(xvS1r) == size(xvS1rb)

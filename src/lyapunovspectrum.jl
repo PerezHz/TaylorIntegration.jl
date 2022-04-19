@@ -15,7 +15,7 @@ Optionally, the user may provide a Jacobian function `jacobianfunc!` to compute
 function stabilitymatrix!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
         δx::Vector{TaylorN{Taylor1{U}}}, dδx::Vector{TaylorN{Taylor1{U}}},
         jac::Matrix{Taylor1{U}}, _δv::Vector{TaylorN{Taylor1{U}}}, params,
-        jacobianfunc! =nothing) where {T<:Real, U<:Number}
+        jacobianfunc! = nothing) where {T<:Real, U<:Number}
 
     if isa(jacobianfunc!, Nothing)
         # Set δx equal to current value of x plus 1st-order variations
@@ -170,7 +170,7 @@ function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
         dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}},
         δx::Array{TaylorN{Taylor1{U}},1}, dδx::Array{TaylorN{Taylor1{U}},1},
         jac::Array{Taylor1{U},2}, abstol::T, _δv::Vector{TaylorN{Taylor1{U}}},
-        varsaux::Array{Taylor1{U},3}, params, parse_eqs::Bool=true,
+        varsaux::Array{Taylor1{U},3}, params, tmpTaylor, arrTaylor, parse_eqs::Bool=true,
         jacobianfunc! =nothing) where {T<:Real, U<:Number}
 
     # Dimensions of phase-space: dof
@@ -178,7 +178,8 @@ function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
     dof = length(δx)
 
     # Compute the Taylor coefficients associated to trajectory
-    __jetcoeffs!(Val(parse_eqs), f!, t, view(x, 1:dof), view(dx, 1:dof), view(xaux, 1:dof), params)
+    __jetcoeffs!(Val(parse_eqs), f!, t, view(x, 1:dof), view(dx, 1:dof),
+        view(xaux, 1:dof), params, tmpTaylor, arrTaylor)
 
     # Compute stability matrix
     stabilitymatrix!(f!, t, x, δx, dδx, jac, _δv, params, jacobianfunc!)
@@ -259,13 +260,14 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
     vⱼ = similar(aⱼ)
 
     # Determine if specialized jetcoeffs! method exists
-    parse_eqs = _determine_parsing!(parse_eqs, f!, t, view(x, 1:dof), view(dx, 1:dof), params)
+    parse_eqs, tmpTaylor, arrTaylor = _determine_parsing!(parse_eqs, f!, t,
+        view(x, 1:dof), view(dx, 1:dof), params)
 
     # Integration
     nsteps = 1
     while sign_tstep*t0 < sign_tstep*tmax
-        δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac,
-            abstol, _δv, varsaux, params, parse_eqs, jacobianfunc!) # δt is positive!
+        δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, abstol, _δv,
+            varsaux, params, tmpTaylor, arrTaylor, parse_eqs, jacobianfunc!) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
         evaluate!(x, δt, x0) # Update x0
@@ -355,14 +357,15 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
     vⱼ = similar(aⱼ)
 
     # Determine if specialized jetcoeffs! method exists
-    parse_eqs = _determine_parsing!(parse_eqs, f!, t, view(x, 1:dof), view(dx, 1:dof), params)
+    parse_eqs, tmpTaylor, arrTaylor = _determine_parsing!(
+        parse_eqs, f!, t, view(x, 1:dof), view(dx, 1:dof), params)
 
     # Integration
     iter = 2
     nsteps = 1
     while sign_tstep*t0 < sign_tstep*tmax
-        δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac,
-            abstol, _δv, varsaux, params, parse_eqs, jacobianfunc!) # δt is positive!
+        δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, abstol, _δv,
+            varsaux, params, tmpTaylor, arrTaylor, parse_eqs, jacobianfunc!) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
         evaluate!(x, δt, x0) # Update x0

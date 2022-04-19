@@ -3,12 +3,16 @@
 using TaylorIntegration
 using Test
 using LinearAlgebra: Transpose, norm
+using Logging
+import Logging: Warn
 
 @testset "Testing `many_ode.jl`" begin
 
     local _order = 28
     local _abstol = 1.0E-20
     local tT = Taylor1(_order)
+
+    max_iters_reached() = "Maximum number of integration steps reached; exiting.\n"
 
     @testset "Tests: dot{x}=x.^2, x(0) = [3, 1]" begin
         function eqs_mov!(Dx, x, p, t)
@@ -30,14 +34,16 @@ using LinearAlgebra: Transpose, norm
         δt = (_abstol/q0T[1].coeffs[end-1])^inv(_order-1)
         @test TaylorIntegration.stepsize(q0T, _abstol) == δt
 
-        tv, xv = taylorinteg(eqs_mov!, q0, 0.0, 0.5, _order, _abstol, nothing)
+        tv, xv = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+            eqs_mov!, q0, 0.0, 0.5, _order, _abstol, nothing))
         @test length(tv) == 501
         @test isa(xv, SubArray)
         @test xv[1,:] == q0
         @test tv[end] < 1/3
 
         trange = 0.0:1/8:1.0
-        xv = taylorinteg(eqs_mov!, q0, trange, _order, _abstol)
+        xv = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+            eqs_mov!, q0, trange, _order, _abstol))
         @test size(xv) == (9,2)
         @test q0 == [3.0, 1.0]
         @test typeof(xv) == Transpose{Float64, Array{Float64,2}}
@@ -48,7 +54,8 @@ using LinearAlgebra: Transpose, norm
         @test abs(xv[2,1] - 4.8) ≤ eps(4.8)
 
         tarray = vec(trange)
-        xv2 = taylorinteg(eqs_mov!, q0, tarray, _order, _abstol, nothing)
+        xv2 = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+            eqs_mov!, q0, tarray, _order, _abstol, nothing))
         @test xv[1:3,:] == xv2[1:3,:]
         @test xv2[1:3,:] ≈ xv[1:3,:] atol=eps() rtol=0.0
         @test size(xv2) == (9,2)
@@ -61,7 +68,8 @@ using LinearAlgebra: Transpose, norm
         @test abs(xv2[2,1] - 4.8) ≤ eps(4.8)
 
         # Output includes Taylor polynomial solution
-        tv, xv, polynV = taylorinteg(eqs_mov!, q0, 0, 0.5, _order, _abstol, Val(true), nothing, maxsteps=2)
+        tv, xv, polynV = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+            eqs_mov!, q0, 0, 0.5, _order, _abstol, Val(true), nothing, maxsteps=2))
         @test size(polynV) == (3, 2)
         @test xv[1,:] == q0
         @test polynV[1,:] == Taylor1.(q0, _order)
@@ -80,7 +88,8 @@ using LinearAlgebra: Transpose, norm
 
         q0 = [3.0, 3.0]
         tmax = 0.3
-        tv, xv = taylorinteg(eqs_mov!, q0, 0, tmax, _order, _abstol, nothing)
+        tv, xv = (@test_logs min_level=Logging.Warn taylorinteg(
+            eqs_mov!, q0, 0, tmax, _order, _abstol, nothing))
         @test length(tv) < 501
         @test length(xv[:,1]) < 501
         @test length(xv[:,2]) < 501
@@ -95,7 +104,8 @@ using LinearAlgebra: Transpose, norm
         @test abs(xv[end,2]-exactsol(tv[end], xv[1,2])) < 5e-14
 
         tmax = 0.33
-        tv, xv = taylorinteg(eqs_mov!, [3, 3], 0.0, tmax, _order, _abstol)
+        tv, xv = (@test_logs min_level=Logging.Warn taylorinteg(
+            eqs_mov!, [3, 3], 0.0, tmax, _order, _abstol))
         @test length(tv) < 501
         @test length(xv[:,1]) < 501
         @test length(xv[:,2]) < 501
@@ -129,7 +139,8 @@ using LinearAlgebra: Transpose, norm
         order = 25
         x0 = [t0, 0.0] #initial conditions such that x(t)=sin(t)
 
-        tv, xv = taylorinteg(f!, x0, t0, tmax, order, abstol)
+        tv, xv = (@test_logs min_level=Logging.Warn taylorinteg(
+            f!, x0, t0, tmax, order, abstol))
         @test length(tv) < 501
         @test length(xv[:,1]) < 501
         @test length(xv[:,2]) < 501
@@ -139,7 +150,8 @@ using LinearAlgebra: Transpose, norm
         @test abs(sin(tmax)-xv[end,2]) < 1e-14
 
         # Backward integration
-        tb, xb = taylorinteg(f!, [tmax, sin(tmax)], tmax, t0, order, abstol)
+        tb, xb = (@test_logs min_level=Logging.Warn taylorinteg(
+            f!, [tmax, sin(tmax)], tmax, t0, order, abstol))
         @test length(tb) < 501
         @test length(xb[:,1]) < 501
         @test length(xb[:,2]) < 501
@@ -152,13 +164,15 @@ using LinearAlgebra: Transpose, norm
         tmax = 15*(2pi)
         Δt = (tmax-t0)/1024
         tspan = t0:Δt:tmax
-        xv = taylorinteg(f!, x0, tspan, order, abstol, nothing)
+        xv = (@test_logs min_level=Logging.Warn taylorinteg(
+            f!, x0, tspan, order, abstol, nothing))
         @test xv[1,1:end] == x0
         @test tmax == xv[end,1]
         @test abs(sin(tmax)-xv[end,2]) < 1e-14
 
         # Backward integration
-        xback = taylorinteg(f!, xv[end, :], reverse(tspan), order, abstol, nothing)
+        xback = (@test_logs min_level=Logging.Warn taylorinteg(
+            f!, xv[end, :], reverse(tspan), order, abstol, nothing))
         @test xback[1,:] == xv[end, :]
         @test abs(xback[end,1]-x0[1]) < 5.0e-14
         @test abs(xback[end,2]-x0[2]) < 5.0e-14
@@ -181,7 +195,8 @@ using LinearAlgebra: Transpose, norm
         abstol = 1e-20
         order = 10
         x0 = [10.0, 0.0] #initial conditions such that x(t)=sin(t)
-        tv, xv = taylorinteg(fallball!, x0, t0, tmax, order, abstol)
+        tv, xv = (@test_logs min_level=Logging.Warn taylorinteg(
+            fallball!, x0, t0, tmax, order, abstol))
         @test length(tv) < 501
         @test length(xv[:,1]) < 501
         @test exactsol.(tv, x0[1], x0[2]) ≈ xv[:,1]

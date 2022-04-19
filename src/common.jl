@@ -50,25 +50,32 @@ struct TaylorMethodCache{uType, rateType, tTType, uTType} <: OrdinaryDiffEqMutab
     duT::uTType
     uauxT::uTType
     parse_eqs::Ref{Bool}
+    tmpTaylor::uTType
+    arrTaylor::Vector{uTType}
 end
 
 full_cache(c::TaylorMethodCache) = begin
-    tuple(c.u, c.uprev, c.tmp, c.k, c.fsalfirst, c.tT, c.uT, c.duT, c.uauxT, c.parse_eqs)
+    tuple(c.u, c.uprev, c.tmp, c.k, c.fsalfirst, c.tT, c.uT, c.duT, c.uauxT, c.parse_eqs,
+        c.tmpTaylor, c.arrTaylor)
 end
 
 struct TaylorMethodConstantCache{uTType} <: OrdinaryDiffEqConstantCache
     uT::uTType
     parse_eqs::Ref{Bool}
+    tmpTaylor::Vector{uTType}
+    arrTaylor::Vector{Vector{uTType}}
 end
 
 function alg_cache(alg::TaylorMethod, u, rate_prototype, uEltypeNoUnits,
         uBottomEltypeNoUnits, tTypeNoUnits, uprev, uprev2, f, t, dt, reltol, p,
         calck,::Val{true})
-    tT = Taylor1(typeof(t), alg.order)
+    order = alg.order
+    tT = Taylor1(typeof(t), order)
     tT[0] = t
-    uT = Taylor1.(u, tT.order)
-    duT = zero.(Taylor1.(u, tT.order))
+    uT = Taylor1.(u, order)
+    duT = zero.(Taylor1.(u, order))
     uauxT = similar(uT)
+    parse_eqs, tmpTaylor, arrTaylor = _determine_parsing!(alg.parse_eqs, f, tT, uT, duT, p)
     TaylorMethodCache(
         u,
         uprev,
@@ -79,21 +86,60 @@ function alg_cache(alg::TaylorMethod, u, rate_prototype, uEltypeNoUnits,
         uT,
         duT,
         uauxT,
-        Ref(alg.parse_eqs)
+        Ref(parse_eqs),
+        tmpTaylor,
+        arrTaylor
         )
 end
 
-alg_cache(alg::TaylorMethod, u, rate_prototype, uEltypeNoUnits,
-    uBottomEltypeNoUnits, tTypeNoUnits, uprev, uprev2, f, t, dt, reltol, p, calck,
-    ::Val{false}) = TaylorMethodConstantCache(Taylor1(u, alg.order), Ref(alg.parse_eqs))
+# This method is used for DynamicalODEFunction's (`parse_eqs=false`): tmpT1 and arrT1
+# must have the proper type to build `TaylorMethodCache`
+function alg_cache(alg::TaylorMethod, u::ArrayPartition, rate_prototype, uEltypeNoUnits,
+        uBottomEltypeNoUnits, tTypeNoUnits, uprev, uprev2, f, t, dt, reltol, p,
+        calck, ::Val{true})
+    order = alg.order
+    tT = Taylor1(typeof(t), order)
+    tT[0] = t
+    uT = Taylor1.(u, order)
+    duT = zero.(Taylor1.(u, order))
+    uauxT = similar(uT)
+    parse_eqs, _, _ = _determine_parsing!(alg.parse_eqs, f, tT, uT, duT, p)
+    ## `tmpT1` must have the same type than `uT` and `arrT1` is a `[tmpT1]`
+    tmpT1 = similar(uT)
+    arrT1 = similar([tmpT1])
+    TaylorMethodCache(
+        u,
+        uprev,
+        similar(u),
+        zero(rate_prototype),
+        zero(rate_prototype),
+        tT,
+        uT,
+        duT,
+        uauxT,
+        Ref(parse_eqs),
+        tmpT1,
+        arrT1
+        )
+end
+
+function alg_cache(alg::TaylorMethod, u, rate_prototype, uEltypeNoUnits,
+        uBottomEltypeNoUnits, tTypeNoUnits, uprev, uprev2, f, t, dt, reltol, p, calck,
+        ::Val{false})
+    order = alg.order
+    tT = Taylor1(typeof(t), order)
+    tT[0] = t
+    uT = Taylor1(u, order)
+    parse_eqs, tmpTaylor, arrTaylor = _determine_parsing!(alg.parse_eqs, f, tT, uT, p)
+    TaylorMethodConstantCache(Taylor1(u, alg.order), Ref(parse_eqs), tmpTaylor, arrTaylor)
+end
 
 function initialize!(integrator, c::TaylorMethodConstantCache)
     @unpack u, t, f, p = integrator
     tT = Taylor1(typeof(t), integrator.alg.order)
     tT[0] = t
     c.uT .= Taylor1(u, tT.order)
-    c.parse_eqs.x = _determine_parsing!(c.parse_eqs.x, f, tT, c.uT, p)
-    __jetcoeffs!(Val(c.parse_eqs.x), f, tT, c.uT, p)
+    __jetcoeffs!(Val(c.parse_eqs.x), f, tT, c.uT, p, c.tmpTaylor, c.arrTaylor)
     # FSAL stuff
     integrator.kshortsize = 2
     integrator.k = typeof(integrator.k)(undef, integrator.kshortsize)
@@ -111,7 +157,7 @@ function perform_step!(integrator,cache::TaylorMethodConstantCache)
     tT[0] = t+dt
     u = evaluate(cache.uT, dt)
     cache.uT[0] = u
-    __jetcoeffs!(Val(cache.parse_eqs.x), f, tT, cache.uT, p)
+    __jetcoeffs!(Val(cache.parse_eqs.x), f, tT, cache.uT, p, cache.tmpTaylor, cache.arrTaylor)
     k = f(u, p, t+dt) # For the interpolation, needs k at the updated point
     integrator.destats.nf += 1
     integrator.fsallast = k
@@ -123,8 +169,7 @@ end
 function initialize!(integrator, cache::TaylorMethodCache)
     @unpack u, t, f, p = integrator
     @unpack k, fsalfirst, tT, uT, duT, uauxT, parse_eqs = cache
-    parse_eqs.x = _determine_parsing!(parse_eqs.x, f, tT, uT, duT, p)
-    __jetcoeffs!(Val(parse_eqs.x), f, tT, uT, duT, uauxT, p)
+    __jetcoeffs!(Val(parse_eqs.x), f, tT, uT, duT, uauxT, p, cache.tmpTaylor, cache.arrTaylor)
     # FSAL for interpolation
     integrator.fsalfirst = fsalfirst
     integrator.fsallast = k
@@ -138,19 +183,20 @@ end
 
 function perform_step!(integrator, cache::TaylorMethodCache)
     @unpack t, dt, u, f, p = integrator
-    @unpack k, tT, uT, duT, uauxT, parse_eqs = cache
+    @unpack k, tT, uT, duT, uauxT, parse_eqs, tmpTaylor, arrTaylor = cache
     evaluate!(uT, dt, u)
     tT[0] = t+dt
     for i in eachindex(u)
         @inbounds uT[i][0] = u[i]
         duT[i].coeffs .= zero(duT[i][0])
     end
-    __jetcoeffs!(Val(parse_eqs.x), f, tT, uT, duT, uauxT, p)
+    __jetcoeffs!(Val(parse_eqs.x), f, tT, uT, duT, uauxT, p, tmpTaylor, arrTaylor)
     k = constant_term.(duT) # For the interpolation, needs k at the updated point
     integrator.destats.nf += 1
 end
 
-stepsize_controller!(integrator,alg::TaylorMethod) = stepsize(integrator.cache.uT, integrator.opts.abstol)
+stepsize_controller!(integrator,alg::TaylorMethod) =
+    stepsize(integrator.cache.uT, integrator.opts.abstol)
 step_accept_controller!(integrator, alg::TaylorMethod, q) = q
 
 function DiffEqBase.solve(
@@ -166,7 +212,9 @@ function DiffEqBase.solve(
     end
 
     f = prob.f
+    parse_eqs = haskey(kwargs, :parse_eqs) ? kwargs[:parse_eqs] : true # `true` is the default
     if !isinplace && typeof(prob.u0) <: AbstractArray
+        ### TODO: allow `parse_eqs=true` for DynamicalODEFunction
         if prob.f isa DynamicalODEFunction
             f1! = (dv, v, u, p, t) -> (dv .= prob.f.f1(v, u, p, t); 0)
             f2! = (du, v, u, p, t) -> (du .= prob.f.f2(v, u, p, t); 0)
@@ -181,14 +229,11 @@ function DiffEqBase.solve(
             _prob = DynamicalODEProblem(f1!, f2!, _u0.x[1], _u0.x[2], prob.tspan, prob.p; prob.kwargs...)
         else
             f! = (du, u, p, t) -> (du .= f(u, p, t); 0)
-            _alg = TaylorMethod(alg.order, parse_eqs = false)
+            _alg = TaylorMethod(alg.order, parse_eqs = parse_eqs)
             _prob = ODEProblem(f!, prob.u0, prob.tspan, prob.p; prob.kwargs...)
         end
-    elseif haskey(kwargs, :parse_eqs)
-        _alg = TaylorMethod(alg.order, parse_eqs = kwargs[:parse_eqs])
-        _prob = prob
     else
-        _alg = TaylorMethod(alg.order)
+        _alg = TaylorMethod(alg.order, parse_eqs = parse_eqs)
         _prob = prob
     end
 
@@ -201,12 +246,12 @@ end
 
 # used in continuous callbacks and related methods to update Taylor expansions cache
 function update_jetcoeffs_cache!(u,f,p,cache::TaylorMethodCache)
-    @unpack tT, uT, duT, uauxT, parse_eqs = cache
+    @unpack tT, uT, duT, uauxT, parse_eqs, tmpTaylor, arrTaylor = cache
     for i in eachindex(u)
         @inbounds uT[i][0] = u[i]
         duT[i].coeffs .= zero(duT[i][0])
     end
-    __jetcoeffs!(Val(parse_eqs.x), f, tT, uT, duT, uauxT, p)
+    __jetcoeffs!(Val(parse_eqs.x), f, tT, uT, duT, uauxT, p, tmpTaylor, arrTaylor)
     return nothing
 end
 
@@ -231,14 +276,17 @@ function DiffEqBase.addsteps!(k, t, uprev, u, dt, f, p, cache::TaylorMethodCache
     nothing
 end
 
-@inline __jetcoeffs!(::Val{false}, f::ODEFunction, t, x, params) =
-    jetcoeffs!(f.f, t, x, params)
-@inline __jetcoeffs!(::Val{true},  f::ODEFunction, t, x, params) =
-    jetcoeffs!(Val(f.f), t, x, params)
-@inline __jetcoeffs!(::Val{false}, f::ODEFunction, t, x, dx, xaux, params) =
-    jetcoeffs!(f.f, t, x, dx, xaux, params)
-@inline __jetcoeffs!(::Val{true},  f::ODEFunction, t, x, dx, xaux, params) =
-    jetcoeffs!(Val(f.f), t, x, dx, params)
+@inline __jetcoeffs!(::Val{false}, f::ODEFunction, t, x, params, tmpTaylor, arrTaylor) =
+    __jetcoeffs!(Val(false), f.f, t, x, params, tmpTaylor, arrTaylor)
+@inline __jetcoeffs!(::Val{true},  f::ODEFunction, t, x, params, tmpTaylor, arrTaylor) =
+    __jetcoeffs!(Val(true), f.f, t, x, params, tmpTaylor, arrTaylor)
+@inline __jetcoeffs!(::Val{false}, f::ODEFunction, t, x, dx, xaux, params, tmpTaylor, arrTaylor) =
+    __jetcoeffs!(Val(false), f.f, t, x, dx, xaux, params, tmpTaylor, arrTaylor)
+@inline __jetcoeffs!(::Val{true},  f::ODEFunction, t, x, dx, xaux, params, tmpTaylor, arrTaylor) =
+    __jetcoeffs!(Val(true), f.f, t, x, dx, xaux, params, tmpTaylor, arrTaylor)
 
-_determine_parsing!(parse_eqs::Bool, f::ODEFunction, t, x, params) = _determine_parsing!(parse_eqs::Bool, f.f, t, x, params)
-_determine_parsing!(parse_eqs::Bool, f::ODEFunction, t, x, dx, params) = _determine_parsing!(parse_eqs::Bool, f.f, t, x, dx, params)
+
+_determine_parsing!(parse_eqs::Bool, f::ODEFunction, t, x, params) =
+    _determine_parsing!(parse_eqs, f.f, t, x, params)
+_determine_parsing!(parse_eqs::Bool, f::ODEFunction, t, x, dx, params) =
+    _determine_parsing!(parse_eqs, f.f, t, x, dx, params)
