@@ -138,7 +138,12 @@ import Logging: Warn
         tspan = (0.0,15.0)
         p = 9.8
         prob = ODEProblem(f,u0,tspan,p)
-        sol = (@test_logs min_level=Logging.Warn solve(prob, TaylorMethod(25), abstol=1e-16, callback=cb))
+        # Avoid log-checks for Julia versions before v1.6
+        if VERSION < v"1.6"
+            sol = solve(prob, TaylorMethod(25), abstol=1e-16, callback=cb)
+        else
+            sol = (@test_logs min_level=Logging.Warn solve(prob, TaylorMethod(25), abstol=1e-16, callback=cb))
+        end
         tb = sqrt(2*50/9.8) # bounce time
         @test abs(tb - sol.t[9]) < 1e-14
         @test sol.t[9] == sol.t[10]
@@ -180,7 +185,12 @@ import Logging: Warn
         tspan = (0.0, 15.0)
         p = 9.8
         prob = ODEProblem(ff, u0, tspan, p)
-        sol = (@test_logs min_level=Logging.Warn solve(prob, TaylorMethod(25), abstol=1e-16, callback=cb))
+        # Avoid log-checks for Julia versions before v1.6
+        if VERSION < v"1.6"
+            sol = solve(prob, TaylorMethod(25), abstol=1e-16, callback=cb)
+        else
+            sol = (@test_logs min_level=Logging.Warn solve(prob, TaylorMethod(25), abstol=1e-16, callback=cb))
+        end
         tb = sqrt(2*50/9.8) # bounce time
         @test abs(tb - sol.t[8]) < 1e-14
         @test sol.t[8] == sol.t[9]
