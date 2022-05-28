@@ -79,7 +79,7 @@ function jetcoeffs!(eqsdiff!::Function, t::Taylor1{T},
 
         # Recursion relations
         for j in eachindex(x)
-            @inbounds x[j][ordnext] = dx[j][ord]/ordnext
+            @inbounds x[j].coeffs[ordnext+1] = dx[j].coeffs[ordnext]/ordnext
         end
     end
     nothing
@@ -306,7 +306,7 @@ for V in (:(Val{true}), :(Val{false}))
     @eval begin
         function taylorinteg(f, x0::U, t0::T, tmax::T, order::Int, abstol::T, ::$V, params = nothing;
             maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real, U<:Number}
-    
+
             # Allocation
             tv = Array{T}(undef, maxsteps+1)
             xv = Array{U}(undef, maxsteps+1)
@@ -330,7 +330,7 @@ for V in (:(Val{true}), :(Val{false}))
 
             # Determine if specialized jetcoeffs! method exists
             parse_eqs, tmpTaylor, arrTaylor = _determine_parsing!(parse_eqs, f, t, x, params)
-    
+
             # Integration
             while sign_tstep*t0 < sign_tstep*tmax
                 δt = taylorstep!(f, t, x, abstol, params, tmpTaylor, arrTaylor, parse_eqs) # δt is positive!
@@ -441,7 +441,7 @@ for V in (:(Val{true}), :(Val{false}))
     @eval begin
         function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T, order::Int, abstol::T, ::$V, params = nothing;
             maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real, U<:Number}
-    
+
             # Allocation
             tv = Array{T}(undef, maxsteps+1)
             dof = length(q0)
@@ -470,10 +470,10 @@ for V in (:(Val{true}), :(Val{false}))
                 @inbounds polynV[:,1] .= deepcopy.(x)
             end
             sign_tstep = copysign(1, tmax-t0)
-        
+
             # Determine if specialized jetcoeffs! method exists
-            parse_eqs, tmpTaylor, arrTaylor = _determine_parsing!(parse_eqs, f!, t, x, dx, params)            
-        
+            parse_eqs, tmpTaylor, arrTaylor = _determine_parsing!(parse_eqs, f!, t, x, dx, params)
+
             # Integration
             nsteps = 1
             while sign_tstep*t0 < sign_tstep*tmax
@@ -501,21 +501,21 @@ for V in (:(Val{true}), :(Val{false}))
                     break
                 end
             end
-            
+
             if $V == Val{true}
                 return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:),
                     view(transpose(view(polynV, :, 1:nsteps)), 1:nsteps, :)
             elseif $V == Val{false}
                 return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:)
             end
-        end    
+        end
     end
 end
 
 function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T, order::Int, abstol::T, params = nothing;
-    maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real, U<:Number}
+        maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real, U<:Number}
     return taylorinteg(f!, q0, t0, tmax, order, abstol, Val(false), params;
-    maxsteps = maxsteps, parse_eqs = parse_eqs)
+        maxsteps = maxsteps, parse_eqs = parse_eqs)
 end
 
 
@@ -691,7 +691,7 @@ for R in (:Number, :Integer)
             t0, tmax, abstol, bfloat = promote(tt0, ttmax, aabstol, one(Float64))
             x0, tfloat1 = promote(xx0, t0)
 
-            taylorinteg(f, x0, t0, tmax, order, abstol, params, maxsteps=maxsteps,
+            return taylorinteg(f, x0, t0, tmax, order, abstol, params, maxsteps=maxsteps,
                 parse_eqs=parse_eqs)
         end
 
@@ -705,7 +705,7 @@ for R in (:Number, :Integer)
             #convert the elements of q0 to the common, promoted type:
             q0_ = convert(Array{typeof(elq0)}, q0)
 
-            taylorinteg(f, q0_, t0, tmax, order, abstol, params, maxsteps=maxsteps,
+            return taylorinteg(f, q0_, t0, tmax, order, abstol, params, maxsteps=maxsteps,
                 parse_eqs=parse_eqs)
         end
 
@@ -716,7 +716,7 @@ for R in (:Number, :Integer)
                     #
                 t0, abstol, bfloat = promote(trange[1], aabstol, one(Float64))
                 x0, tfloat1 = promote(xx0, t0)
-                taylorinteg(f, x0, vec(trange.*one(t0)), order, abstol,
+                return taylorinteg(f, x0, vec(trange.*one(t0)), order, abstol,
                     params, maxsteps=maxsteps, parse_eqs=parse_eqs)
         end
 
@@ -729,7 +729,7 @@ for R in (:Number, :Integer)
                 elq0, tt0 = promote(q0[1], t0)
                 q0_ = convert(Array{typeof(elq0)}, q0)
 
-                taylorinteg(f, q0_, vec(trange.*one(t0)), order, abstol,
+                return taylorinteg(f, q0_, vec(trange.*one(t0)), order, abstol,
                     params, maxsteps=maxsteps, parse_eqs=parse_eqs)
         end
 
