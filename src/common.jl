@@ -255,6 +255,7 @@ function update_jetcoeffs_cache!(u,f,p,cache::TaylorMethodCache)
     return nothing
 end
 
+
 # This function was modified from OrdinaryDiffEq.jl; MIT-licensed
 # DiffEqBase.addsteps! overload for ::TaylorMethodCache to handle continuous
 # and vector callbacks with TaylorIntegration.jl via the common interface
