@@ -262,6 +262,7 @@ end
 # and vector callbacks with TaylorIntegration.jl via the common interface
 function _ode_addsteps!(k, t, uprev, u, dt, f, p, cache::TaylorMethodCache,
         always_calc_begin = false, allow_calc_end = true,force_calc_end = false)
+    ### TODO: CHECK, AND IF NECESSARY, RE-SET TIME-STEP SIZE AFTER CALLBACK!!!
     if length(k)<2 || always_calc_begin
         if typeof(cache) <: OrdinaryDiffEqMutableCache
             rtmp = similar(u, eltype(eltype(k)))
