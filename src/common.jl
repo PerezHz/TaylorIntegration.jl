@@ -1,4 +1,4 @@
-using DiffEqBase, OrdinaryDiffEq, SciMLBase
+using DiffEqBase, OrdinaryDiffEq
 using StaticArrays: SVector, SizedArray
 using RecursiveArrayTools: ArrayPartition
 
