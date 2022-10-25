@@ -7,7 +7,7 @@ import DiffEqBase: ODEProblem, solve, ODE_DEFAULT_NORM, @.., addsteps!
 import OrdinaryDiffEq: OrdinaryDiffEqAdaptiveAlgorithm,
 OrdinaryDiffEqConstantCache, OrdinaryDiffEqMutableCache,
 alg_order, alg_cache, initialize!, perform_step!, @unpack,
-@cache, stepsize_controller!, step_accept_controller!
+@cache, stepsize_controller!, step_accept_controller!, _ode_addsteps!
 
 # TODO: check which keywords work fine
 const warnkeywords = (:save_idxs, :d_discontinuities, :unstable_check, :save_everystep,
@@ -206,6 +206,8 @@ function DiffEqBase.solve(
         kwargs...) where
         {uType, tupType, isinplace}
 
+    SciMLBase.unwrapped_f(prob.f)
+
     if verbose
         warned = !isempty(kwargs) && check_keywords(alg, kwargs, warnlist)
         warned && warn_compat()
@@ -256,10 +258,11 @@ function update_jetcoeffs_cache!(u,f,p,cache::TaylorMethodCache)
 end
 
 # This function was modified from OrdinaryDiffEq.jl; MIT-licensed
-# DiffEqBase.addsteps! overload for ::TaylorMethodCache to handle continuous
+# _ode_addsteps! overload for ::TaylorMethodCache to handle continuous
 # and vector callbacks with TaylorIntegration.jl via the common interface
-function DiffEqBase.addsteps!(k, t, uprev, u, dt, f, p, cache::TaylorMethodCache,
+function _ode_addsteps!(k, t, uprev, u, dt, f, p, cache::TaylorMethodCache,
         always_calc_begin = false, allow_calc_end = true,force_calc_end = false)
+    ### TODO: CHECK, AND IF NECESSARY, RE-SET TIME-STEP SIZE AFTER CALLBACK!!!
     if length(k)<2 || always_calc_begin
         if typeof(cache) <: OrdinaryDiffEqMutableCache
             rtmp = similar(u, eltype(eltype(k)))
