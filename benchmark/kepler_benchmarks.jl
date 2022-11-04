@@ -74,6 +74,8 @@ const tf1 = 2π*1000.0
 const maxsteps1 = 500_000
 const tf2 = 2π*10_000.0
 const maxsteps2 = 50_000_000
+const tf3 = 2π*100_000.0
+const maxsteps3 = 500_000_000
 
 pars = (2, -1.0)
 q0 = [0.2, 0.0, 0.0, 3.0]
@@ -103,6 +105,15 @@ SUITE["Kepler"]["kepler5-2"] = @benchmarkable taylorinteg(
 SUITE["Kepler"]["kepler6-2"] = @benchmarkable taylorinteg(
     kepler6!, $q0, $t0, $tf2, $_order, $_abstol, -1.0, maxsteps=$maxsteps2)
 
+SUITE["Kepler"]["kepler1-3"] = @benchmarkable taylorinteg(
+    kepler1!, $q0, $t0, $tf3, $_order, $_abstol, -1.0, maxsteps=$maxsteps3)
+SUITE["Kepler"]["kepler2-3"] = @benchmarkable taylorinteg(
+    kepler2!, $q0, $t0, $tf3, $_order, $_abstol, $pars, maxsteps=$maxsteps3)
+
+SUITE["Kepler"]["kepler5-3"] = @benchmarkable taylorinteg(
+    kepler5!, $q0, $t0, $tf3, $_order, $_abstol, maxsteps=$maxsteps3)
+SUITE["Kepler"]["kepler6-3"] = @benchmarkable taylorinteg(
+    kepler6!, $q0, $t0, $tf3, $_order, $_abstol, -1.0, maxsteps=$maxsteps3)
 
 # # ==========
 # # KeplerNotParsed
