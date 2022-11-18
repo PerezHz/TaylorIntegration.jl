@@ -1,22 +1,20 @@
 using BenchmarkTools, TaylorIntegration
-using Dates
 
 const directorypath = dirname(@__FILE__)
 
 const BT = BenchmarkTools
 
-# ==========
-#  Parameters
-# ==========
-BT.DEFAULT_PARAMETERS.samples = 25
-# BT.DEFAULT_PARAMETERS.seconds = 12
-
 SUITE = BenchmarkGroup()
 
 # ==========
-# Include files to benchmark
+#  Include files to benchmarks with parameters
 # ==========
+#
+BT.DEFAULT_PARAMETERS.samples = 25
+# BT.DEFAULT_PARAMETERS.seconds = 12
+
 include("kepler_benchmarks.jl")
+include("manyspin_benchmarks.jl")
 
 # ToDo:
 # pendulum
@@ -29,6 +27,7 @@ include("kepler_benchmarks.jl")
 # ==========
 # Tune
 # ==========
+println("Load `tune.json`")
 paramspath = joinpath(directorypath, "tune.json")
 if isfile(paramspath)
     loadparams!(SUITE, BT.load(paramspath)[1], :evals, :samples);
