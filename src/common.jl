@@ -249,9 +249,10 @@ end
 # used in continuous callbacks and related methods to update Taylor expansions cache
 function update_jetcoeffs_cache!(u,f,p,cache::TaylorMethodCache)
     @unpack tT, uT, duT, uauxT, parse_eqs, tmpTaylor, arrTaylor = cache
-    for i in eachindex(u)
-        @inbounds uT[i][0] = u[i]
-        duT[i].coeffs .= zero(duT[i][0])
+    @inbounds for i in eachindex(u)
+        uT[i][0] = u[i]
+        # duT[i].coeffs .= zero(duT[i][0])
+        duT[i][0] = zero(uT[i][0])
     end
     __jetcoeffs!(Val(parse_eqs.x), f, tT, uT, duT, uauxT, p, tmpTaylor, arrTaylor)
     return nothing
@@ -279,15 +280,23 @@ function _ode_addsteps!(k, t, uprev, u, dt, f, p, cache::TaylorMethodCache,
     nothing
 end
 
-@inline __jetcoeffs!(::Val{false}, f::ODEFunction, t, x, params, tmpTaylor, arrTaylor) =
-    __jetcoeffs!(Val(false), f.f, t, x, params, tmpTaylor, arrTaylor)
-@inline __jetcoeffs!(::Val{true},  f::ODEFunction, t, x, params, tmpTaylor, arrTaylor) =
-    __jetcoeffs!(Val(true), f.f, t, x, params, tmpTaylor, arrTaylor)
-@inline __jetcoeffs!(::Val{false}, f::ODEFunction, t, x, dx, xaux, params, tmpTaylor, arrTaylor) =
-    __jetcoeffs!(Val(false), f.f, t, x, dx, xaux, params, tmpTaylor, arrTaylor)
-@inline __jetcoeffs!(::Val{true},  f::ODEFunction, t, x, dx, xaux, params, tmpTaylor, arrTaylor) =
-    __jetcoeffs!(Val(true), f.f, t, x, dx, xaux, params, tmpTaylor, arrTaylor)
-
+@inline __jetcoeffs!(::Val{false}, f::ODEFunction, t, x::Taylor1{U}, params,
+    tmpTaylor, arrTaylor) where {U} = __jetcoeffs!(Val(false), f.f, t, x, params)
+@inline __jetcoeffs!(::Val{true},  f::ODEFunction, t, x::Taylor1{U}, params,
+    tmpTaylor, arrTaylor) where {U} = __jetcoeffs!(Val(true), f.f, t, x, params, tmpTaylor, arrTaylor)
+@inline __jetcoeffs!(::Val{false}, f::ODEFunction, t, x::Array{Taylor1{U},1}, dx, xaux, params,
+    tmpTaylor, arrTaylor) where {U} = __jetcoeffs!(Val(false), f.f, t, x, dx, xaux, params)
+@inline __jetcoeffs!(::Val{true},  f::ODEFunction, t, x::Array{Taylor1{U},1}, dx, xaux, params,
+    tmpTaylor, arrTaylor) where {U} = __jetcoeffs!(Val(true), f.f, t, x, dx, params, tmpTaylor, arrTaylor)
+#
+@inline __jetcoeffs!(::Val{false}, f::DynamicalODEFunction, t, x::Taylor1{U}, params,
+    tmpTaylor, arrTaylor) where {U} = __jetcoeffs!(Val(false), f, t, x, params)
+@inline __jetcoeffs!(::Val{true},  f::DynamicalODEFunction, t, x::Taylor1{U}, params,
+    tmpTaylor, arrTaylor) where {U} = __jetcoeffs!(Val(true), f, t, x, params, tmpTaylor, arrTaylor)
+@inline __jetcoeffs!(::Val{false}, f::DynamicalODEFunction, t, x::ArrayPartition, dx, xaux, params,
+    tmpTaylor, arrTaylor) = jetcoeffs!(f, t, vec(x), vec(dx), xaux, params)
+@inline __jetcoeffs!(::Val{true},  f::DynamicalODEFunction, t, x::ArrayPartition, dx, xaux, params,
+    tmpTaylor, arrTaylor) = __jetcoeffs!(Val(true), f, t, vec(x), vec(dx), params, tmpTaylor, arrTaylor)
 
 _determine_parsing!(parse_eqs::Bool, f::ODEFunction, t, x, params) =
     _determine_parsing!(parse_eqs, f.f, t, x, params)
