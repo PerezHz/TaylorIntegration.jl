@@ -170,16 +170,39 @@ function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
         dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}},
         δx::Array{TaylorN{Taylor1{U}},1}, dδx::Array{TaylorN{Taylor1{U}},1},
         jac::Array{Taylor1{U},2}, abstol::T, _δv::Vector{TaylorN{Taylor1{U}}},
-        varsaux::Array{Taylor1{U},3}, params, tmpTaylor, arrTaylor, parse_eqs::Bool=true,
-        jacobianfunc! =nothing) where {T<:Real, U<:Number}
+        varsaux::Array{Taylor1{U},3}, params, jacobianfunc! =nothing) where {T<:Real, U<:Number}
 
     # Dimensions of phase-space: dof
     nx = length(x)
     dof = length(δx)
 
     # Compute the Taylor coefficients associated to trajectory
-    __jetcoeffs!(Val(parse_eqs), f!, t, view(x, 1:dof), view(dx, 1:dof),
-        view(xaux, 1:dof), params, tmpTaylor, arrTaylor)
+    __jetcoeffs!(Val(false), f!, t, view(x, 1:dof), view(dx, 1:dof), view(xaux, 1:dof), params)
+
+    # Compute stability matrix
+    stabilitymatrix!(f!, t, x, δx, dδx, jac, _δv, params, jacobianfunc!)
+
+    # Compute the Taylor coefficients associated to variational equations
+    lyap_jetcoeffs!(t, view(x, dof+1:nx), view(dx, dof+1:nx), jac, varsaux)
+
+    # Compute the step-size of the integration using `abstol`
+    δt = stepsize(view(x, 1:dof), abstol)
+
+    return δt
+end
+function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
+    dx::Vector{Taylor1{U}}, #xaux::Vector{Taylor1{U}},
+    δx::Array{TaylorN{Taylor1{U}},1}, dδx::Array{TaylorN{Taylor1{U}},1},
+    jac::Array{Taylor1{U},2}, abstol::T, _δv::Vector{TaylorN{Taylor1{U}}},
+    varsaux::Array{Taylor1{U},3}, params, tmpTaylor, arrTaylor,
+    jacobianfunc! =nothing) where {T<:Real, U<:Number}
+
+    # Dimensions of phase-space: dof
+    nx = length(x)
+    dof = length(δx)
+
+    # Compute the Taylor coefficients associated to trajectory
+    __jetcoeffs!(Val(true), f!, t, view(x, 1:dof), view(dx, 1:dof), params, tmpTaylor, arrTaylor)
 
     # Compute stability matrix
     stabilitymatrix!(f!, t, x, δx, dδx, jac, _δv, params, jacobianfunc!)
@@ -210,43 +233,71 @@ differentiation using `TaylorSeries.jl`.
 function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
         order::Int, abstol::T, params = nothing, jacobianfunc! =nothing;
         maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real, U<:Number}
+
+    # Initialize the vector of Taylor1 expansions
+    dof = length(q0)
+    t = t0 + Taylor1( T, order )
+    jt = Matrix{U}(I, dof, dof)
+    x0 = vcat(q0, reshape(jt, dof*dof))
+    nx0 = length(x0)
+    x = Array{Taylor1{U}}(undef, nx0)
+    dx = Array{Taylor1{U}}(undef, nx0)
+    x .= Taylor1.( x0, order )
+    # dx .= zero.(x)
+    _dv = Array{TaylorN{Taylor1{U}}}(undef, dof)
+
+    # If user does not provide Jacobian, check number of TaylorN variables and initialize _dv
+    if isa(jacobianfunc!, Nothing)
+        @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
+        for ind in eachindex(q0)
+            _dv[ind] = one(x[1])*TaylorN(Taylor1{U}, ind, order=1)
+        end
+    end
+
+    # Determine if specialized jetcoeffs! method exists
+    parse_eqs, tmpTaylor, arrTaylor = _determine_parsing!(parse_eqs, f!, t,
+                                        view(x, 1:dof), view(dx, 1:dof), params)
+
+    if parse_eqs
+        # Re-initialize the Taylor1 expansions
+        t = t0 + Taylor1( T, order )
+        x .= Taylor1.( x0, order )
+        return _lyap_taylorinteg!(f!, t, x, dx, q0, t0, tmax, abstol, jt, _dv, tmpTaylor, arrTaylor,
+            params, jacobianfunc!, maxsteps=maxsteps)
+    else
+        return _lyap_taylorinteg!(f!, t, x, dx, q0, t0, tmax, abstol, jt, _dv,
+            params, jacobianfunc!, maxsteps=maxsteps)
+    end
+end
+
+function _lyap_taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
+        q0::Array{U,1}, t0::T, tmax::T, abstol::T, jt::Matrix{U}, _δv::Array{TaylorN{Taylor1{U}},1},
+        params = nothing, jacobianfunc! =nothing; maxsteps::Int=500) where {T<:Real, U<:Number}
+
     # Allocation
+    order = get_order(t)
     tv = Array{T}(undef, maxsteps+1)
     dof = length(q0)
+    nx0 = length(x)
+    x0 = getcoeff.(x, 0)
     xv = Array{U}(undef, dof, maxsteps+1)
     λ = similar(xv)
     λtsum = similar(q0)
-    jt = Matrix{U}(I, dof, dof)
-    _δv = Array{TaylorN{Taylor1{U}}}(undef, dof)
+    # q1 = similar(q0)
 
     # Initial conditions
+    @inbounds t[0] = t0
+    sign_tstep = copysign(1, tmax-t0)
+    t00 = t0
+    tspan = zero(T)
     @inbounds tv[1] = t0
     @inbounds for ind in eachindex(q0)
         xv[ind,1] = q0[ind]
         λ[ind,1] = zero(U)
         λtsum[ind] = zero(U)
     end
-    x0 = vcat(q0, reshape(jt, dof*dof))
-    nx0 = length(x0)
-    t00 = t0
-    sign_tstep = copysign(1, tmax-t0)
-
-    # Initialize the vector of Taylor1 expansions
-    t = Taylor1(T, order)
-    x = Array{Taylor1{U}}(undef, nx0)
-    x .= Taylor1.( x0, order )
-    @inbounds t[0] = t0
-
-    # If user does not provide Jacobian, check number of TaylorN variables and initialize _δv
-    if isa(jacobianfunc!, Nothing)
-        @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
-        for ind in eachindex(q0)
-            _δv[ind] = one(x[1])*TaylorN(Taylor1{U}, ind, order=1)
-        end
-    end
 
     #Allocate auxiliary arrays
-    dx = Array{Taylor1{U}}(undef, nx0)
     xaux = Array{Taylor1{U}}(undef, nx0)
     δx = Array{TaylorN{Taylor1{U}}}(undef, dof)
     dδx = Array{TaylorN{Taylor1{U}}}(undef, dof)
@@ -259,15 +310,11 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
     qᵢ = similar(aⱼ)
     vⱼ = similar(aⱼ)
 
-    # Determine if specialized jetcoeffs! method exists
-    parse_eqs, tmpTaylor, arrTaylor = _determine_parsing!(parse_eqs, f!, t,
-        view(x, 1:dof), view(dx, 1:dof), params)
-
     # Integration
     nsteps = 1
     while sign_tstep*t0 < sign_tstep*tmax
         δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, abstol, _δv,
-            varsaux, params, tmpTaylor, arrTaylor, parse_eqs, jacobianfunc!) # δt is positive!
+            varsaux, params, jacobianfunc!) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
         evaluate!(x, δt, x0) # Update x0
@@ -300,50 +347,157 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
     return view(tv,1:nsteps),  view(transpose(xv),1:nsteps,:),  view(transpose(λ),1:nsteps,:)
 end
 
-function lyap_taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
-        order::Int, abstol::T, params = nothing, jacobianfunc! = nothing;
-        maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real, U<:Number}
+function _lyap_taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
+        q0::Array{U,1}, t0::T, tmax::T, abstol::T, jt::Matrix{U}, _δv::Array{TaylorN{Taylor1{U}},1},
+        tmpTaylor::Array{Taylor1{U},1}, arrTaylor,
+        params = nothing, jacobianfunc! =nothing; maxsteps::Int=500) where {T<:Real, U<:Number}
+
     # Allocation
-    nn = length(trange)
+    order = get_order(t)
+    tv = Array{T}(undef, maxsteps+1)
     dof = length(q0)
-    xv = Array{U}(undef, dof, nn)
-    fill!(xv, U(NaN))
-    λ = Array{U}(undef, dof, nn)
-    fill!(λ, U(NaN))
+    x0 = getcoeff.(x, 0)
+    xv = Array{U}(undef, dof, maxsteps+1)
+    λ = similar(xv)
     λtsum = similar(q0)
-    jt = Matrix{U}(I, dof, dof)
-    _δv = Array{TaylorN{Taylor1{U}}}(undef, dof)
 
     # Initial conditions
+    @inbounds t[0] = t0
+    sign_tstep = copysign(1, tmax-t0)
+    t00 = t0
+    tspan = zero(T)
+    @inbounds tv[1] = t0
     @inbounds for ind in eachindex(q0)
         xv[ind,1] = q0[ind]
         λ[ind,1] = zero(U)
         λtsum[ind] = zero(U)
     end
 
-    # Initialize the vector of Taylor1 expansions
-    t = Taylor1(T, order)
-    x0 = vcat(q0, reshape(jt, dof*dof))
-    q1 = similar(q0)
-    nx0 = length(x0)
-    x = Array{Taylor1{U}}(undef, nx0)
-    x .= Taylor1.( x0, order )
-    @inbounds t[0] = trange[1]
-    @inbounds t0, t1, tmax = trange[1], trange[2], trange[end]
-    sign_tstep = copysign(1, tmax-t0)
-    t00 = trange[1]
-    tspan = zero(T)
+    #Allocate auxiliary arrays
+    δx = Array{TaylorN{Taylor1{U}}}(undef, dof)
+    dδx = Array{TaylorN{Taylor1{U}}}(undef, dof)
+    jac = Array{Taylor1{U}}(undef, dof, dof)
+    varsaux = Array{Taylor1{U}}(undef, dof, dof, dof)
+    fill!(jac, zero(x[1]))
+    QH = Array{U}(undef, dof, dof)
+    RH = Array{U}(undef, dof, dof)
+    aⱼ = Array{U}(undef, dof )
+    qᵢ = similar(aⱼ)
+    vⱼ = similar(aⱼ)
 
-    # If user does not provide Jacobian, check number of TaylorN variables and initialize _δv
-    if isa(jacobianfunc!, Nothing)
-        @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
-        for ind in eachindex(q0)
-            _δv[ind] = one(x[1])*TaylorN(Taylor1{U}, ind, order=1)
+    # Integration
+    nsteps = 1
+    while sign_tstep*t0 < sign_tstep*tmax
+        δt = lyap_taylorstep!(f!, t, x, dx, δx, dδx, jac, abstol, _δv,
+            varsaux, params, tmpTaylor, arrTaylor, jacobianfunc!) # δt is positive!
+        # Below, δt has the proper sign according to the direction of the integration
+        δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
+        evaluate!(x, δt, x0) # Update x0
+        for ind in eachindex(jt)
+            @inbounds jt[ind] = x0[dof+ind]
+        end
+        modifiedGS!( jt, QH, RH, aⱼ, qᵢ, vⱼ )
+        t0 += δt
+        @inbounds t[0] = t0
+        tspan = t0-t00
+        nsteps += 1
+        @inbounds tv[nsteps] = t0
+        @inbounds for ind in eachindex(q0)
+            xv[ind,nsteps] = x0[ind]
+            λtsum[ind] += log(RH[ind,ind])
+            λ[ind,nsteps] = λtsum[ind]/tspan
+        end
+        for ind in eachindex(QH)
+            @inbounds x0[dof+ind] = QH[ind]
+        end
+        x .= Taylor1.( x0, order )
+        if nsteps > maxsteps
+            @warn("""
+            Maximum number of integration steps reached; exiting.
+            """)
+            break
         end
     end
 
-    #Allocate auxiliary arrays
+    return view(tv,1:nsteps),  view(transpose(xv),1:nsteps,:),  view(transpose(λ),1:nsteps,:)
+end
+
+
+function lyap_taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
+        order::Int, abstol::T, params = nothing, jacobianfunc! = nothing;
+        maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real, U<:Number}
+
+    # Check if trange is increasingly or decreasingly sorted
+    @assert (issorted(trange) ||
+        issorted(reverse(trange))) "`trange` or `reverse(trange)` must be sorted"
+
+    # Initialize the vector of Taylor1 expansions
+    dof = length(q0)
+    t = trange[1] + Taylor1( T, order )
+    jt = Matrix{U}(I, dof, dof)
+    t = Taylor1(T, order)
+    x0 = vcat(q0, reshape(jt, dof*dof))
+    nx0 = length(x0)
+    x = Array{Taylor1{U}}(undef, nx0)
     dx = Array{Taylor1{U}}(undef, nx0)
+    x .= Taylor1.( x0, order )
+    _dv = Array{TaylorN{Taylor1{U}}}(undef, dof)
+
+    # If user does not provide Jacobian, check number of TaylorN variables and initialize _dv
+    if isa(jacobianfunc!, Nothing)
+        @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
+        for ind in eachindex(q0)
+            _dv[ind] = one(x[1])*TaylorN(Taylor1{U}, ind, order=1)
+        end
+    end
+
+    # Determine if specialized jetcoeffs! method exists
+    parse_eqs, tmpTaylor, arrTaylor = _determine_parsing!(parse_eqs, f!, t,
+                                        view(x, 1:dof), view(dx, 1:dof), params)
+
+    if parse_eqs
+        # Re-initialize the Taylor1 expansions
+        t = trange[1] + Taylor1( T, order )
+        x .= Taylor1.( x0, order )
+        return _lyap_taylorinteg!(f!, t, x, dx, q0, trange, abstol, jt, _dv, tmpTaylor, arrTaylor,
+            params, jacobianfunc!, maxsteps=maxsteps)
+    else
+        return _lyap_taylorinteg!(f!, t, x, dx, q0, trange, abstol, jt, _dv,
+            params, jacobianfunc!, maxsteps=maxsteps)
+    end
+
+end
+
+function _lyap_taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
+        q0::Array{U,1}, trange::AbstractVector{T}, abstol::T, jt::Matrix{U}, _δv::Array{TaylorN{Taylor1{U}},1},
+        params = nothing, jacobianfunc! = nothing; maxsteps::Int=500) where {T<:Real, U<:Number}
+
+    # Allocation
+    order = get_order(t)
+    nn = length(trange)
+    dof = length(q0)
+    nx0 = length(x)
+    x0 = getcoeff.(x, 0)
+    xv = Array{U}(undef, dof, nn)
+    fill!(xv, U(NaN))
+    λ = Array{U}(undef, dof, nn)
+    fill!(λ, U(NaN))
+    λtsum = similar(q0)
+    q1 = similar(q0)
+
+    # Initial conditions
+    @inbounds t0, t1, tmax = trange[1], trange[2], trange[end]
+    @inbounds t[0] = t0
+    sign_tstep = copysign(1, tmax-t0)
+    t00 = t0
+    tspan = zero(T)
+    @inbounds for ind in eachindex(q0)
+        xv[ind,1] = q0[ind]
+        λ[ind,1] = zero(U)
+        λtsum[ind] = zero(U)
+    end
+
+    #Allocate auxiliary arrays
     xaux = Array{Taylor1{U}}(undef, nx0)
     δx = Array{TaylorN{Taylor1{U}}}(undef, dof)
     dδx = Array{TaylorN{Taylor1{U}}}(undef, dof)
@@ -356,21 +510,122 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
     qᵢ = similar(aⱼ)
     vⱼ = similar(aⱼ)
 
-    # Determine if specialized jetcoeffs! method exists
-    parse_eqs, tmpTaylor, arrTaylor = _determine_parsing!(
-        parse_eqs, f!, t, view(x, 1:dof), view(dx, 1:dof), params)
-
     # Integration
     iter = 2
     nsteps = 1
     while sign_tstep*t0 < sign_tstep*tmax
         δt = lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, abstol, _δv,
-            varsaux, params, tmpTaylor, arrTaylor, parse_eqs, jacobianfunc!) # δt is positive!
+            varsaux, params, jacobianfunc!) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
         evaluate!(x, δt, x0) # Update x0
         tnext = t0+δt
         # # Evaluate solution at times within convergence radius
+        while t1 < tnext
+            evaluate!(x[1:dof], t1-t0, q1)
+            @inbounds xv[:,iter] .= q1
+            for ind in eachindex(jt)
+                @inbounds jt[ind] = evaluate(x[dof+ind], δt)
+            end
+            modifiedGS!( jt, QH, RH, aⱼ, qᵢ, vⱼ )
+            tspan = t1-t00
+            @inbounds for ind in eachindex(q0)
+                λ[ind,iter] = (λtsum[ind]+log(RH[ind,ind]))/tspan
+            end
+            iter += 1
+            @inbounds t1 = trange[iter]
+        end
+        if δt == tmax-t0
+            @inbounds xv[:,iter] .= x0[1:dof]
+            for ind in eachindex(jt)
+                @inbounds jt[ind] = x0[dof+ind]
+            end
+            modifiedGS!( jt, QH, RH, aⱼ, qᵢ, vⱼ )
+            tspan = tmax-t00
+            @inbounds for ind in eachindex(q0)
+                λ[ind,iter] = (λtsum[ind]+log(RH[ind,ind]))/tspan
+            end
+            break
+        end
+
+        for ind in eachindex(jt)
+            @inbounds jt[ind] = x0[dof+ind]
+        end
+        modifiedGS!( jt, QH, RH, aⱼ, qᵢ, vⱼ )
+
+        t0 = tnext
+        @inbounds t[0] = t0
+        nsteps += 1
+        @inbounds for ind in eachindex(q0)
+            λtsum[ind] += log(RH[ind,ind])
+        end
+        for ind in eachindex(QH)
+            @inbounds x0[dof+ind] = QH[ind]
+        end
+        x .= Taylor1.( x0, order )
+        if nsteps > maxsteps
+            @warn("""
+            Maximum number of integration steps reached; exiting.
+            """)
+            break
+        end
+    end
+
+    return transpose(xv), transpose(λ)
+end
+
+function _lyap_taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
+        q0::Array{U,1}, trange::AbstractVector{T}, abstol::T, jt::Matrix{U}, _δv::Array{TaylorN{Taylor1{U}},1},
+        tmpTaylor::Vector{Taylor1{U}}, arrTaylor,
+        params = nothing, jacobianfunc! = nothing; maxsteps::Int=500) where {T<:Real, U<:Number}
+
+    # Allocation
+    order = get_order(t)
+    nn = length(trange)
+    dof = length(q0)
+    x0 = getcoeff.(x, 0)
+    xv = Array{U}(undef, dof, nn)
+    fill!(xv, U(NaN))
+    λ = Array{U}(undef, dof, nn)
+    fill!(λ, U(NaN))
+    λtsum = similar(q0)
+    q1 = similar(q0)
+
+    # Initial conditions
+    @inbounds t[0] = trange[1]
+    @inbounds t0, t1, tmax = trange[1], trange[2], trange[end]
+    sign_tstep = copysign(1, tmax-t0)
+    t00 = t0
+    tspan = zero(T)
+    @inbounds for ind in eachindex(q0)
+        xv[ind,1] = q0[ind]
+        λ[ind,1] = zero(U)
+        λtsum[ind] = zero(U)
+    end
+
+    #Allocate auxiliary arrays
+    δx = Array{TaylorN{Taylor1{U}}}(undef, dof)
+    dδx = Array{TaylorN{Taylor1{U}}}(undef, dof)
+    jac = Array{Taylor1{U}}(undef, dof, dof)
+    varsaux = Array{Taylor1{U}}(undef, dof, dof, dof)
+    fill!(jac, zero(x[1]))
+    QH = Array{U}(undef, dof, dof)
+    RH = Array{U}(undef, dof, dof)
+    aⱼ = Array{U}(undef, dof )
+    qᵢ = similar(aⱼ)
+    vⱼ = similar(aⱼ)
+
+    # Integration
+    iter = 2
+    nsteps = 1
+    while sign_tstep*t0 < sign_tstep*tmax
+        δt = lyap_taylorstep!(f!, t, x, dx, δx, dδx, jac, abstol, _δv,
+            varsaux, params, tmpTaylor, arrTaylor, jacobianfunc!) # δt is positive!
+        # Below, δt has the proper sign according to the direction of the integration
+        δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
+        evaluate!(x, δt, x0) # Update x0
+        tnext = t0+δt
+        # Evaluate solution at times within convergence radius
         while t1 < tnext
             evaluate!(x[1:dof], t1-t0, q1)
             @inbounds xv[:,iter] .= q1
