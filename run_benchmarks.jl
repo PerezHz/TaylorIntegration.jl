@@ -2,11 +2,16 @@ using PkgBenchmark, Dates
 
 const PB = PkgBenchmark
 const directorypath = dirname(@__FILE__)
+#
+# Adjust the following line and commit before running the benchmarks.
+const target_branch = PB.LibGit2.shortname(
+    PB.LibGit2.head(PB.LibGit2.GitRepo(directorypath)))
+const base_branch = "master"
 
 # ==========
 # Run PkgBenchmark `judge`
 # ==========
-compara = judge("TaylorIntegration", "test/benchmarking", "test/v0.8.12")
+compara = judge("TaylorIntegration", target_branch, base_branch)
 # PB.benchmarkgroup(compara)
 
 # ==========
