@@ -3,7 +3,7 @@
 The simplest way to run the benchmarks is to use the command-line
 and, being at the root-directory of the package, run the command
 ```bash
-$ julia --project=. run_benchmarks.jl
+$ julia --project=. benchmark/run_benchmarks.jl
 ```
 
 The results are stored in three files in the `benchmark/` directory:
