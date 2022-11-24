@@ -41,7 +41,7 @@ using Random
 end
 
 # ==========
-# Constants
+# Some functions
 # ==========
 function fix_B(nn)
     @assert nn < 21
@@ -78,34 +78,36 @@ function ini_conditions!(q, sz)
     return nothing
 end
 
-const _abstol = 1.0e-20
-const _order = 26
-const L1 = 3
-const pars1 = (L1, fix_B(L1), fix_J(L1))
-const L2 = 7
-const pars2 = (L2, fix_B(L2), fix_J(L2))
-const t0 = 0.0
-const tf1 = 100.0
-const tf2 = 1000.0
-const maxsteps = 100_000
-Random.seed!(1023)
-const q1 = zeros(3*L1)
-ini_conditions!(q1, similar(q1, L1))
-Random.seed!(1023)
-const q2 = zeros(3*L2)
-ini_conditions!(q2, similar(q2, L2))
-
 # ==========
 # Run benchmarks
 # ==========
-SUITE["ManySpin"] = BenchmarkGroup()
+let
+    local _abstol = 1.0e-20
+    local _order = 26
+    local L1 = 3
+    local pars1 = (L1, fix_B(L1), fix_J(L1))
+    local L2 = 7
+    local pars2 = (L2, fix_B(L2), fix_J(L2))
+    local t0 = 0.0
+    local tf1 = 100.0
+    local tf2 = 1000.0
+    local maxsteps = 100_000
+    Random.seed!(1023)
+    local q1 = zeros(3*L1)
+    ini_conditions!(q1, similar(q1, L1))
+    Random.seed!(1023)
+    local q2 = zeros(3*L2)
+    ini_conditions!(q2, similar(q2, L2))
 
-SUITE["ManySpin"]["manyspin1-1"] = @benchmarkable taylorinteg(
-    spin_odes!, $q1, $t0, $tf1, $_order, $_abstol, $pars1, maxsteps=$maxsteps)
-SUITE["ManySpin"]["manyspin1-2"] = @benchmarkable taylorinteg(
-    spin_odes!, $q1, $t0, $tf2, $_order, $_abstol, $pars1, maxsteps=$maxsteps)
+    SUITE["ManySpin"] = BenchmarkGroup()
 
-SUITE["ManySpin"]["manyspin2-1"] = @benchmarkable taylorinteg(
-    spin_odes!, $q2, $t0, $tf1, $_order, $_abstol, $pars2, maxsteps=$maxsteps)
-SUITE["ManySpin"]["manyspin2-2"] = @benchmarkable taylorinteg(
-    spin_odes!, $q2, $t0, $tf2, $_order, $_abstol, $pars2, maxsteps=$maxsteps)
+    SUITE["ManySpin"]["manyspin1-1"] = @benchmarkable taylorinteg(
+        spin_odes!, $q1, $t0, $tf1, $_order, $_abstol, $pars1, maxsteps=$maxsteps)
+    SUITE["ManySpin"]["manyspin1-2"] = @benchmarkable taylorinteg(
+        spin_odes!, $q1, $t0, $tf2, $_order, $_abstol, $pars1, maxsteps=$maxsteps)
+
+    SUITE["ManySpin"]["manyspin2-1"] = @benchmarkable taylorinteg(
+        spin_odes!, $q2, $t0, $tf1, $_order, $_abstol, $pars2, maxsteps=$maxsteps)
+    SUITE["ManySpin"]["manyspin2-2"] = @benchmarkable taylorinteg(
+        spin_odes!, $q2, $t0, $tf2, $_order, $_abstol, $pars2, maxsteps=$maxsteps)
+end

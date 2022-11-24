@@ -62,75 +62,76 @@ end
     nothing
 end
 
-
 # ==========
 # Run benchmarks
 # ==========
-# const TI = TaylorIntegration
-const _abstol = 1.0e-20
-const _order = 28
-const t0 = 0.0
-const tf1 = 2π*1000.0
-const maxsteps1 = 500_000
-const tf2 = 2π*10_000.0
-const maxsteps2 = 50_000_000
-const tf3 = 2π*100_000.0
-const maxsteps3 = 500_000_000
+let
+    # const TI = TaylorIntegration
+    local _abstol = 1.0e-20
+    local _order = 28
+    local t0 = 0.0
+    local tf1 = 2π*1000.0
+    local maxsteps1 = 500_000
+    local tf2 = 2π*10_000.0
+    local maxsteps2 = 50_000_000
+    local tf3 = 2π*100_000.0
+    local maxsteps3 = 500_000_000
 
-pars = (2, -1.0)
-q0 = [0.2, 0.0, 0.0, 3.0]
+    pars = (2, -1.0)
+    q0 = [0.2, 0.0, 0.0, 3.0]
 
-# ==========
-# Kepler_parsed
-# ==========
-SUITE["Kepler"] = BenchmarkGroup()
+    # ==========
+    # Kepler_parsed
+    # ==========
+    SUITE["Kepler"] = BenchmarkGroup()
 
-SUITE["Kepler"]["kepler1-1"] = @benchmarkable taylorinteg(
-    kepler1!, $q0, $t0, $tf1, $_order, $_abstol, -1.0, maxsteps=$maxsteps1)
-SUITE["Kepler"]["kepler2-1"] = @benchmarkable taylorinteg(
-    kepler2!, $q0, $t0, $tf1, $_order, $_abstol, $pars, maxsteps=$maxsteps1)
+    SUITE["Kepler"]["kepler1-1"] = @benchmarkable taylorinteg(
+        kepler1!, $q0, $t0, $tf1, $_order, $_abstol, -1.0, maxsteps=$maxsteps1)
+    SUITE["Kepler"]["kepler2-1"] = @benchmarkable taylorinteg(
+        kepler2!, $q0, $t0, $tf1, $_order, $_abstol, $pars, maxsteps=$maxsteps1)
 
-SUITE["Kepler"]["kepler5-1"] = @benchmarkable taylorinteg(
-    kepler5!, $q0, $t0, $tf1, $_order, $_abstol, maxsteps=$maxsteps1)
-SUITE["Kepler"]["kepler6-1"] = @benchmarkable taylorinteg(
-    kepler6!, $q0, $t0, $tf1, $_order, $_abstol, -1.0, maxsteps=$maxsteps1)
+    SUITE["Kepler"]["kepler5-1"] = @benchmarkable taylorinteg(
+        kepler5!, $q0, $t0, $tf1, $_order, $_abstol, maxsteps=$maxsteps1)
+    SUITE["Kepler"]["kepler6-1"] = @benchmarkable taylorinteg(
+        kepler6!, $q0, $t0, $tf1, $_order, $_abstol, -1.0, maxsteps=$maxsteps1)
 
-SUITE["Kepler"]["kepler1-2"] = @benchmarkable taylorinteg(
-    kepler1!, $q0, $t0, $tf2, $_order, $_abstol, -1.0, maxsteps=$maxsteps2)
-SUITE["Kepler"]["kepler2-2"] = @benchmarkable taylorinteg(
-    kepler2!, $q0, $t0, $tf2, $_order, $_abstol, $pars, maxsteps=$maxsteps2)
+    SUITE["Kepler"]["kepler1-2"] = @benchmarkable taylorinteg(
+        kepler1!, $q0, $t0, $tf2, $_order, $_abstol, -1.0, maxsteps=$maxsteps2)
+    SUITE["Kepler"]["kepler2-2"] = @benchmarkable taylorinteg(
+        kepler2!, $q0, $t0, $tf2, $_order, $_abstol, $pars, maxsteps=$maxsteps2)
 
-SUITE["Kepler"]["kepler5-2"] = @benchmarkable taylorinteg(
-    kepler5!, $q0, $t0, $tf2, $_order, $_abstol, maxsteps=$maxsteps2)
-SUITE["Kepler"]["kepler6-2"] = @benchmarkable taylorinteg(
-    kepler6!, $q0, $t0, $tf2, $_order, $_abstol, -1.0, maxsteps=$maxsteps2)
+    SUITE["Kepler"]["kepler5-2"] = @benchmarkable taylorinteg(
+        kepler5!, $q0, $t0, $tf2, $_order, $_abstol, maxsteps=$maxsteps2)
+    SUITE["Kepler"]["kepler6-2"] = @benchmarkable taylorinteg(
+        kepler6!, $q0, $t0, $tf2, $_order, $_abstol, -1.0, maxsteps=$maxsteps2)
 
-SUITE["Kepler"]["kepler1-3"] = @benchmarkable taylorinteg(
-    kepler1!, $q0, $t0, $tf3, $_order, $_abstol, -1.0, maxsteps=$maxsteps3)
-SUITE["Kepler"]["kepler2-3"] = @benchmarkable taylorinteg(
-    kepler2!, $q0, $t0, $tf3, $_order, $_abstol, $pars, maxsteps=$maxsteps3)
+    SUITE["Kepler"]["kepler1-3"] = @benchmarkable taylorinteg(
+        kepler1!, $q0, $t0, $tf3, $_order, $_abstol, -1.0, maxsteps=$maxsteps3)
+    SUITE["Kepler"]["kepler2-3"] = @benchmarkable taylorinteg(
+        kepler2!, $q0, $t0, $tf3, $_order, $_abstol, $pars, maxsteps=$maxsteps3)
 
-SUITE["Kepler"]["kepler5-3"] = @benchmarkable taylorinteg(
-    kepler5!, $q0, $t0, $tf3, $_order, $_abstol, maxsteps=$maxsteps3)
-SUITE["Kepler"]["kepler6-3"] = @benchmarkable taylorinteg(
-    kepler6!, $q0, $t0, $tf3, $_order, $_abstol, -1.0, maxsteps=$maxsteps3)
+    SUITE["Kepler"]["kepler5-3"] = @benchmarkable taylorinteg(
+        kepler5!, $q0, $t0, $tf3, $_order, $_abstol, maxsteps=$maxsteps3)
+    SUITE["Kepler"]["kepler6-3"] = @benchmarkable taylorinteg(
+        kepler6!, $q0, $t0, $tf3, $_order, $_abstol, -1.0, maxsteps=$maxsteps3)
 
-# # ==========
-# # KeplerNotParsed
-# # ==========
-# SUITE["KeplerNotParsed"] = BenchmarkGroup()
+    # # ==========
+    # # KeplerNotParsed
+    # # ==========
+    # SUITE["KeplerNotParsed"] = BenchmarkGroup()
 
-# SUITE["KeplerNotParsed"]["kepler1"] = @benchmarkable taylorinteg(
-#     kepler1!, $q0, $t0, $tf, $_order, $_abstol, -1.0, maxsteps=$maxsteps,
-#     parse_eqs=false)
-# SUITE["KeplerNotParsed"]["kepler2"] = @benchmarkable taylorinteg(
-#     kepler2!, $q0, $t0, $tf, $_order, $_abstol, $pars, maxsteps=$maxsteps,
-#     parse_eqs=false)
-#
-# SUITE["KeplerNotParsed"]["kepler5"] = @benchmarkable taylorinteg(
-#     kepler5!, $q0, $t0, $tf, $_order, $_abstol, maxsteps=$maxsteps,
-#     parse_eqs=false)
-# SUITE["KeplerNotParsed"]["kepler6"] = @benchmarkable taylorinteg(
-#     kepler6!, $q0, $t0, $tf, $_order, $_abstol, -1.0, maxsteps=$maxsteps,
-#     parse_eqs=false)
-#
+    # SUITE["KeplerNotParsed"]["kepler1"] = @benchmarkable taylorinteg(
+    #     kepler1!, $q0, $t0, $tf, $_order, $_abstol, -1.0, maxsteps=$maxsteps,
+    #     parse_eqs=false)
+    # SUITE["KeplerNotParsed"]["kepler2"] = @benchmarkable taylorinteg(
+    #     kepler2!, $q0, $t0, $tf, $_order, $_abstol, $pars, maxsteps=$maxsteps,
+    #     parse_eqs=false)
+    #
+    # SUITE["KeplerNotParsed"]["kepler5"] = @benchmarkable taylorinteg(
+    #     kepler5!, $q0, $t0, $tf, $_order, $_abstol, maxsteps=$maxsteps,
+    #     parse_eqs=false)
+    # SUITE["KeplerNotParsed"]["kepler6"] = @benchmarkable taylorinteg(
+    #     kepler6!, $q0, $t0, $tf, $_order, $_abstol, -1.0, maxsteps=$maxsteps,
+    #     parse_eqs=false)
+    #
+end
