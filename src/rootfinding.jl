@@ -101,8 +101,7 @@ end
 
 """
     taylorinteg(f, g, x0, t0, tmax, order, abstol, params[=nothing]; kwargs... )
-
-    taylorinteg(f, g, x0, trange, order, abstol; kwargs... )
+    taylorinteg(f, g, x0, trange, order, abstol, params[=nothing]; kwargs... )
 
 Root-finding method of `taylorinteg`.
 
@@ -190,7 +189,7 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
 end
 
 function _taylorinteg!(f!, g, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
-        q0::Array{U,1}, t0::T, tmax::T, abstol::T, params = nothing;
+        q0::Array{U,1}, t0::T, tmax::T, abstol::T, params;
         maxsteps::Int=500, eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
 
     # Allocation
@@ -258,7 +257,7 @@ function _taylorinteg!(f!, g, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{T
     return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:), view(tvS,1:nevents-1), view(transpose(view(xvS,:,1:nevents-1)),1:nevents-1,:), view(gvS,1:nevents-1)
 end
 function _taylorinteg!(f!, g, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
-        q0::Array{U,1}, t0::T, tmax::T, abstol::T, tmpTaylor, arrTaylor, params = nothing;
+        q0::Array{U,1}, t0::T, tmax::T, abstol::T, tmpTaylor, arrTaylor, params;
         maxsteps::Int=500, eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
 
     # Allocation
@@ -365,7 +364,7 @@ function taylorinteg(f!, g, q0::Array{U,1}, trange::AbstractVector{T},
 end
 
 function _taylorinteg!(f!, g, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
-        q0::Array{U,1}, trange::AbstractVector{T}, abstol::T, params = nothing;
+        q0::Array{U,1}, trange::AbstractVector{T}, abstol::T, params;
         maxsteps::Int=500, eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
 
     # Allocation
@@ -447,7 +446,7 @@ function _taylorinteg!(f!, g, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{T
 end
 
 function _taylorinteg!(f!, g, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
-        q0::Array{U,1}, trange::AbstractVector{T}, abstol::T, tmpTaylor, arrTaylor, params = nothing;
+        q0::Array{U,1}, trange::AbstractVector{T}, abstol::T, tmpTaylor, arrTaylor, params;
         maxsteps::Int=500, eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
 
     # Allocation

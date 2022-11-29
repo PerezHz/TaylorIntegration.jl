@@ -308,6 +308,7 @@ function _determine_parsing!(parse_eqs::Bool, f, t, x, params)
     return parse_eqs, tmpTaylor, arrTaylor
 end
 function _determine_parsing!(parse_eqs::Bool, f, t, x, dx, params)
+
     parse_eqs = parse_eqs && !isempty(methodswith(Val{f}, jetcoeffs!)) &&
                              !isempty(methodswith(Val{f}, _allocate_jetcoeffs!))
 
@@ -355,7 +356,7 @@ for V in (:(Val{true}), :(Val{false}))
         end
 
         function _taylorinteg!(f, t::Taylor1{T}, x::Taylor1{U},
-                x0::U, t0::T, tmax::T, abstol::T, ::$V, params = nothing;
+                x0::U, t0::T, tmax::T, abstol::T, ::$V, params;
                 maxsteps::Int=500) where {T<:Real, U<:Number}
 
             # Allocation
@@ -405,7 +406,7 @@ for V in (:(Val{true}), :(Val{false}))
             end
         end
         function _taylorinteg!(f, t::Taylor1{T}, x::Taylor1{U},
-                x0::U, t0::T, tmax::T, abstol::T, tmpTaylor, arrTaylor, ::$V, params = nothing;
+                x0::U, t0::T, tmax::T, abstol::T, tmpTaylor, arrTaylor, ::$V, params;
                 maxsteps::Int=500) where {T<:Real, U<:Number}
 
             # Allocation
@@ -485,7 +486,7 @@ for V in (:(Val{true}), :(Val{false}))
         end
 
         function _taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
-                q0::Array{U,1}, t0::T, tmax::T, abstol::T, ::$V, params = nothing;
+                q0::Array{U,1}, t0::T, tmax::T, abstol::T, ::$V, params;
                 maxsteps::Int=500) where {T<:Real, U<:Number}
 
             # Initialize the vector of Taylor1 expansions
@@ -547,7 +548,7 @@ for V in (:(Val{true}), :(Val{false}))
         end
 
         function _taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
-                q0::Array{U,1}, t0::T, tmax::T, abstol::T, tmpTaylor, arrTaylor, ::$V, params = nothing;
+                q0::Array{U,1}, t0::T, tmax::T, abstol::T, tmpTaylor, arrTaylor, ::$V, params;
                 maxsteps::Int=500) where {T<:Real, U<:Number}
 
             # Initialize the vector of Taylor1 expansions
@@ -613,9 +614,9 @@ end
     taylorinteg(f, x0, t0, tmax, order, abstol, Val(false), params[=nothing]; kwargs... )
     taylorinteg(f, x0, t0, tmax, order, abstol, Val(true), params[=nothing]; kwargs... )
 
-General-purpose Taylor integrator for the explicit ODE ``\dot{x}=f(x, p, t)``.
-The initial condition are specified by `x0` at time `t0`, and any parameters
-encoded in `params`. The initial condition `x0` may be of type `T<:Number`
+General-purpose Taylor integrator for the explicit ODE ``\dot{x}=f(x, p, t)``,
+where `p` are the parameters encoded in `params`.
+The initial conditions are specified by `x0` at time `t0`; `x0` may be of type `T<:Number`
 or `Vector{T}`, with `T` including `TaylorN{T}`; the latter case
 is of interest for [jet transport applications](@ref jettransport).
 
@@ -623,12 +624,12 @@ The equations of motion are specified by the function `f`; we follow the same
 convention of `DifferentialEquations.jl` to define this function, i.e.,
 `f(x, p, t)` or `f!(dx, x, p, t)`; see the examples below.
 
-It returns a vector with the values of time (independent variable),
+The functions return a vector with the values of time (independent variable),
 and a vector with the computed values of
 the dependent variable(s), and if the method used involves `Val(true)` it also
 outputs the Taylor polynomial solutions obtained at each time step.
 The integration stops when time is larger than `tmax`, in which case the last returned
-value(s) correspond to that time, or when the number of saved steps is larger
+value(s) correspond to `tmax`, or when the number of saved steps is larger
 than `maxsteps`.
 
 The integration method uses polynomial expansions on the independent variable
@@ -679,10 +680,10 @@ tv, xv, polynv = taylorinteg(f!, [3, 3], 0.0, 0.3, 25, 1.0e-20, maxsteps=100, Va
 
 # Integrate and return results evaluated at given time
 @doc doc"""
-    taylorinteg(f, x0, trange, order, abstol, params[=nothing]; keyword... )
+    taylorinteg(f, x0, trange, order, abstol, params[=nothing]; kwargs... )
 
 General-purpose Taylor integrator for the explicit ODE
-``\dot{x}=f(t,x)`` with initial condition specified by `x0::{T<:Number}`
+``\dot{x}=f(x,p,t)`` with initial condition specified by `x0::{T<:Number}`
 or `x0::Vector{T}` at time `t0`.
 
 The method returns a vector with the computed values of
@@ -723,8 +724,7 @@ function taylorinteg(f, x0::U, trange::AbstractVector{T},
 end
 
 function _taylorinteg!(f, t::Taylor1{T}, x::Taylor1{U}, x0::U, trange::AbstractVector{T},
-        abstol::T, params = nothing;
-        maxsteps::Int=500) where {T<:Real, U<:Number}
+        abstol::T, params; maxsteps::Int=500) where {T<:Real, U<:Number}
 
     # Allocation
     nn = length(trange)
@@ -771,8 +771,7 @@ function _taylorinteg!(f, t::Taylor1{T}, x::Taylor1{U}, x0::U, trange::AbstractV
     return xv
 end
 function _taylorinteg!(f, t::Taylor1{T}, x::Taylor1{U}, x0::U, trange::AbstractVector{T},
-        abstol::T, tmpTaylor, arrTaylor, params = nothing;
-        maxsteps::Int=500) where {T<:Real, U<:Number}
+        abstol::T, tmpTaylor, arrTaylor, params; maxsteps::Int=500) where {T<:Real, U<:Number}
 
     # Allocation
     nn = length(trange)
@@ -849,7 +848,7 @@ function taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
 end
 
 function _taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
-        q0::Array{U,1}, trange::AbstractVector{T}, abstol::T, params = nothing;
+        q0::Array{U,1}, trange::AbstractVector{T}, abstol::T, params;
         maxsteps::Int=500) where {T<:Real, U<:Number}
 
     # Allocation
@@ -910,7 +909,7 @@ function _taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Tayl
     return transpose(xv)
 end
 function _taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
-        q0::Array{U,1}, trange::AbstractVector{T}, abstol::T, tmpTaylor, arrTaylor, params = nothing;
+        q0::Array{U,1}, trange::AbstractVector{T}, abstol::T, tmpTaylor, arrTaylor, params;
         maxsteps::Int=500) where {T<:Real, U<:Number}
 
     # Allocation

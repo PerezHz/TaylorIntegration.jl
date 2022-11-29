@@ -217,7 +217,10 @@ function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
 end
 
 """
-    lyap_taylorinteg(f!, q0, t0, tmax, order, abstol[, f!]; maxsteps::Int=500)
+    lyap_taylorinteg(f!, q0, t0, tmax, order, abstol[, jacobianfunc!=nothing];
+        maxsteps::Int=500, parse_eqs::Bool=true)
+    lyap_taylorinteg(f!, q0, trange, order, abstol[, jacobianfunc!=nothing];
+        maxsteps::Int=500, parse_eqs::Bool=true)
 
 Similar to [`taylorinteg`](@ref) for the calculation of the Lyapunov
 spectrum. Note that the number of `TaylorN` variables should be set
@@ -272,7 +275,7 @@ end
 
 function _lyap_taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
         q0::Array{U,1}, t0::T, tmax::T, abstol::T, jt::Matrix{U}, _δv::Array{TaylorN{Taylor1{U}},1},
-        params = nothing, jacobianfunc! =nothing; maxsteps::Int=500) where {T<:Real, U<:Number}
+        params, jacobianfunc!; maxsteps::Int=500) where {T<:Real, U<:Number}
 
     # Allocation
     order = get_order(t)
@@ -350,7 +353,7 @@ end
 function _lyap_taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
         q0::Array{U,1}, t0::T, tmax::T, abstol::T, jt::Matrix{U}, _δv::Array{TaylorN{Taylor1{U}},1},
         tmpTaylor::Array{Taylor1{U},1}, arrTaylor,
-        params = nothing, jacobianfunc! =nothing; maxsteps::Int=500) where {T<:Real, U<:Number}
+        params, jacobianfunc!; maxsteps::Int=500) where {T<:Real, U<:Number}
 
     # Allocation
     order = get_order(t)
@@ -470,7 +473,7 @@ end
 
 function _lyap_taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
         q0::Array{U,1}, trange::AbstractVector{T}, abstol::T, jt::Matrix{U}, _δv::Array{TaylorN{Taylor1{U}},1},
-        params = nothing, jacobianfunc! = nothing; maxsteps::Int=500) where {T<:Real, U<:Number}
+        params, jacobianfunc!; maxsteps::Int=500) where {T<:Real, U<:Number}
 
     # Allocation
     order = get_order(t)
@@ -577,7 +580,7 @@ end
 function _lyap_taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
         q0::Array{U,1}, trange::AbstractVector{T}, abstol::T, jt::Matrix{U}, _δv::Array{TaylorN{Taylor1{U}},1},
         tmpTaylor::Vector{Taylor1{U}}, arrTaylor,
-        params = nothing, jacobianfunc! = nothing; maxsteps::Int=500) where {T<:Real, U<:Number}
+        params, jacobianfunc!; maxsteps::Int=500) where {T<:Real, U<:Number}
 
     # Allocation
     order = get_order(t)
