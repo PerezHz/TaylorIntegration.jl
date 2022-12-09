@@ -91,21 +91,21 @@ import Logging: Warn
         rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(xdot1), tT, xT, nothing))
         @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-            Val(xdot1), tT, xT, nothing, rv.v0, rv.v1)
+            Val(xdot1), tT, xT, nothing, rv)
         @test xT ≈ exact_sol(tT, b1, x0)
 
         xT = x0 + zero(tT)
         rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(xdot2), tT, xT, nothing))
         @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-            Val(xdot2), tT, xT, nothing, rv.v0, rv.v1)
+            Val(xdot2), tT, xT, nothing, rv)
         @test xT ≈ exact_sol(tT, 3.0, x0)
 
         xT = x0 + zero(tT)
         rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(xdot2), tT, xT, b1))
         @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-            Val(xdot2), tT, xT, b1, rv.v0, rv.v1)
+            Val(xdot2), tT, xT, b1, rv)
         @test xT ≈ exact_sol(tT, b1, x0)
 
         # The macro returns a (parsed) jetcoeffs! function which yields a `MethodError`
@@ -128,8 +128,8 @@ import Logging: Warn
         xT = x0 + zero(tT)
         rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(xdot2_err), tT, xT, nothing))
-        @test_throws MethodError TI.jetcoeffs!(Val(xdot2_err), tT, xT, nothing,
-            rv.v0, rv.v1)
+        @test_throws MethodError TI.jetcoeffs!(
+            Val(xdot2_err), tT, xT, nothing, rv)
 
         # Output includes Taylor polynomial solution
         tv3t, xv3t, polynV3t = (@test_logs (Warn, max_iters_reached()) taylorinteg(
@@ -203,21 +203,21 @@ import Logging: Warn
         rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(xdot1_parsed), tT, xT, nothing))
         @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-            Val(xdot1_parsed), tT, xT, nothing, rv.v0, rv.v1)
+            Val(xdot1_parsed), tT, xT, nothing, rv)
         @test xT ≈ exact_sol(tT, -10, 10)
 
         xT = 10.0 + zero(tT)
         rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(xdot2), tT, xT, nothing))
         @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-            Val(xdot2), tT, xT, nothing, rv.v0, rv.v1)
+            Val(xdot2), tT, xT, nothing, rv)
         @test xT ≈ exact_sol(tT, -10, 10)
 
         xT = 10.0 + zero(tT)
         rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(xdot3), tT, xT, -10))
         @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-            Val(xdot3), tT, xT, -10, rv.v0, rv.v1)
+            Val(xdot3), tT, xT, -10, rv)
         @test xT ≈ exact_sol(tT, -10, 10)
     end
 
@@ -256,7 +256,7 @@ import Logging: Warn
         rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(pendulum!), tT, qT, dqT, nothing))
         @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-            Val(pendulum!), tT, qT, dqT, nothing, rv.v0, rv.v1)
+            Val(pendulum!), tT, qT, dqT, nothing, rv)
     end
 
 
@@ -341,7 +341,7 @@ import Logging: Warn
         rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(eqs3!), tT, zT, dzT, nothing))
         @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-            Val(eqs3!), tT, zT, dzT, nothing, rv.v0, rv.v1)
+            Val(eqs3!), tT, zT, dzT, nothing, rv)
         @test typeof(rv.v0) == Vector{Taylor1{ComplexF64}}
         @test typeof(rv.v1) == Vector{Vector{Taylor1{ComplexF64}}}
         @test zT[1] == exact_sol(tT, -1, z0)
@@ -441,7 +441,7 @@ import Logging: Warn
         rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(harm_osc!), tT, qT, dqT, [1.0]))
         @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-            Val(harm_osc!), tT, qT, dqT, [1.0], rv.v0, rv.v1)
+            Val(harm_osc!), tT, qT, dqT, [1.0], rv)
         @test qT[1] ≈ cos(tT)
         @test qT[2] ≈ -sin(tT)
 
@@ -470,7 +470,7 @@ import Logging: Warn
         rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(harm_osc_error!), tT, qT, dqT, [1.0]))
         @test_throws MethodError  TI.jetcoeffs!(
-            Val(harm_osc_error!), tT, qT, dqT, [1.0], rv.v0, rv.v1)
+            Val(harm_osc_error!), tT, qT, dqT, [1.0], rv)
     end
 
     local tf = 100.0
@@ -546,19 +546,19 @@ import Logging: Warn
         rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(multpendula1!), tT, qT, dqT, (NN, nnrange)))
         @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-            Val(multpendula1!), tT, qT, dqT, (NN, nnrange), rv.v0, rv.v1)
+            Val(multpendula1!), tT, qT, dqT, (NN, nnrange), rv)
 
         qT = q0 .+ zero(tT)
         rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(multpendula2!), tT, qT, dqT, nothing))
         @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-            Val(multpendula2!), tT, qT, dqT, nothing, rv.v0, rv.v1)
+            Val(multpendula2!), tT, qT, dqT, nothing, rv)
 
         qT = q0 .+ zero(tT)
         rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(multpendula3!), tT, qT, dqT, [NN, nnrange]))
         @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-            Val(multpendula3!), tT, qT, dqT, [NN, nnrange], rv.v0, rv.v1)
+            Val(multpendula3!), tT, qT, dqT, [NN, nnrange], rv)
     end
 
 
@@ -675,31 +675,31 @@ import Logging: Warn
         tT = 0.0 + Taylor1(_order)
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
-        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(Val(kepler1!),
-            tT, qT, dqT, -1.0))
+        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
+            Val(kepler1!), tT, qT, dqT, -1.0))
         @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-            Val(kepler1!), tT, qT, dqT, -1.0, rv.v0, rv.v1)
+            Val(kepler1!), tT, qT, dqT, -1.0, rv)
 
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
-        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(Val(kepler2!),
-            tT, qT, dqT, pars))
+        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
+            Val(kepler2!), tT, qT, dqT, pars))
         @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-            Val(kepler2!), tT, qT, dqT, pars, rv.v0, rv.v1)
+            Val(kepler2!), tT, qT, dqT, pars, rv)
 
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
-        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(Val(kepler3!),
-            tT, qT, dqT, nothing))
+        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
+            Val(kepler3!), tT, qT, dqT, nothing))
         @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-            Val(kepler3!), tT, qT, dqT, nothing, rv.v0, rv.v1)
+            Val(kepler3!), tT, qT, dqT, nothing, rv)
 
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
-        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(Val(kepler4!),
-            tT, qT, dqT, nothing))
+        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
+            Val(kepler4!), tT, qT, dqT, nothing))
         @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-            Val(kepler4!), tT, qT, dqT, nothing, rv.v0, rv.v1)
+            Val(kepler4!), tT, qT, dqT, nothing, rv)
     end
 
 
@@ -820,25 +820,25 @@ import Logging: Warn
         rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(kepler1!), tT, qT, dqT, nothing))
         @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-            Val(kepler1!), tT, qT, dqT, nothing, rv.v0, rv.v1)
+            Val(kepler1!), tT, qT, dqT, nothing, rv)
 
         qT = q0 .+ zero(tT)
         rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(kepler2!), tT, qT, dqT, -1.0))
         @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-            Val(kepler2!), tT, qT, dqT, -1.0, rv.v0, rv.v1)
+            Val(kepler2!), tT, qT, dqT, -1.0, rv)
 
         qT = q0 .+ zero(tT)
         rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(kepler3!), tT, qT, dqT, -1.0))
         @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-            Val(kepler3!), tT, qT, dqT, -1.0, rv.v0, rv.v1)
+            Val(kepler3!), tT, qT, dqT, -1.0, rv)
 
         qT = q0 .+ zero(tT)
         rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(kepler4!), tT, qT, dqT, nothing))
         @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-            Val(kepler4!), tT, qT, dqT, nothing, rv.v0, rv.v1)
+            Val(kepler4!), tT, qT, dqT, nothing, rv)
     end
 
 
@@ -992,14 +992,14 @@ import Logging: Warn
         rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(lorenz1!), tT, qT, dqT, params))
         @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-            Val(lorenz1!), tT, qT, dqT, params, rv.v0, rv.v1)
+            Val(lorenz1!), tT, qT, dqT, params, rv)
 
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
         rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(lorenz2!), tT, qT, dqT, nothing))
         @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-            Val(lorenz2!), tT, qT, dqT, nothing, rv.v0, rv.v1)
+            Val(lorenz2!), tT, qT, dqT, nothing, rv)
     end
 
 
@@ -1057,7 +1057,7 @@ import Logging: Warn
         parse_eqs, rv = TI._determine_parsing!(true, harm_osc!, tT, qT, similar(qT), [2.0])
         @test !parse_eqs
         @test_throws MethodError TI.__jetcoeffs!(
-            Val(true), harm_osc!, tT, qT, similar(qT), [2.0], rv.v0, rv.v1)
+            Val(true), harm_osc!, tT, qT, similar(qT), [2.0], rv.v0)
 
         @taylorize function kepler1!(dq, q, p, t)
             μ = p
@@ -1075,7 +1075,7 @@ import Logging: Warn
         parse_eqs, rv = TI._determine_parsing!(true, harm_osc!, tT, qT, similar(qT), -1.0)
         @test !parse_eqs
         @test_throws MethodError TI.__jetcoeffs!(
-            Val(true), kepler1!, tT, qT, similar(qT), -1.0, rv.v0, rv.v1)
+            Val(true), kepler1!, tT, qT, similar(qT), -1.0, rv.v0)
     end
 
 
@@ -1223,11 +1223,11 @@ import Logging: Warn
         @test newex1.args[1] == :(
             TaylorIntegration.jetcoeffs!(::Val{f!}, t::Taylor1{_T},
                 q::AbstractArray{Taylor1{_S}, _N},
-                dq::AbstractArray{Taylor1{_S}, _N}, p, __tmpTaylor, __arrTaylor) where
+                dq::AbstractArray{Taylor1{_S}, _N}, p, __ralloc::TaylorIntegration.RetAlloc{Taylor1{_S}}) where
                     {_T <: Real, _S <: Number, _N})
 
         # Include not recognized functions as they appear
-        @test newex1.args[2].args[2] == :(aa = __tmpTaylor[1])
+        @test newex1.args[2].args[2] == :(aa = __ralloc.v0[1])
         @test newex1.args[2].args[3] == :(aa = my_simple_function(q, p, t))
         @test newex2.args[2].args[2] == :(aa = my_simple_function(q, p, t))
         @test newex1.args[2].args[6].args[2].args[2] ==

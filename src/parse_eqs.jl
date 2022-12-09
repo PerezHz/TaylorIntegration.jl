@@ -75,7 +75,7 @@ Checks if `v` is declared in `bkkeep`, considering the `d_indx`, `v_newvars` and
 # The (irrelevant) `nothing` below is there to have a `:block` Expr; it is deleted later
 const _HEAD_PARSEDFN_SCALAR = sanitize(:(
     function TaylorIntegration.jetcoeffs!(::Val{__fn}, __tT::Taylor1{_T}, __x::Taylor1{_S},
-            __params, __tmpTaylor, __arrTaylor) where {_T<:Real, _S<:Number}
+            __params, __ralloc::TaylorIntegration.RetAlloc{Taylor1{_S}}) where {_T<:Real, _S<:Number}
         order = __tT.order
         nothing
     end)
@@ -84,7 +84,7 @@ const _HEAD_PARSEDFN_SCALAR = sanitize(:(
 const _HEAD_PARSEDFN_VECTOR = sanitize(:(
     function TaylorIntegration.jetcoeffs!(::Val{__fn}, __tT::Taylor1{_T},
             __x::AbstractArray{Taylor1{_S}, _N}, __dx::AbstractArray{Taylor1{_S}, _N},
-            __params, __tmpTaylor, __arrTaylor) where {_T<:Real, _S<:Number, _N}
+            __params, __ralloc::TaylorIntegration.RetAlloc{Taylor1{_S}}) where {_T<:Real, _S<:Number, _N}
         order = __tT.order
         nothing
     end)
@@ -167,10 +167,10 @@ function _make_parsed_jetcoeffs(ex::Expr, debug=false)
     # Add allocated variable definitions to `new_jetcoeffs`, to make it more human readable
     tmp_defs = [popfirst!(new_jetcoeffs.args[2].args)]
     @inbounds for (ind, vnew) in enumerate(bkkeep.v_newvars)
-        push!(tmp_defs, :($(vnew) = __tmpTaylor[$(ind)]))
+        push!(tmp_defs, :($(vnew) = __ralloc.v0[$(ind)]))
     end
     @inbounds for (ind, vnew) in enumerate(bkkeep.v_arraydecl)
-        push!(tmp_defs, :($(vnew) = __arrTaylor[$(ind)]))
+        push!(tmp_defs, :($(vnew) = __ralloc.v1[$(ind)]))
     end
     prepend!(new_jetcoeffs.args[2].args, tmp_defs)
 
