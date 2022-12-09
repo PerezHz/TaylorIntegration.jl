@@ -1227,10 +1227,11 @@ import Logging: Warn
                     {_T <: Real, _S <: Number, _N})
 
         # Include not recognized functions as they appear
-        @test newex1.args[2].args[2] == :(__tmpTaylor[1] = my_simple_function(q, p, t))
+        @test newex1.args[2].args[2] == :(aa = __tmpTaylor[1])
+        @test newex1.args[2].args[3] == :(aa = my_simple_function(q, p, t))
         @test newex2.args[2].args[2] == :(aa = my_simple_function(q, p, t))
-        @test newex1.args[2].args[5].args[2].args[2] ==
-            :(__tmpTaylor[1] = my_simple_function(q, p, t))
+        @test newex1.args[2].args[6].args[2].args[2] ==
+            :(aa = my_simple_function(q, p, t))
 
         # Return line
         @test newex1.args[2].args[end] == :(return nothing)
@@ -1238,7 +1239,7 @@ import Logging: Warn
             :(return TaylorIntegration.RetAlloc{Taylor1{_S}}([aa], [Vector{Taylor1{_S}}(undef, 0)]))
 
         # Issue 96: deal with `elseif`s, `continue` and `break`
-        @test newex1.args[2].args[5].args[2].args[3] == :(
+        @test newex1.args[2].args[6].args[2].args[3] == :(
             for i = 1:length(q)
                 if i == 1
                     TaylorSeries.mul!(dq[i], 2, q[i], ord)
@@ -1247,7 +1248,7 @@ import Logging: Warn
                         TaylorSeries.identity!(dq[i], q[i], ord)
                     else
                         if i == 3
-                            TaylorSeries.identity!(dq[i], __tmpTaylor[1], ord)
+                            TaylorSeries.identity!(dq[i], aa, ord)
                             continue
                         else
                             dq[i] = my_complicate_function(q)
@@ -1398,8 +1399,8 @@ import Logging: Warn
 
         @show Threads.nthreads()
 
-        # NOTE: 6 tests here yield errors, because these functions are not yet correctly
-        # parse since they allocate `Matrix{Taylor1{T}}` which is not yet fixed
+        # NOTE: 6 tests here yield errors, because these functions are not (yet) correctly
+        # parse, since they allocate `Matrix{Taylor1{T}}` which is not yet fixed
         parse_eqs, rv = (@test_logs min_level=Warn TI._determine_parsing!(
             true, harmosc1dchain!, t, x, dx, μ))
         @test parse_eqs

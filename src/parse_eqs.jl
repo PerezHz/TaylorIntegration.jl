@@ -135,9 +135,6 @@ function _make_parsed_jetcoeffs(ex::Expr, debug=false)
     # Set up the Expr for the new functions
     new_jetcoeffs, new_allocjetcoeffs = _newhead(fn, fnargs)
 
-    # Expr for the for-loop block for the recursion (of the `x` variable)
-    forloopblock = Expr(:for, :(ord = 1:order-1), Expr(:block, :(ordnext = ord + 1)) )
-
     # Transform the graph representation of the body of the functions:
     # defspreamble: inicializations used for the zeroth order (preamble)
     # defsprealloc: definitions (declarations) of auxiliary Taylor1's
@@ -156,17 +153,31 @@ function _make_parsed_jetcoeffs(ex::Expr, debug=false)
     debug && (println("****** _recursionloop ******");
         @show(rec_preamb); println(); @show(rec_fnbody); println())
 
+    # Expr for the for-loop block for the recursion (of the `x` variable)
+    forloopblock = Expr(:for, :(ord = 1:order-1), Expr(:block, :(ordnext = ord + 1)) )
     # Add rec_fnbody to forloopblock
     push!(forloopblock.args[2].args, fnbody.args[1].args..., rec_fnbody)
 
-    # Add preamble and recursion body to `new_allocjetcoeffs`
+    # Add preamble and recursion body to `new_jetcoeffs`
     push!(new_jetcoeffs.args[2].args, defspreamble..., rec_preamb)
 
-    # Push preamble and forloopblock to `new_allocjetcoeffs` and return line
+    # Push preamble and forloopblock to `new_jetcoeffs` and return line
     push!(new_jetcoeffs.args[2].args, forloopblock, Meta.parse("return nothing"))
+
+    # Add allocated variable definitions to `new_jetcoeffs`, to make it more human readable
+    tmp_defs = [popfirst!(new_jetcoeffs.args[2].args)]
+    @inbounds for (ind, vnew) in enumerate(bkkeep.v_newvars)
+        push!(tmp_defs, :($(vnew) = __tmpTaylor[$(ind)]))
+    end
+    @inbounds for (ind, vnew) in enumerate(bkkeep.v_arraydecl)
+        push!(tmp_defs, :($(vnew) = __arrTaylor[$(ind)]))
+    end
+    prepend!(new_jetcoeffs.args[2].args, tmp_defs)
 
     # Define the expressions of the returned vectors in `new_allocjetcoeffs`
     push!(new_allocjetcoeffs.args[2].args, defsprealloc...)
+
+    # Define returned expression for `new_allocjetcoeffs`
     if isempty(bkkeep.v_newvars)
         ret_defsprealloc = :(Taylor1{_S}[])
     else
@@ -202,17 +213,6 @@ function _make_parsed_jetcoeffs(ex::Expr, debug=false)
         # A priori this is not needed
         throw(ArgumentError("Wrong number of arguments in `fnargs`"))
     end
-
-    # Bring back old variable-names to `new_jecoeffs`; includes proper renaming
-    # of the temporal arrays
-    dd = Dict{Symbol, Expr}()
-    @inbounds for (ind, vnew) in enumerate(bkkeep.v_newvars)
-        merge!(dd, Dict(vnew => Expr(:ref, :__tmpTaylor, ind)))
-    end
-    @inbounds for (ind, vnew) in enumerate(bkkeep.v_arraydecl)
-        merge!(dd, Dict(vnew => Expr(:ref, :__arrTaylor, ind)))
-    end
-    new_jetcoeffs = subs(new_jetcoeffs, dd)
 
     return new_jetcoeffs, new_allocjetcoeffs
 end
