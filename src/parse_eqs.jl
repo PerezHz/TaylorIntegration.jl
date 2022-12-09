@@ -34,6 +34,32 @@ mutable struct BookKeeping
     end
 end
 
+
+"""
+    RetAlloc{Taylor1{T}}
+
+Struct related to the returned variables that are pre-allocated when
+`@taylorize` is used.
+    - `v0`   : Vector{Taylor1{T}}
+    - `v1`   : Vector{Vector{Taylor1{T}}}
+
+"""
+struct RetAlloc{T <: Number}
+    v0 :: Array{T,1}
+    v1 :: Vector{Array{T,1}}
+    # v2 :: Vector{Array{Taylor1{T},2}}
+    # v3 :: Vector{Array{Taylor1{T},3}}
+
+    function RetAlloc{T}() where {T}
+        return new(Array{T,1}(undef, 0), Vector{Array{T,1}}(undef, 0))
+    end
+
+    function RetAlloc{T}(v0::Array{T,1}, v1::Vector{Array{T,1}}) where {T}
+        return new(v0, v1)
+    end
+end
+
+
 """
 `inbookkeeping(v, bkkeep::BookKeeping)`
 
@@ -151,7 +177,7 @@ function _make_parsed_jetcoeffs(ex::Expr, debug=false)
     else
         ret_tmparrays = :([$(bkkeep.v_arraydecl...),])
     end
-    ret_ret = :(return $(ret_defsprealloc), $(ret_tmparrays))
+    ret_ret = :(return TaylorIntegration.RetAlloc{Taylor1{_S}}($ret_defsprealloc, $ret_tmparrays) )
 
     # Add return line to `new_allocjetcoeffs`
     push!(new_allocjetcoeffs.args[2].args, ret_ret)

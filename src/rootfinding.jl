@@ -174,13 +174,13 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
     end
 
     # Determine if specialized jetcoeffs! method exists
-    parse_eqs, tmpTaylor, arrTaylor = _determine_parsing!(parse_eqs, f!, t, x, dx, params)
+    parse_eqs, rv = _determine_parsing!(parse_eqs, f!, t, x, dx, params)
 
     if parse_eqs
         # Re-initialize the Taylor1 expansions
         t = t0 + Taylor1( T, order )
         x .= Taylor1.( q0, order )
-        return _taylorinteg!(f!, g, t, x, dx, q0, t0, tmax, abstol, tmpTaylor, arrTaylor, params,
+        return _taylorinteg!(f!, g, t, x, dx, q0, t0, tmax, abstol, rv, params,
             maxsteps=maxsteps, eventorder=eventorder, newtoniter=newtoniter, nrabstol=nrabstol)
     else
         return _taylorinteg!(f!, g, t, x, dx, q0, t0, tmax, abstol,params,
@@ -257,7 +257,7 @@ function _taylorinteg!(f!, g, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{T
     return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:), view(tvS,1:nevents-1), view(transpose(view(xvS,:,1:nevents-1)),1:nevents-1,:), view(gvS,1:nevents-1)
 end
 function _taylorinteg!(f!, g, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
-        q0::Array{U,1}, t0::T, tmax::T, abstol::T, tmpTaylor, arrTaylor, params;
+        q0::Array{U,1}, t0::T, tmax::T, abstol::T, rv::RetAlloc{Taylor1{U}}, params;
         maxsteps::Int=500, eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
 
     # Allocation
@@ -298,7 +298,7 @@ function _taylorinteg!(f!, g, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{T
     while sign_tstep*t0 < sign_tstep*tmax
         δt_old = δt
         # δt = taylorstep!(f!, t, x, dx, xaux, abstol, params) # δt is positive!
-        δt = taylorstep!(f!, t, x, dx, abstol, params, tmpTaylor, arrTaylor) # δt is positive!
+        δt = taylorstep!(f!, t, x, dx, abstol, params, rv) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
         evaluate!(x, δt, x0) # new initial condition
@@ -349,13 +349,13 @@ function taylorinteg(f!, g, q0::Array{U,1}, trange::AbstractVector{T},
     end
 
     # Determine if specialized jetcoeffs! method exists
-    parse_eqs, tmpTaylor, arrTaylor = _determine_parsing!(parse_eqs, f!, t, x, dx, params)
+    parse_eqs, rv = _determine_parsing!(parse_eqs, f!, t, x, dx, params)
 
     if parse_eqs
         # Re-initialize the Taylor1 expansions
         t = t0 + Taylor1( T, order )
         x .= Taylor1.(q0, order)
-        return _taylorinteg!(f!, g, t, x, dx, q0, trange, abstol, tmpTaylor, arrTaylor, params,
+        return _taylorinteg!(f!, g, t, x, dx, q0, trange, abstol, rv, params,
             maxsteps=maxsteps, eventorder=eventorder, newtoniter=newtoniter, nrabstol=nrabstol)
     else
         return _taylorinteg!(f!, g, t, x, dx, q0, trange, abstol,params,
@@ -446,7 +446,7 @@ function _taylorinteg!(f!, g, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{T
 end
 
 function _taylorinteg!(f!, g, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
-        q0::Array{U,1}, trange::AbstractVector{T}, abstol::T, tmpTaylor, arrTaylor, params;
+        q0::Array{U,1}, trange::AbstractVector{T}, abstol::T, rv::RetAlloc{Taylor1{U}}, params;
         maxsteps::Int=500, eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
 
     # Allocation
@@ -487,7 +487,7 @@ function _taylorinteg!(f!, g, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{T
     nevents = 1 #number of detected events
     while sign_tstep*t0 < sign_tstep*tmax
         δt_old = δt
-        δt = taylorstep!(f!, t, x, dx, abstol, params, tmpTaylor, arrTaylor) # δt is positive!
+        δt = taylorstep!(f!, t, x, dx, abstol, params, rv) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
         evaluate!(x, δt, x0) # new initial condition
