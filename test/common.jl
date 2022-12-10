@@ -219,9 +219,14 @@ import Logging: Warn
         @test sol1.alg.parse_eqs == false
         sol2 = (@test_logs min_level=Logging.Warn solve(
             prob, TaylorMethod(order), abstol=abstol))
-        @test sol2.alg.parse_eqs == true
+        sol3 = (@test_logs min_level=Logging.Warn solve(
+            prob, TaylorMethod(order), abstol=abstol, parse_eqs=false))
+        @test sol2.alg.parse_eqs
+        @test !sol3.alg.parse_eqs
         @test sol1.t == sol2.t
         @test sol1.u == sol2.u
+        @test sol1.t == sol3.t
+        @test sol1.u == sol3.u
 
         @taylorize function integ_vec(dx, x, p, t)
             local λ = p[1]
@@ -285,6 +290,81 @@ import Logging: Warn
         @test norm( H_pcr3bp(sol2.u[end]) - J0 ) < 1e-10
         @test sol1.u == sol2.u
         @test sol1.t == sol2.t
+
+        # Same as harmosc1dchain!, but adding a `@threads for`
+        @taylorize function harmosc1dchain!(dq, q, params, t)
+            local N = Int(length(q)/2)
+            local _eltype_q_ = eltype(q)
+            local μ = params
+            X = Array{_eltype_q_}(undef, N, N)
+            accX = Array{_eltype_q_}(undef, N) #acceleration
+            for j in 1:N
+                accX[j] = zero(q[1])
+                dq[j] = q[N+j]
+            end
+            #compute accelerations
+            for j in 1:N
+                for i in 1:N
+                    if i == j
+                    else
+                        X[i,j] = q[i]-q[j]
+                        temp_001 = accX[j] + (μ[i]*X[i,j])
+                        accX[j] = temp_001
+                    end #if i != j
+                end #for, i
+            end #for, j
+            for i in 1:N
+                dq[N+i] = accX[i]
+            end
+            nothing
+        end
+
+        @taylorize function harmosc1dchain_threads!(dq, q, params, t)
+            local N = Int(length(q)/2)
+            local _eltype_q_ = eltype(q)
+            local μ = params
+            X = Array{_eltype_q_}(undef, N, N)
+            accX = Array{_eltype_q_}(undef, N) #acceleration
+            for j in 1:N
+                accX[j] = zero(q[1])
+                dq[j] = q[N+j]
+            end
+            #compute accelerations
+            Threads.@threads for j in 1:N
+                for i in 1:N
+                    if i == j
+                    else
+                        X[i,j] = q[i]-q[j]
+                        temp_001 = accX[j] + (μ[i]*X[i,j])
+                        accX[j] = temp_001
+                    end #if i != j
+                end #for, i
+            end #for, j
+            for i in 1:N
+                dq[N+i] = accX[i]
+            end
+            nothing
+        end
+
+        N = 200
+        x0 = 10randn(2N)
+        μ = 1e-7rand(N)
+
+        @show Threads.nthreads()
+
+        probHO = ODEProblem(harmosc1dchain!, x0, (0.0, 10000.0), μ)
+        solHO = (@test_logs min_level=Logging.Warn solve(
+            probHO, TaylorMethod(order), abstol=abstol, parse_eqs=false))
+        probHOT = ODEProblem(harmosc1dchain_threads!, x0, (0.0, 10000.0), μ)
+        solHOT = (@test_logs min_level=Logging.Warn solve(
+            probHOT, TaylorMethod(order), abstol=abstol))
+        solHOnT = (@test_logs min_level=Logging.Warn solve(
+            probHOT, TaylorMethod(order), abstol=abstol, parse_eqs=false))
+
+        @test solHOT.u == solHOnT.u
+        @test solHOT.t == solHOnT.t
+        @test solHO.u == solHOT.u
+        @test solHO.t == solHOT.t
     end
 
     @testset "Test throwing errors in common interface" begin

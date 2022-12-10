@@ -53,9 +53,9 @@ struct TaylorMethodCache{uType, rateType, tTType, uTType} <: OrdinaryDiffEqMutab
     rv::TaylorIntegration.RetAlloc
 end
 
-full_cache(c::TaylorMethodCache) = begin
-    tuple(c.u, c.uprev, c.tmp, c.k, c.fsalfirst, c.tT, c.uT, c.duT, c.uauxT, c.parse_eqs, c.rv)
-end
+# full_cache(c::TaylorMethodCache) = begin
+#     tuple(c.u, c.uprev, c.tmp, c.k, c.fsalfirst, c.tT, c.uT, c.duT, c.uauxT, c.parse_eqs, c.rv)
+# end
 
 struct TaylorMethodConstantCache{uTType} <: OrdinaryDiffEqConstantCache
     uT::uTType
