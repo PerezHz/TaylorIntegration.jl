@@ -124,7 +124,7 @@ const _DECL_ARRAY = sanitize( Expr(:block,
 
 
 """
-`_make_parsed_jetcoeffs( ex, debug=false )`
+`_make_parsed_jetcoeffs( ex )`
 
 This function constructs the expressions of two new methods, the first equivalent to the
 differential equations (jetcoeffs!), which exploits the mutating functions of TaylorSeries.jl,
@@ -132,14 +132,12 @@ and the second one (_allocate_jetcoeffs) preallocates any auxiliary `Taylor1` or
 `Vector{Taylor1{T}}` needed.
 
 """
-function _make_parsed_jetcoeffs(ex::Expr, debug=false)
+function _make_parsed_jetcoeffs(ex::Expr)
     # Extract the name, args and body of the function
     # `fn` name of the function having the ODEs
     # `fnargs` arguments of the function
     # `fnbody` future transformed function body
     fn, fnargs, fnbody = _extract_parts(ex)
-    debug && (println("****** _extract_parts ******");
-        @show(fn, fnargs, fnbody); println())
 
     # Set up the Expr for the new functions
     new_jetcoeffs, new_allocjetcoeffs = _newhead(fn, fnargs)
@@ -150,17 +148,12 @@ function _make_parsed_jetcoeffs(ex::Expr, debug=false)
     # fnbody: transformed function body, using mutating functions from TaylorSeries;
     #         used later within the recursion loop
     # bkkeep: book-keeping structure having info of the variables
-    defspreamble, defsprealloc, fnbody, bkkeep = _preamble_body(fnbody, fnargs, debug)
-    debug && (println("****** _preamble_body ******");
-        @show(defspreamble); println(); @show(defsprealloc); println();
-        @show(fnbody); println(); @show(bkkeep); println())
+    defspreamble, defsprealloc, fnbody, bkkeep = _preamble_body(fnbody, fnargs)
 
     # Create body of recursion loop; temporary assignements may be needed.
     # rec_preamb: recursion loop for the preamble (first order correction)
     # rec_fnbody: recursion loop for the body-function (recursion loop for higher orders)
     rec_preamb, rec_fnbody = _recursionloop(fnargs, bkkeep)
-    debug && (println("****** _recursionloop ******");
-        @show(rec_preamb); println(); @show(rec_fnbody); println())
 
     # Expr for the for-loop block for the recursion (of the `x` variable)
     forloopblock = Expr(:for, :(ord = 1:order-1), Expr(:block, :(ordnext = ord + 1)) )
@@ -204,9 +197,9 @@ function _make_parsed_jetcoeffs(ex::Expr, debug=false)
             Dict(:__tT => fnargs[4], :__params => fnargs[3],
                 :(__x) => fnargs[2], :(__dx) => fnargs[1], :(__fn) => fn ))
 
-    else
-        # A priori this is not needed
-        throw(ArgumentError("Wrong number of arguments in `fnargs`"))
+    # else
+    #     # A priori this is not needed
+    #     throw(ArgumentError("Wrong number of arguments in `fnargs`"))
     end
 
     return new_jetcoeffs, new_allocjetcoeffs
@@ -330,7 +323,7 @@ end
 
 
 """
-`_preamble_body(fnbody, fnargs, debug=false)`
+`_preamble_body(fnbody, fnargs)`
 
 Returns expressions for the preamble, the declaration of
 arrays, the body and the bookkeeping struct, which will be used to build
@@ -339,21 +332,17 @@ the original function (already adapted), `fnargs` is a vector of symbols
 of the original diferential equations function.
 
 """
-function _preamble_body(fnbody, fnargs, debug=false)
+function _preamble_body(fnbody, fnargs)
     # Inicialize BookKeeping struct
     bkkeep = BookKeeping()
 
     # Rename vars to have the body in non-indexed form; bkkeep has different entries
     # for bookkeeping variables/symbolds, including indexed ones
     fnbody, bkkeep.d_indx = _rename_indexedvars(fnbody)
-    debug && (println("------ _rename_indexedvars ------");
-        @show(fnbody); println(); @show(bkkeep.d_indx); println())
 
     # Create `newfnbody` which corresponds to `fnbody`, cleaned (without irrelevant comments)
     # and with all new variables in place; bkkeep.d_indx is updated
     newfnbody = _newfnbody!(fnbody, fnargs, bkkeep)
-    debug && (println("------ _newfnbody ------");
-        @show(newfnbody); println(); @show(bkkeep); println())
 
     # Parse `newfnbody` and create `prepreamble` and `prealloc`, updating `bkkeep`.
     # These objects use the mutating functions from TaylorSeries.
@@ -368,9 +357,6 @@ function _preamble_body(fnbody, fnargs, debug=false)
     newfnbody = subs(newfnbody, bkkeep.d_assign)
     preamble = subs(preamble, bkkeep.d_assign)
     prealloc = subs(prealloc, bkkeep.d_assign)
-    debug && (println("------ _parse_newfnbody! ------");
-        @show(newfnbody); println(); @show(preamble); println();
-        @show(prealloc); println(); @show(bkkeep); println())
 
     # Include the assignement of indexed auxiliary variables
     defsprealloc = _defs_allocs!(prealloc, fnargs, bkkeep, false)
@@ -381,10 +367,6 @@ function _preamble_body(fnbody, fnargs, debug=false)
 
     # Define retvar; for scalar eqs is the last entry included in v_newvars
     bkkeep.retvar = length(fnargs) == 3 ? subs(bkkeep.v_newvars[end], bkkeep.d_indx) : fnargs[1]
-
-    debug && (println("------ _defs_allocs! ------");
-        @show(defsprealloc); println(); @show(preamble); println();
-        @show(newfnbody); println(); @show(bkkeep); println())
 
     return defspreamble, defsprealloc, newfnbody, bkkeep
 end
