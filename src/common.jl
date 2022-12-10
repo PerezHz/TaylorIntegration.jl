@@ -276,10 +276,10 @@ end
     rv::RetAlloc{Taylor1{U}}) where {U} = __jetcoeffs!(Val(false), f.f, t, x, params)
 @inline __jetcoeffs!(::Val{true},  f::ODEFunction, t, x::Taylor1{U}, params,
     rv::RetAlloc{Taylor1{U}}) where {U} = __jetcoeffs!(Val(true), f.f, t, x, params, rv)
-@inline __jetcoeffs!(::Val{false}, f::ODEFunction, t, x::Array{Taylor1{U},1}, dx, xaux, params,
-    rv::RetAlloc{Taylor1{U}}) where {U} = __jetcoeffs!(Val(false), f.f, t, x, dx, xaux, params)
-@inline __jetcoeffs!(::Val{true},  f::ODEFunction, t, x::Array{Taylor1{U},1}, dx, xaux, params,
-    rv::RetAlloc{Taylor1{U}}) where {U} = __jetcoeffs!(Val(true), f.f, t, x, dx, params, rv)
+@inline __jetcoeffs!(::Val{false}, f::ODEFunction, t, x::AbstractArray{Taylor1{U},N}, dx, xaux, params,
+    rv::RetAlloc{Taylor1{U}}) where {U,N} = __jetcoeffs!(Val(false), f.f, t, x, dx, xaux, params)
+@inline __jetcoeffs!(::Val{true},  f::ODEFunction, t, x::AbstractArray{Taylor1{U},N}, dx, xaux, params,
+    rv::RetAlloc{Taylor1{U}}) where {U,N} = __jetcoeffs!(Val(true), f.f, t, x, dx, params, rv)
 #
 @inline __jetcoeffs!(::Val{false}, f::DynamicalODEFunction, t, x::Taylor1{U}, params,
     rv::RetAlloc{Taylor1{U}}) where {U} = __jetcoeffs!(Val(false), f, t, x, params)

@@ -28,19 +28,19 @@ import Logging: Warn
         @test abs(sol[end] - sin(sol.t[end])) < 1e-12
     end
 
-    # @testset "Test integration of ODE with abstract arrays in common interface" begin
-    #     u0 = rand(4, 2)
-    #     tspan = (0.0, 1.0)
-    #     prob = ODEProblem(f!, u0, tspan)
-    #     sol = solve(prob, TaylorMethod(50), abstol=1e-20)
-    #     @test norm(sol[end] - u0.*exp(1)) < 1e-12
-    #     f_oop(u, p, t) = u
-    #     prob_oop = ODEProblem(f_oop, u0, tspan)
-    #     sol_oop = solve(prob_oop, TaylorMethod(50), abstol=1e-20)
-    #     @test norm(sol_oop[end] - u0.*exp(1)) < 1e-12
-    #     @test sol.t == sol_oop.t
-    #     @test sol.u == sol_oop.u
-    # end
+    @testset "Test integration of ODE with abstract arrays in common interface" begin
+        u0 = rand(4, 2)
+        tspan = (0.0, 1.0)
+        prob = ODEProblem(f!, u0, tspan)
+        sol = solve(prob, TaylorMethod(50), abstol=1e-20)
+        @test norm(sol[end] - u0.*exp(1)) < 1e-12
+        @taylorize f_oop(u, p, t) = u
+        prob_oop = ODEProblem(f_oop, u0, tspan)
+        sol_oop = solve(prob_oop, TaylorMethod(50), abstol=1e-20)
+        @test norm(sol_oop[end] - u0.*exp(1)) < 1e-12
+        @test sol.t == sol_oop.t
+        @test sol.u == sol_oop.u
+    end
 
     local tspan = (0.0,5.0)
     local saveat_inputs = ([], 0:1:(tspan[2]+5), 0:1:tspan[2], 3:1:tspan[2], collect(0:1:tspan[2]))
