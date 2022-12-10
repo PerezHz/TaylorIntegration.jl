@@ -404,6 +404,27 @@ import Logging: Warn
         # Compare to exact solution
         @test norm(xv12[end, 1] - sin(tv12[end]), Inf) < 1.0e-15
         @test norm(xv12[end, 2] - cos(tv12[end]), Inf) < 1.0e-15
+
+        @taylorize function fff!(du, u, p, t)
+            x, t = u
+            du[1] = x
+            du[2] = t
+            return du
+        end
+
+        @taylorize function ggg!(du, u, p, t)
+            x, t2 = u
+            du[1] = x
+            du[2] = t2
+            return du
+        end
+
+        tvF, xvF = taylorinteg(ggg!, [1.0, 0.0], 0.0, 10.0, 20, 1.0e-20, parse_eqs=false)
+        tv1, xv1 = taylorinteg(ggg!, [1.0, 0.0], 0.0, 10.0, 20, 1.0e-20)
+        tv2, xv2 = taylorinteg(fff!, [1.0, 0.0], 0.0, 10.0, 20, 1.0e-20)
+
+        @test tv1 == tv2 == tvF
+        @test xv1 == xv2 == xvF
     end
 
 
