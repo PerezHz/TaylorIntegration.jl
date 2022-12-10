@@ -1054,10 +1054,10 @@ import Logging: Warn
         end
         tT = t0 + Taylor1(_order)
         qT = [1.0, 0.0] .+ zero(tT)
-        parse_eqs, rv = TI._determine_parsing!(true, harm_osc!, tT, qT, similar(qT), [2.0])
+        parse_eqs, rv = (@test_logs (Warn, unable_to_parse(harm_osc!)) TI._determine_parsing!(
+            true, harm_osc!, tT, qT, similar(qT), [2.0]))
         @test !parse_eqs
-        @test_throws MethodError TI.__jetcoeffs!(
-            Val(true), harm_osc!, tT, qT, similar(qT), [2.0], rv.v0)
+        @test_throws MethodError TI.__jetcoeffs!(Val(harm_osc!), tT, qT, similar(qT), [2.0], rv)
 
         @taylorize function kepler1!(dq, q, p, t)
             μ = p
@@ -1072,10 +1072,10 @@ import Logging: Warn
         end
         tT = t0 + Taylor1(_order)
         qT = [0.2, 0.0, 0.0, 3.0] .+ zero(tT)
-        parse_eqs, rv = TI._determine_parsing!(true, harm_osc!, tT, qT, similar(qT), -1.0)
+        parse_eqs, rv = (@test_logs (Warn, unable_to_parse(kepler1!)) TI._determine_parsing!(
+            true, kepler1!, tT, qT, similar(qT), -1.0))
         @test !parse_eqs
-        @test_throws MethodError TI.__jetcoeffs!(
-            Val(true), kepler1!, tT, qT, similar(qT), -1.0, rv.v0)
+        @test_throws MethodError TI.__jetcoeffs!(Val(kepler1!), tT, qT, similar(qT), -1.0, rv)
     end
 
 
@@ -1223,7 +1223,8 @@ import Logging: Warn
         @test newex1.args[1] == :(
             TaylorIntegration.jetcoeffs!(::Val{f!}, t::Taylor1{_T},
                 q::AbstractArray{Taylor1{_S}, _N},
-                dq::AbstractArray{Taylor1{_S}, _N}, p, __ralloc::TaylorIntegration.RetAlloc{Taylor1{_S}}) where
+                dq::AbstractArray{Taylor1{_S}, _N}, p,
+                __ralloc::TaylorIntegration.RetAlloc{Taylor1{_S}}) where
                     {_T <: Real, _S <: Number, _N})
 
         # Include not recognized functions as they appear
@@ -1236,7 +1237,10 @@ import Logging: Warn
         # Return line
         @test newex1.args[2].args[end] == :(return nothing)
         @test newex2.args[2].args[end] ==
-            :(return TaylorIntegration.RetAlloc{Taylor1{_S}}([aa], [Vector{Taylor1{_S}}(undef, 0)]))
+            :(return TaylorIntegration.RetAlloc{Taylor1{_S}}([aa],
+                [Array{Taylor1{_S},1}(undef, 0)],
+                [Array{Taylor1{_S},2}(undef, 0, 0)],
+                [Array{Taylor1{_S},3}(undef, 0, 0, 0)]))
 
         # Issue 96: deal with `elseif`s, `continue` and `break`
         @test newex1.args[2].args[6].args[2].args[3] == :(
@@ -1399,8 +1403,6 @@ import Logging: Warn
 
         @show Threads.nthreads()
 
-        # NOTE: 6 tests here yield errors, because these functions are not (yet) correctly
-        # parse, since they allocate `Matrix{Taylor1{T}}` which is not yet fixed
         parse_eqs, rv = (@test_logs min_level=Warn TI._determine_parsing!(
             true, harmosc1dchain!, t, x, dx, μ))
         @test parse_eqs

@@ -15,6 +15,9 @@ Mutable struct that contains all the bookkeeping vectors/dictionaries used withi
     - `d_decl`     : Dictionary declared arrays
     - `v_newvars`  : Symbols of auxiliary indexed vars
     - `v_arraydecl`: Symbols which are explicitly declared as Array or Vector
+    - `v_array1`   : Symbols which are explicitly declared as Array{Taylor1{T},1}
+    - `v_array2`   : Symbols which are explicitly declared as Array{Taylor1{T},2}
+    - `v_array3`   : Symbols which are explicitly declared as Array{Taylor1{T},3}
     - `v_preamb`   : Symbols or Expr used in the preamble (declarations, etc)
     - `retvar`     : *Guessed* returned variable, which defines the LHS of the ODEs
 
@@ -25,12 +28,16 @@ mutable struct BookKeeping
     d_decl   :: Dict{Symbol, Expr}
     v_newvars   :: Vector{Symbol}
     v_arraydecl :: Vector{Symbol}
+    v_array1 :: Vector{Symbol}
+    v_array2 :: Vector{Symbol}
+    v_array3 :: Vector{Symbol}
     v_preamb :: Vector{Union{Symbol,Expr}}
     retvar   :: Symbol
 
     function BookKeeping()
         return new(Dict{Symbol, Expr}(), Dict{Union{Symbol,Expr}, Number}(),
-            Dict{Symbol, Expr}(), Symbol[], Symbol[], Union{Symbol,Expr}[], :nothing)
+            Dict{Symbol, Expr}(), Symbol[], Symbol[], Symbol[], Symbol[], Symbol[],
+            Union{Symbol,Expr}[], :nothing)
     end
 end
 
@@ -47,15 +54,17 @@ Struct related to the returned variables that are pre-allocated when
 struct RetAlloc{T <: Number}
     v0 :: Array{T,1}
     v1 :: Vector{Array{T,1}}
-    # v2 :: Vector{Array{Taylor1{T},2}}
-    # v3 :: Vector{Array{Taylor1{T},3}}
+    v2 :: Vector{Array{T,2}}
+    v3 :: Vector{Array{T,3}}
 
     function RetAlloc{T}() where {T}
-        return new(Array{T,1}(undef, 0), Vector{Array{T,1}}(undef, 0))
+        v1 = Array{T,1}(undef, 0)
+        return new(v1, [v1], [Array{T,2}(undef, 0, 0)], [Array{T,3}(undef, 0, 0, 0)])
     end
 
-    function RetAlloc{T}(v0::Array{T,1}, v1::Vector{Array{T,1}}) where {T}
-        return new(v0, v1)
+    function RetAlloc{T}(v0::Array{T,1}, v1::Vector{Array{T,1}},
+            v2::Vector{Array{T,2}}, v3::Vector{Array{T,3}}) where {T}
+        return new(v0, v1, v2, v3)
     end
 end
 
@@ -164,31 +173,17 @@ function _make_parsed_jetcoeffs(ex::Expr, debug=false)
     # Push preamble and forloopblock to `new_jetcoeffs` and return line
     push!(new_jetcoeffs.args[2].args, forloopblock, Meta.parse("return nothing"))
 
+    # Split v_arraydecl according to the number of indices
+    _split_arraydecl!(bkkeep)
+
     # Add allocated variable definitions to `new_jetcoeffs`, to make it more human readable
-    tmp_defs = [popfirst!(new_jetcoeffs.args[2].args)]
-    @inbounds for (ind, vnew) in enumerate(bkkeep.v_newvars)
-        push!(tmp_defs, :($(vnew) = __ralloc.v0[$(ind)]))
-    end
-    @inbounds for (ind, vnew) in enumerate(bkkeep.v_arraydecl)
-        push!(tmp_defs, :($(vnew) = __ralloc.v1[$(ind)]))
-    end
-    prepend!(new_jetcoeffs.args[2].args, tmp_defs)
+    _allocated_defs!(new_jetcoeffs, bkkeep)
 
     # Define the expressions of the returned vectors in `new_allocjetcoeffs`
     push!(new_allocjetcoeffs.args[2].args, defsprealloc...)
 
     # Define returned expression for `new_allocjetcoeffs`
-    if isempty(bkkeep.v_newvars)
-        ret_defsprealloc = :(Taylor1{_S}[])
-    else
-        ret_defsprealloc = :([$(bkkeep.v_newvars...),])
-    end
-    if isempty(bkkeep.v_arraydecl)
-        ret_tmparrays = :([Vector{Taylor1{_S}}(undef, 0),])
-    else
-        ret_tmparrays = :([$(bkkeep.v_arraydecl...),])
-    end
-    ret_ret = :(return TaylorIntegration.RetAlloc{Taylor1{_S}}($ret_defsprealloc, $ret_tmparrays) )
+    ret_ret = _returned_expr(bkkeep)
 
     # Add return line to `new_allocjetcoeffs`
     push!(new_allocjetcoeffs.args[2].args, ret_ret)
@@ -1078,6 +1073,90 @@ function _recursionloop(fnargs, bkkeep::BookKeeping)
 
     return rec_preamb, rec_fnbody
 end
+
+
+"""
+`_split_arraydecl!(bkkeep)`
+
+Split bkkeep.v_arraydecl in the vector (bkkeep.v_array1), matrix (bkkeep.v_array2), etc,
+to properly construct the `RetAlloc` variable.
+"""
+function _split_arraydecl!(bkkeep::BookKeeping)
+    for s in bkkeep.v_arraydecl
+        for v in values(bkkeep.d_indx)
+            if v.head == :ref && v.args[1] == s
+                if length(v.args) == 2
+                    push!(bkkeep.v_array1, s)
+                    break
+                elseif length(v.args) == 3
+                    push!(bkkeep.v_array2, s)
+                    break
+                elseif length(v.args) == 4
+                    push!(bkkeep.v_array3, s)
+                    break
+                end
+            end
+        end
+    end
+    return nothing
+end
+
+
+"""
+`_allocated_defs!(new_jetcoeffs, bkkeep)`
+
+Add allocated variable definitions to `new_jetcoeffs`, to make it more human readable.
+"""
+function _allocated_defs!(new_jetcoeffs::Expr, bkkeep::BookKeeping)
+    tmp_defs = [popfirst!(new_jetcoeffs.args[2].args)]
+    @inbounds for (ind, vnew) in enumerate(bkkeep.v_newvars)
+        push!(tmp_defs, :($(vnew) = __ralloc.v0[$(ind)]))
+    end
+    @inbounds for (ind, vnew) in enumerate(bkkeep.v_array1)
+        push!(tmp_defs, :($(vnew) = __ralloc.v1[$(ind)]))
+    end
+    @inbounds for (ind, vnew) in enumerate(bkkeep.v_array2)
+        push!(tmp_defs, :($(vnew) = __ralloc.v2[$(ind)]))
+    end
+    @inbounds for (ind, vnew) in enumerate(bkkeep.v_array3)
+        push!(tmp_defs, :($(vnew) = __ralloc.v3[$(ind)]))
+    end
+    prepend!(new_jetcoeffs.args[2].args, tmp_defs)
+    return nothing
+end
+
+
+"""
+`_returned_expr(bkkeep)`
+
+Constructs the expression to be returned by `TaylorIntegration._allocate_jetcoeffs!`
+"""
+function _returned_expr(bkkeep::BookKeeping)
+    if isempty(bkkeep.v_newvars)
+        retv0 = :(Taylor1{_S}[])
+    else
+        retv0 = :([$(bkkeep.v_newvars...),])
+    end
+    if isempty(bkkeep.v_array1)
+        retv1 = :([Array{Taylor1{_S},1}(undef, 0),])
+    else
+        retv1 = :([$(bkkeep.v_array1...),])
+    end
+    if isempty(bkkeep.v_array2)
+        retv2 = :([Array{Taylor1{_S},2}(undef, 0, 0),])
+    else
+        retv2 = :([$(bkkeep.v_array2...),])
+    end
+    if isempty(bkkeep.v_array3)
+        retv3 = :([Array{Taylor1{_S},3}(undef, 0, 0, 0),])
+    else
+        retv3 = :([$(bkkeep.v_array3...),])
+    end
+
+    return :(return TaylorIntegration.RetAlloc{Taylor1{_S}}(
+        $(retv0), $(retv1), $(retv2), $(retv3)))
+end
+
 
 """
 `@taylorize expr`
