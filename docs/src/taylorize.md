@@ -62,18 +62,20 @@ all1 = @allocated taylorinteg(pendulumNP!, q0, t0, tf, 25, 1e-20, maxsteps=1500)
 e1, all1
 ```
 
-We note that the initial number of methods defined for
-`TaylorIntegration.jetcoeffs!` is 2.
+The initial number of methods defined for
+`TaylorIntegration.jetcoeffs!` is 2; yet, since `@taylorize` was used
+in [an example previously](@ref diffeqinterface), the current number
+of methods is 3, as explained below.
 ```@example taylorize
-methods(TaylorIntegration.jetcoeffs!) # default methods
+println(methods(TaylorIntegration.jetcoeffs!)) # default methods
 ```
-Similarly, the number of methods for `TaylorIntegration._allocate_jetcoeffs!` is
-also 2.
+Similarly, the number of methods for `TaylorIntegration._allocate_jetcoeffs!` originally is 2, and for the same reasons it is
+currently 3.
 ```@example taylorize
-methods(TaylorIntegration._allocate_jetcoeffs!) # default methods
+println(methods(TaylorIntegration._allocate_jetcoeffs!)) # default methods
 ```
-Using `@taylorize` will increase this number by creating a new method for these
-two functions.
+Using `@taylorize` will increase this number by creating a new method
+for these functions.
 
 The macro [`@taylorize`](@ref) is intended to be used in front of the function
 that implements the equations of motion. The macro does the following: it
@@ -96,21 +98,21 @@ println(methods(pendulum!))
 ```
 
 ```@example taylorize
-println(methods(TaylorIntegration.jetcoeffs!))
+println(methods(TaylorIntegration.jetcoeffs!)) # result should be 4
 ```
 
 We see that there is only one method of `pendulum!`, and
-there is a *new* method (three in total) of `TaylorIntegration.jetcoeffs!`,
+there is a *new* method (four in total) of `TaylorIntegration.jetcoeffs!`,
 whose signature appears
-in this documentation as `Val{Main.ex-taylorize.pendulum!}`. It is
+in this documentation as `Val{Main.pendulum!}`. It is
 a specialized version for the function `pendulum!` (with some extra information
 about the module where the function was created). This method
 is selected internally if it exists (default), exploiting dispatch, when
-calling [`taylorinteg`](@ref) or [`lyap_taylorinteg`](@ref); to integrate
-using the hard-coded (default) method of [`TaylorIntegration.jetcoeffs!`](@ref) of the
+calling [`taylorinteg`](@ref) or [`lyap_taylorinteg`](@ref). In order to integrate
+using the hard-coded standard (default) method of [`TaylorIntegration.jetcoeffs!`](@ref) of the
 integration above, the keyword argument `parse_eqs` has to be set to `false`.
 Similarly, one can check that there exists a new method of
-`TaylorIntegration._allocate_jetcoeffs!`
+`TaylorIntegration._allocate_jetcoeffs!`.
 
 Now we carry out the integration using the specialized method; note that we
 use the same instruction as above; the default value for the keyword argument `parse_eqs`
@@ -164,7 +166,7 @@ The speed-up obtained comes from the design of the new (specialized) method of
 allocations and some repeated computations. This is achieved by knowing the
 specific AST of the function of the ODEs integrated, which is walked
 through and *translated* into the actual implementation, where some
-required auxiliary arrays are created, and the low-level functions defined in
+required auxiliary arrays are created and reused, and the low-level functions defined in
 `TaylorSeries.jl` are used.
 For this, we heavily rely on [`Espresso.jl`](https://github.com/dfdx/Espresso.jl) and
 some metaprogramming; we thank Andrei Zhabinski for his help and comments.
@@ -186,7 +188,7 @@ new_ex1, new_ex2 = TaylorIntegration._make_parsed_jetcoeffs(ex)
 
 The first function has a similar structure as the hard-coded method of
 `TaylorIntegration.jetcoeffs!`, but uses low-level functions in `TaylorSeries`
-(e.g., `sincos!` above); all temporary `Taylor1` objects as well as declared
+(e.g., `sincos!` above). Temporary `Taylor1` objects as well as declared
 arrays are allocated once by `TaylorIntegration._allocate_jetcoeffs!`.
 More complex functions quickly become very difficult to read. Note that,
 if necessary, one can further optimize `new_ex` manually.
@@ -209,9 +211,10 @@ list some limitations and provide some advice.
   example, the expression `x += y` is not recognized by `@taylorize`. Likewise,
   expressions such as `x = x+y` are not supported by `@taylorize` and should be
   replaced by equivalent expressions in which variables appear only on one side
-  of the assignment; e.g. `z = x+y; x = z`.
+  of the assignment; e.g. `z = x+y; x = z`. The introduction of such temporary
+  variables `z` is left to the user.
 
-- The macro allows the use of array declarations through `Array`, but other ways
+- The macro allows the use of array declarations through `Array` or `Vector`, but other ways
   (e.g. `similar`) are not yet implemented. Note that certain temporary arrays
   may be introduced to avoid re-computating certain expressions; only up-to-three
   indices expressions are currently handled.
@@ -233,23 +236,23 @@ list some limitations and provide some advice.
   rather than comparing against numeric literals.
 
 - Input and output lengths should be determined at the time of `@taylorize`
-  application, not at runtime.  Avoid using the length of the input as an
+  application (parse time), not at runtime.  Avoid using the length of the input as an
   implicit indicator of whether to write all elements of the output.  If
-  conditional output of auxiliary equations is desired, use explicit methods,
-  such as through parameters or by setting auxiliary `t0` vector elements
+  conditional output of auxiliary equations is desired use explicit methods,
+  such as through parameters or by setting auxiliary vector elements
   to zero, and assigning unwanted auxiliary outputs zero.
 
 - Expressions which correspond to function calls (so the `head` field is
   `:call`) which are not recognized by the parser are simply copied. The
   heuristics used, especially for vectors, may not work for all cases.
 
-- Use `local` for internal parameters (simple constant values); this improves
+- Use `local` for internal parameters, e.g., simple constant values; this improves
   performance. Do not use it if the variable is needed to be Taylor expanded
   during the integration step.
 
 - To examine the code generated for `jetcoeffs!` and `_allocate_jetcoeffs!`
   for a specific ODE function, follow the pendulum example above; create an expression
-  by wrapping the ODE function (without `@taylorize` prefix) in `:()` and
+  by wrapping the ODE function (without `@taylorize` prefix) in a `:()`-block, and
   supply the expression to `TaylorIntegration._make_parsed_jetcoeffs`.  This
   can help in debugging issues with either function generated by `@taylorize`.
 
@@ -260,8 +263,8 @@ list some limitations and provide some advice.
   thread-safe. For more information about multi-threading, the reader is
   referred to the [Julia documentation](https://docs.julialang.org/en/v1/manual/multi-threading/#man-multithreading).
 
-It is recommended to skim `test/taylorize.jl`, which implements different
-cases and highlights examples where the macro does not work and how to solve the problem;
+We recommend to skim `test/taylorize.jl`, which implements different
+cases and highlights examples where the macro does not work, and how to solve the problem;
 read the information that is in the comments.
 
 Please report any problems you may encounter.
