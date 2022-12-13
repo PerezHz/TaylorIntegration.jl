@@ -56,9 +56,9 @@ tf = 10000.0
 q0 = [1.3, 0.0]
 
 # The actual integration
-t1, x1 = taylorinteg(pendulumNP!, q0, t0, tf, 25, 1e-20, maxsteps=1500); # warm-up run
-e1 = @elapsed taylorinteg(pendulumNP!, q0, t0, tf, 25, 1e-20, maxsteps=1500);
-all1 = @allocated taylorinteg(pendulumNP!, q0, t0, tf, 25, 1e-20, maxsteps=1500);
+t1, x1 = taylorinteg(pendulumNP!, q0, t0, tf, 25, 1e-20, maxsteps=50000); # warm-up run
+e1 = @elapsed taylorinteg(pendulumNP!, q0, t0, tf, 25, 1e-20, maxsteps=50000);
+all1 = @allocated taylorinteg(pendulumNP!, q0, t0, tf, 25, 1e-20, maxsteps=50000);
 e1, all1
 ```
 
@@ -119,9 +119,9 @@ use the same instruction as above; the default value for the keyword argument `p
 is `true`, so we may omit it.
 
 ```@example taylorize
-t2, x2 = taylorinteg(pendulum!, q0, t0, tf, 25, 1e-20, maxsteps=1500); # warm-up run
-e2 = @elapsed taylorinteg(pendulum!, q0, t0, tf, 25, 1e-20, maxsteps=1500);
-all2 = @allocated taylorinteg(pendulum!, q0, t0, tf, 25, 1e-20, maxsteps=1500);
+t2, x2 = taylorinteg(pendulum!, q0, t0, tf, 25, 1e-20, maxsteps=50000); # warm-up run
+e2 = @elapsed taylorinteg(pendulum!, q0, t0, tf, 25, 1e-20, maxsteps=50000);
+all2 = @allocated taylorinteg(pendulum!, q0, t0, tf, 25, 1e-20, maxsteps=50000);
 e2, all2
 ```
 
@@ -140,10 +140,10 @@ created by [`@taylorize`](@ref), [`taylorinteg`](@ref) and
 [`lyap_taylorinteg`](@ref) recognize the keyword argument `parse_eqs`;
 setting it to `false` causes the standard method to be used.
 ```@example taylorize
-taylorinteg(pendulum!, q0, t0, tf, 25, 1e-20, maxsteps=1500, parse_eqs=false); # warm-up run
+taylorinteg(pendulum!, q0, t0, tf, 25, 1e-20, maxsteps=50000, parse_eqs=false); # warm-up run
 
-e3 = @elapsed taylorinteg(pendulum!, q0, t0, tf, 25, 1e-20, maxsteps=1500, parse_eqs=false);
-all3 = @allocated taylorinteg(pendulum!, q0, t0, tf, 25, 1e-20, maxsteps=1500, parse_eqs=false);
+e3 = @elapsed taylorinteg(pendulum!, q0, t0, tf, 25, 1e-20, maxsteps=50000, parse_eqs=false);
+all3 = @allocated taylorinteg(pendulum!, q0, t0, tf, 25, 1e-20, maxsteps=50000, parse_eqs=false);
 e1/e3, all1/all3
 ```
 
@@ -159,7 +159,7 @@ e4 = @elapsed solve(prob, TaylorMethod(25), abstol=1e-20, parse_eqs=true);
 e1/e4
 ```
 Note that there is an additional cost to using `solve` in comparison
-with `taylorinteg`.
+with `taylorinteg`, but still `@taylorize` yields improved running times.
 
 The speed-up obtained comes from the design of the new (specialized) method of
 `TaylorIntegration.jetcoeffs!` as described [above](@ref idea): it avoids some
