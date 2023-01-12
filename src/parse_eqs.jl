@@ -18,6 +18,7 @@ Mutable struct that contains all the bookkeeping vectors/dictionaries used withi
     - `v_array1`   : Symbols which are explicitly declared as Array{Taylor1{T},1}
     - `v_array2`   : Symbols which are explicitly declared as Array{Taylor1{T},2}
     - `v_array3`   : Symbols which are explicitly declared as Array{Taylor1{T},3}
+    - `v_array4`   : Symbols which are explicitly declared as Array{Taylor1{T},4}
     - `v_preamb`   : Symbols or Expr used in the preamble (declarations, etc)
     - `retvar`     : *Guessed* returned variable, which defines the LHS of the ODEs
 
@@ -31,12 +32,13 @@ mutable struct BookKeeping
     v_array1 :: Vector{Symbol}
     v_array2 :: Vector{Symbol}
     v_array3 :: Vector{Symbol}
+    v_array4 :: Vector{Symbol}
     v_preamb :: Vector{Union{Symbol,Expr}}
     retvar   :: Symbol
 
     function BookKeeping()
         return new(Dict{Symbol, Expr}(), Dict{Union{Symbol,Expr}, Number}(),
-            Dict{Symbol, Expr}(), Symbol[], Symbol[], Symbol[], Symbol[], Symbol[],
+            Dict{Symbol, Expr}(), Symbol[], Symbol[], Symbol[], Symbol[], Symbol[], Symbol[],
             Union{Symbol,Expr}[], :nothing)
     end
 end
@@ -56,15 +58,17 @@ struct RetAlloc{T <: Number}
     v1 :: Vector{Array{T,1}}
     v2 :: Vector{Array{T,2}}
     v3 :: Vector{Array{T,3}}
+    v4 :: Vector{Array{T,4}}
 
     function RetAlloc{T}() where {T}
         v1 = Array{T,1}(undef, 0)
-        return new(v1, [v1], [Array{T,2}(undef, 0, 0)], [Array{T,3}(undef, 0, 0, 0)])
+        return new(v1, [v1], [Array{T,2}(undef, 0, 0)], [Array{T,3}(undef, 0, 0, 0)],
+            [Array{T,4}(undef, 0, 0, 0, 0)])
     end
 
     function RetAlloc{T}(v0::Array{T,1}, v1::Vector{Array{T,1}},
-            v2::Vector{Array{T,2}}, v3::Vector{Array{T,3}}) where {T}
-        return new(v0, v1, v2, v3)
+            v2::Vector{Array{T,2}}, v3::Vector{Array{T,3}}, v4::Vector{Array{T,4}}) where {T}
+        return new(v0, v1, v2, v3, v4)
     end
 end
 
@@ -1076,6 +1080,9 @@ function _split_arraydecl!(bkkeep::BookKeeping)
                 elseif length(v.args) == 4
                     push!(bkkeep.v_array3, s)
                     break
+                elseif length(v.args) == 5
+                    push!(bkkeep.v_array4, s)
+                    break
                 end
             end
         end
@@ -1134,9 +1141,14 @@ function _returned_expr(bkkeep::BookKeeping)
     else
         retv3 = :([$(bkkeep.v_array3...),])
     end
+    if isempty(bkkeep.v_array4)
+        retv4 = :([Array{Taylor1{_S},3}(undef, 0, 0, 0, 0),])
+    else
+        retv4 = :([$(bkkeep.v_array4...),])
+    end
 
     return :(return TaylorIntegration.RetAlloc{Taylor1{_S}}(
-        $(retv0), $(retv1), $(retv2), $(retv3)))
+        $(retv0), $(retv1), $(retv2), $(retv3), $(retv4)))
 end
 
 
