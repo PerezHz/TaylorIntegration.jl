@@ -1261,7 +1261,8 @@ import Logging: Warn
             :(return TaylorIntegration.RetAlloc{Taylor1{_S}}([aa],
                 [Array{Taylor1{_S},1}(undef, 0)],
                 [Array{Taylor1{_S},2}(undef, 0, 0)],
-                [Array{Taylor1{_S},3}(undef, 0, 0, 0)]))
+                [Array{Taylor1{_S},3}(undef, 0, 0, 0)],
+                [Array{Taylor1{_S},4}(undef, 0, 0, 0, 0)]))
 
         # Issue 96: deal with `elseif`s, `continue` and `break`
         @test newex1.args[2].args[6].args[2].args[3] == :(

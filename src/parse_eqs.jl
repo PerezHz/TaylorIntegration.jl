@@ -1084,7 +1084,7 @@ function _split_arraydecl!(bkkeep::BookKeeping)
                     push!(bkkeep.v_array4, s)
                     break
                 else
-                    throw(DimensionMismatch("`@taylorize` allows only to parse up tp 5-index arrays"))
+                    error("Error: `@taylorize` allows only to parse up tp 5-index arrays")
                 end
             end
         end
@@ -1147,7 +1147,7 @@ function _returned_expr(bkkeep::BookKeeping)
         retv3 = :([$(bkkeep.v_array3...),])
     end
     if isempty(bkkeep.v_array4)
-        retv4 = :([Array{Taylor1{_S},3}(undef, 0, 0, 0, 0),])
+        retv4 = :([Array{Taylor1{_S},4}(undef, 0, 0, 0, 0),])
     else
         retv4 = :([$(bkkeep.v_array4...),])
     end
