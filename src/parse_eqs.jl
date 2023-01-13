@@ -1083,6 +1083,8 @@ function _split_arraydecl!(bkkeep::BookKeeping)
                 elseif length(v.args) == 5
                     push!(bkkeep.v_array4, s)
                     break
+                else
+                    throw(DimensionMismatch("`@taylorize` allows only to parse up tp 5-index arrays"))
                 end
             end
         end
@@ -1109,6 +1111,9 @@ function _allocated_defs!(new_jetcoeffs::Expr, bkkeep::BookKeeping)
     end
     @inbounds for (ind, vnew) in enumerate(bkkeep.v_array3)
         push!(tmp_defs, :($(vnew) = __ralloc.v3[$(ind)]))
+    end
+    @inbounds for (ind, vnew) in enumerate(bkkeep.v_array4)
+        push!(tmp_defs, :($(vnew) = __ralloc.v4[$(ind)]))
     end
     prepend!(new_jetcoeffs.args[2].args, tmp_defs)
     return nothing
