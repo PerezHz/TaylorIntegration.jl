@@ -1108,7 +1108,7 @@ import Logging: Warn
             end
             nothing
         end)
-        @test_throws "Error: `@taylorize` allows only to parse up tp 5-index arrays" TI._make_parsed_jetcoeffs(ex)
+        @test_throws ErrorException("Error: `@taylorize` allows only to parse up tp 5-index arrays") TI._make_parsed_jetcoeffs(ex)
 
     end
 
