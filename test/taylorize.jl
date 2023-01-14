@@ -1097,6 +1097,19 @@ import Logging: Warn
             true, kepler1!, tT, qT, similar(qT), -1.0))
         @test !parse_eqs
         @test_throws MethodError TI.__jetcoeffs!(Val(kepler1!), tT, qT, similar(qT), -1.0, rv)
+
+        # Error: `@taylorize` allows only to parse up tp 5-index arrays
+        ex = :(function err_arr_indx!(Dz, z, p, t)
+            n = size(z,1)
+            arr5 = Array{typeof(z[1])}(undef,n,1,1,1,1)
+            for i in eachindex(z)
+                arr5[i,1,1,1,1] = 0.0
+                Dz[i] = z[i] + arr5[i,1,1,1,1]
+            end
+            nothing
+        end)
+        @test_throws "Error: `@taylorize` allows only to parse up tp 5-index arrays" TI._make_parsed_jetcoeffs(ex)
+
     end
 
 
