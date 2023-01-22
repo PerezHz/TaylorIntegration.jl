@@ -198,7 +198,7 @@ function DiffEqBase.solve(
         kwargs...) where
         {uType, tupType, isinplace}
 
-    SciMLBase.unwrapped_f(prob.f)
+    # SciMLBase.unwrapped_f(prob.f)
 
     if verbose
         warned = !isempty(kwargs) && check_keywords(alg, kwargs, warnlist)
