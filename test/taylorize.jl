@@ -1101,9 +1101,11 @@ import Logging: Warn
         # Error: `@taylorize` allows only to parse up tp 5-index arrays
         ex = :(function err_arr_indx!(Dz, z, p, t)
             n = size(z,1)
-            arr5 = Array{typeof(z[1])}(undef,n,1,1,1,1)
+            arr3 = Array{typeof(z[1])}(undef, n, 1, 1)
+            arr4 = Array{typeof(z[1])}(undef, n, 1, 1, 1)
+            arr5 = Array{typeof(z[1])}(undef, n, 1, 1, 1, 1)
             for i in eachindex(z)
-                arr5[i,1,1,1,1] = 0.0
+                arr5[i,1,1,1,1] = zero(z[1])
                 Dz[i] = z[i] + arr5[i,1,1,1,1]
             end
             nothing
@@ -1296,6 +1298,27 @@ import Logging: Warn
                     end
                 end
             end)
+
+        # Throws no error
+        ex = :(
+            function err_arr_indx!(Dz, z, p, t)
+                local n = size(z,1)  # important to include it!
+                arr3 = Array{typeof(z[1])}(undef, n, 1, 1)
+                arr4 = Array{typeof(z[1])}(undef, n, 1, 1, 1)
+                for i in eachindex(z)
+                    arr3[i,1,1] = zero(z[1])
+                    arr4[i,1,1,1] = zero(z[1])
+                    Dz[i] = z[i] + arr4[i,1,1,1]
+                end
+                nothing
+            end)
+        newex1, newex2 = TI._make_parsed_jetcoeffs(ex)
+        @test newex1.args[2].args[2] == :(arr3 = __ralloc.v3[1])
+        @test newex1.args[2].args[3] == :(arr4 = __ralloc.v4[1])
+        @test newex2.args[2].args[end].args[1].args[3] == :([Array{Taylor1{_S}, 1}(undef, 0)])
+        @test newex2.args[2].args[end].args[1].args[4] == :([Array{Taylor1{_S}, 2}(undef, 0, 0)])
+        @test newex2.args[2].args[end].args[1].args[5] == :([arr3])
+        @test newex2.args[2].args[end].args[1].args[6] == :([arr4])
     end
 
     @testset "Test @taylorize with @threads" begin
