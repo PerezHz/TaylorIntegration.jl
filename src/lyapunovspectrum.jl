@@ -190,11 +190,10 @@ function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
 
     return δt
 end
-function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
-    dx::Vector{Taylor1{U}}, #xaux::Vector{Taylor1{U}},
+function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}}, dx::Vector{Taylor1{U}},
     δx::Array{TaylorN{Taylor1{U}},1}, dδx::Array{TaylorN{Taylor1{U}},1},
     jac::Array{Taylor1{U},2}, abstol::T, _δv::Vector{TaylorN{Taylor1{U}}},
-    varsaux::Array{Taylor1{U},3}, params, tmpTaylor, arrTaylor,
+    varsaux::Array{Taylor1{U},3}, params, rv::RetAlloc{Taylor1{U}},
     jacobianfunc! =nothing) where {T<:Real, U<:Number}
 
     # Dimensions of phase-space: dof
@@ -202,7 +201,7 @@ function lyap_taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
     dof = length(δx)
 
     # Compute the Taylor coefficients associated to trajectory
-    __jetcoeffs!(Val(true), f!, t, view(x, 1:dof), view(dx, 1:dof), params, tmpTaylor, arrTaylor)
+    __jetcoeffs!(Val(true), f!, t, view(x, 1:dof), view(dx, 1:dof), params, rv)
 
     # Compute stability matrix
     stabilitymatrix!(f!, t, x, δx, dδx, jac, _δv, params, jacobianfunc!)
@@ -258,14 +257,14 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
     end
 
     # Determine if specialized jetcoeffs! method exists
-    parse_eqs, tmpTaylor, arrTaylor = _determine_parsing!(parse_eqs, f!, t,
-                                        view(x, 1:dof), view(dx, 1:dof), params)
+    parse_eqs, rv = _determine_parsing!(parse_eqs, f!, t,
+                    view(x, 1:dof), view(dx, 1:dof), params)
 
     if parse_eqs
         # Re-initialize the Taylor1 expansions
         t = t0 + Taylor1( T, order )
         x .= Taylor1.( x0, order )
-        return _lyap_taylorinteg!(f!, t, x, dx, q0, t0, tmax, abstol, jt, _dv, tmpTaylor, arrTaylor,
+        return _lyap_taylorinteg!(f!, t, x, dx, q0, t0, tmax, abstol, jt, _dv, rv,
             params, jacobianfunc!, maxsteps=maxsteps)
     else
         return _lyap_taylorinteg!(f!, t, x, dx, q0, t0, tmax, abstol, jt, _dv,
@@ -352,8 +351,7 @@ end
 
 function _lyap_taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
         q0::Array{U,1}, t0::T, tmax::T, abstol::T, jt::Matrix{U}, _δv::Array{TaylorN{Taylor1{U}},1},
-        tmpTaylor::Array{Taylor1{U},1}, arrTaylor,
-        params, jacobianfunc!; maxsteps::Int=500) where {T<:Real, U<:Number}
+        rv::RetAlloc{Taylor1{U}}, params, jacobianfunc!; maxsteps::Int=500) where {T<:Real, U<:Number}
 
     # Allocation
     order = get_order(t)
@@ -392,7 +390,7 @@ function _lyap_taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array
     nsteps = 1
     while sign_tstep*t0 < sign_tstep*tmax
         δt = lyap_taylorstep!(f!, t, x, dx, δx, dδx, jac, abstol, _δv,
-            varsaux, params, tmpTaylor, arrTaylor, jacobianfunc!) # δt is positive!
+            varsaux, params, rv, jacobianfunc!) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
         evaluate!(x, δt, x0) # Update x0
@@ -455,14 +453,15 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
     end
 
     # Determine if specialized jetcoeffs! method exists
-    parse_eqs, tmpTaylor, arrTaylor = _determine_parsing!(parse_eqs, f!, t,
-                                        view(x, 1:dof), view(dx, 1:dof), params)
+    parse_eqs, rv = _determine_parsing!(parse_eqs, f!, t,
+                    view(x, 1:dof), view(dx, 1:dof), params)
 
     if parse_eqs
         # Re-initialize the Taylor1 expansions
         t = trange[1] + Taylor1( T, order )
         x .= Taylor1.( x0, order )
-        return _lyap_taylorinteg!(f!, t, x, dx, q0, trange, abstol, jt, _dv, tmpTaylor, arrTaylor,
+        tmpTaylor, arrTaylor = rv.v0, rv.v1
+        return _lyap_taylorinteg!(f!, t, x, dx, q0, trange, abstol, jt, _dv, rv,
             params, jacobianfunc!, maxsteps=maxsteps)
     else
         return _lyap_taylorinteg!(f!, t, x, dx, q0, trange, abstol, jt, _dv,
@@ -579,8 +578,7 @@ end
 
 function _lyap_taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
         q0::Array{U,1}, trange::AbstractVector{T}, abstol::T, jt::Matrix{U}, _δv::Array{TaylorN{Taylor1{U}},1},
-        tmpTaylor::Vector{Taylor1{U}}, arrTaylor,
-        params, jacobianfunc!; maxsteps::Int=500) where {T<:Real, U<:Number}
+        rv::RetAlloc{Taylor1{U}}, params, jacobianfunc!; maxsteps::Int=500) where {T<:Real, U<:Number}
 
     # Allocation
     order = get_order(t)
@@ -623,7 +621,7 @@ function _lyap_taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array
     nsteps = 1
     while sign_tstep*t0 < sign_tstep*tmax
         δt = lyap_taylorstep!(f!, t, x, dx, δx, dδx, jac, abstol, _δv,
-            varsaux, params, tmpTaylor, arrTaylor, jacobianfunc!) # δt is positive!
+            varsaux, params, rv, jacobianfunc!) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
         evaluate!(x, δt, x0) # Update x0

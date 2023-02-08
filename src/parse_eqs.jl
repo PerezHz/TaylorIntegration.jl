@@ -15,6 +15,10 @@ Mutable struct that contains all the bookkeeping vectors/dictionaries used withi
     - `d_decl`     : Dictionary declared arrays
     - `v_newvars`  : Symbols of auxiliary indexed vars
     - `v_arraydecl`: Symbols which are explicitly declared as Array or Vector
+    - `v_array1`   : Symbols which are explicitly declared as Array{Taylor1{T},1}
+    - `v_array2`   : Symbols which are explicitly declared as Array{Taylor1{T},2}
+    - `v_array3`   : Symbols which are explicitly declared as Array{Taylor1{T},3}
+    - `v_array4`   : Symbols which are explicitly declared as Array{Taylor1{T},4}
     - `v_preamb`   : Symbols or Expr used in the preamble (declarations, etc)
     - `retvar`     : *Guessed* returned variable, which defines the LHS of the ODEs
 
@@ -25,14 +29,49 @@ mutable struct BookKeeping
     d_decl   :: Dict{Symbol, Expr}
     v_newvars   :: Vector{Symbol}
     v_arraydecl :: Vector{Symbol}
+    v_array1 :: Vector{Symbol}
+    v_array2 :: Vector{Symbol}
+    v_array3 :: Vector{Symbol}
+    v_array4 :: Vector{Symbol}
     v_preamb :: Vector{Union{Symbol,Expr}}
     retvar   :: Symbol
 
     function BookKeeping()
         return new(Dict{Symbol, Expr}(), Dict{Union{Symbol,Expr}, Number}(),
-            Dict{Symbol, Expr}(), Symbol[], Symbol[], Union{Symbol,Expr}[], :nothing)
+            Dict{Symbol, Expr}(), Symbol[], Symbol[], Symbol[], Symbol[], Symbol[], Symbol[],
+            Union{Symbol,Expr}[], :nothing)
     end
 end
+
+
+"""
+    RetAlloc{Taylor1{T}}
+
+Struct related to the returned variables that are pre-allocated when
+`@taylorize` is used.
+    - `v0`   : Vector{Taylor1{T}}
+    - `v1`   : Vector{Vector{Taylor1{T}}}
+
+"""
+struct RetAlloc{T <: Number}
+    v0 :: Array{T,1}
+    v1 :: Vector{Array{T,1}}
+    v2 :: Vector{Array{T,2}}
+    v3 :: Vector{Array{T,3}}
+    v4 :: Vector{Array{T,4}}
+
+    function RetAlloc{T}() where {T}
+        v1 = Array{T,1}(undef, 0)
+        return new(v1, [v1], [Array{T,2}(undef, 0, 0)], [Array{T,3}(undef, 0, 0, 0)],
+            [Array{T,4}(undef, 0, 0, 0, 0)])
+    end
+
+    function RetAlloc{T}(v0::Array{T,1}, v1::Vector{Array{T,1}},
+            v2::Vector{Array{T,2}}, v3::Vector{Array{T,3}}, v4::Vector{Array{T,4}}) where {T}
+        return new(v0, v1, v2, v3, v4)
+    end
+end
+
 
 """
 `inbookkeeping(v, bkkeep::BookKeeping)`
@@ -49,7 +88,7 @@ Checks if `v` is declared in `bkkeep`, considering the `d_indx`, `v_newvars` and
 # The (irrelevant) `nothing` below is there to have a `:block` Expr; it is deleted later
 const _HEAD_PARSEDFN_SCALAR = sanitize(:(
     function TaylorIntegration.jetcoeffs!(::Val{__fn}, __tT::Taylor1{_T}, __x::Taylor1{_S},
-            __params, __tmpTaylor, __arrTaylor) where {_T<:Real, _S<:Number}
+            __params, __ralloc::TaylorIntegration.RetAlloc{Taylor1{_S}}) where {_T<:Real, _S<:Number}
         order = __tT.order
         nothing
     end)
@@ -58,7 +97,7 @@ const _HEAD_PARSEDFN_SCALAR = sanitize(:(
 const _HEAD_PARSEDFN_VECTOR = sanitize(:(
     function TaylorIntegration.jetcoeffs!(::Val{__fn}, __tT::Taylor1{_T},
             __x::AbstractArray{Taylor1{_S}, _N}, __dx::AbstractArray{Taylor1{_S}, _N},
-            __params, __tmpTaylor, __arrTaylor) where {_T<:Real, _S<:Number, _N}
+            __params, __ralloc::TaylorIntegration.RetAlloc{Taylor1{_S}}) where {_T<:Real, _S<:Number, _N}
         order = __tT.order
         nothing
     end)
@@ -89,7 +128,7 @@ const _DECL_ARRAY = sanitize( Expr(:block,
 
 
 """
-`_make_parsed_jetcoeffs( ex, debug=false )`
+`_make_parsed_jetcoeffs( ex )`
 
 This function constructs the expressions of two new methods, the first equivalent to the
 differential equations (jetcoeffs!), which exploits the mutating functions of TaylorSeries.jl,
@@ -97,20 +136,15 @@ and the second one (_allocate_jetcoeffs) preallocates any auxiliary `Taylor1` or
 `Vector{Taylor1{T}}` needed.
 
 """
-function _make_parsed_jetcoeffs(ex::Expr, debug=false)
+function _make_parsed_jetcoeffs(ex::Expr)
     # Extract the name, args and body of the function
     # `fn` name of the function having the ODEs
     # `fnargs` arguments of the function
     # `fnbody` future transformed function body
     fn, fnargs, fnbody = _extract_parts(ex)
-    debug && (println("****** _extract_parts ******");
-        @show(fn, fnargs, fnbody); println())
 
     # Set up the Expr for the new functions
     new_jetcoeffs, new_allocjetcoeffs = _newhead(fn, fnargs)
-
-    # Expr for the for-loop block for the recursion (of the `x` variable)
-    forloopblock = Expr(:for, :(ord = 1:order-1), Expr(:block, :(ordnext = ord + 1)) )
 
     # Transform the graph representation of the body of the functions:
     # defspreamble: inicializations used for the zeroth order (preamble)
@@ -118,40 +152,35 @@ function _make_parsed_jetcoeffs(ex::Expr, debug=false)
     # fnbody: transformed function body, using mutating functions from TaylorSeries;
     #         used later within the recursion loop
     # bkkeep: book-keeping structure having info of the variables
-    defspreamble, defsprealloc, fnbody, bkkeep = _preamble_body(fnbody, fnargs, debug)
-    debug && (println("****** _preamble_body ******");
-        @show(defspreamble); println(); @show(defsprealloc); println();
-        @show(fnbody); println(); @show(bkkeep); println())
+    defspreamble, defsprealloc, fnbody, bkkeep = _preamble_body(fnbody, fnargs)
 
     # Create body of recursion loop; temporary assignements may be needed.
     # rec_preamb: recursion loop for the preamble (first order correction)
     # rec_fnbody: recursion loop for the body-function (recursion loop for higher orders)
     rec_preamb, rec_fnbody = _recursionloop(fnargs, bkkeep)
-    debug && (println("****** _recursionloop ******");
-        @show(rec_preamb); println(); @show(rec_fnbody); println())
 
+    # Expr for the for-loop block for the recursion (of the `x` variable)
+    forloopblock = Expr(:for, :(ord = 1:order-1), Expr(:block, :(ordnext = ord + 1)) )
     # Add rec_fnbody to forloopblock
     push!(forloopblock.args[2].args, fnbody.args[1].args..., rec_fnbody)
 
-    # Add preamble and recursion body to `new_allocjetcoeffs`
+    # Add preamble and recursion body to `new_jetcoeffs`
     push!(new_jetcoeffs.args[2].args, defspreamble..., rec_preamb)
 
-    # Push preamble and forloopblock to `new_allocjetcoeffs` and return line
+    # Push preamble and forloopblock to `new_jetcoeffs` and return line
     push!(new_jetcoeffs.args[2].args, forloopblock, Meta.parse("return nothing"))
+
+    # Split v_arraydecl according to the number of indices
+    _split_arraydecl!(bkkeep)
+
+    # Add allocated variable definitions to `new_jetcoeffs`, to make it more human readable
+    _allocated_defs!(new_jetcoeffs, bkkeep)
 
     # Define the expressions of the returned vectors in `new_allocjetcoeffs`
     push!(new_allocjetcoeffs.args[2].args, defsprealloc...)
-    if isempty(bkkeep.v_newvars)
-        ret_defsprealloc = :(Taylor1{_S}[])
-    else
-        ret_defsprealloc = :([$(bkkeep.v_newvars...),])
-    end
-    if isempty(bkkeep.v_arraydecl)
-        ret_tmparrays = :([Vector{Taylor1{_S}}(undef, 0),])
-    else
-        ret_tmparrays = :([$(bkkeep.v_arraydecl...),])
-    end
-    ret_ret = :(return $(ret_defsprealloc), $(ret_tmparrays))
+
+    # Define returned expression for `new_allocjetcoeffs`
+    ret_ret = _returned_expr(bkkeep)
 
     # Add return line to `new_allocjetcoeffs`
     push!(new_allocjetcoeffs.args[2].args, ret_ret)
@@ -172,21 +201,10 @@ function _make_parsed_jetcoeffs(ex::Expr, debug=false)
             Dict(:__tT => fnargs[4], :__params => fnargs[3],
                 :(__x) => fnargs[2], :(__dx) => fnargs[1], :(__fn) => fn ))
 
-    else
-        # A priori this is not needed
-        throw(ArgumentError("Wrong number of arguments in `fnargs`"))
+    # else
+    #     # A priori this is not needed
+    #     throw(ArgumentError("Wrong number of arguments in `fnargs`"))
     end
-
-    # Bring back old variable-names to `new_jecoeffs`; includes proper renaming
-    # of the temporal arrays
-    dd = Dict{Symbol, Expr}()
-    @inbounds for (ind, vnew) in enumerate(bkkeep.v_newvars)
-        merge!(dd, Dict(vnew => Expr(:ref, :__tmpTaylor, ind)))
-    end
-    @inbounds for (ind, vnew) in enumerate(bkkeep.v_arraydecl)
-        merge!(dd, Dict(vnew => Expr(:ref, :__arrTaylor, ind)))
-    end
-    new_jetcoeffs = subs(new_jetcoeffs, dd)
 
     return new_jetcoeffs, new_allocjetcoeffs
 end
@@ -309,7 +327,7 @@ end
 
 
 """
-`_preamble_body(fnbody, fnargs, debug=false)`
+`_preamble_body(fnbody, fnargs)`
 
 Returns expressions for the preamble, the declaration of
 arrays, the body and the bookkeeping struct, which will be used to build
@@ -318,21 +336,17 @@ the original function (already adapted), `fnargs` is a vector of symbols
 of the original diferential equations function.
 
 """
-function _preamble_body(fnbody, fnargs, debug=false)
+function _preamble_body(fnbody, fnargs)
     # Inicialize BookKeeping struct
     bkkeep = BookKeeping()
 
     # Rename vars to have the body in non-indexed form; bkkeep has different entries
     # for bookkeeping variables/symbolds, including indexed ones
     fnbody, bkkeep.d_indx = _rename_indexedvars(fnbody)
-    debug && (println("------ _rename_indexedvars ------");
-        @show(fnbody); println(); @show(bkkeep.d_indx); println())
 
     # Create `newfnbody` which corresponds to `fnbody`, cleaned (without irrelevant comments)
     # and with all new variables in place; bkkeep.d_indx is updated
     newfnbody = _newfnbody!(fnbody, fnargs, bkkeep)
-    debug && (println("------ _newfnbody ------");
-        @show(newfnbody); println(); @show(bkkeep); println())
 
     # Parse `newfnbody` and create `prepreamble` and `prealloc`, updating `bkkeep`.
     # These objects use the mutating functions from TaylorSeries.
@@ -347,9 +361,6 @@ function _preamble_body(fnbody, fnargs, debug=false)
     newfnbody = subs(newfnbody, bkkeep.d_assign)
     preamble = subs(preamble, bkkeep.d_assign)
     prealloc = subs(prealloc, bkkeep.d_assign)
-    debug && (println("------ _parse_newfnbody! ------");
-        @show(newfnbody); println(); @show(preamble); println();
-        @show(prealloc); println(); @show(bkkeep); println())
 
     # Include the assignement of indexed auxiliary variables
     defsprealloc = _defs_allocs!(prealloc, fnargs, bkkeep, false)
@@ -360,10 +371,6 @@ function _preamble_body(fnbody, fnargs, debug=false)
 
     # Define retvar; for scalar eqs is the last entry included in v_newvars
     bkkeep.retvar = length(fnargs) == 3 ? subs(bkkeep.v_newvars[end], bkkeep.d_indx) : fnargs[1]
-
-    debug && (println("------ _defs_allocs! ------");
-        @show(defsprealloc); println(); @show(preamble); println();
-        @show(newfnbody); println(); @show(bkkeep); println())
 
     return defspreamble, defsprealloc, newfnbody, bkkeep
 end
@@ -1052,6 +1059,103 @@ function _recursionloop(fnargs, bkkeep::BookKeeping)
 
     return rec_preamb, rec_fnbody
 end
+
+
+"""
+`_split_arraydecl!(bkkeep)`
+
+Split bkkeep.v_arraydecl in the vector (bkkeep.v_array1), matrix (bkkeep.v_array2), etc,
+to properly construct the `RetAlloc` variable.
+"""
+function _split_arraydecl!(bkkeep::BookKeeping)
+    for s in bkkeep.v_arraydecl
+        for v in values(bkkeep.d_indx)
+            if v.head == :ref && v.args[1] == s
+                if length(v.args) == 2
+                    push!(bkkeep.v_array1, s)
+                    break
+                elseif length(v.args) == 3
+                    push!(bkkeep.v_array2, s)
+                    break
+                elseif length(v.args) == 4
+                    push!(bkkeep.v_array3, s)
+                    break
+                elseif length(v.args) == 5
+                    push!(bkkeep.v_array4, s)
+                    break
+                else
+                    error("Error: `@taylorize` allows only to parse up tp 5-index arrays")
+                end
+            end
+        end
+    end
+    return nothing
+end
+
+
+"""
+`_allocated_defs!(new_jetcoeffs, bkkeep)`
+
+Add allocated variable definitions to `new_jetcoeffs`, to make it more human readable.
+"""
+function _allocated_defs!(new_jetcoeffs::Expr, bkkeep::BookKeeping)
+    tmp_defs = [popfirst!(new_jetcoeffs.args[2].args)]
+    @inbounds for (ind, vnew) in enumerate(bkkeep.v_newvars)
+        push!(tmp_defs, :($(vnew) = __ralloc.v0[$(ind)]))
+    end
+    @inbounds for (ind, vnew) in enumerate(bkkeep.v_array1)
+        push!(tmp_defs, :($(vnew) = __ralloc.v1[$(ind)]))
+    end
+    @inbounds for (ind, vnew) in enumerate(bkkeep.v_array2)
+        push!(tmp_defs, :($(vnew) = __ralloc.v2[$(ind)]))
+    end
+    @inbounds for (ind, vnew) in enumerate(bkkeep.v_array3)
+        push!(tmp_defs, :($(vnew) = __ralloc.v3[$(ind)]))
+    end
+    @inbounds for (ind, vnew) in enumerate(bkkeep.v_array4)
+        push!(tmp_defs, :($(vnew) = __ralloc.v4[$(ind)]))
+    end
+    prepend!(new_jetcoeffs.args[2].args, tmp_defs)
+    return nothing
+end
+
+
+"""
+`_returned_expr(bkkeep)`
+
+Constructs the expression to be returned by `TaylorIntegration._allocate_jetcoeffs!`
+"""
+function _returned_expr(bkkeep::BookKeeping)
+    if isempty(bkkeep.v_newvars)
+        retv0 = :(Taylor1{_S}[])
+    else
+        retv0 = :([$(bkkeep.v_newvars...),])
+    end
+    if isempty(bkkeep.v_array1)
+        retv1 = :([Array{Taylor1{_S},1}(undef, 0),])
+    else
+        retv1 = :([$(bkkeep.v_array1...),])
+    end
+    if isempty(bkkeep.v_array2)
+        retv2 = :([Array{Taylor1{_S},2}(undef, 0, 0),])
+    else
+        retv2 = :([$(bkkeep.v_array2...),])
+    end
+    if isempty(bkkeep.v_array3)
+        retv3 = :([Array{Taylor1{_S},3}(undef, 0, 0, 0),])
+    else
+        retv3 = :([$(bkkeep.v_array3...),])
+    end
+    if isempty(bkkeep.v_array4)
+        retv4 = :([Array{Taylor1{_S},4}(undef, 0, 0, 0, 0),])
+    else
+        retv4 = :([$(bkkeep.v_array4...),])
+    end
+
+    return :(return TaylorIntegration.RetAlloc{Taylor1{_S}}(
+        $(retv0), $(retv1), $(retv2), $(retv3), $(retv4)))
+end
+
 
 """
 `@taylorize expr`

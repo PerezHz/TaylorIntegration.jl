@@ -115,23 +115,23 @@ let
     SUITE["Kepler"]["kepler6-3"] = @benchmarkable taylorinteg(
         kepler6!, $q0, $t0, $tf3, $_order, $_abstol, -1.0, maxsteps=$maxsteps3)
 
-    # # ==========
-    # # KeplerNotParsed
-    # # ==========
-    # SUITE["KeplerNotParsed"] = BenchmarkGroup()
+    # ==========
+    # KeplerNotParsed
+    # ==========
+    SUITE["KeplerNotParsed"] = BenchmarkGroup()
 
-    # SUITE["KeplerNotParsed"]["kepler1"] = @benchmarkable taylorinteg(
-    #     kepler1!, $q0, $t0, $tf, $_order, $_abstol, -1.0, maxsteps=$maxsteps,
-    #     parse_eqs=false)
-    # SUITE["KeplerNotParsed"]["kepler2"] = @benchmarkable taylorinteg(
-    #     kepler2!, $q0, $t0, $tf, $_order, $_abstol, $pars, maxsteps=$maxsteps,
-    #     parse_eqs=false)
-    #
-    # SUITE["KeplerNotParsed"]["kepler5"] = @benchmarkable taylorinteg(
-    #     kepler5!, $q0, $t0, $tf, $_order, $_abstol, maxsteps=$maxsteps,
-    #     parse_eqs=false)
-    # SUITE["KeplerNotParsed"]["kepler6"] = @benchmarkable taylorinteg(
-    #     kepler6!, $q0, $t0, $tf, $_order, $_abstol, -1.0, maxsteps=$maxsteps,
-    #     parse_eqs=false)
-    #
+    SUITE["KeplerNotParsed"]["kepler1"] = @benchmarkable taylorinteg(
+        kepler1!, $q0, $t0, $tf2, $_order, $_abstol, -1.0, maxsteps=$maxsteps2,
+        parse_eqs=false)
+    SUITE["KeplerNotParsed"]["kepler2"] = @benchmarkable taylorinteg(
+        kepler2!, $q0, $t0, $tf2, $_order, $_abstol, $pars, maxsteps=$maxsteps2,
+        parse_eqs=false)
+
+    SUITE["KeplerNotParsed"]["kepler5"] = @benchmarkable taylorinteg(
+        kepler5!, $q0, $t0, $tf2, $_order, $_abstol, maxsteps=$maxsteps2,
+        parse_eqs=false)
+    SUITE["KeplerNotParsed"]["kepler6"] = @benchmarkable taylorinteg(
+        kepler6!, $q0, $t0, $tf2, $_order, $_abstol, -1.0, maxsteps=$maxsteps2,
+        parse_eqs=false)
+
 end

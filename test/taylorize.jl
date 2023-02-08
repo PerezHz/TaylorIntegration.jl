@@ -88,24 +88,24 @@ import Logging: Warn
         # TODO: Use metaprogramming here
         tT = t0 + Taylor1(_order)
         xT = x0 + zero(tT)
-        tmpTaylor, arrTaylor = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(xdot1), tT, xT, nothing))
         @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-            Val(xdot1), tT, xT, nothing, tmpTaylor, arrTaylor)
+            Val(xdot1), tT, xT, nothing, rv)
         @test xT ≈ exact_sol(tT, b1, x0)
 
         xT = x0 + zero(tT)
-        tmpTaylor, arrTaylor = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(xdot2), tT, xT, nothing))
         @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-            Val(xdot2), tT, xT, nothing, tmpTaylor, arrTaylor)
+            Val(xdot2), tT, xT, nothing, rv)
         @test xT ≈ exact_sol(tT, 3.0, x0)
 
         xT = x0 + zero(tT)
-        tmpTaylor, arrTaylor = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(xdot2), tT, xT, b1))
         @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-            Val(xdot2), tT, xT, b1, tmpTaylor, arrTaylor)
+            Val(xdot2), tT, xT, b1, rv)
         @test xT ≈ exact_sol(tT, b1, x0)
 
         # The macro returns a (parsed) jetcoeffs! function which yields a `MethodError`
@@ -126,10 +126,10 @@ import Logging: Warn
         @test iszero( norm(tv2-tv2e, Inf) )
         @test iszero( norm(xv2-xv2e, Inf) )
         xT = x0 + zero(tT)
-        tmpTaylor, arrTaylor = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(xdot2_err), tT, xT, nothing))
-        @test_throws MethodError TI.jetcoeffs!(Val(xdot2_err), tT, xT, nothing,
-            tmpTaylor, arrTaylor)
+        @test_throws MethodError TI.jetcoeffs!(
+            Val(xdot2_err), tT, xT, nothing, rv)
 
         # Output includes Taylor polynomial solution
         tv3t, xv3t, polynV3t = (@test_logs (Warn, max_iters_reached()) taylorinteg(
@@ -200,24 +200,24 @@ import Logging: Warn
         # Check that the parsed `jetcoeffs` produces the correct series in `x` and no errors
         tT = 1.0 + Taylor1(_order)
         xT = 10.0 + zero(tT)
-        tmpTaylor, arrTaylor = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(xdot1_parsed), tT, xT, nothing))
         @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-            Val(xdot1_parsed), tT, xT, nothing, tmpTaylor, arrTaylor)
+            Val(xdot1_parsed), tT, xT, nothing, rv)
         @test xT ≈ exact_sol(tT, -10, 10)
 
         xT = 10.0 + zero(tT)
-        tmpTaylor, arrTaylor = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(xdot2), tT, xT, nothing))
         @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-            Val(xdot2), tT, xT, nothing, tmpTaylor, arrTaylor)
+            Val(xdot2), tT, xT, nothing, rv)
         @test xT ≈ exact_sol(tT, -10, 10)
 
         xT = 10.0 + zero(tT)
-        tmpTaylor, arrTaylor = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(xdot3), tT, xT, -10))
         @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-            Val(xdot3), tT, xT, -10, tmpTaylor, arrTaylor)
+            Val(xdot3), tT, xT, -10, rv)
         @test xT ≈ exact_sol(tT, -10, 10)
     end
 
@@ -253,10 +253,10 @@ import Logging: Warn
         tT = t0 + Taylor1(_order)
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
-        tmpTaylor, arrTaylor = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(pendulum!), tT, qT, dqT, nothing))
         @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-            Val(pendulum!), tT, qT, dqT, nothing, tmpTaylor, arrTaylor)
+            Val(pendulum!), tT, qT, dqT, nothing, rv)
     end
 
 
@@ -338,12 +338,12 @@ import Logging: Warn
         tT = t0 + Taylor1(_order)
         zT = zz0 .+ zero(tT)
         dzT = similar(zT)
-        tmpTaylor, arrTaylor = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(eqs3!), tT, zT, dzT, nothing))
         @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-            Val(eqs3!), tT, zT, dzT, nothing, tmpTaylor, arrTaylor)
-        @test typeof(tmpTaylor) == Vector{Taylor1{ComplexF64}}
-        @test typeof(arrTaylor) == Vector{Vector{Taylor1{ComplexF64}}}
+            Val(eqs3!), tT, zT, dzT, nothing, rv)
+        @test typeof(rv.v0) == Vector{Taylor1{ComplexF64}}
+        @test typeof(rv.v1) == Vector{Vector{Taylor1{ComplexF64}}}
         @test zT[1] == exact_sol(tT, -1, z0)
         @test zT[2] == exact_sol(tT, z0, z0)
     end
@@ -404,6 +404,27 @@ import Logging: Warn
         # Compare to exact solution
         @test norm(xv12[end, 1] - sin(tv12[end]), Inf) < 1.0e-15
         @test norm(xv12[end, 2] - cos(tv12[end]), Inf) < 1.0e-15
+
+        @taylorize function fff!(du, u, p, t)
+            x, t = u
+            du[1] = x
+            du[2] = t
+            return du
+        end
+
+        @taylorize function ggg!(du, u, p, t)
+            x, t2 = u
+            du[1] = x
+            du[2] = t2
+            return du
+        end
+
+        tvF, xvF = taylorinteg(ggg!, [1.0, 0.0], 0.0, 10.0, 20, 1.0e-20, parse_eqs=false)
+        tv1, xv1 = taylorinteg(ggg!, [1.0, 0.0], 0.0, 10.0, 20, 1.0e-20)
+        tv2, xv2 = taylorinteg(fff!, [1.0, 0.0], 0.0, 10.0, 20, 1.0e-20)
+
+        @test tv1 == tv2 == tvF
+        @test xv1 == xv2 == xvF
     end
 
 
@@ -438,9 +459,10 @@ import Logging: Warn
         tT = t0 + Taylor1(_order)
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
-        tmpTaylor, arrTaylor = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(harm_osc!), tT, qT, dqT, [1.0]))
-        @test_logs min_level=Logging.Warn TI.jetcoeffs!(Val(harm_osc!), tT, qT, dqT, [1.0], tmpTaylor, arrTaylor)
+        @test_logs min_level=Logging.Warn TI.jetcoeffs!(
+            Val(harm_osc!), tT, qT, dqT, [1.0], rv)
         @test qT[1] ≈ cos(tT)
         @test qT[2] ≈ -sin(tT)
 
@@ -466,10 +488,10 @@ import Logging: Warn
         tT = t0 + Taylor1(_order)
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
-        tmpTaylor, arrTaylor = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(harm_osc_error!), tT, qT, dqT, [1.0]))
-        @test_throws MethodError  TI.jetcoeffs!(Val(harm_osc_error!), tT, qT, dqT, [1.0],
-            tmpTaylor, arrTaylor)
+        @test_throws MethodError  TI.jetcoeffs!(
+            Val(harm_osc_error!), tT, qT, dqT, [1.0], rv)
     end
 
     local tf = 100.0
@@ -542,19 +564,22 @@ import Logging: Warn
         tT = 0.0 + Taylor1(_order)
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
-        tmpTaylor, arrTaylor = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(multpendula1!), tT, qT, dqT, (NN, nnrange)))
-        @test_logs min_level=Logging.Warn TI.jetcoeffs!(Val(multpendula1!), tT, qT, dqT, (NN, nnrange), tmpTaylor, arrTaylor)
+        @test_logs min_level=Logging.Warn TI.jetcoeffs!(
+            Val(multpendula1!), tT, qT, dqT, (NN, nnrange), rv)
 
         qT = q0 .+ zero(tT)
-        tmpTaylor, arrTaylor = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(multpendula2!), tT, qT, dqT, nothing))
-        @test_logs min_level=Logging.Warn TI.jetcoeffs!(Val(multpendula2!), tT, qT, dqT, nothing, tmpTaylor, arrTaylor)
+        @test_logs min_level=Logging.Warn TI.jetcoeffs!(
+            Val(multpendula2!), tT, qT, dqT, nothing, rv)
 
         qT = q0 .+ zero(tT)
-        tmpTaylor, arrTaylor = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(multpendula3!), tT, qT, dqT, [NN, nnrange]))
-        @test_logs min_level=Logging.Warn TI.jetcoeffs!(Val(multpendula3!), tT, qT, dqT, [NN, nnrange], tmpTaylor, arrTaylor)
+        @test_logs min_level=Logging.Warn TI.jetcoeffs!(
+            Val(multpendula3!), tT, qT, dqT, [NN, nnrange], rv)
     end
 
 
@@ -671,27 +696,31 @@ import Logging: Warn
         tT = 0.0 + Taylor1(_order)
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
-        tmpTaylor, arrTaylor = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(Val(kepler1!),
-            tT, qT, dqT, -1.0))
-        @test_logs min_level=Logging.Warn TI.jetcoeffs!(Val(kepler1!), tT, qT, dqT, -1.0, tmpTaylor, arrTaylor)
+        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
+            Val(kepler1!), tT, qT, dqT, -1.0))
+        @test_logs min_level=Logging.Warn TI.jetcoeffs!(
+            Val(kepler1!), tT, qT, dqT, -1.0, rv)
 
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
-        tmpTaylor, arrTaylor = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(Val(kepler2!),
-            tT, qT, dqT, pars))
-        @test_logs min_level=Logging.Warn TI.jetcoeffs!(Val(kepler2!), tT, qT, dqT, pars, tmpTaylor, arrTaylor)
+        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
+            Val(kepler2!), tT, qT, dqT, pars))
+        @test_logs min_level=Logging.Warn TI.jetcoeffs!(
+            Val(kepler2!), tT, qT, dqT, pars, rv)
 
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
-        tmpTaylor, arrTaylor = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(Val(kepler3!),
-            tT, qT, dqT, nothing))
-        @test_logs min_level=Logging.Warn TI.jetcoeffs!(Val(kepler3!), tT, qT, dqT, nothing, tmpTaylor, arrTaylor)
+        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
+            Val(kepler3!), tT, qT, dqT, nothing))
+        @test_logs min_level=Logging.Warn TI.jetcoeffs!(
+            Val(kepler3!), tT, qT, dqT, nothing, rv)
 
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
-        tmpTaylor, arrTaylor = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(Val(kepler4!),
-            tT, qT, dqT, nothing))
-        @test_logs min_level=Logging.Warn TI.jetcoeffs!(Val(kepler4!), tT, qT, dqT, nothing, tmpTaylor, arrTaylor)
+        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
+            Val(kepler4!), tT, qT, dqT, nothing))
+        @test_logs min_level=Logging.Warn TI.jetcoeffs!(
+            Val(kepler4!), tT, qT, dqT, nothing, rv)
     end
 
 
@@ -809,24 +838,28 @@ import Logging: Warn
         tT = 0.0 + Taylor1(_order)
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
-        tmpTaylor, arrTaylor = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(Val(kepler1!),
-            tT, qT, dqT, nothing))
-        @test_logs min_level=Logging.Warn TI.jetcoeffs!(Val(kepler1!), tT, qT, dqT, nothing, tmpTaylor, arrTaylor)
+        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
+            Val(kepler1!), tT, qT, dqT, nothing))
+        @test_logs min_level=Logging.Warn TI.jetcoeffs!(
+            Val(kepler1!), tT, qT, dqT, nothing, rv)
 
         qT = q0 .+ zero(tT)
-        tmpTaylor, arrTaylor = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(Val(kepler2!),
-            tT, qT, dqT, -1.0))
-        @test_logs min_level=Logging.Warn TI.jetcoeffs!(Val(kepler2!), tT, qT, dqT, -1.0, tmpTaylor, arrTaylor)
+        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
+            Val(kepler2!), tT, qT, dqT, -1.0))
+        @test_logs min_level=Logging.Warn TI.jetcoeffs!(
+            Val(kepler2!), tT, qT, dqT, -1.0, rv)
 
         qT = q0 .+ zero(tT)
-        tmpTaylor, arrTaylor = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(Val(kepler3!),
-            tT, qT, dqT, -1.0))
-        @test_logs min_level=Logging.Warn TI.jetcoeffs!(Val(kepler3!), tT, qT, dqT, -1.0, tmpTaylor, arrTaylor)
+        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
+            Val(kepler3!), tT, qT, dqT, -1.0))
+        @test_logs min_level=Logging.Warn TI.jetcoeffs!(
+            Val(kepler3!), tT, qT, dqT, -1.0, rv)
 
         qT = q0 .+ zero(tT)
-        tmpTaylor, arrTaylor = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(Val(kepler4!),
-            tT, qT, dqT, nothing))
-        @test_logs min_level=Logging.Warn TI.jetcoeffs!(Val(kepler4!), tT, qT, dqT, nothing, tmpTaylor, arrTaylor)
+        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
+            Val(kepler4!), tT, qT, dqT, nothing))
+        @test_logs min_level=Logging.Warn TI.jetcoeffs!(
+            Val(kepler4!), tT, qT, dqT, nothing, rv)
     end
 
 
@@ -977,17 +1010,17 @@ import Logging: Warn
         tT = 0.0 + Taylor1(_order)
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
-        tmpTaylor, arrTaylor = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(lorenz1!), tT, qT, dqT, params))
-        @test_logs min_level=Logging.Warn TI.jetcoeffs!(Val(lorenz1!),
-            tT, qT, dqT, params, tmpTaylor, arrTaylor)
+        @test_logs min_level=Logging.Warn TI.jetcoeffs!(
+            Val(lorenz1!), tT, qT, dqT, params, rv)
 
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
-        tmpTaylor, arrTaylor = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
             Val(lorenz2!), tT, qT, dqT, nothing))
-        @test_logs min_level=Logging.Warn TI.jetcoeffs!(Val(lorenz2!),
-            tT, qT, dqT, nothing, tmpTaylor, arrTaylor)
+        @test_logs min_level=Logging.Warn TI.jetcoeffs!(
+            Val(lorenz2!), tT, qT, dqT, nothing, rv)
     end
 
 
@@ -1032,7 +1065,7 @@ import Logging: Warn
         @test_throws ArgumentError TI._make_parsed_jetcoeffs(ex)
 
         # The macro works fine, but the `jetcoeffs!` method does not work
-        # (so the integration would silently run using `parse_eqs=false`)
+        # (so the integration would run using `parse_eqs=false`)
         @taylorize function harm_osc!(dx, x, p, t)
             local ω = p[1]
             # local ω2 = ω^2    # Needed this to avoid an error
@@ -1042,8 +1075,10 @@ import Logging: Warn
         end
         tT = t0 + Taylor1(_order)
         qT = [1.0, 0.0] .+ zero(tT)
-        @test_throws MethodError TI.__jetcoeffs!(
-            Val(true), harm_osc!, tT, qT, similar(qT), similar(qT), [2.0])
+        parse_eqs, rv = (@test_logs (Warn, unable_to_parse(harm_osc!)) TI._determine_parsing!(
+            true, harm_osc!, tT, qT, similar(qT), [2.0]))
+        @test !parse_eqs
+        @test_throws MethodError TI.__jetcoeffs!(Val(harm_osc!), tT, qT, similar(qT), [2.0], rv)
 
         @taylorize function kepler1!(dq, q, p, t)
             μ = p
@@ -1058,8 +1093,25 @@ import Logging: Warn
         end
         tT = t0 + Taylor1(_order)
         qT = [0.2, 0.0, 0.0, 3.0] .+ zero(tT)
-        @test_throws MethodError TI.__jetcoeffs!(
-            Val(true), kepler1!, tT, qT, similar(qT), similar(qT), -1.0)
+        parse_eqs, rv = (@test_logs (Warn, unable_to_parse(kepler1!)) TI._determine_parsing!(
+            true, kepler1!, tT, qT, similar(qT), -1.0))
+        @test !parse_eqs
+        @test_throws MethodError TI.__jetcoeffs!(Val(kepler1!), tT, qT, similar(qT), -1.0, rv)
+
+        # Error: `@taylorize` allows only to parse up tp 5-index arrays
+        ex = :(function err_arr_indx!(Dz, z, p, t)
+            n = size(z,1)
+            arr3 = Array{typeof(z[1])}(undef, n, 1, 1)
+            arr4 = Array{typeof(z[1])}(undef, n, 1, 1, 1)
+            arr5 = Array{typeof(z[1])}(undef, n, 1, 1, 1, 1)
+            for i in eachindex(z)
+                arr5[i,1,1,1,1] = zero(z[1])
+                Dz[i] = z[i] + arr5[i,1,1,1,1]
+            end
+            nothing
+        end)
+        @test_throws ErrorException("Error: `@taylorize` allows only to parse up tp 5-index arrays") TI._make_parsed_jetcoeffs(ex)
+
     end
 
 
@@ -1207,21 +1259,28 @@ import Logging: Warn
         @test newex1.args[1] == :(
             TaylorIntegration.jetcoeffs!(::Val{f!}, t::Taylor1{_T},
                 q::AbstractArray{Taylor1{_S}, _N},
-                dq::AbstractArray{Taylor1{_S}, _N}, p, __tmpTaylor, __arrTaylor) where
+                dq::AbstractArray{Taylor1{_S}, _N}, p,
+                __ralloc::TaylorIntegration.RetAlloc{Taylor1{_S}}) where
                     {_T <: Real, _S <: Number, _N})
 
         # Include not recognized functions as they appear
-        @test newex1.args[2].args[2] == :(__tmpTaylor[1] = my_simple_function(q, p, t))
+        @test newex1.args[2].args[2] == :(aa = __ralloc.v0[1])
+        @test newex1.args[2].args[3] == :(aa = my_simple_function(q, p, t))
         @test newex2.args[2].args[2] == :(aa = my_simple_function(q, p, t))
-        @test newex1.args[2].args[5].args[2].args[2] ==
-            :(__tmpTaylor[1] = my_simple_function(q, p, t))
+        @test newex1.args[2].args[6].args[2].args[2] ==
+            :(aa = my_simple_function(q, p, t))
 
         # Return line
         @test newex1.args[2].args[end] == :(return nothing)
-        @test newex2.args[2].args[end] == :(return ([aa], [Vector{Taylor1{_S}}(undef, 0)]))
+        @test newex2.args[2].args[end] ==
+            :(return TaylorIntegration.RetAlloc{Taylor1{_S}}([aa],
+                [Array{Taylor1{_S},1}(undef, 0)],
+                [Array{Taylor1{_S},2}(undef, 0, 0)],
+                [Array{Taylor1{_S},3}(undef, 0, 0, 0)],
+                [Array{Taylor1{_S},4}(undef, 0, 0, 0, 0)]))
 
         # Issue 96: deal with `elseif`s, `continue` and `break`
-        @test newex1.args[2].args[5].args[2].args[3] == :(
+        @test newex1.args[2].args[6].args[2].args[3] == :(
             for i = 1:length(q)
                 if i == 1
                     TaylorSeries.mul!(dq[i], 2, q[i], ord)
@@ -1230,7 +1289,7 @@ import Logging: Warn
                         TaylorSeries.identity!(dq[i], q[i], ord)
                     else
                         if i == 3
-                            TaylorSeries.identity!(dq[i], __tmpTaylor[1], ord)
+                            TaylorSeries.identity!(dq[i], aa, ord)
                             continue
                         else
                             dq[i] = my_complicate_function(q)
@@ -1239,6 +1298,27 @@ import Logging: Warn
                     end
                 end
             end)
+
+        # Throws no error
+        ex = :(
+            function err_arr_indx!(Dz, z, p, t)
+                local n = size(z,1)  # important to include it!
+                arr3 = Array{typeof(z[1])}(undef, n, 1, 1)
+                arr4 = Array{typeof(z[1])}(undef, n, 1, 1, 1)
+                for i in eachindex(z)
+                    arr3[i,1,1] = zero(z[1])
+                    arr4[i,1,1,1] = zero(z[1])
+                    Dz[i] = z[i] + arr4[i,1,1,1]
+                end
+                nothing
+            end)
+        newex1, newex2 = TI._make_parsed_jetcoeffs(ex)
+        @test newex1.args[2].args[2] == :(arr3 = __ralloc.v3[1])
+        @test newex1.args[2].args[3] == :(arr4 = __ralloc.v4[1])
+        @test newex2.args[2].args[end].args[1].args[3] == :([Array{Taylor1{_S}, 1}(undef, 0)])
+        @test newex2.args[2].args[end].args[1].args[4] == :([Array{Taylor1{_S}, 2}(undef, 0, 0)])
+        @test newex2.args[2].args[end].args[1].args[5] == :([arr3])
+        @test newex2.args[2].args[end].args[1].args[6] == :([arr4])
     end
 
     @testset "Test @taylorize with @threads" begin
@@ -1288,26 +1368,26 @@ import Logging: Warn
         t3 = deepcopy(t1)
 
         # No error is thrown
-        parse_eqs, tmpTaylor, arrTaylor = (@test_logs min_level=Warn TI._determine_parsing!(
+        parse_eqs, rv = (@test_logs min_level=Warn TI._determine_parsing!(
             true, f1!, t1, x01, dx01, nothing))
         @test parse_eqs
-        @test typeof(tmpTaylor) == Vector{Taylor1{Float64}}
-        @test typeof(arrTaylor) == Vector{Vector{Taylor1{Float64}}}
-        parse_eqs, tmpTaylor, arrTaylor = (@test_logs min_level=Warn TI._determine_parsing!(
+        @test typeof(rv.v0) == Vector{Taylor1{Float64}}
+        @test typeof(rv.v1) == Vector{Vector{Taylor1{Float64}}}
+        parse_eqs, rv = (@test_logs min_level=Warn TI._determine_parsing!(
             true, f1_parsed!, t1p, x01p, dx01p, nothing))
         @test parse_eqs
-        @test typeof(tmpTaylor) == Vector{Taylor1{Float64}}
-        @test typeof(arrTaylor) == Vector{Vector{Taylor1{Float64}}}
-        parse_eqs, tmpTaylor, arrTaylor = (@test_logs min_level=Warn TI._determine_parsing!(
+        @test typeof(rv.v0) == Vector{Taylor1{Float64}}
+        @test typeof(rv.v1) == Vector{Vector{Taylor1{Float64}}}
+        parse_eqs, rv = (@test_logs min_level=Warn TI._determine_parsing!(
             true, f2!, t2, x02, dx02, nothing))
         @test parse_eqs
-        @test typeof(tmpTaylor) == Vector{Taylor1{Float64}}
-        @test typeof(arrTaylor) == Vector{Vector{Taylor1{Float64}}}
-        parse_eqs, tmpTaylor, arrTaylor = (@test_logs min_level=Warn TI._determine_parsing!(
+        @test typeof(rv.v0) == Vector{Taylor1{Float64}}
+        @test typeof(rv.v1) == Vector{Vector{Taylor1{Float64}}}
+        parse_eqs, rv = (@test_logs min_level=Warn TI._determine_parsing!(
             true, f3!, t3, x03, dx03, nothing))
         @test parse_eqs
-        @test typeof(tmpTaylor) == Vector{Taylor1{Float64}}
-        @test typeof(arrTaylor) == Vector{Vector{Taylor1{Float64}}}
+        @test typeof(rv.v0) == Vector{Taylor1{Float64}}
+        @test typeof(rv.v1) == Vector{Vector{Taylor1{Float64}}}
 
         @test x01 == x01p
         @test x01p == x02
@@ -1381,18 +1461,20 @@ import Logging: Warn
 
         @show Threads.nthreads()
 
-        parse_eqs, _, _ = (@test_logs min_level=Warn TI._determine_parsing!(
+        parse_eqs, rv = (@test_logs min_level=Warn TI._determine_parsing!(
             true, harmosc1dchain!, t, x, dx, μ))
         @test parse_eqs
-        parse_eqs_, _, _ = (@test_logs min_level=Warn TI._determine_parsing!(
-            true, harmosc1dchain!, t, x_, dx_, μ))
+        parse_eqs, rv = (@test_logs min_level=Warn TI._determine_parsing!(
+            true, harmosc1dchain_threads!, t, x_, dx_, μ))
         @test parse_eqs
 
         @test x == x_
         @test dx == dx_
 
-        tv, xv = (@test_logs min_level=Warn taylorinteg(harmosc1dchain!, x0, t0, 10000.0, _order, _abstol, μ))
-        tv_, xv_ = (@test_logs min_level=Warn taylorinteg(harmosc1dchain_threads!, x0, t0, 10000.0, _order, _abstol, μ))
+        tv, xv = (@test_logs min_level=Warn taylorinteg(
+            harmosc1dchain!, x0, t0, 10000.0, _order, _abstol, μ))
+        tv_, xv_ = (@test_logs min_level=Warn taylorinteg(
+            harmosc1dchain_threads!, x0, t0, 10000.0, _order, _abstol, μ))
 
         @test tv == tv_
         @test xv == xv_
