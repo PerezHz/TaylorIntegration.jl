@@ -800,6 +800,7 @@ function _replacecalls!(bkkeep::BookKeeping, fnold::Expr, newvar::Symbol)
         def_alloc = subs(def_alloc,
             Dict(:_res => newvar, :_arg1 => :(constant_term($(newarg1))), :_k => :ord))
 
+        # Set first coeff appropriately, and remaining coeffs to zero
         def_fnexpr = Expr(:block,
             :(_res.coeffs[1] = $(def_fnexpr.args[2])),
             :(_res.coeffs[2:order+1] .= zero(_res.coeffs[1])) )
@@ -819,6 +820,7 @@ function _replacecalls!(bkkeep::BookKeeping, fnold::Expr, newvar::Symbol)
             aux_alloc = subs(aux_alloc,
                 Dict(:_res => newaux, :_arg1 => :(constant_term($(newarg1))), :_aux => newaux))
 
+            # Set first coeff appropriately, and remaining coeffs to zero
             aux_fnexpr = Expr(:block,
                 :(_res.coeffs[1] = $(aux_fnexpr.args[2])),
                 :(_res.coeffs[2:order+1] .= zero(_res.coeffs[1])) )
@@ -846,6 +848,7 @@ function _replacecalls!(bkkeep::BookKeeping, fnold::Expr, newvar::Symbol)
         def_alloc = subs(def_alloc, Dict(:_res => newvar, :_arg1 => :(constant_term($(newarg1))),
             :_arg2 => :(constant_term($(newarg2))), :_k => :ord) )
 
+        # Set first coeff appropriately, and remaining coeffs to zero
         def_fnexpr = Expr(:block,
             :(_res.coeffs[1] = $(def_fnexpr.args[2])),
             :(_res.coeffs[2:order+1] .= zero(_res.coeffs[1])) )
@@ -1101,19 +1104,19 @@ Add allocated variable definitions to `new_jetcoeffs`, to make it more human rea
 function _allocated_defs!(new_jetcoeffs::Expr, bkkeep::BookKeeping)
     tmp_defs = [popfirst!(new_jetcoeffs.args[2].args)]
     @inbounds for (ind, vnew) in enumerate(bkkeep.v_newvars)
-        push!(tmp_defs, :($(vnew) = __ralloc.v0[$(ind)]))
+        push!(tmp_defs, :($(vnew) = __ralloc.v0[$(ind)]::Taylor1{_S}))
     end
     @inbounds for (ind, vnew) in enumerate(bkkeep.v_array1)
-        push!(tmp_defs, :($(vnew) = __ralloc.v1[$(ind)]))
+        push!(tmp_defs, :($(vnew) = __ralloc.v1[$(ind)]::Vector{Taylor1{_S}}))
     end
     @inbounds for (ind, vnew) in enumerate(bkkeep.v_array2)
-        push!(tmp_defs, :($(vnew) = __ralloc.v2[$(ind)]))
+        push!(tmp_defs, :($(vnew) = __ralloc.v2[$(ind)]::Array{Taylor1{_S},2}))
     end
     @inbounds for (ind, vnew) in enumerate(bkkeep.v_array3)
-        push!(tmp_defs, :($(vnew) = __ralloc.v3[$(ind)]))
+        push!(tmp_defs, :($(vnew) = __ralloc.v3[$(ind)]::Array{Taylor1{_S},3}))
     end
     @inbounds for (ind, vnew) in enumerate(bkkeep.v_array4)
-        push!(tmp_defs, :($(vnew) = __ralloc.v4[$(ind)]))
+        push!(tmp_defs, :($(vnew) = __ralloc.v4[$(ind)]::Array{Taylor1{_S},4}))
     end
     prepend!(new_jetcoeffs.args[2].args, tmp_defs)
     return nothing

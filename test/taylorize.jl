@@ -1264,7 +1264,7 @@ import Logging: Warn
                     {_T <: Real, _S <: Number, _N})
 
         # Include not recognized functions as they appear
-        @test newex1.args[2].args[2] == :(aa = __ralloc.v0[1])
+        @test newex1.args[2].args[2] == :(aa = __ralloc.v0[1]::Taylor1{_S})
         @test newex1.args[2].args[3] == :(aa = my_simple_function(q, p, t))
         @test newex2.args[2].args[2] == :(aa = my_simple_function(q, p, t))
         @test newex1.args[2].args[6].args[2].args[2] ==
@@ -1313,8 +1313,8 @@ import Logging: Warn
                 nothing
             end)
         newex1, newex2 = TI._make_parsed_jetcoeffs(ex)
-        @test newex1.args[2].args[2] == :(arr3 = __ralloc.v3[1])
-        @test newex1.args[2].args[3] == :(arr4 = __ralloc.v4[1])
+        @test newex1.args[2].args[2] == :(arr3 = __ralloc.v3[1]::Array{Taylor1{_S},3})
+        @test newex1.args[2].args[3] == :(arr4 = __ralloc.v4[1]::Array{Taylor1{_S},4})
         @test newex2.args[2].args[end].args[1].args[3] == :([Array{Taylor1{_S}, 1}(undef, 0)])
         @test newex2.args[2].args[end].args[1].args[4] == :([Array{Taylor1{_S}, 2}(undef, 0, 0)])
         @test newex2.args[2].args[end].args[1].args[5] == :([arr3])
