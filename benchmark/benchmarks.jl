@@ -15,6 +15,7 @@ BT.DEFAULT_PARAMETERS.samples = 25
 
 include("kepler_benchmarks.jl")
 include("manyspin_benchmarks.jl")
+include("Lyap_benchmark.jl")
 
 # ToDo:
 # pendulum
