@@ -136,7 +136,7 @@ function initialize!(integrator, c::TaylorMethodConstantCache)
     integrator.kshortsize = 2
     integrator.k = typeof(integrator.k)(undef, integrator.kshortsize)
     integrator.fsalfirst = integrator.f(integrator.uprev, integrator.p, integrator.t) # Pre-start fsal
-    integrator.destats.nf += 1
+    integrator.stats.nf += 1
     # Avoid undefined entries if k is an array of arrays
     integrator.fsallast = zero(integrator.fsalfirst)
     integrator.k[1] = integrator.fsalfirst
@@ -151,7 +151,7 @@ function perform_step!(integrator,cache::TaylorMethodConstantCache)
     cache.uT[0] = u
     __jetcoeffs!(Val(cache.parse_eqs.x), f, tT, cache.uT, p, cache.rv)
     k = f(u, p, t+dt) # For the interpolation, needs k at the updated point
-    integrator.destats.nf += 1
+    integrator.stats.nf += 1
     integrator.fsallast = k
     integrator.k[1] = integrator.fsalfirst
     integrator.k[2] = integrator.fsallast
@@ -170,7 +170,7 @@ function initialize!(integrator, cache::TaylorMethodCache)
     integrator.k[1] = integrator.fsalfirst
     # integrator.f(integrator.fsalfirst,integrator.uprev,integrator.p,integrator.t)
     integrator.fsalfirst = constant_term.(duT)
-    integrator.destats.nf += 1
+    integrator.stats.nf += 1
 end
 
 function perform_step!(integrator, cache::TaylorMethodCache)
@@ -184,7 +184,7 @@ function perform_step!(integrator, cache::TaylorMethodCache)
     end
     __jetcoeffs!(Val(parse_eqs.x), f, tT, uT, duT, uauxT, p, rv)
     k = constant_term.(duT) # For the interpolation, needs k at the updated point
-    integrator.destats.nf += 1
+    integrator.stats.nf += 1
 end
 
 stepsize_controller!(integrator,alg::TaylorMethod) =
