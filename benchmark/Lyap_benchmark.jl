@@ -1,17 +1,4 @@
-#=using Pkg
-using LinearAlgebra: norm, tr, dot, istriu, diag, I
-using Test
-using Logging
-import Logging: Warn
-import LinearAlgebra: tr
-#Pkg.add(url="https://github.com/PerezHz/TaylorIntegration.jl")
-#Pkg.add(url="https://github.com/JuliaDiff/TaylorSeries.jl")
-#Pkg.add(url="https://github.com/JuliaCI/BaseBenchmarks.jl")
-#Pkg.add(url="https://github.com/JuliaCI/BenchmarkTools.jl")
-#Pkg.add(url="https://github.com/PerezHz/TaylorIntegration.jl/blob/master/benchmark/run_benchmarks.jl")
-using TaylorSeries
-using BaseBenchmarks
-using BenchmarkTools=#
+#Lyapunov Benchmarks
 
 @taylorize function lorenz!(dx,x,param,t)
     σ, ρ, β = param
