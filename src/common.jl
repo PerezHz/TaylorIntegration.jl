@@ -1,13 +1,15 @@
-using DiffEqBase, OrdinaryDiffEq
+println("Loading src/common.jl")
+
+# using OrdinaryDiffEq
 using StaticArrays: SVector, SizedArray
 using RecursiveArrayTools: ArrayPartition
 
 import DiffEqBase: ODEProblem, solve, ODE_DEFAULT_NORM, @.., addsteps!
 
 import OrdinaryDiffEq: OrdinaryDiffEqAdaptiveAlgorithm,
-OrdinaryDiffEqConstantCache, OrdinaryDiffEqMutableCache,
-alg_order, alg_cache, initialize!, perform_step!, @unpack,
-@cache, stepsize_controller!, step_accept_controller!, _ode_addsteps!
+    OrdinaryDiffEqConstantCache, OrdinaryDiffEqMutableCache,
+    alg_order, alg_cache, initialize!, perform_step!, @unpack,
+    @cache, stepsize_controller!, step_accept_controller!, _ode_addsteps!
 
 # TODO: check which keywords work fine
 const warnkeywords = (:save_idxs, :d_discontinuities, :unstable_check, :save_everystep,
@@ -296,3 +298,5 @@ _determine_parsing!(parse_eqs::Bool, f::ODEFunction, t, x, params) =
     _determine_parsing!(parse_eqs, f.f, t, x, params)
 _determine_parsing!(parse_eqs::Bool, f::ODEFunction, t, x, dx, params) =
     _determine_parsing!(parse_eqs, f.f, t, x, dx, params)
+
+println("Finished loading src/common.jl")
