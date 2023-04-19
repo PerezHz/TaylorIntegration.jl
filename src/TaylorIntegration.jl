@@ -28,6 +28,10 @@ function __init__()
         end
     end
 
+    @require DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e" begin
+        using OrdinaryDiffEq
+    end
+
 end
 
 end #module
