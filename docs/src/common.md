@@ -7,9 +7,9 @@ ecosystem. The basic requirement is to load `DiffEqBase.jl`, or `OrdinaryDiffEq.
 **before** `TaylorIntegration.jl`, which sets-up the common interface.
 
 !!! note
-    `TaylorIntegration.jl` may be loaded first, but then you *must* load `DiffEqBase.jl`
+    `TaylorIntegration.jl` may be loaded first, but then you **must** load `DiffEqBase.jl`
     (and not `OrdinaryDiffEq.jl`); see
-    [this](https://github.com/PerezHz/TaylorIntegration.jl/issues/160). Loading
+    [#160](https://github.com/PerezHz/TaylorIntegration.jl/issues/160). Loading
     `DiffEqBase.jl` or `OrdinaryDiffEq.jl` first, and then `TaylorIntegration.jl`,
     pose no problem.
 
