@@ -3,9 +3,17 @@
 Here, we show an example of interoperability between `TaylorIntegration.jl` and
 [`DifferentialEquations.jl`](https://github.com/JuliaDiffEq/DifferentialEquations.jl), i.e.,
 how to use `TaylorIntegration.jl` from the `DifferentialEquations`
-ecosystem. The basic requirement is to load `DiffEqBase.jl`, which
-sets-up the common interface.
-Below, we shall also use `OrdinaryDiffEq.jl` to compare
+ecosystem. The basic requirement is to load `DiffEqBase.jl`, or `OrdinaryDiffEq.jl`
+**before** `TaylorIntegration.jl`, which sets-up the common interface.
+
+!!! note
+    `TaylorIntegration.jl` may be loaded first, but then you **must** load `DiffEqBase.jl`
+    (and not `OrdinaryDiffEq.jl`); see
+    [#160](https://github.com/PerezHz/TaylorIntegration.jl/issues/160). Loading
+    `DiffEqBase.jl` or `OrdinaryDiffEq.jl` first, and then `TaylorIntegration.jl`,
+    pose no problem.
+
+Below, we shall also use `DiffEqBase.jl` to compare
 the accuracy of `TaylorIntegration.jl` with respect to
 high-accuracy methods for non-stiff problems (`Vern9` method).
 While `DifferentialEquations` offers many macros to simplify certain
@@ -163,7 +171,7 @@ be loaded explicitly.
 tspan = (0.0, 2000.0)
 p = [μ]
 
-using TaylorIntegration, DiffEqBase
+using DiffEqBase
 prob = ODEProblem(pcr3bp!, q0, tspan, p)
 ```
 
