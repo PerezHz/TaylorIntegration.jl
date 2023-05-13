@@ -2,7 +2,7 @@ using OrdinaryDiffEq
 using StaticArrays: SVector, SizedArray
 using RecursiveArrayTools: ArrayPartition
 
-import DiffEqBase: ODEProblem, solve, ODE_DEFAULT_NORM, @.., addsteps!
+import DiffEqBase: ODEProblem, solve, ODE_DEFAULT_NORM
 
 import OrdinaryDiffEq: OrdinaryDiffEqAdaptiveAlgorithm,
     OrdinaryDiffEqConstantCache, OrdinaryDiffEqMutableCache,
