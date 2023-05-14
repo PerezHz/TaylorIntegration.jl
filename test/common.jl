@@ -1,4 +1,5 @@
-using TaylorIntegration, Test, DiffEqBase
+using TaylorIntegration, Test
+using OrdinaryDiffEq
 using LinearAlgebra: norm
 using StaticArrays
 using Logging

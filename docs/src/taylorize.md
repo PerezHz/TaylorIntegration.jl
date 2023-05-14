@@ -150,7 +150,7 @@ e1/e3, all1/all3
 We now illustrate the possibility of exploiting the macro
 when using `TaylorIntegration.jl` from `DifferentialEquations.jl`.
 ```@example taylorize
-using DiffEqBase
+using OrdinaryDiffEq
 
 prob = ODEProblem(pendulum!, q0, (t0, tf), nothing) # no parameters
 solT = solve(prob, TaylorMethod(25), abstol=1e-20, parse_eqs=true); # warm-up run

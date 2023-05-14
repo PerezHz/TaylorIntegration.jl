@@ -2,18 +2,9 @@
 
 Here, we show an example of interoperability between `TaylorIntegration.jl` and
 [`DifferentialEquations.jl`](https://github.com/JuliaDiffEq/DifferentialEquations.jl), i.e.,
-how to use `TaylorIntegration.jl` from the `DifferentialEquations`
-ecosystem. The basic requirement is to load `DiffEqBase.jl`, or `OrdinaryDiffEq.jl`
-**before** `TaylorIntegration.jl`, which sets-up the common interface.
-
-!!! note
-    `TaylorIntegration.jl` may be loaded first, but then you **must** load `DiffEqBase.jl`
-    (and not `OrdinaryDiffEq.jl`); see
-    [#160](https://github.com/PerezHz/TaylorIntegration.jl/issues/160). Loading
-    `DiffEqBase.jl` or `OrdinaryDiffEq.jl` first, and then `TaylorIntegration.jl`,
-    pose no problem.
-
-Below, we shall also use `DiffEqBase.jl` to compare
+how to use `TaylorIntegration.jl` from the `DifferentialEquations` ecosystem. The basic
+requirement is to load `OrdinaryDiffEq.jl` together with `TaylorIntegration.jl`, which
+sets-up the common interface. Below, we shall also use `OrdinaryDiffEq.jl` to compare
 the accuracy of `TaylorIntegration.jl` with respect to
 high-accuracy methods for non-stiff problems (`Vern9` method).
 While `DifferentialEquations` offers many macros to simplify certain
@@ -165,13 +156,13 @@ H(q0) == J0
 Following the `DifferentialEquations.jl`
 [tutorial](https://diffeq.sciml.ai/stable/tutorials/ode_example/),
 we define an `ODEProblem` for the integration; `TaylorIntegration` can be used
-via its common interface bindings with `DiffEqBase.jl`; both packages need to
+via its common interface bindings with `OrdinaryDiffEq.jl`; both packages need to
 be loaded explicitly.
 ```@example common
 tspan = (0.0, 2000.0)
 p = [μ]
 
-using DiffEqBase
+using OrdinaryDiffEq
 prob = ODEProblem(pcr3bp!, q0, tspan, p)
 ```
 
@@ -180,8 +171,8 @@ We solve `prob` using a 25-th order Taylor method, with a local absolute toleran
 solT = solve(prob, TaylorMethod(25), abstol=1e-15);
 ```
 
-As mentioned above, we load `OrdinaryDiffEq` in order to solve the same problem `prob`
-now with the `Vern9` method, which the `DifferentialEquations`
+As mentioned above, we will now solve the same problem `prob`
+with the `Vern9` method from `OrdinaryDiffEq`, which the `DifferentialEquations`
 [documentation](https://diffeq.sciml.ai/stable/solvers/ode_solve/#Non-Stiff-Problems)
 recommends for high-accuracy (i.e., very low tolerance) integrations of
 non-stiff problems. Note that, besides setting an absolute tolerance `abstol=1e-15`,

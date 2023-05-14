@@ -18,7 +18,7 @@ include("lyapunovspectrum.jl")
 include("rootfinding.jl")
 
 function __init__()
-    @require DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e" include("common.jl")
+    @require OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed" include("common.jl")
 end
 
 end #module
