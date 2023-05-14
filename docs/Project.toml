@@ -1,6 +1,5 @@
 [deps]
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
-DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 Elliptic = "b305315f-e792-5b7a-8f41-49f472929428"
 OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
