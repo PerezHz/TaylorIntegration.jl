@@ -6,9 +6,10 @@ using Reexport
 @reexport using TaylorSeries
 using LinearAlgebra
 using Markdown
-using Requires
 using InteractiveUtils: methodswith
-
+if !isdefined(Base, :get_extension)
+    using Requires
+end
 
 export taylorinteg, lyap_taylorinteg, @taylorize
 
@@ -16,9 +17,14 @@ include("parse_eqs.jl")
 include("explicitode.jl")
 include("lyapunovspectrum.jl")
 include("rootfinding.jl")
+include("common.jl")
 
 function __init__()
-    @require OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed" include("common.jl")
+    @static if !isdefined(Base, :get_extension)
+        @require OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed" begin
+            include("../ext/TaylorIntegrationDiffEq.jl")
+        end
+    end
 end
 
 end #module

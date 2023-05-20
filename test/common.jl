@@ -19,8 +19,8 @@ import Logging: Warn
         tspan = (0.0, 1.0)
         prob = ODEProblem(f, u0, tspan)
         sol = (@test_logs min_level=Logging.Warn solve(prob, TaylorMethod(50), abstol=1e-20))
-        @test TI.alg_order(TaylorMethod(50)) == 50
-        @test TI.alg_order(sol.alg) == TI.alg_order(TaylorMethod(50))
+        @test OrdinaryDiffEq.alg_order(TaylorMethod(50)) == 50
+        @test OrdinaryDiffEq.alg_order(sol.alg) == OrdinaryDiffEq.alg_order(TaylorMethod(50))
         @test abs(sol[end] - u0*exp(1)) < 1e-12
         u0 = 0.0
         tspan = (0.0, 11pi)
