@@ -22,7 +22,7 @@ include("common.jl")
 function __init__()
     @static if !isdefined(Base, :get_extension)
         @require OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed" begin
-            include("../ext/TaylorIntegrationDiffEqExt.jl")
+            include("../ext/TaylorIntegrationDiffEq.jl")
         end
     end
 end

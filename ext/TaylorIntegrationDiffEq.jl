@@ -1,20 +1,27 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
-module TaylorIntegrationDiffEqExt
+module TaylorIntegrationDiffEq
 
 using TaylorIntegration
 
-isdefined(Base, :get_extension) ? (using OrdinaryDiffEq) : (using ..OrdinaryDiffEq)
+if isdefined(Base, :get_extension)
+    using OrdinaryDiffEq
+    import OrdinaryDiffEq: OrdinaryDiffEqAdaptiveAlgorithm,
+        OrdinaryDiffEqConstantCache, OrdinaryDiffEqMutableCache,
+        alg_order, alg_cache, initialize!, perform_step!, @unpack,
+        @cache, stepsize_controller!, step_accept_controller!, _ode_addsteps!
+else
+    using ..OrdinaryDiffEq
+    import ..OrdinaryDiffEq: OrdinaryDiffEqAdaptiveAlgorithm,
+        OrdinaryDiffEqConstantCache, OrdinaryDiffEqMutableCache,
+        alg_order, alg_cache, initialize!, perform_step!, @unpack,
+        @cache, stepsize_controller!, step_accept_controller!, _ode_addsteps!
+end
 
 using StaticArrays: SVector, SizedArray
 using RecursiveArrayTools: ArrayPartition
 
 import DiffEqBase: ODEProblem, solve, ODE_DEFAULT_NORM
-
-import OrdinaryDiffEq: OrdinaryDiffEqAdaptiveAlgorithm,
-    OrdinaryDiffEqConstantCache, OrdinaryDiffEqMutableCache,
-    alg_order, alg_cache, initialize!, perform_step!, @unpack,
-    @cache, stepsize_controller!, step_accept_controller!, _ode_addsteps!
 
 # TODO: check which keywords work fine
 const warnkeywords = (:save_idxs, :d_discontinuities, :unstable_check, :save_everystep,
