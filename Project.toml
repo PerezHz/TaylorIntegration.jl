@@ -24,7 +24,7 @@ TaylorSeries = "6aa5eb33-94cf-58f4-a9d0-e4b2c4fc25ea"
 OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
 
 [extensions]
-TaylorIntegrationDiffEqExt = "OrdinaryDiffEq"
+TaylorIntegrationDiffEq = "OrdinaryDiffEq"
 
 [compat]
 BenchmarkTools = "1.3"
