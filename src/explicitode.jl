@@ -364,7 +364,7 @@ for V in (:(Val{true}), :(Val{false}))
             tv = Array{T}(undef, maxsteps+1)
             xv = Array{U}(undef, maxsteps+1)
             if $V == Val{true}
-                polynV = Array{Taylor1{U}}(undef, maxsteps+1)
+                polynV = Array{Taylor1{U}}(undef, maxsteps)
             end
 
             # Initial conditions
@@ -372,9 +372,6 @@ for V in (:(Val{true}), :(Val{false}))
             @inbounds t[0] = t0
             @inbounds tv[1] = t0
             @inbounds xv[1] = x0
-            if $V == Val{true}
-                @inbounds polynV[1] = deepcopy(x)
-            end
             sign_tstep = copysign(1, tmax-t0)
 
             # Integration
@@ -384,7 +381,7 @@ for V in (:(Val{true}), :(Val{false}))
                 δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
                 x0 = evaluate(x, δt) # new initial condition
                 if $V == Val{true}
-                    @inbounds polynV[nsteps+1] = deepcopy(x)
+                    @inbounds polynV[nsteps] = deepcopy(x)
                 end
                 @inbounds x[0] = x0
                 t0 += δt
@@ -401,7 +398,7 @@ for V in (:(Val{true}), :(Val{false}))
             end
 
             if $V == Val{true}
-                return view(tv,1:nsteps), view(xv,1:nsteps), view(polynV, 1:nsteps)
+                return view(tv,1:nsteps), view(xv,1:nsteps), view(polynV, 1:nsteps-1)
             elseif $V == Val{false}
                 return view(tv,1:nsteps), view(xv,1:nsteps)
             end
@@ -414,7 +411,7 @@ for V in (:(Val{true}), :(Val{false}))
             tv = Array{T}(undef, maxsteps+1)
             xv = Array{U}(undef, maxsteps+1)
             if $V == Val{true}
-                polynV = Array{Taylor1{U}}(undef, maxsteps+1)
+                polynV = Array{Taylor1{U}}(undef, maxsteps)
             end
 
             # Initial conditions
@@ -422,9 +419,6 @@ for V in (:(Val{true}), :(Val{false}))
             @inbounds t[0] = t0
             @inbounds tv[1] = t0
             @inbounds xv[1] = x0
-            if $V == Val{true}
-                @inbounds polynV[1] = deepcopy(x)
-            end
             sign_tstep = copysign(1, tmax-t0)
 
             # Integration
@@ -434,7 +428,7 @@ for V in (:(Val{true}), :(Val{false}))
                 δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
                 x0 = evaluate(x, δt) # new initial condition
                 if $V == Val{true}
-                    @inbounds polynV[nsteps+1] = deepcopy(x)
+                    @inbounds polynV[nsteps] = deepcopy(x)
                 end
                 @inbounds x[0] = x0
                 t0 += δt
@@ -451,7 +445,7 @@ for V in (:(Val{true}), :(Val{false}))
             end
 
             if $V == Val{true}
-                return view(tv,1:nsteps), view(xv,1:nsteps), view(polynV, 1:nsteps)
+                return view(tv,1:nsteps), view(xv,1:nsteps), view(polynV, 1:nsteps-1)
             elseif $V == Val{false}
                 return view(tv,1:nsteps), view(xv,1:nsteps)
             end
@@ -497,7 +491,7 @@ for V in (:(Val{true}), :(Val{false}))
             tv = Array{T}(undef, maxsteps+1)
             xv = Array{U}(undef, dof, maxsteps+1)
             if $V == Val{true}
-                polynV = Array{Taylor1{U}}(undef, dof, maxsteps+1)
+                polynV = Array{Taylor1{U}}(undef, dof, maxsteps)
             end
             xaux = Array{Taylor1{U}}(undef, dof)
 
@@ -507,9 +501,6 @@ for V in (:(Val{true}), :(Val{false}))
             x0 = deepcopy(q0)
             @inbounds tv[1] = t0
             @inbounds xv[:,1] .= q0
-            if $V == Val{true}
-                @inbounds polynV[:,1] .= deepcopy.(x)
-            end
             sign_tstep = copysign(1, tmax-t0)
 
             # Integration
@@ -521,7 +512,7 @@ for V in (:(Val{true}), :(Val{false}))
                 evaluate!(x, δt, x0) # new initial condition
                 if $V == Val{true}
                     # Store the Taylor polynomial solution
-                    @inbounds polynV[:,nsteps+1] .= deepcopy.(x)
+                    @inbounds polynV[:,nsteps] .= deepcopy.(x)
                 end
                 @inbounds for i in eachindex(x0)
                     x[i][0] = x0[i]
@@ -542,7 +533,7 @@ for V in (:(Val{true}), :(Val{false}))
 
             if $V == Val{true}
                 return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:),
-                    view(transpose(view(polynV, :, 1:nsteps)), 1:nsteps, :)
+                    view(transpose(view(polynV, :, 1:nsteps-1)), 1:nsteps-1, :)
             elseif $V == Val{false}
                 return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:)
             end
@@ -559,7 +550,7 @@ for V in (:(Val{true}), :(Val{false}))
             tv = Array{T}(undef, maxsteps+1)
             xv = Array{U}(undef, dof, maxsteps+1)
             if $V == Val{true}
-                polynV = Array{Taylor1{U}}(undef, dof, maxsteps+1)
+                polynV = Array{Taylor1{U}}(undef, dof, maxsteps)
             end
 
             # Initial conditions
@@ -567,9 +558,6 @@ for V in (:(Val{true}), :(Val{false}))
             x0 = deepcopy(q0)
             @inbounds tv[1] = t0
             @inbounds xv[:,1] .= q0
-            if $V == Val{true}
-                @inbounds polynV[:,1] .= deepcopy.(x)
-            end
             sign_tstep = copysign(1, tmax-t0)
 
             # Integration
@@ -581,7 +569,7 @@ for V in (:(Val{true}), :(Val{false}))
                 evaluate!(x, δt, x0) # new initial condition
                 if $V == Val{true}
                     # Store the Taylor polynomial solution
-                    @inbounds polynV[:,nsteps+1] .= deepcopy.(x)
+                    @inbounds polynV[:,nsteps] .= deepcopy.(x)
                 end
                 @inbounds for i in eachindex(x0)
                     x[i][0] = x0[i]
@@ -602,7 +590,7 @@ for V in (:(Val{true}), :(Val{false}))
 
             if $V == Val{true}
                 return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:),
-                    view(transpose(view(polynV, :, 1:nsteps)), 1:nsteps, :)
+                    view(transpose(view(polynV, :, 1:nsteps-1)), 1:nsteps-1, :)
             elseif $V == Val{false}
                 return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:)
             end
