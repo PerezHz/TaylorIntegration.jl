@@ -8,8 +8,6 @@ Build status:
 Coverage:
 [![Coverage Status](https://coveralls.io/repos/github/PerezHz/TaylorIntegration.jl/badge.svg?branch=main)](https://coveralls.io/github/PerezHz/TaylorIntegration.jl?branch=main) [![codecov](https://codecov.io/gh/PerezHz/TaylorIntegration.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/PerezHz/TaylorIntegration.jl)
 
-[travis-img]: https://img.shields.io/travis/PerezHz/TaylorIntegration.jl/main.svg?label=Linux+/+macOS
-[appveyor-img]: https://img.shields.io/travis/PerezHz/TaylorIntegration.jl/main.svg?label=Windows
 [coveralls-img]: https://img.shields.io/travis/PerezHz/TaylorIntegration.jl/main.svg?label=coveralls
 [codecov-img]: https://img.shields.io/travis/PerezHz/TaylorIntegration.jl/main.svg?label=codecov
 
