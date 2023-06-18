@@ -7,7 +7,7 @@ const directorypath = dirname(@__FILE__)
 # Adapted from: https://stackoverflow.com/questions/41088615/get-branch-name-of-an-installed-package-directly-from-the-julia-package-manager
 const target_branch = PB.LibGit2.shortname(
     PB.LibGit2.head(PB.LibGit2.GitRepo(directorypath * "/..")))
-const base_branch = "master"
+const base_branch = "main"
 
 # ==========
 # Run PkgBenchmark `judge`

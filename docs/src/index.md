@@ -12,7 +12,7 @@ ODE integration using Taylor's method, and more, in [Julia](http://julialang.org
 
 ### License
 
-`TaylorIntegration` is licensed under the [MIT "Expat" license](https://github.com/PerezHz/TaylorIntegration.jl/blob/master/LICENSE.md).
+`TaylorIntegration` is licensed under the [MIT "Expat" license](https://github.com/PerezHz/TaylorIntegration.jl/blob/main/LICENSE.md).
 
 
 ### Installation
