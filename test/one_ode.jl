@@ -81,12 +81,12 @@ import Logging: Warn
         @test abs(xv2[5] - 2.0) ≤ eps(2.0)
 
         # Output includes Taylor polynomial solution
-        tv, xv, polynV = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        tv, xv, psol = (@test_logs (Warn, max_iters_reached()) taylorinteg(
             eqs_mov, x0, 0, 0.5, _order, _abstol, Val(true), maxsteps=2))
-        @test length(polynV) == 2
+        @test length(psol) == 2
         @test xv[1] == x0
-        @test polynV[1] == Taylor1(ones(_order+1))
-        @test xv[2] == evaluate(polynV[1], tv[2]-tv[1])
+        @test psol[1] == Taylor1(ones(_order+1))
+        @test xv[2] == evaluate(psol[1], tv[2]-tv[1])
     end
 
     @testset "Tests: dot{x}=x^2, x(0) = 3; nsteps <= maxsteps" begin

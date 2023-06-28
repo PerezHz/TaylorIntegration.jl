@@ -68,13 +68,13 @@ import Logging: Warn
         @test abs(xv2[2,1] - 4.8) ≤ eps(4.8)
 
         # Output includes Taylor polynomial solution
-        tv, xv, polynV = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        tv, xv, psol = (@test_logs (Warn, max_iters_reached()) taylorinteg(
             eqs_mov!, q0, 0, 0.5, _order, _abstol, Val(true), nothing, maxsteps=2))
-        @test size(polynV) == (2, 2)
+        @test size(psol) == (2, 2)
         @test xv[1,:] == q0
-        @test xv[2,:] == evaluate.(polynV[1, :], tv[2]-tv[1])
-        @test polynV[1,1] == Taylor1([3.0^i for i in 1:_order+1])
-        @test polynV[1,2] == Taylor1(ones(_order+1))
+        @test xv[2,:] == evaluate.(psol[1, :], tv[2]-tv[1])
+        @test psol[1,1] == Taylor1([3.0^i for i in 1:_order+1])
+        @test psol[1,2] == Taylor1(ones(_order+1))
     end
 
     @testset "Tests: dot{x}=x.^2, x(0) = [3, 3]" begin
@@ -120,11 +120,11 @@ import Logging: Warn
         @test abs(xv[end,2]-exactsol(tv[end], xv[1,2])) < 1.0e-11
 
         # Output includes Taylor polynomial solution
-        tv, xv, polynV = taylorinteg(eqs_mov!, q0, 0, tmax, _order, _abstol, Val(true), nothing)
-        @test size(polynV) == ( size(xv, 1)-1, size(xv, 2) )
-        @test polynV[1,:] == fill(Taylor1([3.0^i for i in 1:_order+1]), 2)
-        @test xv[end,1] == evaluate.(polynV[end, 1], tv[end]-tv[end-1])
-        @test polynV[:,1] == polynV[:,2]
+        tv, xv, psol = taylorinteg(eqs_mov!, q0, 0, tmax, _order, _abstol, Val(true), nothing)
+        @test size(psol) == ( size(xv, 1)-1, size(xv, 2) )
+        @test psol[1,:] == fill(Taylor1([3.0^i for i in 1:_order+1]), 2)
+        @test xv[end,1] == evaluate.(psol[end, 1], tv[end]-tv[end-1])
+        @test psol[:,1] == psol[:,2]
     end
 
     @testset "Test non-autonomous ODE (2): dot{x}=cos(t)" begin
