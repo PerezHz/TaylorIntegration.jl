@@ -1,6 +1,6 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
-using TaylorIntegration, DiffEqBase
+using TaylorIntegration, OrdinaryDiffEq
 using Test
 using LinearAlgebra: norm
 using InteractiveUtils: methodswith
@@ -134,11 +134,10 @@ import Logging: Warn
         # Output includes Taylor polynomial solution
         tv3t, xv3t, polynV3t = (@test_logs (Warn, max_iters_reached()) taylorinteg(
             xdot3, x0, t0, tf, _order, _abstol, Val(true), 0.0, maxsteps=2))
-        @test length(polynV3t) == 3
+        @test length(polynV3t) == 2
         @test xv3t[1] == x0
-        @test polynV3t[1] == Taylor1(x0, _order)
-        @test xv3t[2] == evaluate(polynV3t[2], tv3t[2]-tv3t[1])
-        @test polynV3t[2] == Taylor1([(-1.0)^i for i=0:_order])
+        @test polynV3t[1] == Taylor1([(-1.0)^i for i=0:_order])
+        @test xv3t[2] == evaluate(polynV3t[1], tv3t[2]-tv3t[1])
     end
 
 
@@ -1280,7 +1279,7 @@ import Logging: Warn
                 [Array{Taylor1{_S},4}(undef, 0, 0, 0, 0)]))
 
         # Issue 96: deal with `elseif`s, `continue` and `break`
-        @test newex1.args[2].args[6].args[2].args[3] == :(
+        ex = :(
             for i = 1:length(q)
                 if i == 1
                     TaylorSeries.mul!(dq[i], 2, q[i], ord)
@@ -1298,6 +1297,8 @@ import Logging: Warn
                     end
                 end
             end)
+
+        @test newex1.args[2].args[6].args[2].args[3] == Base.remove_linenums!(ex)
 
         # Throws no error
         ex = :(
