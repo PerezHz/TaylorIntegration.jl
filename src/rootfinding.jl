@@ -180,11 +180,11 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
         # Re-initialize the Taylor1 expansions
         t = t0 + Taylor1( T, order )
         x .= Taylor1.( q0, order )
-        return _taylorinteg!(f!, g, t, x, dx, q0, t0, tmax, abstol, rv, params,
-            maxsteps=maxsteps, eventorder=eventorder, newtoniter=newtoniter, nrabstol=nrabstol)
+        return _taylorinteg!(f!, g, t, x, dx, q0, t0, tmax, abstol, rv, params;
+            maxsteps, eventorder, newtoniter, nrabstol)
     else
-        return _taylorinteg!(f!, g, t, x, dx, q0, t0, tmax, abstol,params,
-            maxsteps=maxsteps, eventorder=eventorder, newtoniter=newtoniter, nrabstol=nrabstol)
+        return _taylorinteg!(f!, g, t, x, dx, q0, t0, tmax, abstol,params;
+            maxsteps, eventorder, newtoniter, nrabstol)
     end
 end
 
@@ -355,11 +355,11 @@ function taylorinteg(f!, g, q0::Array{U,1}, trange::AbstractVector{T},
         # Re-initialize the Taylor1 expansions
         t = t0 + Taylor1( T, order )
         x .= Taylor1.(q0, order)
-        return _taylorinteg!(f!, g, t, x, dx, q0, trange, abstol, rv, params,
-            maxsteps=maxsteps, eventorder=eventorder, newtoniter=newtoniter, nrabstol=nrabstol)
+        return _taylorinteg!(f!, g, t, x, dx, q0, trange, abstol, rv, params;
+            maxsteps, eventorder, newtoniter, nrabstol)
     else
-        return _taylorinteg!(f!, g, t, x, dx, q0, trange, abstol,params,
-            maxsteps=maxsteps, eventorder=eventorder, newtoniter=newtoniter, nrabstol=nrabstol)
+        return _taylorinteg!(f!, g, t, x, dx, q0, trange, abstol,params;
+            maxsteps, eventorder, newtoniter, nrabstol)
     end
 end
 
