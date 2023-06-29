@@ -1298,11 +1298,7 @@ import Logging: Warn
                 end
             end)
 
-        if VERSION < v"1.10.0-DEV"
-            @test newex1.args[2].args[6].args[2].args[3] == ex
-        else
-            @test newex1.args[2].args[6].args[2].args[3] == Base.remove_linenums!(ex)
-        end
+        @test newex1.args[2].args[6].args[2].args[3] == Base.remove_linenums!(ex)
 
         # Throws no error
         ex = :(
