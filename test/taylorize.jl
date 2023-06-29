@@ -1,6 +1,6 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
-using TaylorIntegration, DiffEqBase
+using TaylorIntegration, OrdinaryDiffEq
 using Test
 using LinearAlgebra: norm
 using InteractiveUtils: methodswith
@@ -1279,7 +1279,7 @@ import Logging: Warn
                 [Array{Taylor1{_S},4}(undef, 0, 0, 0, 0)]))
 
         # Issue 96: deal with `elseif`s, `continue` and `break`
-        @test newex1.args[2].args[6].args[2].args[3] == :(
+        ex = :(
             for i = 1:length(q)
                 if i == 1
                     TaylorSeries.mul!(dq[i], 2, q[i], ord)
@@ -1297,6 +1297,12 @@ import Logging: Warn
                     end
                 end
             end)
+
+        if VERSION < v"1.10.0-DEV"
+            @test newex1.args[2].args[6].args[2].args[3] == ex
+        else
+            @test newex1.args[2].args[6].args[2].args[3] == Base.remove_linenums!(ex)
+        end
 
         # Throws no error
         ex = :(
