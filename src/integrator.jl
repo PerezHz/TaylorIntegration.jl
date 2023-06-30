@@ -473,10 +473,10 @@ for V in (:(Val{true}), :(Val{false}))
                 t = t0 + Taylor1( T, order )
                 x .= Taylor1.( q0, order )
                 return _taylorinteg!(f!, t, x, dx, q0, t0, tmax, abstol, rv,
-                    $V(), params, maxsteps=maxsteps)
+                    $V(), params; maxsteps)
             else
                 return _taylorinteg!(f!, t, x, dx, q0, t0, tmax, abstol,
-                    $V(), params, maxsteps=maxsteps)
+                    $V(), params; maxsteps)
             end
         end
 

@@ -1202,13 +1202,13 @@ import Logging: Warn
 
         #warm-up lap and preliminary tests
         @test_logs (Warn, max_iters_reached()) taylorinteg(
-            pendulum!, g, x0, t0, Tend, _order, _abstol, maxsteps=1)
+            pendulum!, g, x0, t0, Tend, _order, _abstol, Val(false), maxsteps=1)
         @test_throws AssertionError taylorinteg(
-            pendulum!, g, x0, t0, Tend, _order, _abstol, maxsteps=1, eventorder=_order+1)
+            pendulum!, g, x0, t0, Tend, _order, _abstol, Val(false), maxsteps=1, eventorder=_order+1)
 
         #testing 0-th order root-finding
         tv, xv, tvS, xvS, gvS = (@test_logs min_level=Logging.Warn taylorinteg(
-            pendulum!, g, x0, t0, 3Tend, _order, _abstol, maxsteps=1000))
+            pendulum!, g, x0, t0, 3Tend, _order, _abstol, Val(false), maxsteps=1000))
         @test tv[1] == t0
         @test xv[1,:] == x0
         @test size(tvS) == (2,)
