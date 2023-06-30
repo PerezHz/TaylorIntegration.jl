@@ -353,6 +353,12 @@ for V in (:(Val{true}), :(Val{false}))
     end
 end
 
+taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
+    order::Int, abstol::T, params = nothing; maxsteps::Int=500, parse_eqs::Bool=true,
+    eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number} =
+taylorinteg(f!, g, q0, t0, tmax, order, abstol, Val(false), params; maxsteps, parse_eqs,
+    eventorder, newtoniter, nrabstol)
+
 function taylorinteg(f!, g, q0::Array{U,1}, trange::AbstractVector{T},
         order::Int, abstol::T, params = nothing; maxsteps::Int=500, parse_eqs::Bool=true,
         eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
