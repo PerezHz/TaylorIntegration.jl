@@ -81,6 +81,15 @@ import Logging: Warn
     @test norm(tvS-[Tend/2, Tend, 3Tend/2, 2Tend, 5Tend/2], Inf) < 1E-13
     @test norm(gvS,Inf) < eps()
 
+    #testing 0-th order root-finding with dense output
+    tv, xv, psol, tvS, xvS, gvS = (@test_logs min_level=Logging.Warn taylorinteg(
+        pendulum!, g, x0, t0, 3Tend, _order, _abstol, Val(true), maxsteps=1000))
+    @test tv[1] == t0
+    @test xv[1,:] == x0
+    @test size(tvS) == (5,)
+    @test norm(tvS-[Tend/2, Tend, 3Tend/2, 2Tend, 5Tend/2], Inf) < 1E-13
+    @test norm(gvS,Inf) < eps()
+
     #testing 0-th order root-finding with time ranges/vectors
     tvr = [t0, Tend/2, Tend, 3Tend/2, 2Tend, 5Tend/2, 3Tend]
     @test_throws AssertionError taylorinteg(pendulum!, g, x0, view(tvr, :),
