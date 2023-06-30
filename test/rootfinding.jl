@@ -89,7 +89,9 @@ import Logging: Warn
     @test size(tvS) == (5,)
     @test norm(tvS-[Tend/2, Tend, 3Tend/2, 2Tend, 5Tend/2], Inf) < 1E-13
     @test norm(gvS, Inf) < eps()
-    @show norm(psol.(tvS) .- xvS, Inf)
+    for (i,t) in enumerate(tvS)
+        @show norm(psol(t) - xvS[i,:], Inf)
+    end
 
     #testing 0-th order root-finding with time ranges/vectors
     tvr = [t0, Tend/2, Tend, 3Tend/2, 2Tend, 5Tend/2, 3Tend]
@@ -125,7 +127,9 @@ import Logging: Warn
     @test norm(gvSN[:]) < 1E-15
     @test norm( tvSN()-tvr[2:end-1], Inf ) < 1E-13
     @test norm( xvSN()-xvS, Inf ) < 1E-14
-    @show norm( psolN.(tvSN)-xvS, Inf )
+    for (i,t) in enumerate(tvSN)
+        @show norm(psolN(t)-xvSN[i,:], Inf)
+    end
 
     #testing 0-th root-finding + Taylor1 jet transport
     tv1, xv1, tvS1, xvS1, gvS1 = (@test_logs min_level=Logging.Warn taylorinteg(
