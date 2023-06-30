@@ -158,11 +158,18 @@ function _make_parsed_jetcoeffs(ex::Expr)
     # rec_preamb: recursion loop for the preamble (first order correction)
     # rec_fnbody: recursion loop for the body-function (recursion loop for higher orders)
     rec_preamb, rec_fnbody = _recursionloop(fnargs, bkkeep)
+    rec_preamb = Expr(:macrocall, Symbol("@inbounds"),
+        LineNumberNode(@__LINE__, Symbol(@__FILE__)), rec_preamb)
+    rec_fnbody = Expr(:macrocall, Symbol("@inbounds"),
+        LineNumberNode(@__LINE__, Symbol(@__FILE__)), rec_fnbody)
 
     # Expr for the for-loop block for the recursion (of the `x` variable)
     forloopblock = Expr(:for, :(ord = 1:order-1), Expr(:block, :(ordnext = ord + 1)) )
+    forloopblock = Expr(:macrocall, Symbol("@inbounds"),
+        LineNumberNode(@__LINE__, Symbol(@__FILE__)), forloopblock)
     # Add rec_fnbody to forloopblock
-    push!(forloopblock.args[2].args, fnbody.args[1].args..., rec_fnbody)
+    # push!(forloopblock.args[2].args, fnbody.args[1].args..., rec_fnbody)
+    push!(forloopblock.args[3].args[2].args, fnbody.args[1].args..., rec_fnbody)
 
     # Add preamble and recursion body to `new_jetcoeffs`
     push!(new_jetcoeffs.args[2].args, defspreamble..., rec_preamb)

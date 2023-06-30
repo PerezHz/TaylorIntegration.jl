@@ -1266,8 +1266,20 @@ import Logging: Warn
         @test newex1.args[2].args[2] == :(aa = __ralloc.v0[1])
         @test newex1.args[2].args[3] == :(aa = my_simple_function(q, p, t))
         @test newex2.args[2].args[2] == :(aa = my_simple_function(q, p, t))
-        @test newex1.args[2].args[6].args[2].args[2] ==
+        @test newex1.args[2].args[5].head == :macrocall
+        @test newex1.args[2].args[5].args[1] == Symbol("@inbounds")
+        @test newex1.args[2].args[5].args[2] ==
+            LineNumberNode(162, Symbol("/Users/benet/.julia/dev/TaylorIntegration/src/parse_eqs.jl"))
+        @test newex1.args[2].args[6].head == :macrocall
+        @test newex1.args[2].args[6].args[1] == Symbol("@inbounds")
+        @test newex1.args[2].args[6].args[2] ==
+            LineNumberNode(169, Symbol("/Users/benet/.julia/dev/TaylorIntegration/src/parse_eqs.jl"))
+        @test newex1.args[2].args[6].args[3].args[2].args[2] ==
             :(aa = my_simple_function(q, p, t))
+        @test newex1.args[2].args[6].args[3].args[2].args[4].head == :macrocall
+        @test newex1.args[2].args[6].args[3].args[2].args[4].args[1] == Symbol("@inbounds")
+        @test newex1.args[2].args[6].args[3].args[2].args[4].args[2] ==
+            LineNumberNode(164, Symbol("/Users/benet/.julia/dev/TaylorIntegration/src/parse_eqs.jl"))
 
         # Return line
         @test newex1.args[2].args[end] == :(return nothing)
@@ -1298,7 +1310,7 @@ import Logging: Warn
                 end
             end)
 
-        @test newex1.args[2].args[6].args[2].args[3] == Base.remove_linenums!(ex)
+        @test newex1.args[2].args[6].args[3].args[2].args[3] == Base.remove_linenums!(ex)
 
         # Throws no error
         ex = :(
