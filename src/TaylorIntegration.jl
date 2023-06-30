@@ -14,7 +14,7 @@ end
 export taylorinteg, lyap_taylorinteg, @taylorize
 
 include("parse_eqs.jl")
-include("explicitode.jl")
+include("integrator.jl")
 include("lyapunovspectrum.jl")
 include("rootfinding.jl")
 include("common.jl")
