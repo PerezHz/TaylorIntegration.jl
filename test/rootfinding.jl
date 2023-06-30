@@ -89,8 +89,8 @@ import Logging: Warn
     @test size(tvS) == (5,)
     @test norm(tvS-[Tend/2, Tend, 3Tend/2, 2Tend, 5Tend/2], Inf) < 1E-13
     @test norm(gvS, Inf) < eps()
-    for (i,t) in enumerate(tvS)
-        @show norm(psol(t) - xvS[i,:], Inf)
+    for i in 1:length(tv)-1
+        @test norm(psol[i,:](tv[i+1]-tv[i]) - xv[i+1,:], Inf) < 1e-13
     end
 
     #testing 0-th order root-finding with time ranges/vectors
@@ -127,8 +127,8 @@ import Logging: Warn
     @test norm(gvSN[:]) < 1E-15
     @test norm( tvSN()-tvr[2:end-1], Inf ) < 1E-13
     @test norm( xvSN()-xvS, Inf ) < 1E-14
-    for (i,t) in enumerate(tvSN)
-        @show norm(psolN(t)-xvSN[i,:], Inf)
+    for i in 1:length(tvN)-1
+        @test norm(psolN[i,:](tvN[i+1]-tvN[i]) - xvN[i+1,:], Inf) < 1e-12
     end
 
     #testing 0-th root-finding + Taylor1 jet transport
