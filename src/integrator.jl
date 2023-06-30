@@ -661,7 +661,7 @@ end
 
 tv, xv = taylorinteg(f!, [3, 3], 0.0, 0.3, 25, 1.0e-20, maxsteps=100 )
 
-tv, xv, polynv = taylorinteg(f!, [3, 3], 0.0, 0.3, 25, 1.0e-20, maxsteps=100, Val(true) )
+tv, xv, psol = taylorinteg(f!, [3, 3], 0.0, 0.3, 25, 1.0e-20, maxsteps=100, Val(true) )
 ```
 
 """ taylorinteg
