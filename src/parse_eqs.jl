@@ -808,13 +808,10 @@ function _replacecalls!(bkkeep::BookKeeping, fnold::Expr, newvar::Symbol)
             Dict(:_res => newvar, :_arg1 => :(constant_term($(newarg1))), :_k => :ord))
 
         def_fnexpr = Expr(:block,
-            :(_res.coeffs[1] = $(def_fnexpr.args[2])),
+            :($fnexpr),
             :(_res.coeffs[2:order+1] .= zero(_res.coeffs[1])) )
         def_fnexpr = subs(def_fnexpr,
-            Dict(:_res => newvar, :_arg1 => :(constant_term($(newarg1))), :_k => :ord))
-        # def_fnexpr = Expr(:block,
-        #     :(_res[0] = $(def_fnexpr.args[2])),
-        #     :(_res[1:order] .= zero(_res[0])) )
+            Dict(:_res => newvar, :_arg1 => newarg1, :ord => 0))
         # def_fnexpr = subs(def_fnexpr,
         #     Dict(:_res => newvar, :_arg1 => :(constant_term($(newarg1))), :_k => :ord))
 
@@ -827,12 +824,13 @@ function _replacecalls!(bkkeep::BookKeeping, fnold::Expr, newvar::Symbol)
                 Dict(:_res => newaux, :_arg1 => :(constant_term($(newarg1))), :_aux => newaux))
 
             aux_fnexpr = Expr(:block,
-                :(_res.coeffs[1] = $(aux_fnexpr.args[2])),
+                # :(_res.coeffs[1] = $(aux_fnexpr.args[2])),
                 :(_res.coeffs[2:order+1] .= zero(_res.coeffs[1])) )
             aux_fnexpr = subs(aux_fnexpr,
                 Dict(:_res => newaux, :_arg1 => :(constant_term($(newarg1))), :_aux => newaux))
 
             fnexpr = subs(fnexpr, Dict(:_aux => newaux))
+            def_fnexpr = subs(def_fnexpr, Dict(:_aux => newaux))
             if newvar ∈ bkkeep.v_arraydecl
                 push!(bkkeep.v_arraydecl, newaux)
             else
@@ -854,14 +852,10 @@ function _replacecalls!(bkkeep::BookKeeping, fnold::Expr, newvar::Symbol)
             :_arg2 => :(constant_term($(newarg2))), :_k => :ord) )
 
         def_fnexpr = Expr(:block,
-            :(_res.coeffs[1] = $(def_fnexpr.args[2])),
+            :($fnexpr),
             :(_res.coeffs[2:order+1] .= zero(_res.coeffs[1])) )
         def_fnexpr = subs(def_fnexpr,
-            Dict(:_res => newvar, :_arg1 => :(constant_term($(newarg1))),
-                :_arg2 => :(constant_term($(newarg2))), :_k => :ord))
-        # def_fnexpr = Expr(:block,
-        #     :(_res[0] = $(def_fnexpr.args[2])),
-        #     :(_res[1:order] .= zero(_res[0])) )
+            Dict(:_res => newvar, :_arg1 => newarg1, :_arg2 => newarg2, :ord => 0))
         # def_fnexpr = subs(def_fnexpr,
         #     Dict(:_res => newvar, :_arg1 => :(constant_term($(newarg1))),
         #         :_arg2 => :(constant_term($(newarg2))), :_k => :ord))
