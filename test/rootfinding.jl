@@ -81,6 +81,18 @@ import Logging: Warn
     @test norm(tvS-[Tend/2, Tend, 3Tend/2, 2Tend, 5Tend/2], Inf) < 1E-13
     @test norm(gvS,Inf) < eps()
 
+    #testing 0-th order root-finding with dense output
+    tv, xv, psol, tvS, xvS, gvS = (@test_logs min_level=Logging.Warn taylorinteg(
+        pendulum!, g, x0, t0, 3Tend, _order, _abstol, Val(true), maxsteps=1000))
+    @test tv[1] == t0
+    @test xv[1,:] == x0
+    @test size(tvS) == (5,)
+    @test norm(tvS-[Tend/2, Tend, 3Tend/2, 2Tend, 5Tend/2], Inf) < 1E-13
+    @test norm(gvS, Inf) < eps()
+    for i in 1:length(tv)-1
+        @test norm(psol[i,:](tv[i+1]-tv[i]) - xv[i+1,:], Inf) < 1e-13
+    end
+
     #testing 0-th order root-finding with time ranges/vectors
     tvr = [t0, Tend/2, Tend, 3Tend/2, 2Tend, 5Tend/2, 3Tend]
     @test_throws AssertionError taylorinteg(pendulum!, g, x0, view(tvr, :),
@@ -105,6 +117,19 @@ import Logging: Warn
     @test norm(gvSN[:]) < 1E-15
     @test norm( tvSN()-tvr[2:end-1], Inf ) < 1E-13
     @test norm( xvSN()-xvS, Inf ) < 1E-14
+
+    #testing 0-th order root-finding + TaylorN jet transport + dense output
+    tvN, xvN, psolN, tvSN, xvSN, gvSN = (@test_logs min_level=Logging.Warn taylorinteg(
+        pendulum!, g, x0N, t0, 3Tend, _order, _abstol, Val(true), maxsteps=1000))
+    @test size(tvSN) == size(tvS)
+    @test size(xvSN) == size(xvS)
+    @test size(gvSN) == size(gvS)
+    @test norm(gvSN[:]) < 1E-15
+    @test norm( tvSN()-tvr[2:end-1], Inf ) < 1E-13
+    @test norm( xvSN()-xvS, Inf ) < 1E-14
+    for i in 1:length(tvN)-1
+        @test norm(psolN[i,:](tvN[i+1]-tvN[i]) - xvN[i+1,:], Inf) < 1e-12
+    end
 
     #testing 0-th root-finding + Taylor1 jet transport
     tv1, xv1, tvS1, xvS1, gvS1 = (@test_logs min_level=Logging.Warn taylorinteg(

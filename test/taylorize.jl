@@ -132,12 +132,12 @@ import Logging: Warn
             Val(xdot2_err), tT, xT, nothing, rv)
 
         # Output includes Taylor polynomial solution
-        tv3t, xv3t, polynV3t = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        tv3t, xv3t, psol3t = (@test_logs (Warn, max_iters_reached()) taylorinteg(
             xdot3, x0, t0, tf, _order, _abstol, Val(true), 0.0, maxsteps=2))
-        @test length(polynV3t) == 2
+        @test length(psol3t) == 2
         @test xv3t[1] == x0
-        @test polynV3t[1] == Taylor1([(-1.0)^i for i=0:_order])
-        @test xv3t[2] == evaluate(polynV3t[1], tv3t[2]-tv3t[1])
+        @test psol3t[1] == Taylor1([(-1.0)^i for i=0:_order])
+        @test xv3t[2] == evaluate(psol3t[1], tv3t[2]-tv3t[1])
     end
 
 
@@ -1202,13 +1202,13 @@ import Logging: Warn
 
         #warm-up lap and preliminary tests
         @test_logs (Warn, max_iters_reached()) taylorinteg(
-            pendulum!, g, x0, t0, Tend, _order, _abstol, maxsteps=1)
+            pendulum!, g, x0, t0, Tend, _order, _abstol, Val(false), maxsteps=1)
         @test_throws AssertionError taylorinteg(
-            pendulum!, g, x0, t0, Tend, _order, _abstol, maxsteps=1, eventorder=_order+1)
+            pendulum!, g, x0, t0, Tend, _order, _abstol, Val(false), maxsteps=1, eventorder=_order+1)
 
         #testing 0-th order root-finding
         tv, xv, tvS, xvS, gvS = (@test_logs min_level=Logging.Warn taylorinteg(
-            pendulum!, g, x0, t0, 3Tend, _order, _abstol, maxsteps=1000))
+            pendulum!, g, x0, t0, 3Tend, _order, _abstol, Val(false), maxsteps=1000))
         @test tv[1] == t0
         @test xv[1,:] == x0
         @test size(tvS) == (2,)
