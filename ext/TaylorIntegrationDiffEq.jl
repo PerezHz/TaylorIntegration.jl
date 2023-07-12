@@ -9,19 +9,21 @@ if isdefined(Base, :get_extension)
     import OrdinaryDiffEq: OrdinaryDiffEqAdaptiveAlgorithm,
         OrdinaryDiffEqConstantCache, OrdinaryDiffEqMutableCache,
         alg_order, alg_cache, initialize!, perform_step!, @unpack,
-        @cache, stepsize_controller!, step_accept_controller!, _ode_addsteps!
+        @cache, stepsize_controller!, step_accept_controller!, _ode_addsteps!,
+        _ode_interpolant!, _ode_interpolant
 else
     using ..OrdinaryDiffEq
     import ..OrdinaryDiffEq: OrdinaryDiffEqAdaptiveAlgorithm,
         OrdinaryDiffEqConstantCache, OrdinaryDiffEqMutableCache,
         alg_order, alg_cache, initialize!, perform_step!, @unpack,
-        @cache, stepsize_controller!, step_accept_controller!, _ode_addsteps!
+        @cache, stepsize_controller!, step_accept_controller!, _ode_addsteps!,
+        _ode_interpolant!, _ode_interpolant
 end
 
 using StaticArrays: SVector, SizedArray
 using RecursiveArrayTools: ArrayPartition
 
-import DiffEqBase: ODEProblem, solve, ODE_DEFAULT_NORM
+import DiffEqBase: ODEProblem, solve, ODE_DEFAULT_NORM, interp_summary
 
 # TODO: check which keywords work fine
 const warnkeywords = (:save_idxs, :d_discontinuities, :unstable_check, :save_everystep,
@@ -252,8 +254,11 @@ function DiffEqBase.solve(
     integrator.sol
 end
 
-# used in continuous callbacks and related methods to update Taylor expansions cache
-function update_jetcoeffs_cache!(u,f,p,cache::TaylorMethodCache)
+# This function was modified from OrdinaryDiffEq.jl; MIT-licensed
+# _ode_addsteps! overload for ::TaylorMethodCache to handle continuous
+# and vector callbacks with TaylorIntegration.jl via the common interface
+function _ode_addsteps!(k, t, uprev, u, dt, f, p, cache::TaylorMethodCache,
+        always_calc_begin = false, allow_calc_end = true,force_calc_end = false)
     @unpack tT, uT, duT, uauxT, parse_eqs, rv = cache
     @inbounds for i in eachindex(u)
         uT[i][0] = u[i]
@@ -264,26 +269,23 @@ function update_jetcoeffs_cache!(u,f,p,cache::TaylorMethodCache)
     return nothing
 end
 
-# This function was modified from OrdinaryDiffEq.jl; MIT-licensed
-# _ode_addsteps! overload for ::TaylorMethodCache to handle continuous
-# and vector callbacks with TaylorIntegration.jl via the common interface
-function _ode_addsteps!(k, t, uprev, u, dt, f, p, cache::TaylorMethodCache,
-        always_calc_begin = false, allow_calc_end = true,force_calc_end = false)
-    ### TODO: CHECK, AND IF NECESSARY, RE-SET TIME-STEP SIZE AFTER CALLBACK!!!
-    if length(k)<2 || always_calc_begin
-        if typeof(cache) <: OrdinaryDiffEqMutableCache
-            rtmp = similar(u, eltype(eltype(k)))
-            f(rtmp,uprev,p,t)
-            copyat_or_push!(k,1,rtmp)
-            f(rtmp,u,p,t+dt)
-            copyat_or_push!(k,2,rtmp)
-        else
-            copyat_or_push!(k,1,f(uprev,p,t))
-            copyat_or_push!(k,2,f(u,p,t+dt))
-        end
+function interp_summary(::Type{cacheType}, dense::Bool) where {cacheType <: TaylorMethodCache}
+    dense ? "Taylor polynomial evaluation via TaylorSeries.jl" : "1st order linear"
+end
+
+# idxs gives back multiple values
+function _ode_interpolant!(out, Θ, dt, y₀, y₁, k, cache::TaylorMethodCache, idxs, T::Type{Val{TI}}) where {TI}
+    Θm1 = Θ - 1
+    @inbounds for i in eachindex(out)
+        out[i] = cache.uT[i](Θm1*dt)
     end
-    update_jetcoeffs_cache!(u,f,p,cache)
-    nothing
+    out
+end
+
+# when idxs gives back a single value
+function _ode_interpolant(Θ, dt, y₀, y₁, k, cache::TaylorMethodCache, idxs, T::Type{Val{TI}}) where {TI}
+    Θm1 = Θ - 1
+    return cache.uT[idxs](Θm1*dt)
 end
 
 @inline TaylorIntegration.__jetcoeffs!(::Val{false}, f::ODEFunction, t, x::Taylor1{U}, params,
