@@ -154,6 +154,7 @@ import Logging: Warn
         @test sol.t[19] == sol.t[20]
         @test sol[19][1] == sol[20][1]
         @test sol[19][2] == -sol[20][2] # check that callback was applied correctly (2nd bounce)
+        @test DiffEqBase.interp_summary(sol.interp) == "Taylor polynomial evaluation via TaylorSeries.jl"
     end
 
     @testset "Test vector continuous callback in common interface" begin
@@ -204,6 +205,7 @@ import Logging: Warn
         @test sol[14][2] == sol[13][2]
         @test sol[14][3] == sol[13][3]
         @test sol[14][4] == -0.9sol[13][4]
+        @test DiffEqBase.interp_summary(sol.interp) == "Taylor polynomial evaluation via TaylorSeries.jl"
     end
 
     @testset "Test parsed jetcoeffs! method in common interface" begin
@@ -292,7 +294,6 @@ import Logging: Warn
         @test sol1.u == sol2.u
         @test sol1.t == sol2.t
 
-        # Same as harmosc1dchain!, but adding a `@threads for`
         @taylorize function harmosc1dchain!(dq, q, params, t)
             local N = Int(length(q)/2)
             local _eltype_q_ = eltype(q)
@@ -320,6 +321,7 @@ import Logging: Warn
             nothing
         end
 
+        # Same as harmosc1dchain!, but adding a `@threads for`
         @taylorize function harmosc1dchain_threads!(dq, q, params, t)
             local N = Int(length(q)/2)
             local _eltype_q_ = eltype(q)

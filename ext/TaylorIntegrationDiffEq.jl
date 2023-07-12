@@ -262,7 +262,6 @@ function _ode_addsteps!(k, t, uprev, u, dt, f, p, cache::TaylorMethodCache,
     @unpack tT, uT, duT, uauxT, parse_eqs, rv = cache
     @inbounds for i in eachindex(u)
         uT[i][0] = u[i]
-        # duT[i].coeffs .= zero(duT[i][0])
         duT[i][0] = zero(uT[i][0])
     end
     TaylorIntegration.__jetcoeffs!(Val(parse_eqs.x), f, tT, uT, duT, uauxT, p, rv)
