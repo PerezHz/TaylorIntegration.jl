@@ -99,6 +99,19 @@ import Logging: Warn
             harmosc!, u0, tspan[1], tspan[2], order, abstol))
         @test sol.t == tv1
         @test xv1[end,:] == sol[end]
+        @test DiffEqBase.interp_summary(sol.interp) == "Taylor series polynomial evaluation"
+        tvsol = range(tspan[1], tspan[2], length=10)
+        tv2, xv2, psol2 = (@test_logs min_level=Logging.Warn taylorinteg(
+            harmosc!, u0, tspan[1], tspan[2], order, abstol, Val(true)))
+        Θ = rand()
+        dt_test = (tv2[end]-tv2[end-1])
+        t_test = tv2[end-1] + Θ*dt_test
+        @test norm(sol(t_test) .- psol2[end,:]( Θ*dt_test ), Inf) < 1e-14
+        Θ = rand()
+        Θm1 = Θ - 1
+        dt_test = (tv2[end-1]-tv2[end-2])
+        t_test = tv2[end-2] + Θ*dt_test
+        @test norm( sol(t_test) .- psol2[end,:]( Θm1*dt_test ) ) < 1e-14
     end
 
     @testset "Test discrete callback in common interface" begin
@@ -131,6 +144,7 @@ import Logging: Warn
             u[1]
         end
         function affect!(integrator)
+            integrator.u[1] = 0.0
             integrator.u[2] = -integrator.u[2]
             return nothing
         end
@@ -148,13 +162,13 @@ import Logging: Warn
         tb = sqrt(2*50/9.8) # bounce time
         @test abs(tb - sol.t[9]) < 1e-14
         @test sol.t[9] == sol.t[10]
-        @test sol[9][1] == sol[10][1]
+        @test 0 ≤ sol[9][1] ≤ 1e-13
         @test sol[9][2] == -sol[10][2] # check that callback was applied correctly (1st bounce)
         @test abs(3tb - sol.t[19]) < 1e-14
         @test sol.t[19] == sol.t[20]
-        @test sol[19][1] == sol[20][1]
+        @test 0 ≤ sol[19][1] ≤ 1e-13
         @test sol[19][2] == -sol[20][2] # check that callback was applied correctly (2nd bounce)
-        @test DiffEqBase.interp_summary(sol.interp) == "Taylor polynomial evaluation via TaylorSeries.jl"
+        @test DiffEqBase.interp_summary(sol.interp) == "Taylor series polynomial evaluation"
     end
 
     @testset "Test vector continuous callback in common interface" begin
@@ -205,7 +219,7 @@ import Logging: Warn
         @test sol[14][2] == sol[13][2]
         @test sol[14][3] == sol[13][3]
         @test sol[14][4] == -0.9sol[13][4]
-        @test DiffEqBase.interp_summary(sol.interp) == "Taylor polynomial evaluation via TaylorSeries.jl"
+        @test DiffEqBase.interp_summary(sol.interp) == "Taylor series polynomial evaluation"
     end
 
     @testset "Test parsed jetcoeffs! method in common interface" begin

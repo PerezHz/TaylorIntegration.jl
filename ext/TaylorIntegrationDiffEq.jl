@@ -269,7 +269,7 @@ function _ode_addsteps!(k, t, uprev, u, dt, f, p, cache::TaylorMethodCache,
 end
 
 function interp_summary(::Type{cacheType}, dense::Bool) where {cacheType <: TaylorMethodCache}
-    dense ? "Taylor polynomial evaluation via TaylorSeries.jl" : "1st order linear"
+    dense ? "Taylor series polynomial evaluation" : "1st order linear"
 end
 
 # idxs gives back multiple values
