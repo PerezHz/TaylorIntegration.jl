@@ -31,7 +31,7 @@ repeating some operations and the extra allocations.
 To achieve the latter, the macro also creates an *internal*
 function `TaylorIntegration._allocate_jetcoeffs!`, which allocates all temporary
 `Taylor1` objects as well as the declared `Array{Taylor1,N}`s, which are stored
-in a [`RetAlloc`](@ref) struct for efficiency, and include arrays (of `Taylor1{T}`
+in a [`TaylorIntegration.RetAlloc`](@ref) struct for efficiency, and include arrays (of `Taylor1{T}`
 objects) with up-to-three indices.
 
 
