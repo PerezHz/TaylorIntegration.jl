@@ -261,7 +261,7 @@ bT # TaylorMethod(25) benchmark
 ```@example common
 bV # Vern9 benchmark
 ```
-We notice that the `TaylorMethod(25)` and the `Vern9()` integrations perform
+We notice in this setup, where the `TaylorMethod(25)` and the `Vern9()` integrations perform
 similarly in terms of accuracy, the former performs better in terms of runtime.
 
 We can tune the `abstol` and `reltol` for the `Vern9()` method we
