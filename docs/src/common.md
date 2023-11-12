@@ -244,9 +244,9 @@ xlabel!("t")
 ylabel!("dE")
 ```
 We notice that the Jacobi constant absolute error for the `TaylorMethod(25)`
-solution remains bounded below ``10^{-13}``. The `Vern9()` solution is, at the
-end of the integration time, two orders of magnitude above the former for the
-same quantity.
+solution remains bounded below ``10^{-13}`` throughout the integration. While the `Vern9()`
+solution at the end of the integration time has reached a similar value, it displays a
+larger Jacobi constant error earlier in time.
 
 Finally, we comment on the time spent by each integration.
 ```@example common
@@ -262,15 +262,13 @@ bT # TaylorMethod(25) benchmark
 bV # Vern9 benchmark
 ```
 We notice that the `TaylorMethod(25)` and the `Vern9()` integrations perform
-similarly. Yet, as shown above, the former preserves the Jacobi constant to a
-higher accuracy by two orders of magnitude.
+similarly in terms of accuracy, the former performs better in terms of runtime.
 
-A fairer comparison is obtained by pushing the native methods of `DiffEqs`
-to reach similar accuracy for the integral of motion, as the one
-obtained by `TaylorIntegration`. For example, for the `Vern9()` method we
-can set `abstol=1e-20, reltol=1e-15` to get better accuracies. Such
-situation has a performance cost, which then makes `TaylorIntegration`
-comparable or even faster in some cases; see [[2]](@ref refsPCR3BP).
+We can tune the `abstol` and `reltol` for the `Vern9()` method we
+so that performance is similar. Such
+situation has an accuracy cost, which then makes `TaylorIntegration`
+a sensible alternative for high-accuracy integrations of non-stiff ODEs in some cases; see
+[[2]](@ref refsPCR3BP).
 
 Finally, as mentioned above, a crucial way in which `TaylorIntegration`
 provides high accuracy at competitive speeds is through the use of
