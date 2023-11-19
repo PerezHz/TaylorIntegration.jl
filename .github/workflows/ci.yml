@@ -27,8 +27,8 @@ jobs:
           - '1'
         include:
           - os: ubuntu-latest
-            julia-version: '1'
-            julia-arch: x64
+            version: '1'
+            arch: x64
             julia-threads: '2'
     steps:
       - uses: actions/checkout@v2
