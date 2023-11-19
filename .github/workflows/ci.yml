@@ -10,20 +10,26 @@ on:
       - 'README.md'
 jobs:
   test:
-    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+    name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ matrix.julia-threads }} thread(s) - ${{ github.event_name }}
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.version == 'nightly' }}
     if: "!contains(github.event.head_commit.message, 'skip ci')"
+    env:
+      JULIA_NUM_THREADS: ${{ matrix.julia-threads }}
     strategy:
       fail-fast: false
       matrix:
         version: ['1.6', '1', '~1.10.0-0', 'nightly']
-        os:
-          - ubuntu-latest
-          - macos-latest
-          - windows-latest
+        os: ['ubuntu-latest', 'macos-latest', 'windows-latest']
         arch:
           - x64
+        julia-threads:
+          - '1'
+        include:
+          - os: ubuntu-latest
+            version: '1'
+            arch: x64
+            julia-threads: '2'
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
