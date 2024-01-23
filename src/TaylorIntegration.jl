@@ -18,6 +18,8 @@ include("integrator.jl")
 include("lyapunovspectrum.jl")
 include("rootfinding.jl")
 include("common.jl")
+include("adsbinarynode.jl")
+include("adstaylorinteg.jl")
 
 function __init__()
 
