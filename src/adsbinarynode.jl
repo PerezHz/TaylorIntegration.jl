@@ -89,12 +89,12 @@ and `M` degrees of freedom.
     https://github.com/JuliaCollections/AbstractTrees.jl/blob/master/test/examples/binarytree.jl
 """
 mutable struct ADSBinaryNode{N, M, T <: Real}
-    const s::ADSDomain{N, T}
-    const t::T
-    const x::SVector{M, TaylorN{T}}
-    const p::SVector{M, Taylor1{TaylorN{T}}}
-    const depth::Int
-    const parent::Union{Nothing, ADSBinaryNode{N, M, T}}
+    s::ADSDomain{N, T}
+    t::T
+    x::SVector{M, TaylorN{T}}
+    p::SVector{M, Taylor1{TaylorN{T}}}
+    depth::Int
+    parent::Union{Nothing, ADSBinaryNode{N, M, T}}
     left::Union{Nothing, ADSBinaryNode{N, M, T}}
     right::Union{Nothing, ADSBinaryNode{N, M, T}}
     # Inner constructor (root node by default)
