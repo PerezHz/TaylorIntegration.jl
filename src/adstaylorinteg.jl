@@ -2,11 +2,18 @@ using TaylorSeries: generate_index_vectors
 using LsqFit: curve_fit
 using AbstractTrees: Leaves, getroot
 
-# Exponential model y(t) = A * exp(B * t), used within size_per_variable
-# to estimate the error of each jet transport variable
-exp_model(t, p) = p[1] .* exp.(p[2] .* t)
+# In-place exponential model y(t) = A * exp(B * t),
+# used within size_per_variable to estimate the error
+# of each jet transport variable
+exp_model!(F, t, p) = (@. F = p[1] * exp(p[2] * t))
 
-# Decide which direction to split
+# In place jacobian of exp_model! wrt parameters p
+function exp_model_jacobian!(J::Array{T, 2}, t, p) where {T <: Real}
+    @. J[:, 1] = exp(p[2] * t)
+    @. @views J[:, 2] = t * p[1] * J[:, 1]
+end
+
+# Estimate the error of each jet transport variable
 @doc raw"""
     size_per_variable(P::TaylorN{T}) where {T <: Real}
     size_per_variable(P::AbstractVector{TaylorN{T}}) where {T <: Real}
@@ -33,18 +40,19 @@ function size_per_variable(P::TaylorN{T}) where {T <: Real}
         end
     end
     # Initial parameters
-    p0 = ones(T, varorder+1)
+    p0 = ones(T, 2)
     # Orders
     xs = collect(0:varorder)
     
     M = Vector{T}(undef, nv)
     for i in eachindex(M)
         # Non zero coefficients
-        idxs = findall(!iszero, ys[i, :])
+        idxs = findall(!iszero, view(ys, i, :))
+        # Fit exponential model
+        fit = curve_fit(exp_model!, exp_model_jacobian!, view(xs, idxs),
+                        view(ys, i, idxs), p0; inplace = true)
         # Estimate next order coefficient
-        fit = curve_fit(exp_model, xs[idxs], ys[i, idxs], p0)
-        
-        M[i] = exp_model(varorder+1, fit.param)
+        exp_model!(view(M, i:i), varorder+1, fit.param)
     end
 
     return M
@@ -147,13 +155,12 @@ function split!(node::ADSBinaryNode{N, M, T}, p::SVector{M, Taylor1{TaylorN{T}}}
 end
 
 function taylorinteg(
-    f!, q0::Vector{TaylorN{T}}, s::ADSDomain{N, T}, t0::T, tmax::T,
+    f!, q0::SVector{M, TaylorN{T}}, s::ADSDomain{N, T}, t0::T, tmax::T,
     order::Int, stol::T, abstol::T, params = nothing; maxsplits::Int = 10,
     maxsteps::Int = 500, parse_eqs::Bool = true
-    ) where {N, T <: Real}
+    ) where {N, M, T <: Real}
 
     # Initialize the vector of Taylor1 expansions
-    M = length(q0)
     t = t0 + Taylor1( T, order )
     x = Array{Taylor1{TaylorN{T}}}(undef, M)
     dx = Array{Taylor1{TaylorN{T}}}(undef, M)
@@ -175,13 +182,10 @@ function taylorinteg(
 end
 
 function _taylorinteg!(
-    f!, q0::Vector{TaylorN{T}}, s::ADSDomain{N, T}, t0::T, tmax::T,
+    f!, q0::SVector{M, TaylorN{T}}, s::ADSDomain{N, T}, t0::T, tmax::T,
     order::Int, stol::T, abstol::T, params = nothing; maxsplits::Int = 10,
     maxsteps::Int = 500
-    ) where {N, T <: Real}
-
-    # Degrees of freedom
-    M = length(q0)
+    ) where {N, M, T <: Real}
 
     # Allocation
     t = t0 + Taylor1( T, order )
@@ -194,9 +198,8 @@ function _taylorinteg!(
             @inbounds dx[i, j] = Taylor1( zero(q0[i]), order )
         end
     end
-    # x0 = deepcopy(q0)
-    nv = ADSBinaryNode(s, t0, SVector{M, TaylorN{T}}(q0),
-                       SVector{M, Taylor1{TaylorN{T}}}(x[:, 1]))
+    nv = ADSBinaryNode{N, M, T}(s, t0, SVector{M, TaylorN{T}}(q0),
+                                SVector{M, Taylor1{TaylorN{T}}}(x[:, 1]))
     
     nsteps = 1
     nsplits = 1
@@ -238,14 +241,11 @@ function _taylorinteg!(
 end 
 
 function _taylorinteg!(
-    f!, q0::Vector{TaylorN{T}}, s::ADSDomain{N, T}, t0::T, tmax::T,
+    f!, q0::SVector{M, TaylorN{T}}, s::ADSDomain{N, T}, t0::T, tmax::T,
     order::Int, stol::T, abstol::T, rv::RetAlloc{Taylor1{TaylorN{T}}},
     params = nothing; maxsplits::Int = 10, maxsteps::Int = 500
-    ) where {N, T <: Real}
+    ) where {N, M, T <: Real}
 
-    # Degrees of freedom
-    M = length(q0)
-    
     # Allocation
     t = t0 + Taylor1( T, order )
     dt = zeros(T, maxsplits)
@@ -257,9 +257,8 @@ function _taylorinteg!(
             @inbounds dx[i, j] = Taylor1( zero(q0[i]), order )
         end
     end
-    # x0 = deepcopy(q0)
-    nv = ADSBinaryNode(s, t0, SVector{M, TaylorN{T}}(q0),
-                       SVector{M, Taylor1{TaylorN{T}}}(x[:, 1]))
+    nv = ADSBinaryNode{N, M, T}(s, t0, SVector{M, TaylorN{T}}(q0),
+                                SVector{M, Taylor1{TaylorN{T}}}(x[:, 1]))
 
     nsteps = 1
     nsplits = 1
