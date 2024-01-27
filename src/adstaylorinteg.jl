@@ -1,3 +1,5 @@
+# This file is part of the TaylorIntegration.jl package; MIT licensed
+
 using TaylorSeries: generate_index_vectors
 using LsqFit: curve_fit
 using AbstractTrees: Leaves, getroot

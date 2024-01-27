@@ -1,3 +1,5 @@
+# This file is part of the TaylorIntegration.jl package; MIT licensed
+
 using StaticArrays: SVector
 import AbstractTrees: HasNodeType, NodeType, ParentLinks, StoredParents, TreeIterator,
                       children, nodetype, nodevalue, parent, printnode, PreOrderDFS
