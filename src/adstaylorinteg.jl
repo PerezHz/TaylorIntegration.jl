@@ -16,7 +16,7 @@ function exp_model_jacobian!(J::Array{T, 2}, t, p) where {T <: Real}
 end
 
 # Estimate the error of each jet transport variable
-@doc doc"""
+"""
     size_per_variable(P::TaylorN{T}) where {T <: Real}
     size_per_variable(P::AbstractVector{TaylorN{T}}) where {T <: Real}
 
@@ -74,7 +74,7 @@ function size_per_variable(P::AbstractVector{TaylorN{T}}) where {T <: Real}
     return M
 end
 
-@doc doc"""
+"""
     splitdirection(P::TaylorN{T}) where {T <: Real}
     splitdirection(P::AbstractVector{TaylorN{T}}) where {T <: Real}
 
@@ -125,7 +125,7 @@ function split(node::ADSBinaryNode{N, M, T}, x::SVector{M, TaylorN{T}},
     return s1, x1, p1, s2, x2, p2
 end
 
-@doc doc"""
+"""
     split!(node::ADSBinaryNode{N, M, T}, p::SVector{M, Taylor1{TaylorN{T}}},
            dt::T, nsplits::Int, maxsplits::Int, stol::T) where {N, M, T <: Real}
 

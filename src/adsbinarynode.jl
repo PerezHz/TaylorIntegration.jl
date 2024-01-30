@@ -11,7 +11,7 @@ end
 
 export ADSDomain
 
-@doc doc"""
+"""
     ADSDomain{N, T <: Real}
 
 `N` dimensional box used in Automatic Domain Splitting to represent the
@@ -69,7 +69,7 @@ function in(x::SVector{N, T}, s::ADSDomain{N, T}) where {N, T <: Real}
     return all(mask)
 end
 
-@doc doc"""
+"""
     ADSBinaryNode{N, M, T <: Real}
 
 Automatic Domain Splitting binary tree with `N` jet transport variables
@@ -164,7 +164,7 @@ nodetype(::Type{<:ADSBinaryNode{N, M, T}}) where {N, M, T <: Real} = ADSBinaryNo
 IteratorEltype(::Type{<:TreeIterator{ADSBinaryNode{N, M, T}}}) where {N, M, T <: Real} = HasEltype()
 eltype(::Type{<:TreeIterator{ADSBinaryNode{N, M, T}}}) where {N, M, T <: Real} = ADSBinaryNode{N, M, T}
 
-@doc doc"""
+"""
     countnodes(n::ADSBinaryNode{N, M, T}, k::Int) where {N, M, T <: Real}
 
 Return the number of nodes at depth `k` starting from root node `n`.
@@ -180,7 +180,7 @@ end
 
 countnodes(n::Nothing, k::Int) = 0
 
-@doc doc"""
+"""
     countnodes(n::ADSBinaryNode{N, M, T}, t::T) where {N, M, T <: Real}
 
 Return the number of nodes at time `t` starting from root node `n`.
@@ -202,7 +202,7 @@ end
 
 countnodes(n::Nothing, t::T) where {T <: Real} = 0
 
-@doc doc"""
+"""
     timesvector(n::ADSBinaryNode{N, M, T}) where {N, M, T <: Real}
 
 Return the vector of times starting from root node `n`.
@@ -237,7 +237,7 @@ function _eval(p::SVector{M, Taylor1{TaylorN{T}}}, dt::T) where {M, T <: Real}
     return SVector{M, TaylorN{T}}(p[i](dt) for i in 1:M)
 end
 
-@doc doc"""
+"""
     evaltree(n::ADSBinaryNode{N, M, T}, t::T) where {N, M, T <: Real}
 
 Evaluate binary tree `n` at time `t`.
@@ -293,7 +293,7 @@ evaltree!(n::Nothing, t::T, ns::Set{ADSBinaryNode{N, M, T}}) where {N, M, T <: R
 # Function-like callability method
 (n::ADSBinaryNode{N, M, T})(t::T) where {N, M, T <: Real} = evaltree(n, t)
 
-@doc doc"""
+"""
     evaltree(n::ADSBinaryNode{N, M, T}, t::T, s::SVector{N, T}) where {N, M, T <: Real}
 
 Evaluate binary tree `n` at time `t` and domain point `s`.
