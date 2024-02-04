@@ -1114,6 +1114,7 @@ import Logging: Warn
     end
 
 
+    local tf = 2π*10.0
     @testset "Jet transport with @taylorize macro" begin
         @taylorize function pendulum!(dx, x, p, t)
             dx[1] = x[2]
@@ -1171,6 +1172,35 @@ import Logging: Warn
         @test xvT1 == xvT1p
         xv_jt = xvT1p[:,:](dq)
         @test norm(xv_jt[end,:]-xv[end,:]) < 20eps(norm(xv[end,:]))
+
+        @taylorize function kepler1!(dq, q, p, t)
+            local μ = -1.0
+            local xs = Taylor1(one(q[1][0]).*sin(t).coeffs)
+            local ys = Taylor1(one(q[1][0]).*cos(t).coeffs)
+            x1s = q[3]-xs
+            y1s = q[4]-ys
+            r = sqrt(x1s^2+y1s^2)
+            r_p3d2 = r^3
+            dq[1] = 1e-6x1s
+            dq[2] = 1e-6y1s
+            dq[3] = μ * q[1] / r_p3d2
+            dq[4] = μ * q[2] / r_p3d2
+            return nothing
+        end
+
+        varorder = 2 #the order of the variational expansion
+        p = set_variables("ξ", numvars=4, order=varorder) #TaylorN steup
+        q0 = [0.2, 0.0, 0.0, 3.0]
+        q0TN = q0 + p # JT initial condition
+
+        tv1, xv1 = taylorinteg(kepler1!, q0TN, t0, tf, _order, _abstol,
+            maxsteps=5000, parse_eqs=false)
+        tv1p, xv1p = (@test_logs min_level=Logging.Warn taylorinteg(
+            kepler1!, q0TN, t0, tf, _order, _abstol, maxsteps=5000))
+
+        @test length(tv1) == length(tv1p)
+        @test iszero( norm(tv1-tv1p, Inf) )
+        @test iszero( norm(xv1-xv1p, Inf) )
     end
 
 
