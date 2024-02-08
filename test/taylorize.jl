@@ -1175,14 +1175,12 @@ import Logging: Warn
 
         @taylorize function kepler1!(dq, q, p, t)
             local μ = -1.0
-            local xs = Taylor1(one(q[1][0]).*sin(t).coeffs)
-            local ys = Taylor1(one(q[1][0]).*cos(t).coeffs)
-            x1s = q[3]-xs
-            y1s = q[4]-ys
-            r = sqrt(x1s^2+y1s^2)
-            r_p3d2 = r^3
-            dq[1] = 1e-6x1s
-            dq[2] = 1e-6y1s
+            x1s = q[3]
+            y1s = q[4]
+            r_p2 = ((x1s^2)+(y1s^2))
+            r_p3d2 = r_p2^1.5
+            dq[1] = x1s
+            dq[2] = y1s
             dq[3] = μ * q[1] / r_p3d2
             dq[4] = μ * q[2] / r_p3d2
             return nothing
