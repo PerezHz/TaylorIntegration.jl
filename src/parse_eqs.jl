@@ -802,7 +802,7 @@ function _replacecalls!(bkkeep::BookKeeping, fnold::Expr, newvar::Symbol)
 
         def_fnexpr = Expr(:block,
             :(_res.coeffs[1] = $(def_fnexpr.args[2])),
-            :(_res.coeffs[2:order+1] .= zero(_res.coeffs[1])) )
+            :(_res.coeffs[2:order+1] .= zero.(_res.coeffs[1])) )
         def_fnexpr = subs(def_fnexpr,
             Dict(:_res => newvar, :_arg1 => :(constant_term($(newarg1))), :_k => :ord))
         # def_fnexpr = Expr(:block,
@@ -821,7 +821,7 @@ function _replacecalls!(bkkeep::BookKeeping, fnold::Expr, newvar::Symbol)
 
             aux_fnexpr = Expr(:block,
                 :(_res.coeffs[1] = $(aux_fnexpr.args[2])),
-                :(_res.coeffs[2:order+1] .= zero(_res.coeffs[1])) )
+                :(_res.coeffs[2:order+1] .= zero.(_res.coeffs[1])) )
             aux_fnexpr = subs(aux_fnexpr,
                 Dict(:_res => newaux, :_arg1 => :(constant_term($(newarg1))), :_aux => newaux))
 
@@ -848,7 +848,7 @@ function _replacecalls!(bkkeep::BookKeeping, fnold::Expr, newvar::Symbol)
 
         def_fnexpr = Expr(:block,
             :(_res.coeffs[1] = $(def_fnexpr.args[2])),
-            :(_res.coeffs[2:order+1] .= zero(_res.coeffs[1])) )
+            :(_res.coeffs[2:order+1] .= zero.(_res.coeffs[1])) )
         def_fnexpr = subs(def_fnexpr,
             Dict(:_res => newvar, :_arg1 => :(constant_term($(newarg1))),
                 :_arg2 => :(constant_term($(newarg2))), :_k => :ord))

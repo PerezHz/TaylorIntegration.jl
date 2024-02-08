@@ -1174,15 +1174,17 @@ import Logging: Warn
         @test norm(xv_jt[end,:]-xv[end,:]) < 20eps(norm(xv[end,:]))
 
         @taylorize function kepler1!(dq, q, p, t)
-            local μ = -1.0
+            local zeroq1 = zero(q[1])
+            local μ = -1.0 + zeroq1
             x1s = q[3]
             y1s = q[4]
             r_p2 = ((x1s^2)+(y1s^2))
             r_p3d2 = r_p2^1.5
             dq[1] = x1s
             dq[2] = y1s
-            dq[3] = μ * q[1] / r_p3d2
-            dq[4] = μ * q[2] / r_p3d2
+            newtonianCoeff = μ / r_p3d2
+            dq[3] = q[1] * newtonianCoeff
+            dq[4] = q[2] * newtonianCoeff
             return nothing
         end
 
