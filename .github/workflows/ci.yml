@@ -55,7 +55,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
-      - Coveralls
+      - name: Coveralls
         uses: coverallsapp/github-action@v2
         with:
           path-to-lcov: lcov.info
