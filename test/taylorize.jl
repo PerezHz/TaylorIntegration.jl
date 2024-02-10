@@ -1189,7 +1189,7 @@ import Logging: Warn
         end
 
         varorder = 2 #the order of the variational expansion
-        p = set_variables("ξ", numvars=4, order=varorder) #TaylorN steup
+        p = set_variables("ξ", numvars=4, order=varorder) #TaylorN setup
         q0 = [0.2, 0.0, 0.0, 3.0]
         q0TN = q0 + p # JT initial condition
 
