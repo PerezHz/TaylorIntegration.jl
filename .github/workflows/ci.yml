@@ -58,3 +58,4 @@ jobs:
         with:
           path-to-lcov: lcov.info
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          parallel: false
