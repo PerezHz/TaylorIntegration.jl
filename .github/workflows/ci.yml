@@ -50,13 +50,11 @@ jobs:
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
       - uses: julia-actions/julia-processcoverage@v1
-      - name: Codecov
-        uses: codecov/codecov-action@v4
+      - uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
-      - name: Coveralls
-        uses: coverallsapp/github-action@v2
+      - uses: coverallsapp/github-action@v2
         with:
           path-to-lcov: lcov.info
           github-token: ${{ secrets.GITHUB_TOKEN }}
