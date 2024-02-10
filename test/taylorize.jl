@@ -1175,7 +1175,7 @@ import Logging: Warn
 
         @taylorize function kepler1!(dq, q, p, t)
             local zeroq1 = zero(q[1])
-            local μ = -1.0 + zeroq1
+            local μ = -1.1 + zeroq1
             x1s = q[3]
             y1s = q[4]
             r_p2 = ((x1s^2)+(y1s^2))
