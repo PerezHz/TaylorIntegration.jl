@@ -1192,14 +1192,15 @@ import Logging: Warn
         q0 = [0.2, 0.0, 0.0, 3.0]
         q0TN = q0 + p # JT initial condition
 
-        tv1, xv1 = taylorinteg(kepler1!, q0TN, t0, tf, _order, _abstol,
+        @time tv1, xv1, psol = taylorinteg(kepler1!, q0TN, t0, tf, _order, _abstol, Val(true),
             maxsteps=5000, parse_eqs=false)
-        tv1p, xv1p = (@test_logs min_level=Logging.Warn taylorinteg(
-            kepler1!, q0TN, t0, tf, _order, _abstol, maxsteps=5000))
+        @time tv1p, xv1p, psolp = (@test_logs min_level=Logging.Warn taylorinteg(
+            kepler1!, q0TN, t0, tf, _order, _abstol, Val(true), maxsteps=5000))
 
         @test length(tv1) == length(tv1p)
         @test iszero( norm(tv1-tv1p, Inf) )
         @test iszero( norm(xv1-xv1p, Inf) )
+        @test psol == psolp
     end
 
 

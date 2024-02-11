@@ -472,6 +472,7 @@ for V in (:(Val{true}), :(Val{false}))
                 # Re-initialize the Taylor1 expansions
                 t = t0 + Taylor1( T, order )
                 x .= Taylor1.( q0, order )
+                dx .= Taylor1.( zero.(q0), order)
                 return _taylorinteg!(f!, t, x, dx, q0, t0, tmax, abstol, rv,
                     $V(), params; maxsteps)
             else
@@ -522,7 +523,7 @@ for V in (:(Val{true}), :(Val{false}))
                 @inbounds t[0] = t0
                 nsteps += 1
                 @inbounds tv[nsteps] = t0
-                @inbounds xv[:,nsteps] .= x0
+                @inbounds xv[:,nsteps] .= deepcopy.(x0)
                 if nsteps > maxsteps
                     @warn("""
                     Maximum number of integration steps reached; exiting.
@@ -579,7 +580,7 @@ for V in (:(Val{true}), :(Val{false}))
                 @inbounds t[0] = t0
                 nsteps += 1
                 @inbounds tv[nsteps] = t0
-                @inbounds xv[:,nsteps] .= x0
+                @inbounds xv[:,nsteps] .= deepcopy.(x0)
                 if nsteps > maxsteps
                     @warn("""
                     Maximum number of integration steps reached; exiting.
@@ -698,13 +699,17 @@ function taylorinteg(f, x0::U, trange::AbstractVector{T},
         issorted(reverse(trange))) "`trange` or `reverse(trange)` must be sorted"
 
     # Initialize the Taylor1 expansions
-    t = trange[1] + Taylor1( T, order )
+    t0 = trange[1]
+    t = t0 + Taylor1( T, order )
     x = Taylor1( x0, order )
 
     # Determine if specialized jetcoeffs! method exists
     parse_eqs, rv = _determine_parsing!(parse_eqs, f, t, x, params)
 
     if parse_eqs
+        # Re-initialize the Taylor1 expansions
+        t = t0 + Taylor1( T, order )
+        x = Taylor1( x0, order )
         return _taylorinteg!(f, t, x, x0, trange, abstol, rv,
             params, maxsteps=maxsteps)
     else
@@ -817,18 +822,21 @@ function taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
 
     # Initialize the vector of Taylor1 expansions
     dof = length(q0)
-    t = trange[1] + Taylor1( T, order )
+    t0 = trange[1]
+    t = t0 + Taylor1( T, order )
     x = Array{Taylor1{U}}(undef, dof)
     dx = Array{Taylor1{U}}(undef, dof)
-    @inbounds for i in eachindex(q0)
-        x[i] = Taylor1( q0[i], order )
-        dx[i] = Taylor1( zero(q0[i]), order )
-    end
+    x .= Taylor1.( q0, order )
+    dx .= Taylor1.( zero.(q0), order )
 
     # Determine if specialized jetcoeffs! method exists
     parse_eqs, rv = _determine_parsing!(parse_eqs, f!, t, x, dx, params)
 
     if parse_eqs
+        # Re-initialize the Taylor1 expansions
+        t = t0 + Taylor1( T, order )
+        x .= Taylor1.( q0, order )
+        dx .= Taylor1.( zero.(q0), order )
         return _taylorinteg!(f!, t, x, dx, q0, trange, abstol, rv,
             params, maxsteps=maxsteps)
     else
