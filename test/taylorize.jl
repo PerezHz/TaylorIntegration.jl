@@ -1192,15 +1192,23 @@ import Logging: Warn
         q0 = [0.2, 0.0, 0.0, 3.0]
         q0TN = q0 + p # JT initial condition
 
-        @time tv1, xv1, psol = taylorinteg(kepler1!, q0TN, t0, tf, _order, _abstol, Val(true),
-            maxsteps=5000, parse_eqs=false)
-        @time tv1p, xv1p, psolp = (@test_logs min_level=Logging.Warn taylorinteg(
-            kepler1!, q0TN, t0, tf, _order, _abstol, Val(true), maxsteps=5000))
-
-        @test length(tv1) == length(tv1p)
-        @test iszero( norm(tv1-tv1p, Inf) )
-        @test iszero( norm(xv1-xv1p, Inf) )
+        tv, xv, psol = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+            kepler1!, q0TN, t0, tf, _order, _abstol, Val(true), maxsteps=2, parse_eqs=false))
+        tvp, xvp, psolp = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+            kepler1!, q0TN, t0, tf, _order, _abstol, Val(true), maxsteps=2))
+        @test tv == tvp
+        @test xv == xvp
         @test psol == psolp
+
+        @time tv, xv, psol = (@test_logs min_level=Logging.Warn taylorinteg(
+            kepler1!, q0TN, t0, tf, _order, _abstol, Val(true), maxsteps=3000, parse_eqs=false))
+        @time tvp, xvp, psolp = (@test_logs min_level=Logging.Warn taylorinteg(
+            kepler1!, q0TN, t0, tf, _order, _abstol, Val(true), maxsteps=3000))
+
+        @test length(tv) == length(tvp)
+        @test tv == tvp
+        @test iszero( norm(xv-xvp, Inf) )
+        @test iszero( norm(psol-psolp, Inf) )
     end
 
 
