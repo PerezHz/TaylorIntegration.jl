@@ -3,7 +3,7 @@
 ODE integration using Taylor's method in [Julia](http://julialang.org).
 
 Build status:
-[![Build status](https://github.com/PerezHz/TaylorIntegration.jl/workflows/CI/badge.svg)](https://github.com/PerezHz/TaylorIntegration.jl/actions)
+[![version](https://juliahub.com/docs/General/TaylorIntegration/stable/version.svg)](https://juliahub.com/ui/Packages/General/TaylorIntegration) [![pkgeval](https://juliahub.com/docs/General/TaylorIntegration/stable/pkgeval.svg)](https://juliahub.com/ui/Packages/General/TaylorIntegration) [![Build status](https://github.com/PerezHz/TaylorIntegration.jl/workflows/CI/badge.svg)](https://github.com/PerezHz/TaylorIntegration.jl/actions) [![deps](https://juliahub.com/docs/General/TaylorIntegration/stable/deps.svg)](https://juliahub.com/ui/Packages/General/TaylorIntegration?t=2)
 
 Coverage:
 [![Coverage Status](https://coveralls.io/repos/github/PerezHz/TaylorIntegration.jl/badge.svg?branch=main)](https://coveralls.io/github/PerezHz/TaylorIntegration.jl?branch=main) [![codecov](https://codecov.io/gh/PerezHz/TaylorIntegration.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/PerezHz/TaylorIntegration.jl)
@@ -21,7 +21,7 @@ Instituto de Ciencias Físicas, Universidad Nacional Autónoma de México (UNAM)
 - [Luis Benet](http://www.cicc.unam.mx/~benet/),
 Instituto de Ciencias Físicas, Universidad Nacional Autónoma de México (UNAM)
 
-Comments, suggestions, and improvements are welcome and appreciated.
+Comments, suggestions, contributions and improvements are welcome and appreciated.
 
 ## Examples
 
