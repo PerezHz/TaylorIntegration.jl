@@ -1200,9 +1200,9 @@ import Logging: Warn
         @test xv == xvp
         @test psol == psolp
 
-        @time tv, xv, psol = (@test_logs min_level=Logging.Warn taylorinteg(
+        tv, xv, psol = (@test_logs min_level=Logging.Warn taylorinteg(
             kepler1!, q0TN, t0, tf, _order, _abstol, Val(true), maxsteps=3000, parse_eqs=false))
-        @time tvp, xvp, psolp = (@test_logs min_level=Logging.Warn taylorinteg(
+        tvp, xvp, psolp = (@test_logs min_level=Logging.Warn taylorinteg(
             kepler1!, q0TN, t0, tf, _order, _abstol, Val(true), maxsteps=3000))
 
         @test length(tv) == length(tvp)
