@@ -21,12 +21,12 @@ import Logging: Warn
         sol = (@test_logs min_level=Logging.Warn solve(prob, TaylorMethod(50), abstol=1e-20))
         @test OrdinaryDiffEq.alg_order(TaylorMethod(50)) == 50
         @test OrdinaryDiffEq.alg_order(sol.alg) == OrdinaryDiffEq.alg_order(TaylorMethod(50))
-        @test abs(sol[end] - u0*exp(1)) < 1e-12
+        @test abs(sol.u[end] - u0*exp(1)) < 1e-12
         u0 = 0.0
         tspan = (0.0, 11pi)
         prob = ODEProblem(g, u0, tspan)
         sol = (@test_logs min_level=Logging.Warn solve(prob, TaylorMethod(50), abstol=1e-20))
-        @test abs(sol[end] - sin(sol.t[end])) < 1e-12
+        @test abs(sol.u[end] - sin(sol.t[end])) < 1e-12
     end
 
     @testset "Test integration of ODE with abstract arrays in common interface" begin
@@ -34,11 +34,11 @@ import Logging: Warn
         tspan = (0.0, 1.0)
         prob = ODEProblem(f!, u0, tspan)
         sol = solve(prob, TaylorMethod(50), abstol=1e-20)
-        @test norm(sol[end] - u0.*exp(1)) < 1e-12
+        @test norm(sol.u[end] - u0.*exp(1)) < 1e-12
         @taylorize f_oop(u, p, t) = u
         prob_oop = ODEProblem(f_oop, u0, tspan)
         sol_oop = solve(prob_oop, TaylorMethod(50), abstol=1e-20)
-        @test norm(sol_oop[end] - u0.*exp(1)) < 1e-12
+        @test norm(sol_oop.u[end] - u0.*exp(1)) < 1e-12
         @test sol.t == sol_oop.t
         @test sol.u == sol_oop.u
     end
@@ -98,7 +98,7 @@ import Logging: Warn
         tv1, xv1 = (@test_logs min_level=Logging.Warn taylorinteg(
             harmosc!, u0, tspan[1], tspan[2], order, abstol))
         @test sol.t == tv1
-        @test xv1[end,:] == sol[end]
+        @test xv1[end,:] == sol.u[end]
     end
 
     @testset "Test discrete callback in common interface" begin
@@ -116,7 +116,7 @@ import Logging: Warn
         sol = (@test_logs min_level=Logging.Warn solve(prob, TaylorMethod(order), abstol=abstol, tstops=[t_cb], callback=cb))
         @test sol.t[4] == t_cb
         @test sol.t[4] == sol.t[5]
-        @test sol[4][1] + 0.1 == sol[5][1]
+        @test sol.u[4][1] + 0.1 == sol.u[5][1]
     end
 
     @testset "Test continuous callback in common interface" begin
@@ -139,21 +139,16 @@ import Logging: Warn
         tspan = (0.0,15.0)
         p = 9.8
         prob = ODEProblem(f,u0,tspan,p)
-        # Avoid log-checks for Julia versions before v1.6
-        if VERSION < v"1.6"
-            sol = solve(prob, TaylorMethod(25), abstol=1e-16, callback=cb)
-        else
-            sol = (@test_logs min_level=Logging.Warn solve(prob, TaylorMethod(25), abstol=1e-16, callback=cb))
-        end
+        sol = (@test_logs min_level=Logging.Warn solve(prob, TaylorMethod(25), abstol=1e-16, callback=cb))
         tb = sqrt(2*50/9.8) # bounce time
         @test abs(tb - sol.t[9]) < 1e-14
         @test sol.t[9] == sol.t[10]
-        @test sol[9][1] == sol[10][1]
-        @test sol[9][2] == -sol[10][2] # check that callback was applied correctly (1st bounce)
+        @test sol.u[9][1] == sol.u[10][1]
+        @test sol.u[9][2] == -sol.u[10][2] # check that callback was applied correctly (1st bounce)
         @test abs(3tb - sol.t[19]) < 1e-14
         @test sol.t[19] == sol.t[20]
-        @test sol[19][1] == sol[20][1]
-        @test sol[19][2] == -sol[20][2] # check that callback was applied correctly (2nd bounce)
+        @test sol.u[19][1] == sol.u[20][1]
+        @test sol.u[19][2] == -sol.u[20][2] # check that callback was applied correctly (2nd bounce)
     end
 
     @testset "Test vector continuous callback in common interface" begin
@@ -187,23 +182,19 @@ import Logging: Warn
         p = 9.8
         prob = ODEProblem(ff, u0, tspan, p)
         # Avoid log-checks for Julia versions before v1.6
-        if VERSION < v"1.6"
-            sol = solve(prob, TaylorMethod(25), abstol=1e-16, callback=cb)
-        else
-            sol = (@test_logs min_level=Logging.Warn solve(prob, TaylorMethod(25), abstol=1e-16, callback=cb))
-        end
+        sol = (@test_logs min_level=Logging.Warn solve(prob, TaylorMethod(25), abstol=1e-16, callback=cb))
         tb = sqrt(2*50/9.8) # bounce time
         @test abs(tb - sol.t[8]) < 1e-14
         @test sol.t[8] == sol.t[9]
-        @test sol[9][1] == sol[8][1]
-        @test sol[9][2] == -0.9sol[8][2]
-        @test sol[9][3] == sol[8][3]
-        @test sol[9][4] == sol[8][4]
+        @test sol.u[9][1] == sol.u[8][1]
+        @test sol.u[9][2] == -0.9sol.u[8][2]
+        @test sol.u[9][3] == sol.u[8][3]
+        @test sol.u[9][4] == sol.u[8][4]
         @test sol.t[13] == sol.t[14]
-        @test sol[14][1] == sol[13][1]
-        @test sol[14][2] == sol[13][2]
-        @test sol[14][3] == sol[13][3]
-        @test sol[14][4] == -0.9sol[13][4]
+        @test sol.u[14][1] == sol.u[13][1]
+        @test sol.u[14][2] == sol.u[13][2]
+        @test sol.u[14][3] == sol.u[13][3]
+        @test sol.u[14][4] == -0.9sol.u[13][4]
     end
 
     @testset "Test parsed jetcoeffs! method in common interface" begin
@@ -252,8 +243,8 @@ import Logging: Warn
         @test sol1.t == tv
         @test sol1[1,:] == xv[:,1]
         @test sol1[2,:] == xv[:,2]
-        @test norm(sol1[end][1] - sin(sol1.t[end]), Inf) < 1.0e-14
-        @test norm(sol1[end][2] - cos(sol1.t[end]), Inf) < 1.0e-14
+        @test norm(sol1.u[end][1] - sin(sol1.t[end]), Inf) < 1.0e-14
+        @test norm(sol1.u[end][2] - cos(sol1.t[end]), Inf) < 1.0e-14
 
         V(x, y) = - (1-μ)/sqrt((x-μ)^2+y^2) - μ/sqrt((x+1-μ)^2+y^2)
         H_pcr3bp(x, y, px, py) = (px^2+py^2)/2 - (x*py-y*px) + V(x, y)
