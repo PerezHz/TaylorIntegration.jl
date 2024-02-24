@@ -50,9 +50,6 @@ jobs:
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
       - uses: coverallsapp/github-action@v2
-        env:
-          COVERALLS_SERVICE_NUMBER: ${{ github.run_id }}-${{ github.run_attempt }}
         with:
           path-to-lcov: lcov.info
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          parallel: false
