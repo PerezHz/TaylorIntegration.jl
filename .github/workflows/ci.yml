@@ -1,13 +1,13 @@
 name: CI
 on:
-  pull_request:
-    branches:
-      - main
-    tags: '*'
+  # pull_request:
+  #   branches:
+  #     - main
   push:
     paths-ignore:
       - 'LICENSE.md'
       - 'README.md'
+    tags: '*'
 jobs:
   test:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ matrix.julia-threads }} thread(s) - ${{ github.event_name }}
@@ -59,3 +59,4 @@ jobs:
         with:
           path-to-lcov: lcov.info
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          parallel: false
