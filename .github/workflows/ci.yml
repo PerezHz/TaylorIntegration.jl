@@ -1,13 +1,10 @@
 name: CI
 on:
-  # pull_request:
-  #   branches:
-  #     - main
-  # tags: '*'
   push:
     paths-ignore:
       - 'LICENSE.md'
       - 'README.md'
+    tags: '*'
 jobs:
   test:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ matrix.julia-threads }} thread(s) - ${{ github.event_name }}
