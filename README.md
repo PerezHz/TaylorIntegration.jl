@@ -2,8 +2,14 @@
 
 ODE integration using Taylor's method in [Julia](http://julialang.org).
 
+Latest release:
+[![version](https://juliahub.com/docs/General/TaylorIntegration/stable/version.svg)](https://juliahub.com/ui/Packages/General/TaylorIntegration)
+
+PkgEval:
+[![pkgeval](https://juliahub.com/docs/General/TaylorIntegration/stable/pkgeval.svg)](https://juliahub.com/ui/Packages/General/TaylorIntegration)
+
 Build status:
-[![version](https://juliahub.com/docs/General/TaylorIntegration/stable/version.svg)](https://juliahub.com/ui/Packages/General/TaylorIntegration) [![pkgeval](https://juliahub.com/docs/General/TaylorIntegration/stable/pkgeval.svg)](https://juliahub.com/ui/Packages/General/TaylorIntegration) [![Build status](https://github.com/PerezHz/TaylorIntegration.jl/workflows/CI/badge.svg)](https://github.com/PerezHz/TaylorIntegration.jl/actions) [![deps](https://juliahub.com/docs/General/TaylorIntegration/stable/deps.svg)](https://juliahub.com/ui/Packages/General/TaylorIntegration?t=2)
+[![Build status](https://github.com/PerezHz/TaylorIntegration.jl/workflows/CI/badge.svg)](https://github.com/PerezHz/TaylorIntegration.jl/actions)
 
 Coverage:
 [![Coverage Status](https://coveralls.io/repos/github/PerezHz/TaylorIntegration.jl/badge.svg?branch=main)](https://coveralls.io/github/PerezHz/TaylorIntegration.jl?branch=main) [![codecov](https://codecov.io/gh/PerezHz/TaylorIntegration.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/PerezHz/TaylorIntegration.jl)
