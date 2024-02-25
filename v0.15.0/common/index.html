@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Interoperability with DifferentialEquations.jl · TaylorIntegration.jl</title><meta name="title" content="Interoperability with DifferentialEquations.jl · TaylorIntegration.jl"/><meta property="og:title" content="Interoperability with DifferentialEquations.jl · TaylorIntegration.jl"/><meta property="twitter:title" content="Interoperability with DifferentialEquations.jl · TaylorIntegration.jl"/><meta name="description" content="Documentation for TaylorIntegration.jl."/><meta property="og:description" content="Documentation for TaylorIntegration.jl."/><meta property="twitter:description" content="Documentation for TaylorIntegration.jl."/><script data-outdated-warner src="../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL=".."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../assets/documenter.js"></script><script src="../search_index.js"></script><script src="../siteinfo.js"></script><script src="../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href="../">TaylorIntegration.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../">Home</a></li><li><span class="tocitem">Background</span><ul><li><a class="tocitem" href="../taylor_method/">Taylor&#39;s method</a></li><li><a class="tocitem" href="../lyapunov_spectrum/">Lyapunov spectrum</a></li><li><a class="tocitem" href="../jet_transport/">Jet transport</a></li></ul></li><li><span class="tocitem">Examples</span><ul><li><a class="tocitem" href="../simple_example/">Infinity in finite time</a></li><li><a class="tocitem" href="../kepler/">The Kepler problem</a></li><li><a class="tocitem" href="../lorenz_lyapunov/">Lyapunov spectrum of Lorenz system</a></li><li><a class="tocitem" href="../pendulum/">Jet transport: the simple pendulum</a></li><li><a class="tocitem" href="../root_finding/">Poincaré maps</a></li><li class="is-active"><a class="tocitem" href>Interoperability with <code>DifferentialEquations.jl</code></a></li></ul></li><li><a class="tocitem" href="../taylorize/">Optimizing: <code>@taylorize</code></a></li><li><a class="tocitem" href="../api/">API</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Examples</a></li><li class="is-active"><a href>Interoperability with <code>DifferentialEquations.jl</code></a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Interoperability with <code>DifferentialEquations.jl</code></a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/PerezHz/TaylorIntegration.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-navbar-link" href="https://github.com/PerezHz/TaylorIntegration.jl/blob/main/docs/src/common.md" title="Edit source on GitHub"><span class="docs-icon fa-solid"></span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="diffeqinterface"><a class="docs-heading-anchor" href="#diffeqinterface">Interoperability with <code>DifferentialEquations.jl</code></a><a id="diffeqinterface-1"></a><a class="docs-heading-anchor-permalink" href="#diffeqinterface" title="Permalink"></a></h1><p>Here, we show an example of interoperability between <code>TaylorIntegration.jl</code> and <a href="https://github.com/JuliaDiffEq/DifferentialEquations.jl"><code>DifferentialEquations.jl</code></a>, i.e., how to use <code>TaylorIntegration.jl</code> from the <code>DifferentialEquations</code> ecosystem. The basic requirement is to load <code>OrdinaryDiffEq.jl</code> together with <code>TaylorIntegration.jl</code>, which sets-up the common interface. Below, we shall also use <code>OrdinaryDiffEq.jl</code> to compare the accuracy of <code>TaylorIntegration.jl</code> with respect to high-accuracy methods for non-stiff problems (<code>Vern9</code> method). While <code>DifferentialEquations</code> offers many macros to simplify certain aspects, we do not rely on them simply because using properly <code>@taylorize</code> improves the performance.</p><div class="admonition is-info"><header class="admonition-header">Note</header><div class="admonition-body"><p>Currently, the only keyword arguments supported by <code>DiffEqBase.solve</code> that are implemented in <code>TaylorIntegration.jl</code> are <code>:saveat</code> and <code>:tstops</code>. There is also experimental support for <code>:callback</code>, both discrete and continuous; some examples may be found in <code>test/common.jl</code>. The keyword argument <code>:parse_eqs</code> is available in order to control the use of methods defined via <a href="../api/#TaylorIntegration.@taylorize"><code>@taylorize</code></a>.</p></div></div><p>The problem we will integrate in this example is the planar circular restricted three-body problem (PCR3BP, also capitalized as PCRTBP). The PCR3BP describes the motion of a body with negligible mass <span>$m_3$</span> under the gravitational influence of two bodies with masses <span>$m_1$</span> and <span>$m_2$</span>, such that <span>$m_1 \ge m_2$</span>. It is assumed that <span>$m_3$</span> is much smaller than the other two masses so it does not influence their motion, and therefore it is simply considered as a massless test particle. The body with the greater mass <span>$m_1$</span> is referred as the <em>primary</em>, and <span>$m_2$</span> as the <em>secondary</em>. These bodies are together called the <em>primaries</em> and are assumed to describe Keplerian circular orbits about their center of mass, which is placed at the origin of the reference frame. It is further assumed that the orbit of the third body takes place in the orbital plane of the primaries. A full treatment of the PCR3BP may be found in <a href="#refsPCR3BP">[1]</a>.</p><p>The ratio <span>$\mu = m_2/(m_1+m_2)$</span> is known as the <em>mass parameter</em>. Using mass units such that <span>$m_1+m_2=1$</span>, we have <span>$m_1=1-\mu$</span> and <span>$m_2=\mu$</span>. In this example, we assume the mass parameter to have a value <span>$\mu=0.01$</span>.</p><pre><code class="language-julia hljs">using Plots
+
+const μ = 0.01</code></pre><p>The Hamiltonian for the PCR3BP in the synodic frame (i.e., a frame which rotates such that the primaries are at rest on the <span>$x$</span> axis) is</p><p class="math-container">\[H(x, y, p_x, p_y) = \frac{1}{2}(p_x^2+p_y^2) - (x p_y - y p_x) + V(x, y), \tag{1}\]</p><p>where</p><p class="math-container">\[V(x, y) = - \frac{1-\mu}{\sqrt{(x-\mu)^2+y^2}} - \frac{\mu}{\sqrt{(x+1-\mu)^2+y^2}}.\tag{2}\]</p><p>is the gravitational potential associated to the primaries. The RHS of Eq. (1) is also known as the <em>Jacobi constant</em>, since it is a preserved quantity of motion in the PCR3BP. We will use this property to check the accuracy of the solutions computed.</p><pre><code class="language-julia hljs">V(x, y) = - (1-μ)/sqrt((x-μ)^2+y^2) - μ/sqrt((x+1-μ)^2+y^2)
+H(x, y, px, py) = (px^2+py^2)/2 - (x*py-y*px) + V(x, y)
+H(x) = H(x...)</code></pre><p>The equations of motion for the PCR3BP are</p><p class="math-container">\[\begin{aligned}
+    \dot{x} &amp; = p_x + y,\\
+    \dot{y} &amp; = p_y - x,\\
+    \dot{p_x} &amp; = - \frac{(1-\mu)(x-\mu)}{((x-\mu)^2+y^2)^{3/2}} - \frac{\mu(x+1-\mu)}{((x+1-\mu)^2+y^2)^{3/2}} + p_y,\\
+    \dot{p_y} &amp; = - \frac{(1-\mu)y      }{((x-\mu)^2+y^2)^{3/2}} - \frac{\mu y       }{((x+1-\mu)^2+y^2)^{3/2}} - p_x.
+\end{aligned}\]</p><p>We define this system of ODEs in a way that allows the use of the <a href="../api/#TaylorIntegration.@taylorize"><code>@taylorize</code></a> macro from <code>TaylorIntegration.jl</code>, which for the present example allows important speed-ups. For more details about the specifics of the use of <a href="../api/#TaylorIntegration.@taylorize"><code>@taylorize</code></a>, see <a href="../taylorize/#taylorize">this section</a>.</p><pre><code class="language-julia hljs">using TaylorIntegration
+@taylorize function pcr3bp!(dq, q, param, t)
+    local μ = param[1]
+    local onemμ = 1 - μ
+    x1 = q[1]-μ
+    x1sq = x1^2
+    y = q[2]
+    ysq = y^2
+    r1_1p5 = (x1sq+ysq)^1.5
+    x2 = q[1]+onemμ
+    x2sq = x2^2
+    r2_1p5 = (x2sq+ysq)^1.5
+    dq[1] = q[3] + q[2]
+    dq[2] = q[4] - q[1]
+    dq[3] = (-((onemμ*x1)/r1_1p5) - ((μ*x2)/r2_1p5)) + q[4]
+    dq[4] = (-((onemμ*y )/r1_1p5) - ((μ*y )/r2_1p5)) - q[3]
+    return nothing
+end</code></pre><p>We shall define the initial conditions <span>$q_0 = (x_0, y_0, p_{x,0}, p_{y,0})$</span> such that <span>$H(q_0) = J_0$</span>, where <span>$J_0$</span> is a prescribed value. In order to do this, we select <span>$y_0 = p_{x,0} = 0$</span> and compute the value of <span>$p_{y,0}$</span> for which <span>$H(q_0) = J_0$</span> holds.</p><p>We consider a value for <span>$J_0$</span> such that the test particle is able to display close encounters with <em>both</em> primaries, but cannot escape to infinity. We may obtain a first approximation to the desired value of <span>$J_0$</span> if we plot the projection of the zero-velocity curves on the <span>$x$</span>-axis.</p><pre><code class="language-julia hljs">ZVC(x) =  -x^2/2 + V(x, zero(x)) # projection of the zero-velocity curves on the x-axis
+
+plot(ZVC, -2:0.001:2, label=&quot;zero-vel. curve&quot;, legend=:topleft, fmt = :png)
+plot!([-2, 2], [-1.58, -1.58], label=&quot;J0 = -1.58&quot;)
+ylims!(-1.7, -1.45)
+xlabel!(&quot;x&quot;)
+ylabel!(&quot;J&quot;)
+title!(&quot;Zero-velocity curves (x-axis projection)&quot;)</code></pre><img src="15e32749.svg" alt="Example block output"/><p>Notice that the maxima in the plot correspond to the Lagrangian points <span>$L_1$</span>, <span>$L_2$</span> and <span>$L_3$</span>; below we shall concentrate in the value <span>$J_0 = -1.58$</span>.</p><pre><code class="language-julia hljs">J0 = -1.58</code></pre><p>We define a function <code>py!</code>, which depends on the initial condition <span>$q_0 = (x_0, 0, 0, p_{y,0})$</span> and the Jacobi constant value <span>$J_0$</span>, such that it computes an adequate value <span>$p_{y,0}$</span> for which we have <span>$H(q_0)=J_0$</span> and updates (in-place) the initial condition accordingly.</p><pre><code class="language-julia hljs">function py!(q0, J0)
+    @assert iszero(q0[2]) &amp;&amp; iszero(q0[3]) # q0[2] and q0[3] have to be equal to zero
+    q0[4] = q0[1] + sqrt( q0[1]^2-2( V(q0[1], q0[2])-J0 ) )
+    nothing
+end</code></pre><p>We are now ready to generate an appropriate initial condition.</p><pre><code class="language-julia hljs">q0 = [-0.8, 0.0, 0.0, 0.0]
+py!(q0, J0)
+q0</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">4-element Vector{Float64}:
+ -0.8
+  0.0
+  0.0
+ -0.6276410653920694</code></pre><p>We note that the value of <code>q0</code> has been updated. We can check that the value of the Hamiltonian evaluated at the initial condition is indeed equal to <code>J0</code>.</p><pre><code class="language-julia hljs">H(q0) == J0</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">true</code></pre><p>Following the <code>DifferentialEquations.jl</code> <a href="https://diffeq.sciml.ai/stable/tutorials/ode_example/">tutorial</a>, we define an <code>ODEProblem</code> for the integration; <code>TaylorIntegration</code> can be used via its common interface bindings with <code>OrdinaryDiffEq.jl</code>; both packages need to be loaded explicitly.</p><pre><code class="language-julia hljs">tspan = (0.0, 2000.0)
+p = [μ]
+
+using OrdinaryDiffEq
+prob = ODEProblem(pcr3bp!, q0, tspan, p)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi"><span class="sgr38_2" style="color:#56b6c2">ODEProblem</span> with uType <span class="sgr38_2" style="color:#56b6c2">Vector{Float64}</span> and tType <span class="sgr38_2" style="color:#56b6c2">Float64</span>. In-place: <span class="sgr38_2" style="color:#56b6c2">true</span>
+timespan: (0.0, 2000.0)
+u0: 4-element Vector{Float64}:
+ -0.8
+  0.0
+  0.0
+ -0.6276410653920694</code></pre><p>We solve <code>prob</code> using a 25-th order Taylor method, with a local absolute tolerance <span>$\epsilon_\mathrm{tol} = 10^{-15}$</span>.</p><pre><code class="language-julia hljs">solT = solve(prob, TaylorMethod(25), abstol=1e-15);</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">retcode: Success
+Interpolation: 3rd order Hermite
+t: 19608-element Vector{Float64}:
+    0.0
+    0.13196071872716866
+    0.27014676027774454
+    0.42393639891281987
+    0.6040489984083115
+    0.7470888302887118
+    0.8537154042859872
+    0.9339017026636446
+    0.9948376044666346
+    1.041388851851968
+    ⋮
+ 1999.5042725273079
+ 1999.5431825892883
+ 1999.585321353172
+ 1999.6333069204968
+ 1999.6900342956144
+ 1999.7583339712685
+ 1999.841241219841
+ 1999.9430374708056
+ 2000.0
+u: 19608-element Vector{Vector{Float64}}:
+ [-0.8, 0.0, 0.0, -0.6276410653920694]
+ [-0.7932072459999212, 0.021999013383924005, 0.08140695643428739, -0.6377638461316928]
+ [-0.7711573074953806, 0.04021587810521527, 0.17675113719300067, -0.6688864600381992]
+ [-0.7274049294817609, 0.04873797433924279, 0.30569454759447606, -0.7263176192504541]
+ [-0.6471962297961017, 0.0339035917847401, 0.5097162066272879, -0.8242465081730088]
+ [-0.555741961444557, -0.004539329245841953, 0.7525448101567436, -0.9233378179280098]
+ [-0.4645151896861849, -0.05237933172838659, 1.0331768994048929, -0.99547157889477]
+ [-0.37557401376068666, -0.09959841168708136, 1.3584539352908696, -1.016191194976285]
+ [-0.2895689539623897, -0.13989162192605029, 1.7261635478522546, -0.9558013178409663]
+ [-0.20780076710609213, -0.1693782791151218, 2.1143731596742112, -0.7823572471371022]
+ ⋮
+ [-0.17496376257492635, -0.17162024831531136, 1.3853825963776936, -1.9910183910679593]
+ [-0.12304118303795919, -0.23591024736030314, 1.664519586011635, -1.6072083780763986]
+ [-0.06079568084101738, -0.2910297290272401, 1.7937412752512865, -1.201602071416007]
+ [0.010706160716735615, -0.33799420974483546, 1.8000388400926512, -0.8222349820550685]
+ [0.09036540182670252, -0.3776915547287994, 1.7168539805662775, -0.4948839982771776]
+ [0.1759176142431495, -0.4109734546288778, 1.5764514213719614, -0.2305013931376877]
+ [0.2641294989793357, -0.4393446214896214, 1.4058003373126944, -0.02725826011770835]
+ [0.3515484829667911, -0.46520091680777775, 1.2228269820636821, 0.12590172434120908]
+ [0.39178452468014624, -0.47746330663809045, 1.1343053892122903, 0.1855857869403744]</code></pre><p>As mentioned above, we will now solve the same problem <code>prob</code> with the <code>Vern9</code> method from <code>OrdinaryDiffEq</code>, which the <code>DifferentialEquations</code> <a href="https://diffeq.sciml.ai/stable/solvers/ode_solve/#Non-Stiff-Problems">documentation</a> recommends for high-accuracy (i.e., very low tolerance) integrations of non-stiff problems. Note that, besides setting an absolute tolerance <code>abstol=1e-15</code>, we&#39;re setting a relative tolerance <code>reltol=1e-15</code> <a href="#refsPCR3BP">[2]</a>. We have found that for the current problem this is a good balance between speed and accuracy for the <code>Vern9</code> method, i.e., the <code>Vern9</code> integration becomes noticeably slower (although more accurate) if either <code>abstol</code> or <code>reltol</code> are set to lower values.</p><pre><code class="language-julia hljs">using OrdinaryDiffEq
+
+solV = solve(prob, Vern9(), abstol=1e-15, reltol=1e-15); #solve `prob` with the `Vern9` method</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">retcode: Success
+Interpolation: specialized 9th order lazy interpolation
+t: 109969-element Vector{Float64}:
+    0.0
+    0.014218880460979355
+    0.029254985035048104
+    0.043100405390433874
+    0.05734634963317922
+    0.07358281996048438
+    0.08944879825305627
+    0.10587664107366627
+    0.1226246832421739
+    0.1435160589250072
+    ⋮
+ 1999.8835158404124
+ 1999.8979213519083
+ 1999.9116672471735
+ 1999.9261589673808
+ 1999.941671239634
+ 1999.9563042419318
+ 1999.9717788474554
+ 1999.987747535878
+ 2000.0
+u: 109969-element Vector{Vector{Float64}}:
+ [-0.8, 0.0, 0.0, -0.6276410653920694]
+ [-0.7999214879562981, 0.0024498152778736912, 0.00859413588182428, -0.6277599916692193]
+ [-0.7996675843508191, 0.005034208510608978, 0.017696409719266754, -0.6281442610049114]
+ [-0.7992782930574767, 0.007402685037193327, 0.026103506293378813, -0.6287324566601369]
+ [-0.7987218689531319, 0.00982280232842162, 0.034792021624444995, -0.6295711582485729]
+ [-0.797894470875534, 0.012553097170943344, 0.04475750864054082, -0.63081399178736]
+ [-0.7968864732598321, 0.015184680375190484, 0.0545768793929235, -0.6323213310978815]
+ [-0.7956341732152393, 0.017863254033671463, 0.06484608541850159, -0.634183992679585]
+ [-0.7941379505860766, 0.02053692742751024, 0.07544018310964262, -0.636395532591486]
+ [-0.7919590653442087, 0.023777693641981894, 0.08885831570084259, -0.6395904165292945]
+ ⋮
+ [-0.10036556390021033, -0.40881948168063087, 1.3263848652497512, -1.0339244230210929]
+ [-0.08720892823246354, -0.4219534753803598, 1.3306307677028557, -0.9775508905357453]
+ [-0.07478774834940205, -0.43392235178080524, 1.332218341540104, -0.9262738327498371]
+ [-0.0618595087150646, -0.4459796381322718, 1.33164440577699, -0.8748026893703007]
+ [-0.048236112287607984, -0.4582871679437302, 1.328841777142106, -0.8225447583250936]
+ [-0.03560926760707582, -0.46936547175800486, 1.3244363154112246, -0.7758223093021686]
+ [-0.022510911045455013, -0.480556024781558, 1.318210211953628, -0.7289957477163415]
+ [-0.009284187203683182, -0.4915754146264585, 1.3103724961844636, -0.6833061494007471]
+ [0.0006569134087038978, -0.49968918682462987, 1.303542664918598, -0.6499623338440916]</code></pre><p>We plot in the <span>$x-y$</span> synodic plane the solution obtained with <code>TaylorIntegration</code>:</p><pre><code class="language-julia hljs">plot(solT, vars=(1, 2), linewidth=1, fmt = :png)
+scatter!([μ, -1+μ], [0,0], leg=false) # positions of the primaries
+xlims!(-1+μ-0.2, 1+μ+0.2)
+ylims!(-0.8, 0.8)
+xlabel!(&quot;x&quot;)
+ylabel!(&quot;y&quot;)</code></pre><img src="8563c698.svg" alt="Example block output"/><p>Note that the orbit obtained displays the expected dynamics: the test particle explores the regions surrounding both primaries, located at the red dots, without escaping to infinity. For comparison, we now plot the orbit corresponding to the solution obtained with the <code>Vern9()</code> integration; note that the scales are identical.</p><pre><code class="language-julia hljs">plot(solV, vars=(1, 2), linewidth=1, fmt = :png)
+scatter!([μ, -1+μ], [0,0], leg=false) # positions of the primaries
+xlims!(-1+μ-0.2, 1+μ+0.2)
+ylims!(-0.8, 0.8)
+xlabel!(&quot;x&quot;)
+ylabel!(&quot;y&quot;)</code></pre><img src="c31230a6.svg" alt="Example block output"/><p>We note that both orbits display the same qualitative features, and also some differences. For instance, the <code>TaylorMethod(25)</code> solution gets closer to the primary than that the <code>Vern9()</code>. We can obtain a quantitative comparison of the validity of both integrations through the preservation of the Jacobi constant:</p><pre><code class="language-julia hljs">ET = H.(solT.u)
+EV = H.(solV.u)
+δET = ET .- J0
+δEV = EV .- J0</code></pre><p>We plot first the value of the Jacobi constant as function of time.</p><pre><code class="language-julia hljs">plot(solT.t, H.(solT.u), label=&quot;TaylorMethod(25)&quot;, fmt = :png, yformatter = :plain)
+plot!(solV.t, H.(solV.u), label=&quot;Vern9()&quot;)
+xlabel!(&quot;t&quot;)
+ylabel!(&quot;H&quot;)</code></pre><img src="a8b74139.svg" alt="Example block output"/><p>In the scale shown we observe that, while both solutions display a preservation of the Jacobi constant to a certain degree, the <code>Vern9()</code> solution suffers sudden jumps during the integration.</p><p>We now plot, in log scale, the <code>abs</code> of the absolute error in the Jacobi constant as a function of time, for both solutions:</p><pre><code class="language-julia hljs">plot(solT.t, abs.(δET), yscale=:log10, label=&quot;TaylorMethod(25)&quot;, legend=:topleft, fmt = :png, yformatter = :plain)
+plot!(solV.t, abs.(δEV), label=&quot;Vern9()&quot;)
+ylims!(10^-16, 10^-10)
+xlabel!(&quot;t&quot;)
+ylabel!(&quot;dE&quot;)</code></pre><img src="ee52678f.svg" alt="Example block output"/><p>We notice that the Jacobi constant absolute error for the <code>TaylorMethod(25)</code> solution remains bounded below <span>$10^{-13}$</span> throughout the integration. While the <code>Vern9()</code> solution at the end of the integration time has reached a similar value, it displays a larger Jacobi constant error earlier in time.</p><p>Finally, we comment on the time spent by each integration.</p><pre><code class="language-julia hljs">using BenchmarkTools
+bT = @benchmark solve($prob, $(TaylorMethod(25)), abstol=1e-15)
+bV = @benchmark solve($prob, $(Vern9()), abstol=1e-15, reltol=1e-15)</code></pre><pre><code class="language-julia hljs">bT # TaylorMethod(25) benchmark</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">BenchmarkTools.Trial: 52 samples with 1 evaluation.
+ Range <span class="sgr90">(</span><span class="sgr36"><span class="sgr1">min</span></span> … <span class="sgr35">max</span><span class="sgr90">):  </span><span class="sgr36"><span class="sgr1">93.443 ms</span></span> … <span class="sgr35">114.202 ms</span>  <span class="sgr90">┊</span> GC <span class="sgr90">(</span>min … max<span class="sgr90">): </span>0.00% … 15.43%
+ Time  <span class="sgr90">(</span><span class="sgr34"><span class="sgr1">median</span></span><span class="sgr90">):     </span><span class="sgr34"><span class="sgr1">96.432 ms               </span></span><span class="sgr90">┊</span> GC <span class="sgr90">(</span>median<span class="sgr90">):    </span>0.00%
+ Time  <span class="sgr90">(</span><span class="sgr32"><span class="sgr1">mean</span></span> ± <span class="sgr32">σ</span><span class="sgr90">):   </span><span class="sgr32"><span class="sgr1">96.857 ms</span></span> ± <span class="sgr32">  3.637 ms</span>  <span class="sgr90">┊</span> GC <span class="sgr90">(</span>mean ± σ<span class="sgr90">):  </span>0.70% ±  3.03%
+
+          █<span class="sgr34">▄</span>▃<span class="sgr32"> </span>▃                                                 
+  ▆▇▇▆▆▄▇▄█<span class="sgr34">█</span>█<span class="sgr32">▇</span>█▄▆▄▄▄▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▄ ▁
+  93.4 ms<span class="sgr90">         Histogram: frequency by time</span>          113 ms <span class="sgr1">&lt;</span>
+
+ Memory estimate<span class="sgr90">: </span><span class="sgr33">7.76 MiB</span>, allocs estimate<span class="sgr90">: </span><span class="sgr33">78630</span>.</code></pre><pre><code class="language-julia hljs">bV # Vern9 benchmark</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">BenchmarkTools.Trial: 20 samples with 1 evaluation.
+ Range <span class="sgr90">(</span><span class="sgr36"><span class="sgr1">min</span></span> … <span class="sgr35">max</span><span class="sgr90">):  </span><span class="sgr36"><span class="sgr1">209.448 ms</span></span> … <span class="sgr35">618.353 ms</span>  <span class="sgr90">┊</span> GC <span class="sgr90">(</span>min … max<span class="sgr90">): </span> 0.00% … 66.25%
+ Time  <span class="sgr90">(</span><span class="sgr34"><span class="sgr1">median</span></span><span class="sgr90">):     </span><span class="sgr34"><span class="sgr1">238.533 ms               </span></span><span class="sgr90">┊</span> GC <span class="sgr90">(</span>median<span class="sgr90">):    </span> 7.05%
+ Time  <span class="sgr90">(</span><span class="sgr32"><span class="sgr1">mean</span></span> ± <span class="sgr32">σ</span><span class="sgr90">):   </span><span class="sgr32"><span class="sgr1">262.307 ms</span></span> ± <span class="sgr32"> 87.481 ms</span>  <span class="sgr90">┊</span> GC <span class="sgr90">(</span>mean ± σ<span class="sgr90">):  </span>16.42% ± 16.12%
+
+    █ <span class="sgr34"> </span>   <span class="sgr32"> </span>                                                      
+  ▆▁█▄<span class="sgr34">▄</span>▆▄▁<span class="sgr32">▆</span>▄▄▁▁▁▁▄▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▁▄ ▁
+  209 ms<span class="sgr90">           Histogram: frequency by time</span>          618 ms <span class="sgr1">&lt;</span>
+
+ Memory estimate<span class="sgr90">: </span><span class="sgr33">130.11 MiB</span>, allocs estimate<span class="sgr90">: </span><span class="sgr33">1319694</span>.</code></pre><p>We notice in this setup, where the <code>TaylorMethod(25)</code> and the <code>Vern9()</code> integrations perform similarly in terms of accuracy, the former performs better in terms of runtime.</p><p>We can tune the <code>abstol</code> and <code>reltol</code> for the <code>Vern9()</code> method we so that performance is similar. Such situation has an accuracy cost, which then makes <code>TaylorIntegration</code> a sensible alternative for high-accuracy integrations of non-stiff ODEs in some cases; see <a href="#refsPCR3BP">[2]</a>.</p><p>Finally, as mentioned above, a crucial way in which <code>TaylorIntegration</code> provides high accuracy at competitive speeds is through the use of the <a href="../api/#TaylorIntegration.@taylorize"><code>@taylorize</code></a> macro; see <a href="../taylorize/#taylorize">this section</a> for details. Currently, <code>TaylorIntegration</code> supports the use of <code>@taylorize</code> via the common interface with <code>DifferentialEquations</code> only for in-place <code>ODEProblem</code>.</p><h3 id="refsPCR3BP"><a class="docs-heading-anchor" href="#refsPCR3BP">References and notes</a><a id="refsPCR3BP-1"></a><a class="docs-heading-anchor-permalink" href="#refsPCR3BP" title="Permalink"></a></h3><p>[1] Murray, Carl D., Stanley F. Dermott. Solar System dynamics. Cambridge University Press, 1999.</p><p>[2] <a href="https://benchmarks.sciml.ai/html/DynamicalODE/Henon-Heiles_energy_conservation_benchmark.html">SciMLBenchmarks.jl/DynamicalODE</a></p></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../root_finding/">« Poincaré maps</a><a class="docs-footer-nextpage" href="../taylorize/">Optimizing: <code>@taylorize</code> »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="auto">Automatic (OS)</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.2.1 on <span class="colophon-date" title="Sunday 25 February 2024 12:12">Sunday 25 February 2024</span>. Using Julia version 1.10.1.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
