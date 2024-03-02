@@ -123,7 +123,7 @@ const _HEAD_ALLOC_TAYLOR1_VECTOR = sanitize(:(
 # Constants for the initial declaration and initialization of arrays
 const _DECL_ARRAY = sanitize( Expr(:block,
     :(__var1 = Array{Taylor1{_S}}(undef, __var2)),
-    :(__var1 .= Taylor1( zero(constant_term(__x[1])), order )))
+    :(  for i in CartesianIndices(__var1) __var1[i] = Taylor1( zero(constant_term(__x[1])), order ) end  ))
 );
 
 
@@ -250,9 +250,9 @@ function _extract_parts(ex::Expr)
     end
 
     # Special case: the last arg of the function is a simple
-    # assignement (symbol), a numerical value or simply `nothing`
+    # assignment (symbol), a numerical value or simply `nothing`
     if isa(fnbody.args[1].args[end], Symbol)
-        # This accouns the case of having `nothing` at the end of the function
+        # This accounts for the case of having `nothing` at the end of the function
         if fnbody.args[1].args[end] == :nothing
             pop!(fnbody.args[1].args)
         else
@@ -801,8 +801,8 @@ function _replacecalls!(bkkeep::BookKeeping, fnold::Expr, newvar::Symbol)
             Dict(:_res => newvar, :_arg1 => :(constant_term($(newarg1))), :_k => :ord))
 
         def_fnexpr = Expr(:block,
-            :(_res.coeffs[1] = $(def_fnexpr.args[2])),
-            :(_res.coeffs[2:order+1] .= zero(_res.coeffs[1])) )
+            :(TaylorSeries.zero!(_res)),
+            :(_res.coeffs[1] = $(def_fnexpr.args[2])) )
         def_fnexpr = subs(def_fnexpr,
             Dict(:_res => newvar, :_arg1 => :(constant_term($(newarg1))), :_k => :ord))
         # def_fnexpr = Expr(:block,
@@ -820,8 +820,8 @@ function _replacecalls!(bkkeep::BookKeeping, fnold::Expr, newvar::Symbol)
                 Dict(:_res => newaux, :_arg1 => :(constant_term($(newarg1))), :_aux => newaux))
 
             aux_fnexpr = Expr(:block,
-                :(_res.coeffs[1] = $(aux_fnexpr.args[2])),
-                :(_res.coeffs[2:order+1] .= zero(_res.coeffs[1])) )
+                :(TaylorSeries.zero!(_res)),
+                :(_res.coeffs[1] = $(aux_fnexpr.args[2])) )
             aux_fnexpr = subs(aux_fnexpr,
                 Dict(:_res => newaux, :_arg1 => :(constant_term($(newarg1))), :_aux => newaux))
 
@@ -847,8 +847,8 @@ function _replacecalls!(bkkeep::BookKeeping, fnold::Expr, newvar::Symbol)
             :_arg2 => :(constant_term($(newarg2))), :_k => :ord) )
 
         def_fnexpr = Expr(:block,
-            :(_res.coeffs[1] = $(def_fnexpr.args[2])),
-            :(_res.coeffs[2:order+1] .= zero(_res.coeffs[1])) )
+            :(TaylorSeries.zero!(_res)),
+            :(_res.coeffs[1] = $(def_fnexpr.args[2])) )
         def_fnexpr = subs(def_fnexpr,
             Dict(:_res => newvar, :_arg1 => :(constant_term($(newarg1))),
                 :_arg2 => :(constant_term($(newarg2))), :_k => :ord))

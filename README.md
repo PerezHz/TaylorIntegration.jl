@@ -2,6 +2,12 @@
 
 ODE integration using Taylor's method in [Julia](http://julialang.org).
 
+Latest release:
+[![version](https://juliahub.com/docs/General/TaylorIntegration/stable/version.svg)](https://juliahub.com/ui/Packages/General/TaylorIntegration)
+
+PkgEval:
+[![pkgeval](https://juliahub.com/docs/General/TaylorIntegration/stable/pkgeval.svg)](https://juliahub.com/ui/Packages/General/TaylorIntegration)
+
 Build status:
 [![Build status](https://github.com/PerezHz/TaylorIntegration.jl/workflows/CI/badge.svg)](https://github.com/PerezHz/TaylorIntegration.jl/actions)
 
@@ -21,7 +27,7 @@ Instituto de Ciencias Físicas, Universidad Nacional Autónoma de México (UNAM)
 - [Luis Benet](http://www.cicc.unam.mx/~benet/),
 Instituto de Ciencias Físicas, Universidad Nacional Autónoma de México (UNAM)
 
-Comments, suggestions, and improvements are welcome and appreciated.
+Comments, suggestions, contributions and improvements are welcome and appreciated.
 
 ## Examples
 
