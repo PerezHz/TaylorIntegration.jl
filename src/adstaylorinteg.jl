@@ -32,7 +32,7 @@ function size_per_variable(P::TaylorN{T}) where {T <: Real}
     nv = get_numvars()
     # Absolute sum per variable per order
     ys = zeros(T, nv, varorder+1)
-    
+
     for i in eachindex(P.coeffs)
         idxs = generate_index_vectors(nv, i-1)
         for j in eachindex(idxs)
@@ -45,7 +45,7 @@ function size_per_variable(P::TaylorN{T}) where {T <: Real}
     p0 = ones(T, 2)
     # Orders
     xs = collect(0:varorder)
-    
+
     M = Vector{T}(undef, nv)
     for i in eachindex(M)
         # Non zero coefficients
@@ -98,7 +98,7 @@ end
 # Split node's domain in half
 # See section 3 of https://doi.org/10.1007/s10569-015-9618-3
 function split(node::ADSBinaryNode{N, M, T}, x::SVector{M, TaylorN{T}},
-               p::SVector{M, Taylor1{TaylorN{T}}}) where {N, M, T <: Real} 
+               p::SVector{M, Taylor1{TaylorN{T}}}) where {N, M, T <: Real}
     # Split direction
     j = splitdirection(x)
     # Split domain
@@ -126,18 +126,34 @@ function split(node::ADSBinaryNode{N, M, T}, x::SVector{M, TaylorN{T}},
 end
 
 """
+    adsnorm(x::TaylorN{T}, s::ADSDomain{N, T}) where {N, T <: Real}
+
+Return the contribution of the largest coefficient in the last
+two orders of `x` in domain `s`.
+"""
+function adsnorm(x::TaylorN{T}, s::ADSDomain{N, T}) where {N, T <: Real}
+    # Jet transport order
+    order = x.order
+    # Domain diameter
+    L = maximum(diams(s))
+    # Largest coefficient in last two orders
+    C = norm(x.coeffs[end-1:end], Inf)
+    # Contribution of C in s
+    return C * L^order
+end
+
+"""
     split!(node::ADSBinaryNode{N, M, T}, p::SVector{M, Taylor1{TaylorN{T}}},
            dt::T, nsplits::Int, maxsplits::Int, stol::T) where {N, M, T <: Real}
 
-Split `node` in half if at least one element of `p(dt)` has any of its last two
-coefficients greater than `stol`.
+Split `node` in half if any element of `p(dt)` has an `adsnorm` greater than `stol`.
 """
 function split!(node::ADSBinaryNode{N, M, T}, p::SVector{M, Taylor1{TaylorN{T}}},
                 dt::T, nsplits::Int, maxsplits::Int, stol::T) where {N, M, T <: Real}
     # Evaluate x at dt
     x = _eval(p, dt)
     # Split criteria for each element of x
-    mask = map(y -> norm(y.coeffs[end-1:end], Inf), x)
+    mask = map(y -> adsnorm(y, node.s), x)
     # Split
     if nsplits < maxsplits && any(mask .> stol)
         # Split
@@ -175,7 +191,7 @@ function taylorinteg(
     parse_eqs, rv = _determine_parsing!(parse_eqs, f!, t, x, dx, params)
 
     if parse_eqs
-        return _taylorinteg!(f!, q0, s, t0, tmax, order, stol, abstol, rv, 
+        return _taylorinteg!(f!, q0, s, t0, tmax, order, stol, abstol, rv,
                              params; maxsplits, maxsteps)
     else
         return _taylorinteg!(f!, q0, s, t0, tmax, order, stol, abstol,
@@ -202,7 +218,7 @@ function _taylorinteg!(
     end
     nv = ADSBinaryNode{N, M, T}(s, t0, SVector{M, TaylorN{T}}(q0),
                                 SVector{M, Taylor1{TaylorN{T}}}(x[:, 1]))
-    
+
     nsteps = 1
     nsplits = 1
     sign_tstep = copysign(1, tmax-t0)
@@ -240,7 +256,7 @@ function _taylorinteg!(
     end
 
     return nv
-end 
+end
 
 function _taylorinteg!(
     f!, q0::SVector{M, TaylorN{T}}, s::ADSDomain{N, T}, t0::T, tmax::T,
