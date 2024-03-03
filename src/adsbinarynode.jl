@@ -243,10 +243,8 @@ end
 Evaluate binary tree `n` at time `t`.
 """
 function evaltree(n::ADSBinaryNode{N, M, T}, t::T) where {N, M, T <: Real}
-    # Search starts at depth 1
-    iszero(n.depth) && return evaltree(n.left, t)
     # t is outside time range
-    if (n.t > n.parent.t && t < n.parent.t) || (n.t < n.parent.t && t > n.parent.t)
+    if !isnothing(n.left) && (n.t < n.left.t && t < n.t) || (n.t > n.left.t && t > n.t)
         return Vector{ADSDomain{N, T}}(undef, 0), Matrix{TaylorN{T}}(undef, 0, 0)
     end
     # Allocate set of nodes
@@ -279,8 +277,8 @@ function evaltree(n::ADSBinaryNode{N, M, T}, t::T) where {N, M, T <: Real}
 end
 
 function evaltree!(n::ADSBinaryNode{N, M, T}, t::T, ns::Set{ADSBinaryNode{N, M, T}}) where {N, M, T <: Real}
-    if abs(n.parent.t) <= abs(t) < abs(n.t) || (t == n.t && isnothing(n.left)) 
-        push!(ns, n)
+    if !isnothing(n.parent) && (abs(n.parent.t) <= abs(t) < abs(n.t)) || (t == n.t && isnothing(n.left))
+            push!(ns, n)
     else
         evaltree!(n.left, t, ns)
         evaltree!(n.right, t, ns)
@@ -299,14 +297,12 @@ evaltree!(n::Nothing, t::T, ns::Set{ADSBinaryNode{N, M, T}}) where {N, M, T <: R
 Evaluate binary tree `n` at time `t` and domain point `s`.
 """
 function evaltree(n::ADSBinaryNode{N, M, T}, t::T, s::SVector{N, T}) where {N, M, T <: Real}
-    # Search starts at depth 1
-    iszero(n.depth) && return evaltree(n.left, t, s)
     # t is outside time range or s is outside domain
-    if (n.t > n.parent.t && t < n.parent.t) || (n.t < n.parent.t && t > n.parent.t) ||
-        !(s in n.parent.s)
+    if !(s in n.s) || !isnothing(n.left) && (n.t < n.left.t && t < n.t) ||
+        (n.t > n.left.t && t > n.t)
         return Vector{T}(undef, 0)
     end
-    # Allocate set of nodees
+    # Allocate set of nodes
     ns = Set{ADSBinaryNode{N, M, T}}()
     # Search nodes at time t and domain s (recursively)
     evaltree!(n, t, s, ns)
@@ -341,8 +337,8 @@ end
 
 function evaltree!(n::ADSBinaryNode{N, M, T}, t::T, s::SVector{N, T},
                    ns::Set{ADSBinaryNode{N, M, T}}) where {N, M, T <: Real}
-    if (abs(n.parent.t) <= abs(t) < abs(n.t) || (t == n.t && isnothing(n.left))) &&
-        s in n.s
+    if (s in n.s) && !isnothing(n.parent) && (abs(n.parent.t) <= abs(t) < abs(n.t)) ||
+        (t == n.t && isnothing(n.left))
         push!(ns, n)
     else
         evaltree!(n.left, t, s, ns)
