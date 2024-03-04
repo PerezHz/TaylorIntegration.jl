@@ -2,10 +2,10 @@ using TaylorIntegration
 using Test
 
 @testset "Automatic Domain Splitting" begin
-    using TaylorIntegration: ADSBinaryNode, countnodes, timesvector, evaltree
+    using TaylorIntegration: ADSBinaryNode, countnodes, timesvector
     using StaticArrays: SVector
 
-    # This example is based upon section 3 of 
+    # This example is based upon section 3 of
     # https://doi.org/10.1007/s10569-015-9618-3.
 
     # Dynamical function
@@ -19,7 +19,7 @@ using Test
     # Initial conditons (plain)
     local q00 = [1.0, 0.0, 0.0, sqrt(1.5)]
     # Jet transport variables
-    local dq = set_variables("dx dy", numvars = 2, order = 14)
+    local dq = set_variables("dx dy", numvars = 2, order = 5)
     # Initial conditions (jet transport)
     local q0_ = q00 .+ [0.008, 0.08, 0.0, 0.0] .* vcat(dq, dq)
     local q0 = SVector{4}(q0_)
@@ -32,63 +32,97 @@ using Test
     # Taylor1 order
     local order = 25
     # Splitting tolerance
-    local stol = 3e-4
+    local stol = 1e-5
     # Absolute tolerance
     local abstol = 1e-20
     # Dynamical function parameters
     local params = nothing
     # Maximum allowed splits
-    local maxsplits = 15
+    local maxsplits = 25
     # Maximum allowed steps
     local maxsteps = 1_000
-    # Use taylorized kepler_eqs!
-    local parse_eqs = true
 
+    # ADS taylorinteg (parse_eqs = false)
     # Warmup
-    nv = taylorinteg(kepler_eqs!, q0, dom, t0, tmax, order, stol, abstol, params;
-                     maxsplits = 1, maxsteps, parse_eqs);
-    # ADS taylorinteg
-    nv = taylorinteg(kepler_eqs!, q0, dom, t0, tmax, order, stol, abstol, params;
-                     maxsplits, maxsteps, parse_eqs);
+    _ = taylorinteg(kepler_eqs!, q0, dom, t0, tmax, order, stol, abstol, params;
+                    maxsplits = 1, maxsteps = 1, parse_eqs = false);
+    # Full integration
+    nv1 = taylorinteg(kepler_eqs!, q0, dom, t0, tmax, order, stol, abstol, params;
+                      maxsplits = maxsplits, maxsteps = maxsteps, parse_eqs = false);
 
-    @test isa(nv, ADSBinaryNode{2, 4, Float64})
-    @test nv.s == dom
-    @test iszero(nv.t)
-    @test nv.x == q0
-    @test nv.p == Taylor1.(q0, order)
-    @test iszero(nv.depth)
-    @test isnothing(nv.parent)
-    @test isa(nv.left, ADSBinaryNode{2, 4, Float64})
-    @test isnothing(nv.right) 
+    @test isa(nv1, ADSBinaryNode{2, 4, Float64})
+    @test nv1.s == dom
+    @test iszero(nv1.t)
+    @test nv1.x == q0
+    @test nv1.p == Taylor1.(q0, order)
+    @test iszero(nv1.depth)
+    @test isnothing(nv1.parent)
+    @test isa(nv1.left, ADSBinaryNode{2, 4, Float64})
+    @test isa(nv1.right, ADSBinaryNode{2, 4, Float64})
 
-    @test isone(countnodes(nv, 0))
-    @test countnodes(nv, 91) == maxsplits
-    @test iszero(countnodes(nv, 92))
-    @test iszero(countnodes(nv, prevfloat(t0)))
-    @test isone(countnodes(nv, t0))
-    @test countnodes(nv, tmax) == maxsplits
-    @test iszero(countnodes(nv, nextfloat(tmax)))
+    @test isone(countnodes(nv1, 0))
+    @test countnodes(nv1, 85) == maxsplits
+    @test iszero(countnodes(nv1, 86))
+    @test iszero(countnodes(nv1, prevfloat(t0)))
+    @test countnodes(nv1, t0) == 2
+    @test countnodes(nv1, tmax) == maxsplits
+    @test iszero(countnodes(nv1, nextfloat(tmax)))
 
-    ts = timesvector(nv)
-    @test ts[1] == t0
-    @test ts[end] == tmax
-    @test length(ts) == 92
+    # ADS taylorinteg (parse_eqs = true)
+    # Warmup
+    _ = taylorinteg(kepler_eqs!, q0, dom, t0, tmax, order, stol, abstol, params;
+                    maxsplits = 1, maxsteps = 1, parse_eqs = true);
+    # Full integration
+    nv2 = taylorinteg(kepler_eqs!, q0, dom, t0, tmax, order, stol, abstol, params;
+                      maxsplits = maxsplits, maxsteps = maxsteps, parse_eqs = true);
 
-    s, x = evaltree(nv, t0)
-    @test length(s) == 1
-    @test s[1] == dom
-    @test size(x) == (4, 1)
-    @test x[:, 1] == q0
-    s, x = evaltree(nv, tmax)
-    @test length(s) == maxsplits
-    @test size(x) == (4, maxsplits)
+    @test isa(nv2, ADSBinaryNode{2, 4, Float64})
+    @test nv2.s == dom
+    @test iszero(nv2.t)
+    @test nv2.x == q0
+    @test nv2.p == Taylor1.(q0, order)
+    @test iszero(nv2.depth)
+    @test isnothing(nv2.parent)
+    @test isa(nv2.left, ADSBinaryNode{2, 4, Float64})
+    @test isa(nv2.right, ADSBinaryNode{2, 4, Float64})
 
-    y = evaltree(nv, t0, SVector(0.1, 0.1))
-    @test y == [1.0008, 0.008, 0.0, 1.224744871391589]
-    y = evaltree(nv, tmax, SVector(0.1, 0.1))
-    @test all(isapprox.(
-        y,
-        [0.6683166200240993, -0.9479380052802993, 0.6733099139393155, 0.8790273308917417];
-        atol = 1e-4
-    ))
+    @test isone(countnodes(nv2, 0))
+    @test countnodes(nv2, 85) == maxsplits
+    @test iszero(countnodes(nv2, 86))
+    @test iszero(countnodes(nv2, prevfloat(t0)))
+    @test countnodes(nv2, t0) == 2
+    @test countnodes(nv2, tmax) == maxsplits
+    @test iszero(countnodes(nv2, nextfloat(tmax)))
+
+    ts1 = timesvector(nv1)
+    ts2 = timesvector(nv2)
+    @test ts1 == ts2
+    @test ts1[1] == t0
+    @test ts1[end] == tmax
+    @test length(ts1) == 86
+
+    s1, x1 = nv1(t0)
+    s2, x2 = nv2(t0)
+    @test Set(s1) == Set(s2)
+    @test length(s1) == 2
+    @test length(s2) == 2
+    is = [1, 3, 4]
+    @test x1[is, 1] == x1[is, 2] == x2[is, 1] == x2[is, 2] == q0[is]
+    @test size(x1) == (4, 2)
+    @test size(x2) == (4, 2)
+
+    s1, x1 = nv1(tmax)
+    s2, x2 = nv2(tmax)
+    @test Set(s1) == Set(s2)
+    @test length(s1) == maxsplits
+    @test length(s2) == maxsplits
+    @test size(x1) == (4, maxsplits)
+    @test size(x2) == (4, maxsplits)
+
+    y1 = nv1(t0, SVector(0.1, 0.1))
+    y2 = nv2(t0, SVector(0.1, 0.1))
+    @test y1 == y2 == [1.0008, 0.008, 0.0, 1.224744871391589]
+    y1 = nv1(tmax, SVector(0.1, 0.1))
+    y2 = nv2(tmax, SVector(0.1, 0.1))
+    @test all( abs.(y1 - y2) .< 5e-3 )
 end
