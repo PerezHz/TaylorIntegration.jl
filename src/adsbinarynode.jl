@@ -186,21 +186,25 @@ countnodes(n::Nothing, k::Int) = 0
 Return the number of nodes at time `t` starting from root node `n`.
 """
 function countnodes(n::ADSBinaryNode{N, M, T}, t::T) where {N, M, T <: Real}
-    # Time search starts at depth 1
-    iszero(n.depth) && return countnodes(n.left, t)
-    # t is outside time range
-    if (n.t > n.parent.t && t < n.parent.t) || (n.t < n.parent.t && t > n.parent.t)
+    if !isnothing(n.left) && (n.t < n.left.t && t < n.t) || (n.t > n.left.t && t > n.t)
+        # t is outside time range
         return 0
-    end
-    # Count nodes at time t (recursively)
-    if abs(n.parent.t) <= abs(t) < abs(n.t) || (t == n.t && isnothing(n.left))
-        return 1
     else
-        return countnodes(n.left, t) + countnodes(n.right, t)
+        # Count nodes at time t (recursively)
+        return _countnodes(n, t)
     end
 end
 
-countnodes(n::Nothing, t::T) where {T <: Real} = 0
+function _countnodes(n::ADSBinaryNode{N, M, T}, t::T) where {N, M, T <: Real}
+    # Count nodes at time t (recursively)
+    if !isnothing(n.parent) && (abs(n.parent.t) <= abs(t) < abs(n.t)) || (t == n.t && isnothing(n.left))
+        return 1
+    else
+        return _countnodes(n.left, t) + _countnodes(n.right, t)
+    end
+end
+
+_countnodes(n::Nothing, t::T) where {T <: Real} = 0
 
 """
     timesvector(n::ADSBinaryNode{N, M, T}) where {N, M, T <: Real}
