@@ -126,21 +126,12 @@ function split(node::ADSBinaryNode{N, M, T}, x::SVector{M, TaylorN{T}},
 end
 
 """
-    adsnorm(x::TaylorN{T}, s::ADSDomain{N, T}) where {N, T <: Real}
+    adsnorm(x::TaylorN{T}) where {T <: Real}
 
-Return the contribution of the largest coefficient in the last
-two orders of `x` in domain `s`.
+Return the absolute value of the largest coefficient in the last
+two orders of `x`.
 """
-function adsnorm(x::TaylorN{T}, s::ADSDomain{N, T}) where {N, T <: Real}
-    # Jet transport order
-    order = x.order
-    # Domain diameter
-    L = maximum(diams(s))
-    # Largest coefficient in last two orders
-    C = norm(x.coeffs[end-1:end], Inf)
-    # Contribution of C in s
-    return C * L^order
-end
+adsnorm(x::TaylorN{T}) where {T <: Real} = norm(x.coeffs[end-1:end], Inf)
 
 """
     split!(node::ADSBinaryNode{N, M, T}, p::SVector{M, Taylor1{TaylorN{T}}},
@@ -153,7 +144,7 @@ function split!(node::ADSBinaryNode{N, M, T}, p::SVector{M, Taylor1{TaylorN{T}}}
     # Evaluate x at dt
     x = _eval(p, dt)
     # Split criteria for each element of x
-    mask = map(y -> adsnorm(y, node.s), x)
+    mask = adsnorm.(x)
     # Split
     if nsplits < maxsplits && any(mask .> stol)
         # Split
