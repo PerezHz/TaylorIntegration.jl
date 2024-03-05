@@ -257,6 +257,8 @@ function evaltree(n::ADSBinaryNode{N, M, T}, t::T) where {N, M, T <: Real}
     evaltree!(n, t, ns)
     # Set{ADSBinaryNode{N, M, T}} to Vector{ADSBinaryNode{N, M, T}}
     nodes = collect(ns)
+    # Sort nodes by lowest corner of domain
+    sort!(nodes, by = x -> x.s.lo)
     # Number of nodes at time t
     L = length(nodes)
     # There are 0 nodes at time t
@@ -341,7 +343,8 @@ end
 
 function evaltree!(n::ADSBinaryNode{N, M, T}, t::T, s::SVector{N, T},
                    ns::Set{ADSBinaryNode{N, M, T}}) where {N, M, T <: Real}
-    if (s in n.s) && !isnothing(n.parent) && (abs(n.parent.t) <= abs(t) < abs(n.t)) ||
+    !(s in n.s) && return nothing
+    if !isnothing(n.parent) && (abs(n.parent.t) <= abs(t) < abs(n.t)) ||
         (t == n.t && isnothing(n.left))
         push!(ns, n)
     else
