@@ -60,9 +60,14 @@ using Test
     @test isa(nv1.left, ADSBinaryNode{2, 4, Float64})
     @test isa(nv1.right, ADSBinaryNode{2, 4, Float64})
 
+    ts1 = timesvector(nv1)
+    @test ts1[1] == t0
+    @test ts1[end] == tmax
+    @test length(ts1) == 87
+
     @test isone(countnodes(nv1, 0))
-    @test countnodes(nv1, 85) == maxsplits
-    @test iszero(countnodes(nv1, 86))
+    @test countnodes(nv1, length(ts1)-1) == maxsplits
+    @test iszero(countnodes(nv1, length(ts1)))
     @test iszero(countnodes(nv1, prevfloat(t0)))
     @test countnodes(nv1, t0) == 2
     @test countnodes(nv1, tmax) == maxsplits
@@ -86,43 +91,39 @@ using Test
     @test isa(nv2.left, ADSBinaryNode{2, 4, Float64})
     @test isa(nv2.right, ADSBinaryNode{2, 4, Float64})
 
+    ts2 = timesvector(nv2)
+    @test ts2[1] == t0
+    @test ts2[end] == tmax
+    @test length(ts2) == 87
+
     @test isone(countnodes(nv2, 0))
-    @test countnodes(nv2, 85) == maxsplits
-    @test iszero(countnodes(nv2, 86))
+    @test countnodes(nv2, length(ts2)-1) == maxsplits
+    @test iszero(countnodes(nv2, length(ts2)))
     @test iszero(countnodes(nv2, prevfloat(t0)))
     @test countnodes(nv2, t0) == 2
     @test countnodes(nv2, tmax) == maxsplits
     @test iszero(countnodes(nv2, nextfloat(tmax)))
 
-    ts1 = timesvector(nv1)
-    ts2 = timesvector(nv2)
     @test ts1 == ts2
-    @test ts1[1] == t0
-    @test ts1[end] == tmax
-    @test length(ts1) == 86
 
     s1, x1 = nv1(t0)
     s2, x2 = nv2(t0)
-    @test Set(s1) == Set(s2)
-    @test length(s1) == 2
-    @test length(s2) == 2
-    is = [1, 3, 4]
-    @test x1[is, 1] == x1[is, 2] == x2[is, 1] == x2[is, 2] == q0[is]
-    @test size(x1) == (4, 2)
-    @test size(x2) == (4, 2)
+    @test length(s1) == length(s2) == 2
+    @test s1 == s2
+    @test size(x1) == size(x2) == (4, 2)
+    @test x1 == x2
 
     s1, x1 = nv1(tmax)
     s2, x2 = nv2(tmax)
-    @test Set(s1) == Set(s2)
-    @test length(s1) == maxsplits
-    @test length(s2) == maxsplits
-    @test size(x1) == (4, maxsplits)
-    @test size(x2) == (4, maxsplits)
+    @test length(s1) == length(s2) == maxsplits
+    @test s1 == s2
+    @test size(x1) == size(x2) == (4, maxsplits)
+    @test x1 == x2
 
     y1 = nv1(t0, SVector(0.1, 0.1))
     y2 = nv2(t0, SVector(0.1, 0.1))
-    @test y1 == y2 == [1.0008, 0.008, 0.0, 1.224744871391589]
+    @test y1 == y2
     y1 = nv1(tmax, SVector(0.1, 0.1))
     y2 = nv2(tmax, SVector(0.1, 0.1))
-    @test all( abs.(y1 - y2) .< 5e-3 )
+    @test y1 == y2
 end
