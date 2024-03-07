@@ -32,7 +32,7 @@ using Test
     # Taylor1 order
     local order = 25
     # Splitting tolerance
-    local stol = 1e-5
+    local stol = 0.008
     # Absolute tolerance
     local abstol = 1e-20
     # Dynamical function parameters
@@ -58,18 +58,18 @@ using Test
     @test iszero(nv1.depth)
     @test isnothing(nv1.parent)
     @test isa(nv1.left, ADSBinaryNode{2, 4, Float64})
-    @test isa(nv1.right, ADSBinaryNode{2, 4, Float64})
+    @test isnothing(nv1.right)
 
     ts1 = timesvector(nv1)
     @test ts1[1] == t0
     @test ts1[end] == tmax
-    @test length(ts1) == 87
+    @test length(ts1) == 85
 
     @test isone(countnodes(nv1, 0))
     @test countnodes(nv1, length(ts1)-1) == maxsplits
     @test iszero(countnodes(nv1, length(ts1)))
     @test iszero(countnodes(nv1, prevfloat(t0)))
-    @test countnodes(nv1, t0) == 2
+    @test countnodes(nv1, t0) == 1
     @test countnodes(nv1, tmax) == maxsplits
     @test iszero(countnodes(nv1, nextfloat(tmax)))
 
@@ -89,18 +89,18 @@ using Test
     @test iszero(nv2.depth)
     @test isnothing(nv2.parent)
     @test isa(nv2.left, ADSBinaryNode{2, 4, Float64})
-    @test isa(nv2.right, ADSBinaryNode{2, 4, Float64})
+    @test isnothing(nv2.right)
 
     ts2 = timesvector(nv2)
     @test ts2[1] == t0
     @test ts2[end] == tmax
-    @test length(ts2) == 87
+    @test length(ts2) == 85
 
     @test isone(countnodes(nv2, 0))
     @test countnodes(nv2, length(ts2)-1) == maxsplits
     @test iszero(countnodes(nv2, length(ts2)))
     @test iszero(countnodes(nv2, prevfloat(t0)))
-    @test countnodes(nv2, t0) == 2
+    @test countnodes(nv2, t0) == 1
     @test countnodes(nv2, tmax) == maxsplits
     @test iszero(countnodes(nv2, nextfloat(tmax)))
 
@@ -108,10 +108,10 @@ using Test
 
     s1, x1 = nv1(t0)
     s2, x2 = nv2(t0)
-    @test length(s1) == length(s2) == 2
-    @test s1 == s2
-    @test size(x1) == size(x2) == (4, 2)
-    @test x1 == x2
+    @test length(s1) == length(s2) == 1
+    @test s1[1] == s2[1] == dom
+    @test size(x1) == size(x2) == (4, 1)
+    @test x1[:, 1] == x2[:, 1] == q0
 
     s1, x1 = nv1(tmax)
     s2, x2 = nv2(tmax)
