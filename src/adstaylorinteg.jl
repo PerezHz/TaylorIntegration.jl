@@ -4,9 +4,10 @@ using TaylorSeries: generate_index_vectors
 using LsqFit: curve_fit
 using AbstractTrees: Leaves, getroot
 
-# In-place exponential model y(t) = A * exp(B * t),
-# used within size_per_variable to estimate the error
-# of each jet transport variable
+# Exponential model y(t) = A * exp(B * t)
+# used to estimate the truncation error
+# of jet transport polynomials
+exp_model(t, p) = p[1] * exp(p[2] * t)
 exp_model!(F, t, p) = (@. F = p[1] * exp(p[2] * t))
 
 # In place jacobian of exp_model! wrt parameters p
@@ -15,12 +16,11 @@ function exp_model_jacobian!(J::Array{T, 2}, t, p) where {T <: Real}
     @. @views J[:, 2] = t * p[1] * J[:, 1]
 end
 
-# Estimate the error of each jet transport variable
 """
     size_per_variable(P::TaylorN{T}) where {T <: Real}
     size_per_variable(P::AbstractVector{TaylorN{T}}) where {T <: Real}
 
-Return a `Vector{T}` with the error estimation of each jet transport variable in `P`.
+Return the truncation error of each jet transport variable in `P`.
 
 !!! reference
     See section 3 of https://doi.org/10.1007/s10569-015-9618-3.
@@ -78,7 +78,7 @@ end
     splitdirection(P::TaylorN{T}) where {T <: Real}
     splitdirection(P::AbstractVector{TaylorN{T}}) where {T <: Real}
 
-Return the index of the jet transport variable with the largest error estimation
+Return the index of the jet transport variable with the largest truncation error
 according to [`size_per_variable`](@ref).
 """
 function splitdirection(P::TaylorN{T}) where {T <: Real}
@@ -93,6 +93,33 @@ function splitdirection(P::AbstractVector{TaylorN{T}}) where {T <: Real}
     M = size_per_variable(P)
     # Variable with maximum error
     return argmax(M)[1]
+end
+
+"""
+    adsnorm(P::TaylorN{T}) where {T <: Real}
+
+Return the truncation error of `P`.
+"""
+function adsnorm(P::TaylorN{T}) where {T <: Real}
+    # Jet transport order
+    varorder = P.order
+    # Absolute sum per order
+    ys = Vector{T}(undef, varorder+1)
+
+    for i in eachindex(ys)
+        ys[i] = sum(abs, P.coeffs[i].coeffs)
+    end
+    # Initial parameters
+    p0 = ones(T, 2)
+    # Orders
+    xs = collect(0:varorder)
+    # Non zero coefficients
+    idxs = findall(!iszero, ys)
+    # Fit exponential model
+    fit = curve_fit(exp_model!, exp_model_jacobian!, view(xs, idxs),
+                        view(ys, idxs), p0; inplace = true)
+    # Estimate next order coefficient
+    return exp_model(varorder+1, fit.param)
 end
 
 # Split node's domain in half
@@ -124,14 +151,6 @@ function split(node::ADSBinaryNode{N, M, T}, x::SVector{M, TaylorN{T}},
 
     return s1, x1, p1, s2, x2, p2
 end
-
-"""
-    adsnorm(x::TaylorN{T}) where {T <: Real}
-
-Return the absolute value of the largest coefficient in the last
-two orders of `x`.
-"""
-adsnorm(x::TaylorN{T}) where {T <: Real} = norm(x.coeffs[end-1:end], Inf)
 
 """
     split!(node::ADSBinaryNode{N, M, T}, p::SVector{M, Taylor1{TaylorN{T}}},
