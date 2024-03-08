@@ -11,6 +11,8 @@ if !isdefined(Base, :get_extension)
     using Requires
 end
 
+import Base: show
+
 export taylorinteg, lyap_taylorinteg, @taylorize
 
 include("parse_eqs.jl")

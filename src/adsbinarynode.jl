@@ -43,6 +43,17 @@ function ADSDomain(x::Tuple{T, T}...) where {T <: Real}
     )
 end
 
+# Print method for ADSDomain
+# Example:
+# [-1.0, 1.0]×[-1.0, 1.0]
+function show(io::IO, s::ADSDomain{N, T}) where {N, T <: Real}
+    x = Vector{String}(undef, N)
+    for i in eachindex(x)
+        x[i] = string(SVector{N, T}(s.lo[i], s.hi[i]))
+    end
+    print(io, join(x, "×"))
+end
+
 # Return the diameter of each direction in s
 diams(s::ADSDomain{N, T}) where {N, T <: Real} = s.hi - s.lo
 # Return the lower bounds in s
@@ -115,6 +126,15 @@ function ADSBinaryNode(
     p::SVector{M, Taylor1{TaylorN{T}}}
     ) where {N, M, T <: Real}
     return ADSBinaryNode{N, M, T}(s, t, x, p)
+end
+
+# Print method for ADSBinaryNode
+# Example:
+# x: [1.0, 0.0, 0.0, 1.224744871391589]
+# s: [-1.0, 1.0]×[-1.0, 1.0]
+# t: 0.0
+function show(io::IO, n::ADSBinaryNode{N, M, T}) where {N, M, T <: Real}
+    print(io, "x: ", constant_term.(n.x), "\ns: ", n.s, "\nt: ", n.t)
 end
 
 # Left (right) child constructors
