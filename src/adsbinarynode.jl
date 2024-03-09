@@ -49,7 +49,7 @@ end
 function show(io::IO, s::ADSDomain{N, T}) where {N, T <: Real}
     x = Vector{String}(undef, N)
     for i in eachindex(x)
-        x[i] = string(SVector{N, T}(s.lo[i], s.hi[i]))
+        x[i] = string(SVector{2, T}(s.lo[i], s.hi[i]))
     end
     print(io, join(x, "×"))
 end
