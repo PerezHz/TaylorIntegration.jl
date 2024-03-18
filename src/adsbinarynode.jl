@@ -75,7 +75,8 @@ function split(s::ADSDomain{N, T}, i::Int) where {N, T <: Real}
     return a, b
 end
 
-function in(x::SVector{N, T}, s::ADSDomain{N, T}) where {N, T <: Real}
+function in(x::AbstractVector{T}, s::ADSDomain{N, T}) where {N, T <: Real}
+    @assert length(x) == N "x must be of length $N"
     mask = SVector{N, Bool}(s.lo[i] <= x[i] <= s.hi[i] for i in 1:N)
     return all(mask)
 end
@@ -257,16 +258,16 @@ end
 timesvector!(n::Nothing, ts::Set{T}) where {T <: Real} = nothing
 
 # Auxiliary evaluation methods
-function _eval(p::SVector{M, Taylor1{TaylorN{T}}}, dt::T) where {M, T <: Real}
+function _eval(p::SVector{M, Taylor1{TaylorN{T}}}, dt::U) where {M, T <: Real, U <: Number}
     return SVector{M, TaylorN{T}}(p[i](dt) for i in 1:M)
 end
 
 """
-    evaltree(n::ADSBinaryNode{N, M, T}, t::T) where {N, M, T <: Real}
+    evaltree(n::ADSBinaryNode{N, M, T}, t::U) where {N, M, T <: Real, U <: Number}
 
 Evaluate binary tree `n` at time `t`.
 """
-function evaltree(n::ADSBinaryNode{N, M, T}, t::T) where {N, M, T <: Real}
+function evaltree(n::ADSBinaryNode{N, M, T}, t::U) where {N, M, T <: Real, U <: Number}
     # t is outside time range
     if !isnothing(n.left) && (n.t < n.left.t && t < n.t) || (n.t > n.left.t && t > n.t)
         return Vector{ADSDomain{N, T}}(undef, 0), Matrix{TaylorN{T}}(undef, 0, 0)
@@ -302,7 +303,8 @@ function evaltree(n::ADSBinaryNode{N, M, T}, t::T) where {N, M, T <: Real}
     return s, x
 end
 
-function evaltree!(n::ADSBinaryNode{N, M, T}, t::T, ns::Set{ADSBinaryNode{N, M, T}}) where {N, M, T <: Real}
+function evaltree!(n::ADSBinaryNode{N, M, T}, t::U,
+                   ns::Set{ADSBinaryNode{N, M, T}}) where {N, M, T <: Real, U <: Number}
     if !isnothing(n.parent) && (abs(n.parent.t) <= abs(t) < abs(n.t)) || (t == n.t && isnothing(n.left))
             push!(ns, n)
     else
@@ -312,17 +314,21 @@ function evaltree!(n::ADSBinaryNode{N, M, T}, t::T, ns::Set{ADSBinaryNode{N, M, 
     nothing
 end
 
-evaltree!(n::Nothing, t::T, ns::Set{ADSBinaryNode{N, M, T}}) where {N, M, T <: Real} = nothing
+evaltree!(n::Nothing, t::U, ns::Set{ADSBinaryNode{N, M, T}}) where {N, M, T <: Real, U <: Number} = nothing
 
 # Function-like callability method
-(n::ADSBinaryNode{N, M, T})(t::T) where {N, M, T <: Real} = evaltree(n, t)
+(n::ADSBinaryNode{N, M, T})(t::U) where {N, M, T <: Real, U <: Number} = evaltree(n, t)
 
 """
-    evaltree(n::ADSBinaryNode{N, M, T}, t::T, s::SVector{N, T}) where {N, M, T <: Real}
+    evaltree(n::ADSBinaryNode{N, M, T}, t::U,
+             s::AbstractVector{T}) where {N, M, T <: Real, U <: Number}
 
 Evaluate binary tree `n` at time `t` and domain point `s`.
 """
-function evaltree(n::ADSBinaryNode{N, M, T}, t::T, s::SVector{N, T}) where {N, M, T <: Real}
+function evaltree(n::ADSBinaryNode{N, M, T}, t::U,
+                  s::AbstractVector{T}) where {N, M, T <: Real, U <: Number}
+    # Check length(s)
+    @assert length(s) == N "s must be of length $N"
     # t is outside time range or s is outside domain
     if !(s in n.s) || !isnothing(n.left) && (n.t < n.left.t && t < n.t) ||
         (n.t > n.left.t && t > n.t)
@@ -361,8 +367,8 @@ function evaltree(n::ADSBinaryNode{N, M, T}, t::T, s::SVector{N, T}) where {N, M
     return x
 end
 
-function evaltree!(n::ADSBinaryNode{N, M, T}, t::T, s::SVector{N, T},
-                   ns::Set{ADSBinaryNode{N, M, T}}) where {N, M, T <: Real}
+function evaltree!(n::ADSBinaryNode{N, M, T}, t::U, s::AbstractVector{T},
+                   ns::Set{ADSBinaryNode{N, M, T}}) where {N, M, T <: Real, U <: Number}
     !(s in n.s) && return nothing
     if !isnothing(n.parent) && (abs(n.parent.t) <= abs(t) < abs(n.t)) ||
         (t == n.t && isnothing(n.left))
@@ -374,8 +380,10 @@ function evaltree!(n::ADSBinaryNode{N, M, T}, t::T, s::SVector{N, T},
     nothing
 end
 
-evaltree!(n::Nothing, t::T, s::SVector{N, T},
-          ns::Set{ADSBinaryNode{N, M, T}}) where {N, M, T <: Real} = nothing
+evaltree!(n::Nothing, t::U, s::AbstractVector{T},
+          ns::Set{ADSBinaryNode{N, M, T}}) where {N, M, T <: Real, U <: Number} = nothing
 
 # Function-like callability method
-(n::ADSBinaryNode{N, M, T})(t::T, s::SVector{N, T}) where {N, M, T <: Real} = evaltree(n, t, s)
+function (n::ADSBinaryNode{N, M, T})(t::U, s::AbstractVector{T}) where {N, M, T <: Real, U <: Number}
+    return evaltree(n, t, s)
+end
