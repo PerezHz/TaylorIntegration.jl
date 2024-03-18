@@ -218,10 +218,12 @@ function _taylorinteg!(
     dt = zeros(T, maxsplits)
     x = Matrix{Taylor1{TaylorN{T}}}(undef, M, maxsplits)
     dx = Matrix{Taylor1{TaylorN{T}}}(undef, M, maxsplits)
+    xaux = Matrix{Taylor1{TaylorN{T}}}(undef, M, maxsplits)
     @inbounds for j in 1:maxsplits
         @inbounds for i in eachindex(q0)
             @inbounds x[i, j] = Taylor1( q0[i], order )
             @inbounds dx[i, j] = Taylor1( zero(q0[i]), order )
+            @inbounds xaux[i, j] = Taylor1( zero(q0[i]), order )
         end
     end
     nv = ADSBinaryNode{N, M, T}(s, t0, SVector{M, TaylorN{T}}(q0),
@@ -238,9 +240,9 @@ function _taylorinteg!(
             @inbounds for i in 1:M
                 @inbounds x[i, k] = Taylor1( node.x[i], order )
                 @inbounds dx[i, k] = Taylor1( zero(node.x[i]), order )
+                @inbounds xaux[i, k] = Taylor1( zero(node.x[i]), order )
             end
-            xaux = Vector{Taylor1{TaylorN{T}}}(undef, M)
-            dt[k] = taylorstep!(f!, t, x[:, k], dx[:, k], xaux, abstol, params) # δt is positive!
+            dt[k] = taylorstep!(f!, t, x[:, k], dx[:, k], xaux[:, k], abstol, params) # δt is positive!
             # Below, δt has the proper sign according to the direction of the integration
             dt[k] = sign_tstep * min(dt[k], sign_tstep*(tmax-t0))
         end
