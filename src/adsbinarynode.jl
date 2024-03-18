@@ -258,7 +258,7 @@ end
 timesvector!(n::Nothing, ts::Set{T}) where {T <: Real} = nothing
 
 # Auxiliary evaluation methods
-function _eval(p::SVector{M, Taylor1{TaylorN{T}}}, dt::U) where {M, T <: Real, U <: Number}
+function _adseval(p::SVector{M, Taylor1{TaylorN{T}}}, dt::U) where {M, T <: Real, U <: Number}
     return SVector{M, TaylorN{T}}(p[i](dt) for i in 1:M)
 end
 
@@ -296,7 +296,7 @@ function evaltree(n::ADSBinaryNode{N, M, T}, t::U) where {N, M, T <: Real, U <: 
         for i in eachindex(nodes)
             dt = t - nodes[i].parent.t
             s[i] = nodes[i].s
-            x[:, i] .= _eval(nodes[i].p, dt)
+            x[:, i] .= _adseval(nodes[i].p, dt)
         end
     end
 
@@ -352,7 +352,7 @@ function evaltree(n::ADSBinaryNode{N, M, T}, t::U,
         # Time delta
         dt = t - node.parent.t
         # Evaluate node polynomial at dt
-        p = _eval(node.p, dt)
+        p = _adseval(node.p, dt)
         # Root and local domain
         sup = getroot(n).s
         loc = node.s

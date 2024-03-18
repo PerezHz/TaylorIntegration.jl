@@ -44,7 +44,7 @@ function size_per_variable(P::TaylorN{T}) where {T <: Real}
     # Initial parameters
     p0 = ones(T, 2)
     # Orders
-    xs = collect(0:varorder)
+    xs = 0:varorder
 
     M = Vector{T}(undef, nv)
     for i in eachindex(M)
@@ -69,9 +69,7 @@ function size_per_variable(P::AbstractVector{TaylorN{T}}) where {T <: Real}
         norms[:, i] .= size_per_variable(P[i])
     end
     # Sum over element of P
-    M = sum(norms, dims = 2)
-
-    return M
+    return sum(norms, dims = 2)
 end
 
 """
@@ -112,7 +110,7 @@ function adsnorm(P::TaylorN{T}) where {T <: Real}
     # Initial parameters
     p0 = ones(T, 2)
     # Orders
-    xs = collect(0:varorder)
+    xs = 0:varorder
     # Non zero coefficients
     idxs = findall(!iszero, ys)
     # Fit exponential model
@@ -161,7 +159,7 @@ Split `node` in half if any element of `p(dt)` has an `adsnorm` greater than `st
 function split!(node::ADSBinaryNode{N, M, T}, p::SVector{M, Taylor1{TaylorN{T}}},
                 dt::T, nsplits::Int, maxsplits::Int, stol::T) where {N, M, T <: Real}
     # Evaluate x at dt
-    x = _eval(p, dt)
+    x = _adseval(p, dt)
     # Split criteria for each element of x
     mask = adsnorm.(x)
     # Split
