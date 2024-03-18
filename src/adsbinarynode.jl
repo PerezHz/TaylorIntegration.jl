@@ -228,6 +228,17 @@ end
 _countnodes(n::Nothing, t::T) where {T <: Real} = 0
 
 """
+    timeshift!(n::ADSBinaryNode{N, M, T}, dt::T) where {N, M, T <: Real}
+
+Shift the time of every node in `n` by `dt`.
+"""
+function timeshift!(n::ADSBinaryNode{N, M, T}, dt::T) where {N, M, T <: Real}
+    for node in PreOrderDFS(n)
+        node.t += dt
+    end
+end
+
+"""
     timesvector(n::ADSBinaryNode{N, M, T}) where {N, M, T <: Real}
 
 Return the vector of times starting from root node `n`.
