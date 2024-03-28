@@ -24,13 +24,9 @@ using Aqua
 end
 
 @testset "Aqua tests (additional)" begin
-    Aqua.test_undefined_exports(TaylorIntegration)
-    Aqua.test_deps_compat(TaylorIntegration)
-    Aqua.test_stale_deps(TaylorIntegration;
-        ignore=[:DiffEqBase, :RecursiveArrayTools, :Requires, :StaticArrays])
-    Aqua.test_piracies(TaylorIntegration)
-    Aqua.test_unbound_args(TaylorIntegration)
-    Aqua.test_project_extras(TaylorIntegration)
-    Aqua.test_persistent_tasks(TaylorIntegration)
+    Aqua.test_all(
+    TaylorIntegration;
+    stale_deps=(ignore=[:DiffEqBase, :RecursiveArrayTools, :Requires, :StaticArrays],),
+    )
 end
 
