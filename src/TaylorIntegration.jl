@@ -6,12 +6,12 @@ using Reexport
 @reexport using TaylorSeries
 using LinearAlgebra
 using Markdown
-using InteractiveUtils: methodswith
+using InteractiveUtils #: methodswith
 if !isdefined(Base, :get_extension)
     using Requires
 end
 
-export taylorinteg, lyap_taylorinteg, @taylorize
+export TaylorSolution, taylorinteg, lyap_taylorinteg, @taylorize
 
 include("parse_eqs.jl")
 include("integrator/jetcoeffs.jl")

@@ -69,11 +69,7 @@ function _taylorinteg!(f, t::Taylor1{T}, x::Taylor1{U},
         end
     end
 
-    if Val{S} == Val{true}
-        return view(tv,1:nsteps), view(xv,1:nsteps), view(psol, 1:nsteps-1)
-    elseif Val{S} == Val{false}
-        return view(tv,1:nsteps), view(xv,1:nsteps)
-    end
+    return build_solution(tv, xv, S == true ? psol : nothing, nsteps)
 end
 
 
@@ -145,12 +141,7 @@ function _taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Tayl
         end
     end
 
-    if Val{S} == Val{true}
-        return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:),
-            view(transpose(view(psol, :, 1:nsteps-1)), 1:nsteps-1, :)
-    elseif Val{S} == Val{false}
-        return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:)
-    end
+    return build_solution(tv, xv, S == true ? psol : nothing, nsteps)
 end
 
 @doc doc"""
@@ -316,7 +307,7 @@ function _taylorinteg!(f, t::Taylor1{T}, x::Taylor1{U}, x0::U, trange::AbstractV
             break
         end
     end
-    return xv
+    return build_solution(trange, xv, nothing, nn)
 end
 function _taylorinteg!(f, t::Taylor1{T}, x::Taylor1{U}, x0::U, trange::AbstractVector{T},
         abstol::T, rv::RetAlloc{Taylor1{U}}, params; maxsteps::Int=500) where {T<:Real, U<:Number}
@@ -363,7 +354,7 @@ function _taylorinteg!(f, t::Taylor1{T}, x::Taylor1{U}, x0::U, trange::AbstractV
             break
         end
     end
-    return xv
+    return build_solution(trange, xv, nothing, nn)
 end
 
 function taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
@@ -457,7 +448,7 @@ function _taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Tayl
         end
     end
 
-    return transpose(xv)
+    return build_solution(trange, xv, nothing, nn)
 end
 function _taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
         q0::Array{U,1}, trange::AbstractVector{T}, abstol::T, rv::RetAlloc{Taylor1{U}}, params;
@@ -517,7 +508,7 @@ function _taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Tayl
         end
     end
 
-    return transpose(xv)
+    return build_solution(trange, xv, nothing, nn)
 end
 
 

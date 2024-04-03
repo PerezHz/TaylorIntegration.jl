@@ -25,53 +25,66 @@ import Logging: Warn
         δt = _abstol^inv(_order-1)
         @test TaylorIntegration.stepsize(x0T, _abstol) == δt
 
-        tv, xv = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        sol = (@test_logs (Warn, max_iters_reached()) taylorinteg(
             eqs_mov, 1, 0.0, 1.0, _order, _abstol))
+        @test sol isa TaylorSolution{Float64, Float64, 1}
+        tv = sol.t
+        xv = sol.x
+        @test isnothing(sol.p)
         @test length(tv) == 501
         @test length(xv) == 501
         @test xv[1] == x0
         @test tv[end] < 1.0
 
-        tv, xv = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        sol = (@test_logs (Warn, max_iters_reached()) taylorinteg(
             eqs_mov, x0, 0.0, 1.0, _order, _abstol, nothing))
+        tv = sol.t; xv = sol.x
         @test length(tv) == 501
         @test length(xv) == 501
         @test xv[1] == x0
         @test tv[end] < 1.0
 
         trange = 0.0:1/8:1.0
-        xv = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        sol = (@test_logs (Warn, max_iters_reached()) taylorinteg(
             eqs_mov, 1, trange, _order, _abstol))
+        xv = sol.x
+        tv = sol.t
         @test length(xv) == length(trange)
-        @test typeof(xv) == Array{typeof(x0),1}
+        @test xv isa SubArray{typeof(x0),1}
         @test xv[1] == x0
         @test isnan(xv[end])
         @test abs(xv[5] - 2.0) ≤ eps(2.0)
-        tvr, xvr = (@test_logs min_level=Logging.Warn taylorinteg(
+        solr = (@test_logs min_level=Logging.Warn taylorinteg(
             eqs_mov, x0, trange[1], trange[end-1], _order, _abstol))
+        tvr = solr.t; xvr = solr.x
         @test tvr[1] == trange[1]
         @test tvr[end] == trange[end-1]
         @test xvr[1] == xv[1]
         @test xvr[end] == xv[end-1]
 
         trange = 0.0:1/8:1.0
-        xv = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        sol = (@test_logs (Warn, max_iters_reached()) taylorinteg(
             eqs_mov, x0, trange, _order, _abstol, nothing))
+        xv = sol.x
+        @test trange == sol.t
         @test length(xv) == length(trange)
         @test typeof(xv) == Array{typeof(x0),1}
         @test xv[1] == x0
         @test isnan(xv[end])
         @test abs(xv[5] - 2.0) ≤ eps(2.0)
-        tvr, xvr = (@test_logs min_level=Logging.Warn taylorinteg(
+        solr = (@test_logs min_level=Logging.Warn taylorinteg(
             eqs_mov, x0, trange[1], trange[end-1], _order, _abstol, nothing))
+        tvr = solr.t; xvr = solr.x
         @test tvr[1] == trange[1]
         @test tvr[end] == trange[end-1]
         @test xvr[1] == xv[1]
         @test xvr[end] == xv[end-1]
 
         tarray = vec(trange)
-        xv2 = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        sol2 = (@test_logs (Warn, max_iters_reached()) taylorinteg(
             eqs_mov, x0, tarray, _order, _abstol))
+        xv2 = sol2.x
+        @test trange == sol2.t
         @test xv[1:end-1] == xv2[1:end-1]
         @test xv2[1:end-1] ≈ xv[1:end-1] atol=eps() rtol=0.0
         @test length(xv2) == length(tarray)
@@ -81,8 +94,10 @@ import Logging: Warn
         @test abs(xv2[5] - 2.0) ≤ eps(2.0)
 
         # Output includes Taylor polynomial solution
-        tv, xv, psol = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        sol = (@test_logs (Warn, max_iters_reached()) taylorinteg(
             eqs_mov, x0, 0, 0.5, _order, _abstol, Val(true), maxsteps=2))
+        tv = sol.t; xv = sol.x
+        psol = sol.p
         @test length(psol) == 2
         @test xv[1] == x0
         @test psol[1] == Taylor1(ones(_order+1))
@@ -102,8 +117,9 @@ import Logging: Warn
         δt = (_abstol/x0T.coeffs[end-1])^inv(_order-1)
         @test TaylorIntegration.stepsize(x0T, _abstol) == δt
 
-        tv, xv = (@test_logs min_level=Logging.Warn taylorinteg(
+        sol = (@test_logs min_level=Logging.Warn taylorinteg(
             eqs_mov, x0, 0, tmax, _order, _abstol))
+        tv = sol.t; xv = sol.x
         @test length(tv) < 501
         @test length(xv) < 501
         @test length(tv) == 14
@@ -114,8 +130,9 @@ import Logging: Warn
         @test abs(xv[end]-exactsol(tv[end], xv[1])) < 5e-14
 
         tmax = 0.33
-        tv, xv = (@test_logs min_level=Logging.Warn taylorinteg(
+        sol = (@test_logs min_level=Logging.Warn taylorinteg(
             eqs_mov, x0, t0, tmax, _order, _abstol))
+        tv = sol.t; xv = sol.x
         @test length(tv) < 501
         @test length(xv) < 501
         @test length(tv) == 28
@@ -134,8 +151,9 @@ import Logging: Warn
             order = 25
             x0 = 0.0 #initial conditions such that x(t)=sin(t)
 
-            tv, xv = (@test_logs min_level=Logging.Warn taylorinteg(
+            sol = (@test_logs min_level=Logging.Warn taylorinteg(
                 f, x0, t0, tmax, order, abstol))
+            tv = sol.t; xv = sol.x
             @test length(tv) < 501
             @test length(xv) < 501
             @test xv[1] == x0
@@ -143,8 +161,9 @@ import Logging: Warn
             @test abs(sin(tmax)-xv[end]) < 1e-14
 
             # Backward integration
-            tb, xb = (@test_logs min_level=Logging.Warn taylorinteg(
+            solb = (@test_logs min_level=Logging.Warn taylorinteg(
                 f, sin(tmax), tmax, t0, order, abstol))
+            tb = solb.t; xb = solb.x
             @test length(tb) < 501
             @test length(xb) < 501
             @test xb[1] == sin(tmax)
@@ -155,8 +174,9 @@ import Logging: Warn
             tmax = 15*(2pi)
             Δt = (tmax-t0)/1024
             tspan = t0:Δt:tmax
-            xv = (@test_logs min_level=Logging.Warn taylorinteg(
+            sol = (@test_logs min_level=Logging.Warn taylorinteg(
                 f, x0, tspan, order, abstol))
+            xv = sol.x
             @test xv[1] == x0
             @test abs(sin(tmax)-xv[end]) < 1e-14
 
