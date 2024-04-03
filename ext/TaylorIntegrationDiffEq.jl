@@ -194,7 +194,7 @@ function perform_step!(integrator, cache::TaylorMethodCache)
     tT[0] = t+dt
     for i in eachindex(u)
         @inbounds uT[i][0] = u[i]
-        duT[i].coeffs .= zero(duT[i][0])
+        @inbounds TaylorSeries.zero!(duT[i])
     end
     TaylorIntegration.__jetcoeffs!(Val(parse_eqs.x), f, tT, uT, duT, uauxT, p, rv)
     k = constant_term.(duT) # For the interpolation, needs k at the updated point
@@ -237,11 +237,11 @@ function DiffEqBase.solve(
             _prob = DynamicalODEProblem(f1!, f2!, _u0.x[1], _u0.x[2], prob.tspan, prob.p; prob.kwargs...)
         else
             f! = (du, u, p, t) -> (du .= f(u, p, t); 0)
-            _alg = TaylorMethod(alg.order, parse_eqs = parse_eqs)
+            _alg = TaylorMethod(alg.order; parse_eqs)
             _prob = ODEProblem(f!, prob.u0, prob.tspan, prob.p; prob.kwargs...)
         end
     else
-        _alg = TaylorMethod(alg.order, parse_eqs = parse_eqs)
+        _alg = TaylorMethod(alg.order; parse_eqs)
         _prob = prob
     end
 
