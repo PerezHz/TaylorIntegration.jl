@@ -14,7 +14,10 @@ end
 export taylorinteg, lyap_taylorinteg, @taylorize
 
 include("parse_eqs.jl")
-include("integrator.jl")
+include("integrator/jetcoeffs.jl")
+include("integrator/stepsize.jl")
+include("integrator/taylorstep.jl")
+include("integrator/taylorinteg.jl")
 include("lyapunovspectrum.jl")
 include("rootfinding.jl")
 include("common.jl")
