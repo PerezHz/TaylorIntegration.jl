@@ -35,6 +35,8 @@ end
 # Outer constructors
 ADSDomain(lo::SVector{N, T}, hi::SVector{N, T}) where {N, T <: Real} = ADSDomain{N, T}(lo, hi)
 
+ADSDomain() = ADSDomain{1, Float64}(SVector{1, Float64}(zero(Float64)), SVector{1, Float64}(one(Float64)))
+
 function ADSDomain(x::Tuple{T, T}...) where {T <: Real}
     N = length(x)
     return ADSDomain{N, T}(
