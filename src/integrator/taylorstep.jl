@@ -26,25 +26,11 @@ to force *not* using (`parse_eqs=false`) the specialized method of `jetcoeffs!`
 created with [`@taylorize`](@ref); the default is `true` (parse the equations).
 
 """
-function taylorstep!(f, t::Taylor1{T}, x::Taylor1{U}, abstol::T, params) where {T<:Real, U<:Number}
-
-    # Compute the Taylor coefficients
-    __jetcoeffs!(Val(false), f, t, x, params)
-
-    # Compute the step-size of the integration using `abstol`
-    δt = stepsize(x, abstol)
-    if isinf(δt)
-        δt = _second_stepsize(x, abstol)
-    end
-
-    return δt
-end
-
-function taylorstep!(f, t::Taylor1{T}, x::Taylor1{U}, abstol::T, params,
+function taylorstep!(::Val{V}, f, t::Taylor1{T}, x::Taylor1{U}, abstol::T, params,
         rv::RetAlloc{Taylor1{U}}) where {T<:Real, U<:Number}
 
     # Compute the Taylor coefficients
-    __jetcoeffs!(Val(true), f, t, x, params, rv)
+    __jetcoeffs!(Val(V), f, t, x, params, rv)
 
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(x, abstol)
@@ -55,25 +41,12 @@ function taylorstep!(f, t::Taylor1{T}, x::Taylor1{U}, abstol::T, params,
     return δt
 end
 
-function taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
-        dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}}, abstol::T, params) where
-        {T<:Real, U<:Number}
-
-    # Compute the Taylor coefficients
-    __jetcoeffs!(Val(false), f!, t, x, dx, xaux, params)
-
-    # Compute the step-size of the integration using `abstol`
-    δt = stepsize(x, abstol)
-
-    return δt
-end
-
-function taylorstep!(f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
+function taylorstep!(::Val{V}, f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
         dx::Vector{Taylor1{U}}, abstol::T, params,
         rv::RetAlloc{Taylor1{U}}) where {T<:Real, U<:Number}
 
     # Compute the Taylor coefficients
-    __jetcoeffs!(Val(true), f!, t, x, dx, params, rv)
+    __jetcoeffs!(Val(V), f!, t, x, dx, xaux, params, rv)
 
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(x, abstol)

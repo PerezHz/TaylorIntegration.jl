@@ -1,273 +1,158 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
+@inline function setpsol(::Type{Val{true}}, psol::Array{Taylor1{U},1}, nsteps::Int, x::Taylor1{U}) where {U<:Number}
+    @inbounds psol[nsteps] = deepcopy(x)
+    return nothing
+end
+@inline function setpsol(::Type{Val{false}}, ::Array{Taylor1{U},1}, ::Int, ::Taylor1{U}) where {U<:Number}
+    return nothing
+end
+@inline function setpsol(::Type{Val{true}}, psol::Array{Taylor1{U},2}, nsteps::Int, x::Vector{Taylor1{U}}) where {U<:Number}
+    @inbounds psol[:,nsteps] .= deepcopy.(x)
+    return nothing
+end
+@inline function setpsol(::Type{Val{false}}, ::Array{Taylor1{U},2}, ::Int, ::Vector{Taylor1{U}}) where {U<:Number}
+    return nothing
+end
 
 # taylorinteg
-for V in (:(Val{true}), :(Val{false}))
-    @eval begin
-        function taylorinteg(f, x0::U, t0::T, tmax::T, order::Int, abstol::T, ::$V, params = nothing;
-                maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real, U<:Number}
+function taylorinteg(f, x0::U, t0::T, tmax::T, order::Int, abstol::T, ::Val{S}, params = nothing;
+        maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real, U<:Number, S}
 
-            # Initialize the Taylor1 expansions
-            t = t0 + Taylor1( T, order )
-            x = Taylor1( x0, order )
+    # Initialize the Taylor1 expansions
+    t = t0 + Taylor1( T, order )
+    x = Taylor1( x0, order )
 
-            # Determine if specialized jetcoeffs! method exists
-            parse_eqs, rv = _determine_parsing!(parse_eqs, f, t, x, params)
+    # Determine if specialized jetcoeffs! method exists
+    parse_eqs, rv = _determine_parsing!(parse_eqs, f, t, x, params)
 
-            if parse_eqs
-                # Re-initialize the Taylor1 expansions
-                t = t0 + Taylor1( T, order )
-                x = Taylor1( x0, order )
-                return _taylorinteg!(f, t, x, x0, t0, tmax, abstol, rv,
-                    $V(), params, maxsteps=maxsteps)
-            else
-                return _taylorinteg!(f, t, x, x0, t0, tmax, abstol,
-                    $V(), params, maxsteps=maxsteps)
-            end
+    # Re-initialize the Taylor1 expansions
+    t = t0 + Taylor1( T, order )
+    x = Taylor1( x0, order )
+    return _taylorinteg!(f, t, x, x0, t0, tmax, abstol, rv,
+        Val(parse_eqs), params, maxsteps=maxsteps)
+end
+
+function _taylorinteg!(f, t::Taylor1{T}, x::Taylor1{U},
+        x0::U, t0::T, tmax::T, abstol::T, rv::RetAlloc{Taylor1{U}}, ::Val{S}, params;
+        maxsteps::Int=500) where {T<:Real, U<:Number, S}
+
+    # Allocation
+    tv = Array{T}(undef, maxsteps+1)
+    xv = Array{U}(undef, maxsteps+1)
+    psol = Array{Taylor1{U}}(undef, maxsteps)
+
+    # Initial conditions
+    nsteps = 1
+    @inbounds t[0] = t0
+    @inbounds tv[1] = t0
+    @inbounds xv[1] = x0
+    sign_tstep = copysign(1, tmax-t0)
+
+    # Integration
+    while sign_tstep*t0 < sign_tstep*tmax
+        δt = taylorstep!(Val{S}, f, t, x, abstol, params, rv) # δt is positive!
+        # Below, δt has the proper sign according to the direction of the integration
+        δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
+        x0 = evaluate(x, δt) # new initial condition
+        setpsol(Val{S}, psol, nsteps, x) # Store the Taylor polynomial solution
+        @inbounds x[0] = x0
+        t0 += δt
+        @inbounds t[0] = t0
+        nsteps += 1
+        @inbounds tv[nsteps] = t0
+        @inbounds xv[nsteps] = x0
+        if nsteps > maxsteps
+            @warn("""
+            Maximum number of integration steps reached; exiting.
+            """)
+            break
         end
+    end
 
-        function _taylorinteg!(f, t::Taylor1{T}, x::Taylor1{U},
-                x0::U, t0::T, tmax::T, abstol::T, ::$V, params;
-                maxsteps::Int=500) where {T<:Real, U<:Number}
-
-            # Allocation
-            tv = Array{T}(undef, maxsteps+1)
-            xv = Array{U}(undef, maxsteps+1)
-            if $V == Val{true}
-                psol = Array{Taylor1{U}}(undef, maxsteps)
-            end
-
-            # Initial conditions
-            nsteps = 1
-            @inbounds t[0] = t0
-            @inbounds tv[1] = t0
-            @inbounds xv[1] = x0
-            sign_tstep = copysign(1, tmax-t0)
-
-            # Integration
-            while sign_tstep*t0 < sign_tstep*tmax
-                δt = taylorstep!(f, t, x, abstol, params) # δt is positive!
-                # Below, δt has the proper sign according to the direction of the integration
-                δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
-                x0 = evaluate(x, δt) # new initial condition
-                if $V == Val{true}
-                    @inbounds psol[nsteps] = deepcopy(x)
-                end
-                @inbounds x[0] = x0
-                t0 += δt
-                @inbounds t[0] = t0
-                nsteps += 1
-                @inbounds tv[nsteps] = t0
-                @inbounds xv[nsteps] = x0
-                if nsteps > maxsteps
-                    @warn("""
-                    Maximum number of integration steps reached; exiting.
-                    """)
-                    break
-                end
-            end
-
-            if $V == Val{true}
-                return view(tv,1:nsteps), view(xv,1:nsteps), view(psol, 1:nsteps-1)
-            elseif $V == Val{false}
-                return view(tv,1:nsteps), view(xv,1:nsteps)
-            end
-        end
-        function _taylorinteg!(f, t::Taylor1{T}, x::Taylor1{U},
-                x0::U, t0::T, tmax::T, abstol::T, rv::RetAlloc{Taylor1{U}}, ::$V, params;
-                maxsteps::Int=500) where {T<:Real, U<:Number}
-
-            # Allocation
-            tv = Array{T}(undef, maxsteps+1)
-            xv = Array{U}(undef, maxsteps+1)
-            if $V == Val{true}
-                psol = Array{Taylor1{U}}(undef, maxsteps)
-            end
-
-            # Initial conditions
-            nsteps = 1
-            @inbounds t[0] = t0
-            @inbounds tv[1] = t0
-            @inbounds xv[1] = x0
-            sign_tstep = copysign(1, tmax-t0)
-
-            # Integration
-            while sign_tstep*t0 < sign_tstep*tmax
-                δt = taylorstep!(f, t, x, abstol, params, rv) # δt is positive!
-                # Below, δt has the proper sign according to the direction of the integration
-                δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
-                x0 = evaluate(x, δt) # new initial condition
-                if $V == Val{true}
-                    @inbounds psol[nsteps] = deepcopy(x)
-                end
-                @inbounds x[0] = x0
-                t0 += δt
-                @inbounds t[0] = t0
-                nsteps += 1
-                @inbounds tv[nsteps] = t0
-                @inbounds xv[nsteps] = x0
-                if nsteps > maxsteps
-                    @warn("""
-                    Maximum number of integration steps reached; exiting.
-                    """)
-                    break
-                end
-            end
-
-            if $V == Val{true}
-                return view(tv,1:nsteps), view(xv,1:nsteps), view(psol, 1:nsteps-1)
-            elseif $V == Val{false}
-                return view(tv,1:nsteps), view(xv,1:nsteps)
-            end
-        end
-
-
-        function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T, order::Int, abstol::T, ::$V, params = nothing;
-                maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real, U<:Number}
-
-            # Initialize the vector of Taylor1 expansions
-            dof = length(q0)
-            t = t0 + Taylor1( T, order )
-            x = Array{Taylor1{U}}(undef, dof)
-            dx = Array{Taylor1{U}}(undef, dof)
-            @inbounds for i in eachindex(q0)
-                @inbounds x[i] = Taylor1( q0[i], order )
-                @inbounds dx[i] = Taylor1( zero(q0[i]), order )
-            end
-
-            # Determine if specialized jetcoeffs! method exists
-            parse_eqs, rv = _determine_parsing!(parse_eqs, f!, t, x, dx, params)
-
-            if parse_eqs
-                # Re-initialize the Taylor1 expansions
-                t = t0 + Taylor1( T, order )
-                x .= Taylor1.( q0, order )
-                dx .= Taylor1.( zero.(q0), order)
-                return _taylorinteg!(f!, t, x, dx, q0, t0, tmax, abstol, rv,
-                    $V(), params; maxsteps)
-            else
-                return _taylorinteg!(f!, t, x, dx, q0, t0, tmax, abstol,
-                    $V(), params; maxsteps)
-            end
-        end
-
-        function _taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
-                q0::Array{U,1}, t0::T, tmax::T, abstol::T, ::$V, params;
-                maxsteps::Int=500) where {T<:Real, U<:Number}
-
-            # Initialize the vector of Taylor1 expansions
-            dof = length(q0)
-
-            # Allocation
-            tv = Array{T}(undef, maxsteps+1)
-            xv = Array{U}(undef, dof, maxsteps+1)
-            if $V == Val{true}
-                psol = Array{Taylor1{U}}(undef, dof, maxsteps)
-            end
-            xaux = Array{Taylor1{U}}(undef, dof)
-
-            # Initial conditions
-            @inbounds t[0] = t0
-            # x .= Taylor1.(q0, order)
-            x0 = deepcopy(q0)
-            @inbounds tv[1] = t0
-            @inbounds xv[:,1] .= q0
-            sign_tstep = copysign(1, tmax-t0)
-
-            # Integration
-            nsteps = 1
-            while sign_tstep*t0 < sign_tstep*tmax
-                δt = taylorstep!(f!, t, x, dx, xaux, abstol, params) # δt is positive!
-                # Below, δt has the proper sign according to the direction of the integration
-                δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
-                evaluate!(x, δt, x0) # new initial condition
-                if $V == Val{true}
-                    # Store the Taylor polynomial solution
-                    @inbounds psol[:,nsteps] .= deepcopy.(x)
-                end
-                @inbounds for i in eachindex(x0)
-                    x[i][0] = x0[i]
-                    dx[i][0] = zero(x0[i])
-                end
-                t0 += δt
-                @inbounds t[0] = t0
-                nsteps += 1
-                @inbounds tv[nsteps] = t0
-                @inbounds xv[:,nsteps] .= deepcopy.(x0)
-                if nsteps > maxsteps
-                    @warn("""
-                    Maximum number of integration steps reached; exiting.
-                    """)
-                    break
-                end
-            end
-
-            if $V == Val{true}
-                return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:),
-                    view(transpose(view(psol, :, 1:nsteps-1)), 1:nsteps-1, :)
-            elseif $V == Val{false}
-                return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:)
-            end
-        end
-
-        function _taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
-                q0::Array{U,1}, t0::T, tmax::T, abstol::T, rv::RetAlloc{Taylor1{U}}, ::$V, params;
-                maxsteps::Int=500) where {T<:Real, U<:Number}
-
-            # Initialize the vector of Taylor1 expansions
-            dof = length(q0)
-
-            # Allocation of output
-            tv = Array{T}(undef, maxsteps+1)
-            xv = Array{U}(undef, dof, maxsteps+1)
-            if $V == Val{true}
-                psol = Array{Taylor1{U}}(undef, dof, maxsteps)
-            end
-
-            # Initial conditions
-            @inbounds t[0] = t0
-            x0 = deepcopy(q0)
-            @inbounds tv[1] = t0
-            @inbounds xv[:,1] .= q0
-            sign_tstep = copysign(1, tmax-t0)
-
-            # Integration
-            nsteps = 1
-            while sign_tstep*t0 < sign_tstep*tmax
-                δt = taylorstep!(f!, t, x, dx, abstol, params, rv) # δt is positive!
-                # Below, δt has the proper sign according to the direction of the integration
-                δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
-                evaluate!(x, δt, x0) # new initial condition
-                if $V == Val{true}
-                    # Store the Taylor polynomial solution
-                    @inbounds psol[:,nsteps] .= deepcopy.(x)
-                end
-                @inbounds for i in eachindex(x0)
-                    x[i][0] = x0[i]
-                    dx[i][0] = zero(x0[i])
-                end
-                t0 += δt
-                @inbounds t[0] = t0
-                nsteps += 1
-                @inbounds tv[nsteps] = t0
-                @inbounds xv[:,nsteps] .= deepcopy.(x0)
-                if nsteps > maxsteps
-                    @warn("""
-                    Maximum number of integration steps reached; exiting.
-                    """)
-                    break
-                end
-            end
-
-            if $V == Val{true}
-                return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:),
-                    view(transpose(view(psol, :, 1:nsteps-1)), 1:nsteps-1, :)
-            elseif $V == Val{false}
-                return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:)
-            end
-        end
-
+    if Val{S} == Val{true}
+        return view(tv,1:nsteps), view(xv,1:nsteps), view(psol, 1:nsteps-1)
+    elseif Val{S} == Val{false}
+        return view(tv,1:nsteps), view(xv,1:nsteps)
     end
 end
+
+
+function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T, order::Int, abstol::T, ::Val{S}, params = nothing;
+        maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real, U<:Number}
+
+    # Initialize the vector of Taylor1 expansions
+    dof = length(q0)
+    t = t0 + Taylor1( T, order )
+    x = Array{Taylor1{U}}(undef, dof)
+    dx = Array{Taylor1{U}}(undef, dof)
+    @inbounds for i in eachindex(q0)
+        @inbounds x[i] = Taylor1( q0[i], order )
+        @inbounds dx[i] = Taylor1( zero(q0[i]), order )
+    end
+
+    # Determine if specialized jetcoeffs! method exists
+    parse_eqs, rv = _determine_parsing!(parse_eqs, f!, t, x, dx, params)
+
+    # Re-initialize the Taylor1 expansions
+    t = t0 + Taylor1( T, order )
+    x .= Taylor1.( q0, order )
+    dx .= Taylor1.( zero.(q0), order)
+    return _taylorinteg!(f!, t, x, dx, q0, t0, tmax, abstol, rv,
+        Val(parse_eqs), params; maxsteps)
+end
+
+function _taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
+        q0::Array{U,1}, t0::T, tmax::T, abstol::T, rv::RetAlloc{Taylor1{U}}, ::Val{S}, params;
+        maxsteps::Int=500) where {T<:Real, U<:Number}
+
+    # Initialize the vector of Taylor1 expansions
+    dof = length(q0)
+
+    # Allocation of output
+    tv = Array{T}(undef, maxsteps+1)
+    xv = Array{U}(undef, dof, maxsteps+1)
+    psol = Array{Taylor1{U}}(undef, dof, maxsteps)
+
+    # Initial conditions
+    @inbounds t[0] = t0
+    x0 = deepcopy(q0)
+    @inbounds tv[1] = t0
+    @inbounds xv[:,1] .= q0
+    sign_tstep = copysign(1, tmax-t0)
+
+    # Integration
+    nsteps = 1
+    while sign_tstep*t0 < sign_tstep*tmax
+        δt = taylorstep!(f!, t, x, dx, abstol, params, rv) # δt is positive!
+        # Below, δt has the proper sign according to the direction of the integration
+        δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
+        evaluate!(x, δt, x0) # new initial condition
+        setpsol(Val{S}, psol, nsteps, x) # Store the Taylor polynomial solution
+        @inbounds for i in eachindex(x0)
+            x[i][0] = x0[i]
+            dx[i][0] = zero(x0[i])
+        end
+        t0 += δt
+        @inbounds t[0] = t0
+        nsteps += 1
+        @inbounds tv[nsteps] = t0
+        @inbounds xv[:,nsteps] .= deepcopy.(x0)
+        if nsteps > maxsteps
+            @warn("""
+            Maximum number of integration steps reached; exiting.
+            """)
+            break
+        end
+    end
+
+    if Val{S} == Val{true}
+        return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:),
+            view(transpose(view(psol, :, 1:nsteps-1)), 1:nsteps-1, :)
+    elseif Val{S} == Val{false}
+        return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:)
+    end
+end
+
 @doc doc"""
     taylorinteg(f, x0, t0, tmax, order, abstol, params[=nothing]; kwargs... )
     taylorinteg(f, x0, t0, tmax, order, abstol, Val(false), params[=nothing]; kwargs... )
