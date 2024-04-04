@@ -1,6 +1,5 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
-using TaylorSeries: generate_index_vectors
 using LsqFit: curve_fit
 using AbstractTrees: Leaves, getroot
 
@@ -34,7 +33,7 @@ function size_per_variable(P::TaylorN{T}) where {T <: Real}
     ys = zeros(T, nv, varorder+1)
 
     for i in eachindex(P.coeffs)
-        idxs = generate_index_vectors(nv, i-1)
+        idxs = TaylorSeries.coeff_table[i]
         for j in eachindex(idxs)
             for k in eachindex(idxs[j])
                 ys[k, idxs[j][k]+1] += abs(P.coeffs[i].coeffs[j])
