@@ -1,4 +1,6 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
+
+# set_psol!
 @inline function set_psol!(::Val{true}, psol::Array{Taylor1{U},1}, nsteps::Int, x::Taylor1{U}) where {U<:Number}
     @inbounds psol[nsteps] = deepcopy(x)
     return nothing
@@ -400,33 +402,32 @@ end
 for R in (:Number, :Integer)
     @eval begin
 
-    function taylorinteg(f, xx0::S, tt0::T, ttmax::U, order::Int, aabstol::V,
-            params = nothing; dense=false, maxsteps::Int=500, parse_eqs::Bool=true) where
-            {S<:$R, T<:Real, U<:Real, V<:Real}
+        function taylorinteg(f, xx0::S, tt0::T, ttmax::U, order::Int, aabstol::V,
+                params = nothing; dense=false, maxsteps::Int=500, parse_eqs::Bool=true) where
+                {S<:$R, T<:Real, U<:Real, V<:Real}
 
-        # In order to handle mixed input types, we promote types before integrating:
-        t0, tmax, abstol, _ = promote(tt0, ttmax, aabstol, one(Float64))
-        x0, _ = promote(xx0, t0)
+            # In order to handle mixed input types, we promote types before integrating:
+            t0, tmax, abstol, _ = promote(tt0, ttmax, aabstol, one(Float64))
+            x0, _ = promote(xx0, t0)
 
-        return taylorinteg(f, x0, t0, tmax, order, abstol, params,
-            dense=dense, maxsteps=maxsteps, parse_eqs=parse_eqs)
-    end
+            return taylorinteg(f, x0, t0, tmax, order, abstol, params,
+                dense=dense, maxsteps=maxsteps, parse_eqs=parse_eqs)
+        end
 
-    function taylorinteg(f, q0::Array{S,1}, tt0::T, ttmax::U, order::Int, aabstol::V,
-            params = nothing; dense=false, maxsteps::Int=500, parse_eqs::Bool=true) where
-            {S<:$R, T<:Real, U<:Real, V<:Real}
+        function taylorinteg(f, q0::Array{S,1}, tt0::T, ttmax::U, order::Int, aabstol::V,
+                params = nothing; dense=false, maxsteps::Int=500, parse_eqs::Bool=true) where
+                {S<:$R, T<:Real, U<:Real, V<:Real}
 
-        #promote to common type before integrating:
-        t0, tmax, abstol, _ = promote(tt0, ttmax, aabstol, one(Float64))
-        elq0, _ = promote(q0[1], t0)
-        #convert the elements of q0 to the common, promoted type:
-        q0_ = convert(Array{typeof(elq0)}, q0)
+            #promote to common type before integrating:
+            t0, tmax, abstol, _ = promote(tt0, ttmax, aabstol, one(Float64))
+            elq0, _ = promote(q0[1], t0)
+            #convert the elements of q0 to the common, promoted type:
+            q0_ = convert(Array{typeof(elq0)}, q0)
 
-        return taylorinteg(f, q0_, t0, tmax, order, abstol, params,
-            dense=dense, maxsteps=maxsteps, parse_eqs=parse_eqs)
-    end
+            return taylorinteg(f, q0_, t0, tmax, order, abstol, params,
+                dense=dense, maxsteps=maxsteps, parse_eqs=parse_eqs)
+        end
 
-    # trange methods (scalar and array)
         function taylorinteg(f, xx0::S, trange::AbstractVector{T}, order::Int, aabstol::U, params = nothing;
                 maxsteps::Int=500, parse_eqs::Bool=true) where {S<:$R, T<:Real, U<:Real}
 
