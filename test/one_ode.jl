@@ -50,7 +50,7 @@ import Logging: Warn
         xv = sol.x
         tv = sol.t
         @test length(xv) == length(trange)
-        @test xv isa SubArray{typeof(x0),1}
+        @test xv isa Vector{typeof(x0)}
         @test xv[1] == x0
         @test isnan(xv[end])
         @test abs(xv[5] - 2.0) ≤ eps(2.0)
@@ -68,7 +68,7 @@ import Logging: Warn
         xv = sol.x
         @test trange == sol.t
         @test length(xv) == length(trange)
-        @test typeof(xv) == Array{typeof(x0),1}
+        @test xv isa Vector{typeof(x0)}
         @test xv[1] == x0
         @test isnan(xv[end])
         @test abs(xv[5] - 2.0) ≤ eps(2.0)
@@ -95,7 +95,7 @@ import Logging: Warn
 
         # Output includes Taylor polynomial solution
         sol = (@test_logs (Warn, max_iters_reached()) taylorinteg(
-            eqs_mov, x0, 0, 0.5, _order, _abstol, Val(true), maxsteps=2))
+            eqs_mov, x0, 0, 0.5, _order, _abstol, dense=true, maxsteps=2))
         tv = sol.t; xv = sol.x
         psol = sol.p
         @test length(psol) == 2
@@ -181,8 +181,9 @@ import Logging: Warn
             @test abs(sin(tmax)-xv[end]) < 1e-14
 
             # Backward integration
-            xback = (@test_logs min_level=Logging.Warn taylorinteg(
+            solback = (@test_logs min_level=Logging.Warn taylorinteg(
                 f, xv[end], reverse(tspan), order, abstol))
+            xback = solback.x
             @test xback[1] == xv[end]
             @test abs(sin(t0)-xback[end]) < 5e-14
             @test norm(xv[:]-xback[end:-1:1], Inf) < 5.0e-14

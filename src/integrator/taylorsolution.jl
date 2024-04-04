@@ -24,17 +24,14 @@ TaylorSolution(t, x) = TaylorSolution(t, x, nothing)
 
 vecsol(p::Nothing, n::Int) = nothing
 vecsol(v::AbstractVector, n::Int) = view(v, 1:n)
-vecsol(v::AbstractVector) = v
 
 matsol(p::Nothing, n::Int) = nothing
 matsol(m::Matrix, n::Int) = view(transpose(view(m,:,1:n)),1:n,:)
-matsol(m::Matrix) = transpose(m)
 
 build_solution(t::AbstractVector{T}, x::Vector{U}, p::Union{Nothing, Vector{Taylor1{U}}}, nsteps::Int) where {T, U} =
-TaylorSolution(vecsol(t, nsteps), vecsol(x, nsteps), vecsol(p, nsteps-1))
+TaylorSolution(vecsol(t, nsteps), vecsol(x, nsteps), isnothing(p) ? p : vecsol(p, nsteps-1))
 build_solution(t::AbstractVector{T}, x::Matrix{U}, p::Union{Nothing, Matrix{Taylor1{U}}}, nsteps::Int) where {T, U} =
-TaylorSolution(vecsol(t, nsteps), matsol(x, nsteps), matsol(p, nsteps-1))
-build_solution(t::AbstractVector{T}, x::Vector{U}, p::Nothing) where {T, U} =
-TaylorSolution(vecsol(t), vecsol(x))
-build_solution(t::AbstractVector{T}, x::Matrix{U}, p::Nothing) where {T, U} =
-TaylorSolution(vecsol(t), matsol(x))
+TaylorSolution(vecsol(t, nsteps), matsol(x, nsteps), isnothing(p) ? p : matsol(p, nsteps-1))
+
+build_solution(t::AbstractVector{T}, x::Vector{U}) where {T, U} = TaylorSolution(t, x)
+build_solution(t::AbstractVector{T}, x::Matrix{U}) where {T, U} = TaylorSolution(t, transpose(x))
