@@ -4,6 +4,7 @@ on:
     paths-ignore:
       - 'LICENSE.md'
       - 'README.md'
+  pull_request:
 jobs:
   pre_job:
     # continue-on-error: true # Uncomment once integration is finished
