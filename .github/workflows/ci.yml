@@ -4,12 +4,24 @@ on:
     paths-ignore:
       - 'LICENSE.md'
       - 'README.md'
+  pull_request:
 jobs:
+  pre_job:
+    runs-on: ubuntu-latest
+    # Map a step output to a job output
+    outputs:
+      should_skip: ${{ steps.skip_check.outputs.should_skip }}
+    steps:
+      - id: skip_check
+        uses: fkirc/skip-duplicate-actions@v5
+        with:
+          concurrent_skipping: 'same_content_newer'
   test:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ matrix.julia-threads }} thread(s) - ${{ github.event_name }}
+    needs: pre_job
+    if: needs.pre_job.outputs.should_skip != 'true'
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.version == 'nightly' }}
-    if: "!contains(github.event.head_commit.message, 'skip ci')"
     env:
       JULIA_NUM_THREADS: ${{ matrix.julia-threads }}
     strategy:
