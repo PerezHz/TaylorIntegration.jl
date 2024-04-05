@@ -16,7 +16,6 @@ jobs:
       - id: skip_check
         uses: fkirc/skip-duplicate-actions@v5
         with:
-          # All of these options are optional, so you can remove them if you are happy with the defaults
           concurrent_skipping: 'same_content_newer'
   test:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ matrix.julia-threads }} thread(s) - ${{ github.event_name }}
