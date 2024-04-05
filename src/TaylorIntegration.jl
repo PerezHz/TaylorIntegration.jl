@@ -28,4 +28,6 @@ function __init__()
     end
 end
 
+test(x) = x
+
 end #module
