@@ -19,9 +19,9 @@ jobs:
           # All of these options are optional, so you can remove them if you are happy with the defaults
           concurrent_skipping: 'same_content_newer'
   test:
-    needs: pre_job
-    if: ${{ needs.pre_job.outputs.should_skip != 'true' && !contains(github.event.head_commit.message, 'skip ci') }}$
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ matrix.julia-threads }} thread(s) - ${{ github.event_name }}
+    needs: pre_job
+    if: needs.pre_job.outputs.should_skip != 'true'
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.version == 'nightly' }}
     env:
