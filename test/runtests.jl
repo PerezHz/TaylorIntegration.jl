@@ -7,10 +7,10 @@ testfiles = (
     "complex.jl",
     "jettransport.jl",
     # "lyapunov.jl",
-    # "bigfloats.jl",
+    "bigfloats.jl",
     # "common.jl",
     # "rootfinding.jl",
-    # "taylorize.jl",
+    "taylorize.jl",
     # "aqua.jl",
     )
 
