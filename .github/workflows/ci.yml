@@ -19,7 +19,7 @@ jobs:
           concurrent_skipping: 'same_content_newer'
   test:
     needs: pre_job
-    if: needs.pre_job.outputs.should_skip != 'true' && "!contains(github.event.head_commit.message, 'skip ci')"
+    if: ${{ needs.pre_job.outputs.should_skip != 'true' && "!contains(github.event.head_commit.message, 'skip ci')" }}$
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ matrix.julia-threads }} thread(s) - ${{ github.event_name }}
     runs-on: ${{ matrix.os }}
     continue-on-error: ${{ matrix.version == 'nightly' }}
