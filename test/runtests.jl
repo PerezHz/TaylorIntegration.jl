@@ -5,7 +5,7 @@ testfiles = (
     "one_ode.jl",
     "many_ode.jl",
     "complex.jl",
-    # "jettransport.jl",
+    "jettransport.jl",
     # "lyapunov.jl",
     # "bigfloats.jl",
     # "common.jl",
