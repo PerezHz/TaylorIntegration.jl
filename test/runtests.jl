@@ -8,10 +8,10 @@ testfiles = (
     "jettransport.jl",
     # "lyapunov.jl",
     "bigfloats.jl",
-    # "common.jl",
+    "common.jl",
     # "rootfinding.jl",
     "taylorize.jl",
-    # "aqua.jl",
+    "aqua.jl",
     )
 
 for file in testfiles

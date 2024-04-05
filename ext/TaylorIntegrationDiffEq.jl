@@ -301,7 +301,7 @@ end
 # @inline TaylorIntegration.__jetcoeffs!(::Val{true},  f::DynamicalODEFunction, t, x::Taylor1{U}, params,
 #     rv::TaylorIntegration.RetAlloc{Taylor1{U}}) where {U} = TaylorIntegration.__jetcoeffs!(Val(true), f, t, x, params, rv)
 @inline TaylorIntegration.__jetcoeffs!(::Val{false}, f::DynamicalODEFunction, t, x::ArrayPartition, dx, xaux, params,
-    rv::TaylorIntegration.RetAlloc) = TaylorIntegration.jetcoeffs!(f, t, vec(x), vec(dx), xaux, params, rv)
+    rv::TaylorIntegration.RetAlloc) = TaylorIntegration.jetcoeffs!(f, t, vec(x), vec(dx), xaux, params)
 # NOTE: `parse_eqs=true` not implemented for `DynamicalODEFunction`
 # @inline TaylorIntegration.__jetcoeffs!(::Val{true},  f::DynamicalODEFunction, t, x::ArrayPartition, dx, xaux, params,
 #     rv::TaylorIntegration.RetAlloc) = TaylorIntegration.__jetcoeffs!(Val(true), f, t, vec(x), vec(dx), params, rv)

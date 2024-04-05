@@ -95,10 +95,10 @@ import Logging: Warn
         u0 = [1.0; 0.0]
         prob = ODEProblem(harmosc!, u0, tspan)
         sol = (@test_logs min_level=Logging.Warn solve(prob, TaylorMethod(order), abstol=abstol))
-        tv1, xv1 = (@test_logs min_level=Logging.Warn taylorinteg(
+        solti = (@test_logs min_level=Logging.Warn taylorinteg(
             harmosc!, u0, tspan[1], tspan[2], order, abstol))
-        @test sol.t == tv1
-        @test xv1[end,:] == sol.u[end]
+        @test solti.t == sol.t
+        @test solti.x[end,:] == sol.u[end]
     end
 
     @testset "Test discrete callback in common interface" begin
@@ -238,11 +238,11 @@ import Logging: Warn
         @test length(sol1.t) == length(sol2.t)
         @test sol1.t == sol2.t
         @test sol1.u == sol2.u
-        tv, xv = (@test_logs min_level=Logging.Warn taylorinteg(
+        sol1ti = (@test_logs min_level=Logging.Warn taylorinteg(
             integ_vec, x0, tspan[1], tspan[2], order, abstol, [1.0]))
-        @test sol1.t == tv
-        @test sol1[1,:] == xv[:,1]
-        @test sol1[2,:] == xv[:,2]
+        @test sol1.t == sol1ti.t
+        @test sol1[1,:] == sol1ti.x[:,1]
+        @test sol1[2,:] == sol1ti.x[:,2]
         @test norm(sol1.u[end][1] - sin(sol1.t[end]), Inf) < 1.0e-14
         @test norm(sol1.u[end][2] - cos(sol1.t[end]), Inf) < 1.0e-14
 
