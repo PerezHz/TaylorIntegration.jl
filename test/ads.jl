@@ -17,30 +17,30 @@ using Test
         dq[4] = - q[2] / rr
     end;
     # Initial conditons (plain)
-    local q00 = [1.0, 0.0, 0.0, sqrt(1.5)]
+    q00 = [1.0, 0.0, 0.0, sqrt(1.5)]
     # Jet transport variables
-    local dq = set_variables("dx dy", numvars = 2, order = 5)
+    dq = set_variables("dx dy", numvars = 2, order = 5)
     # Initial conditions (jet transport)
-    local q0_ = q00 .+ [0.008, 0.08, 0.0, 0.0] .* vcat(dq, dq)
-    local q0 = SVector{4}(q0_)
+    q0_ = q00 .+ [0.008, 0.08, 0.0, 0.0] .* vcat(dq, dq)
+    q0 = SVector{4}(q0_)
     # Jet transport domain
-    local dom = ADSDomain((-1.0, 1.0), (-1.0, 1.0))
+    dom = ADSDomain((-1.0, 1.0), (-1.0, 1.0))
     # Initial time
-    local t0 = 0.0
+    t0 = 0.0
     # Final time
-    local tmax = 34.85
+    tmax = 34.85
     # Taylor1 order
-    local order = 25
+    order = 25
     # Splitting tolerance
-    local stol = 0.008
+    stol = 0.008
     # Absolute tolerance
-    local abstol = 1e-20
+    abstol = 1e-20
     # Dynamical function parameters
-    local params = nothing
+    params = nothing
     # Maximum allowed splits
-    local maxsplits = 25
+    maxsplits = 25
     # Maximum allowed steps
-    local maxsteps = 1_000
+    maxsteps = 1_000
 
     # ADS taylorinteg (parse_eqs = false)
     # Warmup
