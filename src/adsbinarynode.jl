@@ -9,7 +9,7 @@ if !isdefined(Base, :isnothing)        # Julia 1.0 support
     using AbstractTrees: isnothing
 end
 
-export ADSDomain
+export ADSDomain, ADSBinaryNode
 
 """
     ADSDomain{N, T <: Real}
