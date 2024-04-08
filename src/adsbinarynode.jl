@@ -59,9 +59,9 @@ end
 # Return the diameter of each direction in s
 widths(s::ADSDomain{N, T}) where {N, T <: Real} = s.hi - s.lo
 # Return the lower bounds in s
-infimums(s::ADSDomain{N, T}) where {N, T <: Real} = s.lo
+infima(s::ADSDomain{N, T}) where {N, T <: Real} = s.lo
 # Return the upper bounds in s
-supremums(s::ADSDomain{N, T}) where {N, T <: Real} = s.hi
+suprema(s::ADSDomain{N, T}) where {N, T <: Real} = s.hi
 # Split s in half along direction i
 function split(s::ADSDomain{N, T}, i::Int) where {N, T <: Real}
     @assert 1 <= i <= N
@@ -371,7 +371,7 @@ function evaltree(n::ADSBinaryNode{N, M, T}, t::U,
         loc = node.s
         # Linear transformation
         ms = widths(sup) ./ widths(loc)
-        ks = infimums(sup) - infimums(loc) .* ms
+        ks = infima(sup) - infima(loc) .* ms
         _s_ = ms .* s .+ ks
         # Eval p at transformed point
         x = map(y -> y(_s_), p)
