@@ -57,7 +57,7 @@ function show(io::IO, s::ADSDomain{N, T}) where {N, T <: Real}
 end
 
 # Return the diameter of each direction in s
-diams(s::ADSDomain{N, T}) where {N, T <: Real} = s.hi - s.lo
+widths(s::ADSDomain{N, T}) where {N, T <: Real} = s.hi - s.lo
 # Return the lower bounds in s
 infimums(s::ADSDomain{N, T}) where {N, T <: Real} = s.lo
 # Return the upper bounds in s
@@ -370,7 +370,7 @@ function evaltree(n::ADSBinaryNode{N, M, T}, t::U,
         sup = getroot(n).s
         loc = node.s
         # Linear transformation
-        ms = diams(sup) ./ diams(loc)
+        ms = widths(sup) ./ widths(loc)
         ks = infimums(sup) - infimums(loc) .* ms
         _s_ = ms .* s .+ ks
         # Eval p at transformed point
