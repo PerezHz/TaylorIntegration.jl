@@ -1,9 +1,8 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
 using StaticArrays: SVector
-import AbstractTrees: HasNodeType, NodeType, ParentLinks, StoredParents, TreeIterator,
-                      children, nodetype, nodevalue, parent, printnode, PreOrderDFS
-import Base: IteratorEltype, HasEltype, in, eltype, split
+using AbstractTrees: StoredParents, HasNodeType, TreeIterator, PreOrderDFS
+import AbstractTrees
 
 if !isdefined(Base, :isnothing)        # Julia 1.0 support
     using AbstractTrees: isnothing
@@ -63,7 +62,7 @@ infima(s::ADSDomain{N, T}) where {N, T <: Real} = s.lo
 # Return the upper bounds in s
 suprema(s::ADSDomain{N, T}) where {N, T <: Real} = s.hi
 # Split s in half along direction i
-function split(s::ADSDomain{N, T}, i::Int) where {N, T <: Real}
+function Base.split(s::ADSDomain{N, T}, i::Int) where {N, T <: Real}
     @assert 1 <= i <= N
     mid = (s.lo[i] + s.hi[i])/2
     a = ADSDomain{N, T}(
@@ -77,7 +76,7 @@ function split(s::ADSDomain{N, T}, i::Int) where {N, T <: Real}
     return a, b
 end
 
-function in(x::AbstractVector{T}, s::ADSDomain{N, T}) where {N, T <: Real}
+function Base.in(x::AbstractVector{T}, s::ADSDomain{N, T}) where {N, T <: Real}
     @assert length(x) == N "x must be of length $N"
     mask = SVector{N, Bool}(s.lo[i] <= x[i] <= s.hi[i] for i in 1:N)
     return all(mask)
@@ -170,7 +169,7 @@ function rightchild!(parent::ADSBinaryNode{N, M, T}, node::ADSBinaryNode{N, M, T
 end
 
 # AbstractTrees interface
-function children(node::ADSBinaryNode{N, M, T}) where {N, M, T <: Real}
+function AbstractTrees.children(node::ADSBinaryNode{N, M, T}) where {N, M, T <: Real}
     if isnothing(node.left) && isnothing(node.right)
         ()
     elseif isnothing(node.left) && !isnothing(node.right)
@@ -182,20 +181,20 @@ function children(node::ADSBinaryNode{N, M, T}) where {N, M, T <: Real}
     end
 end
 
-printnode(io::IO, n::ADSBinaryNode{N, M, T}) where {N, M, T <: Real} = print(io, "t: ", n.t)
+AbstractTrees.printnode(io::IO, n::ADSBinaryNode{N, M, T}) where {N, M, T <: Real} = print(io, "t: ", n.t)
 
-nodevalue(n::ADSBinaryNode{N, M, T}) where {N, M, T <: Real} = (n.s, n.t, n.x, n.p)
+AbstractTrees.nodevalue(n::ADSBinaryNode{N, M, T}) where {N, M, T <: Real} = (n.s, n.t, n.x, n.p)
 
-ParentLinks(::Type{<:ADSBinaryNode{N, M, T}}) where {N, M, T <: Real} = StoredParents()
+AbstractTrees.ParentLinks(::Type{<:ADSBinaryNode{N, M, T}}) where {N, M, T <: Real} = StoredParents()
 
-parent(n::ADSBinaryNode{N, M, T}) where {N, M, T <: Real} = n.parent
+AbstractTrees.parent(n::ADSBinaryNode{N, M, T}) where {N, M, T <: Real} = n.parent
 
-NodeType(::Type{<:ADSBinaryNode{N, M, T}}) where {N, M, T <: Real} = HasNodeType()
-nodetype(::Type{<:ADSBinaryNode{N, M, T}}) where {N, M, T <: Real} = ADSBinaryNode{N, M, T}
+AbstractTrees.NodeType(::Type{<:ADSBinaryNode{N, M, T}}) where {N, M, T <: Real} = HasNodeType()
+AbstractTrees.nodetype(::Type{<:ADSBinaryNode{N, M, T}}) where {N, M, T <: Real} = ADSBinaryNode{N, M, T}
 
 # For TreeIterator
-IteratorEltype(::Type{<:TreeIterator{ADSBinaryNode{N, M, T}}}) where {N, M, T <: Real} = HasEltype()
-eltype(::Type{<:TreeIterator{ADSBinaryNode{N, M, T}}}) where {N, M, T <: Real} = ADSBinaryNode{N, M, T}
+Base.IteratorEltype(::Type{<:TreeIterator{ADSBinaryNode{N, M, T}}}) where {N, M, T <: Real} = HasEltype()
+Base.eltype(::Type{<:TreeIterator{ADSBinaryNode{N, M, T}}}) where {N, M, T <: Real} = ADSBinaryNode{N, M, T}
 
 """
     countnodes(n::ADSBinaryNode{N, M, T}, k::Int) where {N, M, T <: Real}

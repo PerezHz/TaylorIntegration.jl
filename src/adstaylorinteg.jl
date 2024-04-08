@@ -121,7 +121,7 @@ end
 
 # Split node's domain in half
 # See section 3 of https://doi.org/10.1007/s10569-015-9618-3
-function split(node::ADSBinaryNode{N, M, T}, x::SVector{M, TaylorN{T}},
+function Base.split(node::ADSBinaryNode{N, M, T}, x::SVector{M, TaylorN{T}},
                p::SVector{M, Taylor1{TaylorN{T}}}, dt::T) where {N, M, T <: Real}
     # Split direction
     j = splitdirection(x)
