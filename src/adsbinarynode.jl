@@ -150,12 +150,22 @@ function leftchild!(
     parent.left = node
 end
 
+function leftchild!(parent::ADSBinaryNode{N, M, T}, node::ADSBinaryNode{N, M, T}) where {N, M, T <: Real}
+    # set `node` as left child of `parent`
+    parent.left = node
+end
+
 function rightchild!(
     parent::ADSBinaryNode{N, M, T}, s::ADSDomain{N, T}, t::T,
     x::SVector{M, TaylorN{T}}, p::SVector{M, Taylor1{TaylorN{T}}}
     ) where {N, M, T <: Real}
     isnothing(parent.right) || error("Right child is already assigned")
     node = ADSBinaryNode{N, M, T}(s, t, x, p, parent.depth + 1, parent)
+    parent.right = node
+end
+
+function rightchild!(parent::ADSBinaryNode{N, M, T}, node::ADSBinaryNode{N, M, T}) where {N, M, T <: Real}
+    # set `node` as right child of `parent`
     parent.right = node
 end
 

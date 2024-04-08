@@ -122,7 +122,7 @@ end
 # Split node's domain in half
 # See section 3 of https://doi.org/10.1007/s10569-015-9618-3
 function split(node::ADSBinaryNode{N, M, T}, x::SVector{M, TaylorN{T}},
-               p::SVector{M, Taylor1{TaylorN{T}}}) where {N, M, T <: Real}
+               p::SVector{M, Taylor1{TaylorN{T}}}, dt::T) where {N, M, T <: Real}
     # Split direction
     j = splitdirection(x)
     # Split domain
@@ -146,7 +146,7 @@ function split(node::ADSBinaryNode{N, M, T}, x::SVector{M, TaylorN{T}},
         Taylor1( map(z -> z(v_2), p[i].coeffs), order ) for i in eachindex(p)
     )
 
-    return s1, x1, p1, s2, x2, p2
+    return ADSBinaryNode(s1, node.t+dt, x1, p1), ADSBinaryNode(s2, node.t+dt, x2, p2)
 end
 
 """
@@ -164,11 +164,11 @@ function split!(node::ADSBinaryNode{N, M, T}, p::SVector{M, Taylor1{TaylorN{T}}}
     # Split
     if nsplits < maxsplits && any(mask .> stol)
         # Split
-        s1, x1, p1, s2, x2, p2 = split(node, x, p)
+        lchildnode, rchildnode = split(node, x, p, dt)
         # Left half
-        leftchild!(node, s1, node.t + dt, x1, p1)
+        leftchild!(node, lchildnode)
         # Right half
-        rightchild!(node, s2, node.t + dt, x2, p2)
+        rightchild!(node, rchildnode)
         # Update number of splits
         nsplits += 1
     # No split
