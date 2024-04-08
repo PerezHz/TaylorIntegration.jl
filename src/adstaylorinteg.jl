@@ -16,15 +16,15 @@ function exp_model_jacobian!(J::Array{T, 2}, t, p) where {T <: Real}
 end
 
 """
-    size_per_variable(P::TaylorN{T}) where {T <: Real}
-    size_per_variable(P::AbstractVector{TaylorN{T}}) where {T <: Real}
+    truncerror(P::TaylorN{T}) where {T <: Real}
+    truncerror(P::AbstractVector{TaylorN{T}}) where {T <: Real}
 
 Return the truncation error of each jet transport variable in `P`.
 
 !!! reference
     See section 3 of https://doi.org/10.1007/s10569-015-9618-3.
 """
-function size_per_variable(P::TaylorN{T}) where {T <: Real}
+function truncerror(P::TaylorN{T}) where {T <: Real}
     # Jet transport order
     varorder = P.order
     # Number of variables
@@ -59,13 +59,13 @@ function size_per_variable(P::TaylorN{T}) where {T <: Real}
     return M
 end
 
-function size_per_variable(P::AbstractVector{TaylorN{T}}) where {T <: Real}
+function truncerror(P::AbstractVector{TaylorN{T}}) where {T <: Real}
     # Number of variables
     nv = get_numvars()
     # Size per variable per element of P
     norms = Matrix{T}(undef, nv, length(P))
     for i in eachindex(P)
-        norms[:, i] .= size_per_variable(P[i])
+        norms[:, i] .= truncerror(P[i])
     end
     # Sum over element of P
     return sum(norms, dims = 2)
@@ -76,18 +76,18 @@ end
     splitdirection(P::AbstractVector{TaylorN{T}}) where {T <: Real}
 
 Return the index of the jet transport variable with the largest truncation error
-according to [`size_per_variable`](@ref).
+according to [`truncerror`](@ref).
 """
 function splitdirection(P::TaylorN{T}) where {T <: Real}
     # Size per variable
-    M = size_per_variable(P)
+    M = truncerror(P)
     # Variable with maximum error
     return argmax(M)[1]
 end
 
 function splitdirection(P::AbstractVector{TaylorN{T}}) where {T <: Real}
     # Size per variable
-    M = size_per_variable(P)
+    M = truncerror(P)
     # Variable with maximum error
     return argmax(M)[1]
 end
