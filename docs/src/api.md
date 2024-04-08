@@ -13,6 +13,7 @@ taylorinteg
 lyap_taylorinteg
 @taylorize
 ADSDomain
+ADSBinaryNode
 ```
 
 ## Internal
