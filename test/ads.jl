@@ -1,9 +1,9 @@
 using TaylorIntegration
+using StaticArrays
 using Test
 
 @testset "Automatic Domain Splitting" begin
-    using TaylorIntegration: ADSBinaryNode, countnodes, timesvector
-    using StaticArrays: @SVector, SVector
+    using TaylorIntegration: ADSBinaryNode, countnodes, timesvector, timeshift!
 
     # Test ADSDomain constructors
     a = @SVector rand(Float64, 5)
@@ -142,4 +142,11 @@ using Test
     y1 = nv1(tmax, SVector(0.1, 0.1))
     y2 = nv2(tmax, SVector(0.1, 0.1))
     @test y1 == y2
+
+    timeshift!(nv1, 1.0)
+    timeshift!(nv2, 1.0)
+    _ts1_ = timesvector(nv1)
+    _ts2_ = timesvector(nv2)
+    @test _ts1_ == ts1 .+ 1.0
+    @test _ts2_ == ts2 .+ 1.0
 end
