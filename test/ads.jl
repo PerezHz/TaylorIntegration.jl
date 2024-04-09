@@ -3,7 +3,23 @@ using Test
 
 @testset "Automatic Domain Splitting" begin
     using TaylorIntegration: ADSBinaryNode, countnodes, timesvector
-    using StaticArrays: SVector
+    using StaticArrays: @SVector, SVector
+
+    # Test ADSDomain constructors
+    a = @SVector rand(Float64, 5)
+    b = @SVector rand(Float64, 5)
+    dom1 = ADSDomain(min.(a, b), max.(a, b))
+    dom2 = ADSDomain(map((x, y) -> minmax(x, y), a, b)...)
+    @test dom1 == dom2
+    @test isa(dom1, ADSDomain{5, Float64}) && isa(dom2, ADSDomain{5, Float64})
+    @test dom1.lo == dom2.lo == min.(a, b)
+    @test dom1.hi == dom2.hi == max.(a, b)
+    @test all(dom1.hi .> dom1.lo) && all(dom2.hi .> dom2.lo)
+    dom3 = ADSDomain()
+    @test isa(dom3, ADSDomain{1, Float64})
+    @test dom3.lo == @SVector zeros(Float64, 1)
+    @test dom3.hi == @SVector ones(Float64, 1)
+    @test (dom3 != dom1) && (dom3 != dom2)
 
     # This example is based upon section 3 of
     # https://doi.org/10.1007/s10569-015-9618-3.
