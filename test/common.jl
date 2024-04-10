@@ -112,6 +112,47 @@ import Logging: Warn
         dt_test = (tv2[end-1]-tv2[end-2])
         t_test = tv2[end-2] + Θ*dt_test
         @test norm( sol(t_test) .- psol2[end,:]( Θm1*dt_test ) ) < 1e-14
+        # Kepler problem
+        @taylorize function kepler1!(dq, q, p, t)
+            local μ = -1.0
+            local ν = 1.0
+            r_p2 = ((q[3]^2)+(q[4]^2))
+            r_p3d2 = r_p2^1.5
+            dq[1] = ν*q[3]
+            dq[2] = ν*q[4]
+            newtonianCoeff = μ / r_p3d2
+            dq[3] = q[1] * newtonianCoeff
+            dq[4] = q[2] * newtonianCoeff
+            return nothing
+        end
+        p = set_variables("ξ", numvars=4, order=2)
+        q0 = [0.2, 0.0, 0.0, 3.0]
+        q0TN = q0 + p
+        tspan = (0.0, 10pi)
+        tvp, xvp, psolp = taylorinteg(kepler1!, q0, tspan[1], tspan[2], order, abstol,
+            Val(true), maxsteps=2000)
+        prob = ODEProblem(kepler1!, q0, tspan)
+        @test isinplace(prob) == true
+        sol1 = solve(prob, TaylorMethod(order), abstol=abstol, parse_eqs=false)
+        sol2 = solve(prob, TaylorMethod(order), abstol=abstol)
+        @test sol1.alg.parse_eqs == false
+        @test sol2.alg.parse_eqs == true
+        @test sol1.u == sol2.u
+        @test transpose(Array(sol2)) == xvp
+
+        tTN, xTN, psolTN = taylorinteg(kepler1!, q0TN, tspan[1], tspan[2], order, abstol,
+            Val(true), maxsteps=2000)
+
+        probTN = ODEProblem(kepler1!, q0TN, tspan)
+        sol2TN = solve(probTN, TaylorMethod(order), abstol=abstol, parse_eqs=true, dense=true)
+        @test sol2TN.alg.parse_eqs == true
+        @test DiffEqBase.interp_summary(sol2TN.interp) == "Taylor series polynomial evaluation"
+        @test size(xTN) == size(Array(sol2TN)')
+        @test xTN == Array(sol2TN)'
+        @test psolTN[end,:](tTN[end]-tTN[end-1]) == sol2TN(sol2TN.t[end])
+        @test psolTN[2,:](-(tTN[2]-tTN[1]) + 0.1) == sol2TN(0.1)
+        @test norm( psolTN[end,:](-(tTN[end-1]-tTN[end-2]) + 0.1) - sol2TN(sol2TN.t[end-2] + 0.1) ) < 1e-12
+        @test norm( psolTN[end-1,:](0.1) - sol2TN(sol2TN.t[end-2] + 0.1) ) < 1e-12
     end
 
     @testset "Test discrete callback in common interface" begin

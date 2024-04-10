@@ -10,14 +10,14 @@ if isdefined(Base, :get_extension)
         OrdinaryDiffEqConstantCache, OrdinaryDiffEqMutableCache,
         alg_order, alg_cache, initialize!, perform_step!, @unpack,
         @cache, stepsize_controller!, step_accept_controller!, _ode_addsteps!,
-        _ode_interpolant!, _ode_interpolant
+        _ode_interpolant!, _ode_interpolant, gamma_default
 else
     using ..OrdinaryDiffEq
     import ..OrdinaryDiffEq: OrdinaryDiffEqAdaptiveAlgorithm,
         OrdinaryDiffEqConstantCache, OrdinaryDiffEqMutableCache,
         alg_order, alg_cache, initialize!, perform_step!, @unpack,
         @cache, stepsize_controller!, step_accept_controller!, _ode_addsteps!,
-        _ode_interpolant!, _ode_interpolant
+        _ode_interpolant!, _ode_interpolant, gamma_default
 end
 
 using StaticArrays: SVector, SizedArray
@@ -31,7 +31,7 @@ const warnkeywords = (:save_idxs, :d_discontinuities, :unstable_check, :save_eve
     :dtmin, :force_dtmin, :internalnorm, :gamma, :beta1, :beta2,
     :qmax, :qmin, :qsteady_min, :qsteady_max, :qoldinit, :failfactor,
     :isoutofdomain, :unstable_check,
-    :calck, :progress, :timeseries_steps, :dense)
+    :calck, :progress, :timeseries_steps)
 
 global warnlist = Set(warnkeywords)
 
@@ -43,7 +43,7 @@ struct TaylorMethodParams <: TaylorAlgorithm
     parse_eqs::Bool
 end
 
-import TaylorIntegration: TaylorMethod
+import TaylorIntegration: TaylorMethod, RetAlloc
 
 TaylorMethod(order; parse_eqs=true) = TaylorMethodParams(order, parse_eqs) # set `parse_eqs` to `true` by default
 
@@ -52,7 +52,7 @@ alg_order(alg::TaylorMethodParams) = alg.order
 TaylorMethod() = error("Maximum order must be specified for the Taylor method")
 
 # overload DiffEqBase.ODE_DEFAULT_NORM for Taylor1 arrays
-ODE_DEFAULT_NORM(x::AbstractArray{Taylor1{T}, N},y) where {T<:Number, N} = norm(x, Inf)
+ODE_DEFAULT_NORM(x::AbstractArray{<:AbstractSeries}, y) = norm(x, Inf)
 
 ### cache stuff
 struct TaylorMethodCache{uType, rateType, tTType, uTType} <: OrdinaryDiffEqMutableCache
@@ -66,17 +66,13 @@ struct TaylorMethodCache{uType, rateType, tTType, uTType} <: OrdinaryDiffEqMutab
     duT::uTType
     uauxT::uTType
     parse_eqs::Ref{Bool}
-    rv::TaylorIntegration.RetAlloc
+    rv::RetAlloc
 end
-
-# full_cache(c::TaylorMethodCache) = begin
-#     tuple(c.u, c.uprev, c.tmp, c.k, c.fsalfirst, c.tT, c.uT, c.duT, c.uauxT, c.parse_eqs, c.rv)
-# end
 
 struct TaylorMethodConstantCache{uTType} <: OrdinaryDiffEqConstantCache
     uT::uTType
     parse_eqs::Ref{Bool}
-    rv::TaylorIntegration.RetAlloc{uTType}
+    rv::RetAlloc{uTType}
 end
 
 function alg_cache(alg::TaylorMethodParams, u, rate_prototype, uEltypeNoUnits,
@@ -259,8 +255,7 @@ function update_jetcoeffs_cache!(u,f,p,cache::TaylorMethodCache)
     @unpack tT, uT, duT, uauxT, parse_eqs, rv = cache
     @inbounds for i in eachindex(u)
         uT[i][0] = u[i]
-        # duT[i].coeffs .= zero(duT[i][0])
-        duT[i][0] = zero(uT[i][0])
+        TaylorSeries.zero!(duT[i], 0)
     end
     TaylorIntegration.__jetcoeffs!(Val(parse_eqs.x), f, tT, uT, duT, uauxT, p, rv)
     return nothing
@@ -271,7 +266,7 @@ end
 # and vector callbacks with TaylorIntegration.jl via the common interface
 function _ode_addsteps!(k, t, uprev, u, dt, f, p, cache::TaylorMethodCache,
         always_calc_begin = false, allow_calc_end = true,force_calc_end = false)
-    ### TODO: CHECK, AND IF NECESSARY, RE-SET TIME-STEP SIZE AFTER CALLBACK!!!
+    ### TODO: check, and if necessary, reset timestep after callback (!)
     if length(k)<2 || always_calc_begin
         if typeof(cache) <: OrdinaryDiffEqMutableCache
             rtmp = similar(u, eltype(eltype(k)))
@@ -293,7 +288,7 @@ function interp_summary(::Type{cacheType}, dense::Bool) where {cacheType <: Tayl
 end
 
 # idxs gives back multiple values
-function _ode_interpolant!(out, Θ, dt, y₀, y₁, k, cache::TaylorMethodCache, idxs, T::Type{Val{TI}}) where {TI}
+function _ode_interpolant!(out, Θ, dt, y₀, y₁, k, cache::TaylorMethodCache, idxs, T::Type{Val{TI}}, differential_vars) where {TI}
     Θm1 = Θ - 1
     @inbounds for i in eachindex(out)
         out[i] = cache.uT[i](Θm1*dt)
@@ -302,33 +297,37 @@ function _ode_interpolant!(out, Θ, dt, y₀, y₁, k, cache::TaylorMethodCache,
 end
 
 # when idxs gives back a single value
-function _ode_interpolant(Θ, dt, y₀, y₁, k, cache::TaylorMethodCache, idxs, T::Type{Val{TI}}) where {TI}
+function _ode_interpolant(Θ, dt, y₀, y₁, k, cache::TaylorMethodCache, idxs, T::Type{Val{TI}}, differential_vars) where {TI}
     Θm1 = Θ - 1
     return cache.uT[idxs](Θm1*dt)
 end
 
 @inline TaylorIntegration.__jetcoeffs!(::Val{false}, f::ODEFunction, t, x::Taylor1{U}, params,
-    rv::TaylorIntegration.RetAlloc{Taylor1{U}}) where {U} = TaylorIntegration.__jetcoeffs!(Val(false), f.f, t, x, params)
+    rv::RetAlloc{Taylor1{U}}) where {U} = TaylorIntegration.__jetcoeffs!(Val(false), f.f, t, x, params)
 @inline TaylorIntegration.__jetcoeffs!(::Val{true},  f::ODEFunction, t, x::Taylor1{U}, params,
-    rv::TaylorIntegration.RetAlloc{Taylor1{U}}) where {U} = TaylorIntegration.__jetcoeffs!(Val(true), f.f, t, x, params, rv)
+    rv::RetAlloc{Taylor1{U}}) where {U} = TaylorIntegration.__jetcoeffs!(Val(true), f.f, t, x, params, rv)
 @inline TaylorIntegration.__jetcoeffs!(::Val{false}, f::ODEFunction, t, x::AbstractArray{Taylor1{U},N}, dx, xaux, params,
-    rv::TaylorIntegration.RetAlloc{Taylor1{U}}) where {U,N} = TaylorIntegration.__jetcoeffs!(Val(false), f.f, t, x, dx, xaux, params)
+    rv::RetAlloc{Taylor1{U}}) where {U,N} = TaylorIntegration.__jetcoeffs!(Val(false), f.f, t, x, dx, xaux, params)
 @inline TaylorIntegration.__jetcoeffs!(::Val{true},  f::ODEFunction, t, x::AbstractArray{Taylor1{U},N}, dx, xaux, params,
-    rv::TaylorIntegration.RetAlloc{Taylor1{U}}) where {U,N} = TaylorIntegration.__jetcoeffs!(Val(true), f.f, t, x, dx, params, rv)
+    rv::RetAlloc{Taylor1{U}}) where {U,N} = TaylorIntegration.__jetcoeffs!(Val(true), f.f, t, x, dx, params, rv)
 
 # NOTE: DynamicalODEFunction assumes x is a vector
 # @inline TaylorIntegration.__jetcoeffs!(::Val{false}, f::DynamicalODEFunction, t, x::Taylor1{U}, params,
-#     rv::TaylorIntegration.RetAlloc{Taylor1{U}}) where {U} = TaylorIntegration.__jetcoeffs!(Val(false), f, t, x, params)
+#     rv::RetAlloc{Taylor1{U}}) where {U} = TaylorIntegration.__jetcoeffs!(Val(false), f, t, x, params)
 # @inline TaylorIntegration.__jetcoeffs!(::Val{true},  f::DynamicalODEFunction, t, x::Taylor1{U}, params,
-#     rv::TaylorIntegration.RetAlloc{Taylor1{U}}) where {U} = TaylorIntegration.__jetcoeffs!(Val(true), f, t, x, params, rv)
+#     rv::RetAlloc{Taylor1{U}}) where {U} = TaylorIntegration.__jetcoeffs!(Val(true), f, t, x, params, rv)
 @inline TaylorIntegration.__jetcoeffs!(::Val{false}, f::DynamicalODEFunction, t, x::ArrayPartition, dx, xaux, params,
-    rv::TaylorIntegration.RetAlloc) = TaylorIntegration.jetcoeffs!(f, t, vec(x), vec(dx), xaux, params)
+    rv::RetAlloc) = TaylorIntegration.jetcoeffs!(f, t, vec(x), vec(dx), xaux, params)
 # NOTE: `parse_eqs=true` not implemented for `DynamicalODEFunction`
 # @inline TaylorIntegration.__jetcoeffs!(::Val{true},  f::DynamicalODEFunction, t, x::ArrayPartition, dx, xaux, params,
-#     rv::TaylorIntegration.RetAlloc) = TaylorIntegration.__jetcoeffs!(Val(true), f, t, vec(x), vec(dx), params, rv)
+#     rv::RetAlloc) = TaylorIntegration.__jetcoeffs!(Val(true), f, t, vec(x), vec(dx), params, rv)
 
 TaylorIntegration._determine_parsing!(parse_eqs::Bool, f::ODEFunction, t, x, params) =
     TaylorIntegration._determine_parsing!(parse_eqs, f.f, t, x, params)
 TaylorIntegration._determine_parsing!(parse_eqs::Bool, f::ODEFunction, t, x, dx, params) =
     TaylorIntegration._determine_parsing!(parse_eqs, f.f, t, x, dx, params)
 end
+
+# function gamma_default(alg::TaylorAlgorithm)
+#     return 9 // 10
+# end

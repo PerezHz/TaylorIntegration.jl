@@ -28,4 +28,7 @@ function __init__()
     end
 end
 
+import TaylorSeries: TaylorN
+TaylorN{T}(x::TaylorSeries.NumberNotSeries) where {T<:TaylorSeries.NumberNotSeries} = TaylorN(T(x), TaylorSeries.get_order())
+
 end #module
