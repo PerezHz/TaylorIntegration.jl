@@ -99,6 +99,19 @@ import Logging: Warn
             harmosc!, u0, tspan[1], tspan[2], order, abstol))
         @test sol.t == tv1
         @test xv1[end,:] == sol.u[end]
+        @test DiffEqBase.interp_summary(sol.interp) == "Taylor series polynomial evaluation"
+        tvsol = range(tspan[1], tspan[2], length=10)
+        tv2, xv2, psol2 = (@test_logs min_level=Logging.Warn taylorinteg(
+            harmosc!, u0, tspan[1], tspan[2], order, abstol, Val(true)))
+        Θ = rand()
+        dt_test = (tv2[end]-tv2[end-1])
+        t_test = tv2[end-1] + Θ*dt_test
+        @test norm(sol(t_test) .- psol2[end,:]( Θ*dt_test ), Inf) < 1e-14
+        Θ = rand()
+        Θm1 = Θ - 1
+        dt_test = (tv2[end-1]-tv2[end-2])
+        t_test = tv2[end-2] + Θ*dt_test
+        @test norm( sol(t_test) .- psol2[end,:]( Θm1*dt_test ) ) < 1e-14
     end
 
     @testset "Test discrete callback in common interface" begin

@@ -9,19 +9,21 @@ if isdefined(Base, :get_extension)
     import OrdinaryDiffEq: OrdinaryDiffEqAdaptiveAlgorithm,
         OrdinaryDiffEqConstantCache, OrdinaryDiffEqMutableCache,
         alg_order, alg_cache, initialize!, perform_step!, @unpack,
-        @cache, stepsize_controller!, step_accept_controller!, _ode_addsteps!
+        @cache, stepsize_controller!, step_accept_controller!, _ode_addsteps!,
+        _ode_interpolant!, _ode_interpolant
 else
     using ..OrdinaryDiffEq
     import ..OrdinaryDiffEq: OrdinaryDiffEqAdaptiveAlgorithm,
         OrdinaryDiffEqConstantCache, OrdinaryDiffEqMutableCache,
         alg_order, alg_cache, initialize!, perform_step!, @unpack,
-        @cache, stepsize_controller!, step_accept_controller!, _ode_addsteps!
+        @cache, stepsize_controller!, step_accept_controller!, _ode_addsteps!,
+        _ode_interpolant!, _ode_interpolant
 end
 
 using StaticArrays: SVector, SizedArray
 using RecursiveArrayTools: ArrayPartition
 
-import DiffEqBase: ODEProblem, solve, ODE_DEFAULT_NORM
+import DiffEqBase: ODEProblem, solve, ODE_DEFAULT_NORM, interp_summary
 
 # TODO: check which keywords work fine
 const warnkeywords = (:save_idxs, :d_discontinuities, :unstable_check, :save_everystep,
@@ -284,6 +286,25 @@ function _ode_addsteps!(k, t, uprev, u, dt, f, p, cache::TaylorMethodCache,
     end
     update_jetcoeffs_cache!(u,f,p,cache)
     nothing
+end
+
+function interp_summary(::Type{cacheType}, dense::Bool) where {cacheType <: TaylorMethodCache}
+    dense ? "Taylor series polynomial evaluation" : "1st order linear"
+end
+
+# idxs gives back multiple values
+function _ode_interpolant!(out, Θ, dt, y₀, y₁, k, cache::TaylorMethodCache, idxs, T::Type{Val{TI}}) where {TI}
+    Θm1 = Θ - 1
+    @inbounds for i in eachindex(out)
+        out[i] = cache.uT[i](Θm1*dt)
+    end
+    out
+end
+
+# when idxs gives back a single value
+function _ode_interpolant(Θ, dt, y₀, y₁, k, cache::TaylorMethodCache, idxs, T::Type{Val{TI}}) where {TI}
+    Θm1 = Θ - 1
+    return cache.uT[idxs](Θm1*dt)
 end
 
 @inline TaylorIntegration.__jetcoeffs!(::Val{false}, f::ODEFunction, t, x::Taylor1{U}, params,
