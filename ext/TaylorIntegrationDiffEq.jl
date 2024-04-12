@@ -187,7 +187,7 @@ function OrdinaryDiffEq.perform_step!(integrator, cache::TaylorMethodCache)
     evaluate!(uT, dt, u)
     tT[0] = t+dt
     for i in eachindex(u)
-        @inbounds uT[i][0] = u[i]
+        @inbounds uT[i][0] = deepcopy(u[i])
         @inbounds TaylorSeries.zero!(duT[i], 0)
     end
     TaylorIntegration.__jetcoeffs!(Val(parse_eqs.x), f, tT, uT, duT, uauxT, p, rv)
@@ -250,7 +250,7 @@ end
 function update_jetcoeffs_cache!(u,f,p,cache::TaylorMethodCache)
     @unpack tT, uT, duT, uauxT, parse_eqs, rv = cache
     @inbounds for i in eachindex(u)
-        @inbounds uT[i][0] = u[i]
+        @inbounds uT[i][0] = deepcopy(u[i])
         @inbounds TaylorSeries.zero!(duT[i], 0)
     end
     TaylorIntegration.__jetcoeffs!(Val(parse_eqs.x), f, tT, uT, duT, uauxT, p, rv)
@@ -310,7 +310,7 @@ else
         out
     end
     # used when idxs gives back a single value
-    function OrdinaryDiffEq._ode_interpolant(Θ, dt, y₀, y₁, k, 
+    function OrdinaryDiffEq._ode_interpolant(Θ, dt, y₀, y₁, k,
             cache::TaylorMethodCache, idxs, T::Type{Val{TI}}, differential_vars) where {TI}
         Θm1 = Θ - 1
         return cache.uT[idxs](Θm1*dt)
