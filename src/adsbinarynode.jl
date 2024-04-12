@@ -192,7 +192,9 @@ AbstractTrees.parent(n::ADSBinaryNode{N, M, T}) where {N, M, T <: Real} = n.pare
 AbstractTrees.NodeType(::Type{<:ADSBinaryNode{N, M, T}}) where {N, M, T <: Real} = HasNodeType()
 AbstractTrees.nodetype(::Type{<:ADSBinaryNode{N, M, T}}) where {N, M, T <: Real} = ADSBinaryNode{N, M, T}
 
-# For TreeIterator
+# AbstractTrees iteration interface
+# The overload of Base.IteratorEltype may be redundant but is kept following the note in:
+# https://juliacollections.github.io/AbstractTrees.jl/stable/iteration/#Interface
 Base.IteratorEltype(::Type{<:TreeIterator{ADSBinaryNode{N, M, T}}}) where {N, M, T <: Real} = HasEltype()
 Base.eltype(::Type{<:TreeIterator{ADSBinaryNode{N, M, T}}}) where {N, M, T <: Real} = ADSBinaryNode{N, M, T}
 
