@@ -59,4 +59,6 @@ TaylorSeries = "6aa5eb33-94cf-58f4-a9d0-e4b2c4fc25ea"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Aqua", "DiffEqBase", "Elliptic", "InteractiveUtils", "LinearAlgebra", "Logging", "OrdinaryDiffEq", "Pkg", "RecursiveArrayTools", "StaticArrays", "TaylorSeries", "Test"]
+test = ["Aqua", "DiffEqBase", "Elliptic", "InteractiveUtils",
+    "LinearAlgebra", "Logging", "OrdinaryDiffEq", "Pkg",
+    "RecursiveArrayTools", "StaticArrays", "TaylorSeries", "Test"]
