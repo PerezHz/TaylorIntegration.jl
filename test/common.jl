@@ -9,11 +9,11 @@ import Logging: Warn
 
     local TI = TaylorIntegration
     max_iters_reached() = "Maximum number of integration steps reached; exiting.\n"
-    larger_maxiters_needed() = "Interrupted. Larger maxiters is needed. If you \
-        are using an integrator for non-stiff ODEs or an automatic switching \
-        algorithm (the default), you may want to consider using a method for \
-        stiff equations. See the solver pages for more details (e.g. \
-        https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/#Stiff-Problems)."
+    larger_maxiters_needed() = "Interrupted. Larger maxiters is needed. If you "*
+        "are using an integrator for non-stiff ODEs or an automatic switching "*
+        "algorithm (the default), you may want to consider using a method for "*
+        "stiff equations. See the solver pages for more details (e.g. "*
+        "https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/#Stiff-Problems)."
 
     f(u,p,t) = u
     g(u,p,t) = cos(t)
