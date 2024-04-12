@@ -9,6 +9,11 @@ import Logging: Warn
 
     local TI = TaylorIntegration
     max_iters_reached() = "Maximum number of integration steps reached; exiting.\n"
+    larger_maxiters_needed() = "Interrupted. Larger maxiters is needed. If you "*
+        "are using an integrator for non-stiff ODEs or an automatic switching "*
+        "algorithm (the default), you may want to consider using a method for "*
+        "stiff equations. See the solver pages for more details (e.g. "*
+        "https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/#Stiff-Problems)."
 
     f(u,p,t) = u
     g(u,p,t) = cos(t)
@@ -99,6 +104,73 @@ import Logging: Warn
             harmosc!, u0, tspan[1], tspan[2], order, abstol))
         @test solti.t == sol.t
         @test solti.x[end,:] == sol.u[end]
+        @test sol.t == solti.t
+        @test solti.x[end,:] == sol.u[end]
+        @test DiffEqBase.interp_summary(sol.interp) == "Taylor series polynomial evaluation"
+        tvsol = range(tspan[1], tspan[2], length=10)
+        sol2 = (@test_logs min_level=Logging.Warn taylorinteg(
+            harmosc!, u0, tspan[1], tspan[2], order, abstol, dense=true))
+        tv2, xv2, psol2 = sol2.t, sol2.x, sol2.p
+        Θ = rand()
+        dt_test = (tv2[end]-tv2[end-1])
+        t_test = tv2[end-1] + Θ*dt_test
+        @test norm(sol(t_test) .- psol2[end,:]( Θ*dt_test ), Inf) < 1e-14
+        Θ = rand()
+        Θm1 = Θ - 1
+        dt_test = (tv2[end-1]-tv2[end-2])
+        t_test = tv2[end-2] + Θ*dt_test
+        @test norm( sol(t_test) .- psol2[end,:]( Θm1*dt_test ) ) < 1e-14
+        # Kepler problem
+        @taylorize function kepler1!(dq, q, p, t)
+            local μ = -1.0
+            local ν = 1.0
+            r_p2 = ((q[3]^2)+(q[4]^2))
+            r_p3d2 = r_p2^1.5
+            dq[1] = ν*q[3]
+            dq[2] = ν*q[4]
+            newtonianCoeff = μ / r_p3d2
+            dq[3] = q[1] * newtonianCoeff
+            dq[4] = q[2] * newtonianCoeff
+            return nothing
+        end
+        p = set_variables("ξ", numvars=4, order=2)
+        q0 = [0.2, 0.0, 0.0, 3.0]
+        q0TN = q0 + p
+        tspan = (0.0, 10pi)
+        (@test_logs (Warn, max_iters_reached()) taylorinteg(kepler1!, q0, tspan[1], tspan[2], order, abstol,
+            dense=true, maxsteps=1))
+        @time solp = taylorinteg(kepler1!, q0, tspan[1], tspan[2], order, abstol,
+            dense=true, maxsteps=1000)
+        tvp, xvp, psolp = solp.t, solp.x, solp.p
+        prob = ODEProblem(kepler1!, q0, tspan)
+        @test isinplace(prob) == true
+        sol1 = solve(prob, TaylorMethod(order), abstol=abstol, parse_eqs=false)
+        (@test_logs (Warn, larger_maxiters_needed()) solve(prob, TaylorMethod(order), abstol=abstol, maxiters=1))
+        @time sol2 = solve(prob, TaylorMethod(order), abstol=abstol, maxiters=1000)
+        @test sol1.alg.parse_eqs == false
+        @test sol2.alg.parse_eqs == true
+        @test tvp == sol2.t
+        @test sol1.u == sol2.u
+        @test transpose(Array(sol2)) == xvp
+
+        (@test_logs (Warn, max_iters_reached()) taylorinteg(kepler1!, q0TN, tspan[1], tspan[2], order, abstol,
+            dense = true, maxsteps=1))
+        @time solTN = taylorinteg(kepler1!, q0TN, tspan[1], tspan[2], order, abstol,
+            dense = true, maxsteps=2000)
+        tTN, xTN, psolTN = solTN.t, solTN.x, solTN.p
+
+        probTN = ODEProblem(kepler1!, q0TN, tspan)
+        (@test_logs (Warn,larger_maxiters_needed()) solve(probTN, TaylorMethod(order), abstol=abstol, parse_eqs=true, dense=true, maxiters=1))
+        @time sol2TN = solve(probTN, TaylorMethod(order), abstol=abstol, parse_eqs=true, dense=true, maxiters=2000)
+        @test sol2TN.alg.parse_eqs == true
+        @test DiffEqBase.interp_summary(sol2TN.interp) == "Taylor series polynomial evaluation"
+        @test size(xTN) == size(Array(sol2TN)')
+        @test xTN == Array(sol2TN)'
+        @test tTN == sol2TN.t
+        @test psolTN[end,:](tTN[end]-tTN[end-1]) == sol2TN(sol2TN.t[end])
+        @test psolTN[2,:](-(tTN[2]-tTN[1]) + 0.1) == sol2TN(0.1)
+        @test norm( psolTN[end,:](-(tTN[end-1]-tTN[end-2]) + 0.1) - sol2TN(sol2TN.t[end-2] + 0.1) ) < 1e-12
+        @test norm( psolTN[end-1,:](0.1) - sol2TN(sol2TN.t[end-2] + 0.1) ) < 1e-12
     end
 
     @testset "Test discrete callback in common interface" begin

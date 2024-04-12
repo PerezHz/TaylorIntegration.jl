@@ -32,4 +32,13 @@ function __init__()
     end
 end
 
+import TaylorSeries: TaylorN
+TaylorN{T}(x::TaylorSeries.NumberNotSeries) where {T<:TaylorSeries.NumberNotSeries} = TaylorN(T(x), TaylorSeries.get_order())
+
+Base.setindex!(a::Taylor1{T}, x::T, n::Int) where {T<:TaylorSeries.NumberNotSeries} = a.coeffs[n+1] = x
+function Base.setindex!(a::Taylor1{T}, x::T, n::Int) where {T<:AbstractSeries}
+    a.coeffs[n+1] = deepcopy(x.coeffs)
+    nothing
+end
+
 end #module
