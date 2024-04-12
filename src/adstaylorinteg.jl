@@ -146,7 +146,8 @@ function Base.split(node::ADSBinaryNode{N, M, T}, x::SVector{M, TaylorN{T}},
         Taylor1( map(z -> z(v_2), p[i].coeffs), order ) for i in eachindex(p)
     )
 
-    return ADSBinaryNode(s1, node.t+dt, x1, p1), ADSBinaryNode(s2, node.t+dt, x2, p2)
+    return ADSBinaryNode{N, M, T}(s1, node.t+dt, x1, p1, node.depth + 1, node),
+           ADSBinaryNode{N, M, T}(s2, node.t+dt, x2, p2, node.depth + 1, node)
 end
 
 """

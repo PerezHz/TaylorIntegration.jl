@@ -34,7 +34,7 @@ using Test
             rr = ( q[1]^2 + q[2]^2 )^(3/2)
             dq[3] = - q[1] / rr
             dq[4] = - q[2] / rr
-        end;
+        end
         # Initial conditons (plain)
         q00 = [1.0, 0.0, 0.0, sqrt(1.5)]
         # Jet transport variables
@@ -67,7 +67,7 @@ using Test
                         maxsplits = 1, maxsteps = 1, parse_eqs = false);
         # Full integration
         nv1 = taylorinteg(kepler_eqs!, q0, dom, t0, tmax, order, stol, abstol, params;
-                        maxsplits = maxsplits, maxsteps = maxsteps, parse_eqs = false);
+                          maxsplits = maxsplits, maxsteps = maxsteps, parse_eqs = false);
 
         @test isa(nv1, ADSBinaryNode{2, 4, Float64})
         @test nv1.s == dom
@@ -98,7 +98,7 @@ using Test
                         maxsplits = 1, maxsteps = 1, parse_eqs = true);
         # Full integration
         nv2 = taylorinteg(kepler_eqs!, q0, dom, t0, tmax, order, stol, abstol, params;
-                        maxsplits = maxsplits, maxsteps = maxsteps, parse_eqs = true);
+                          maxsplits = maxsplits, maxsteps = maxsteps, parse_eqs = true);
 
         @test isa(nv2, ADSBinaryNode{2, 4, Float64})
         @test nv2.s == dom
@@ -123,6 +123,8 @@ using Test
         @test countnodes(nv2, tmax) == maxsplits
         @test iszero(countnodes(nv2, nextfloat(tmax)))
 
+        # Compatibility between parse_eqs = false/true
+
         @test ts1 == ts2
 
         s1, x1 = nv1(t0)
@@ -145,6 +147,62 @@ using Test
         y1 = nv1(tmax, SVector(0.1, 0.1))
         y2 = nv2(tmax, SVector(0.1, 0.1))
         @test y1 == y2
+
+        # ADS vs Monte Carlo both in cartesian coordinates and keplerian elements
+
+        # Semimajor axis and eccentricity
+        function ae(rv)
+            x, y, u, v = rv
+            r = sqrt(x^2 + y^2)
+            vsq = u^2 + v^2
+            a = 1 / ( (2/r)- vsq )
+            hsq = (x*v - y*u)^2
+            e = sqrt(1 - hsq/a)
+            return a, e
+        end
+        # 16 points in the boundary of the domain
+        side = LinRange(-1, 1, 5)
+        boundary = vcat(
+            map(x -> [x, -1], side), # Bottom
+            map(x -> [1, x], side),  # Right
+            map(x -> [-x, 1], side),  # Top
+            map(x -> [-1, -x], side)  # Left
+        )
+        unique!(boundary)
+
+        for s in boundary
+            tv, xv = taylorinteg(kepler_eqs!, q0_(s), t0, tmax, order, abstol, Val(false), params;
+                                 maxsteps, parse_eqs = false)
+            rfvmc = xv[end, :]
+
+            rv0ads, rvfads = nv1(t0, s), nv1(tmax, s)
+
+            @test maximum(@. abs((rvfads - rfvmc) / rfvmc)) < 0.03
+            @test maximum(@. abs((rvfads - rfvmc) / rfvmc)) < 0.03
+
+            a0, e0 = ae(rv0ads)
+            af, ef = ae(rvfads)
+
+            @test abs((af - a0) / a0) < 0.07
+            @test abs((ef - e0) / e0) < 0.07
+
+            tv, xv = taylorinteg(kepler_eqs!, q0_(s), t0, tmax, order, abstol, Val(false), params;
+                                 maxsteps, parse_eqs = true)
+            rfvmc = xv[end, :]
+
+            rv0ads, rvfads = nv2(t0, s), nv2(tmax, s)
+
+            @test maximum(@. abs((rvfads - rfvmc) / rfvmc)) < 0.03
+            @test maximum(@. abs((rvfads - rfvmc) / rfvmc)) < 0.03
+
+            a0, e0 = ae(rv0ads)
+            af, ef = ae(rvfads)
+
+            @test abs((af - a0) / a0) < 0.07
+            @test abs((ef - e0) / e0) < 0.07
+        end
+
+        # timeshift!
 
         timeshift!(nv1, 1.0)
         timeshift!(nv2, 1.0)
