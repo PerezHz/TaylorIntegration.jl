@@ -5,19 +5,19 @@ module TaylorIntegrationDiffEq
 using TaylorIntegration
 
 if isdefined(Base, :get_extension)
-    using OrdinaryDiffEq
-    import OrdinaryDiffEq: OrdinaryDiffEqAdaptiveAlgorithm,
-        OrdinaryDiffEqConstantCache, OrdinaryDiffEqMutableCache,
-        @unpack, @cache
+    using OrdinaryDiffEq: @unpack, @cache, OrdinaryDiffEqAdaptiveAlgorithm,
+        OrdinaryDiffEqConstantCache, OrdinaryDiffEqMutableCache, ODEFunction,
+        DynamicalODEFunction, check_keywords, ODEProblem, DynamicalODEProblem
+    import OrdinaryDiffEq
 else
-    using ..OrdinaryDiffEq
-    import ..OrdinaryDiffEq: OrdinaryDiffEqAdaptiveAlgorithm,
-        OrdinaryDiffEqConstantCache, OrdinaryDiffEqMutableCache,
-        @unpack, @cache
+    using ..OrdinaryDiffEq: @unpack, @cache, OrdinaryDiffEqAdaptiveAlgorithm,
+        OrdinaryDiffEqConstantCache, OrdinaryDiffEqMutableCache, ODEFunction,
+        DynamicalODEFunction, check_keywords, ODEProblem, DynamicalODEProblem
+    import ..OrdinaryDiffEq
 end
 
 using StaticArrays: SVector, SizedArray
-using RecursiveArrayTools: ArrayPartition
+using RecursiveArrayTools: ArrayPartition, copyat_or_push!
 
 import DiffEqBase
 

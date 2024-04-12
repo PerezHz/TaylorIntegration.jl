@@ -9,6 +9,11 @@ import Logging: Warn
 
     local TI = TaylorIntegration
     max_iters_reached() = "Maximum number of integration steps reached; exiting.\n"
+    larger_maxiters_needed() = "Interrupted. Larger maxiters is needed. If you \
+        are using an integrator for non-stiff ODEs or an automatic switching \
+        algorithm (the default), you may want to consider using a method for \
+        stiff equations. See the solver pages for more details (e.g. \
+        https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/#Stiff-Problems)."
 
     f(u,p,t) = u
     g(u,p,t) = cos(t)
@@ -129,14 +134,14 @@ import Logging: Warn
         q0 = [0.2, 0.0, 0.0, 3.0]
         q0TN = q0 + p
         tspan = (0.0, 10pi)
-        taylorinteg(kepler1!, q0, tspan[1], tspan[2], order, abstol,
-            Val(true), maxsteps=1)
+        (@test_logs (Warn, max_iters_reached()) taylorinteg(kepler1!, q0, tspan[1], tspan[2], order, abstol,
+            Val(true), maxsteps=1))
         @time tvp, xvp, psolp = taylorinteg(kepler1!, q0, tspan[1], tspan[2], order, abstol,
             Val(true), maxsteps=1000)
         prob = ODEProblem(kepler1!, q0, tspan)
         @test isinplace(prob) == true
         sol1 = solve(prob, TaylorMethod(order), abstol=abstol, parse_eqs=false)
-        solve(prob, TaylorMethod(order), abstol=abstol, maxiters=1)
+        (@test_logs (Warn, larger_maxiters_needed()) solve(prob, TaylorMethod(order), abstol=abstol, maxiters=1))
         @time sol2 = solve(prob, TaylorMethod(order), abstol=abstol, maxiters=1000)
         @test sol1.alg.parse_eqs == false
         @test sol2.alg.parse_eqs == true
@@ -144,13 +149,13 @@ import Logging: Warn
         @test sol1.u == sol2.u
         @test transpose(Array(sol2)) == xvp
 
-        taylorinteg(kepler1!, q0TN, tspan[1], tspan[2], order, abstol,
-            Val(true), maxsteps=1)
+        (@test_logs (Warn, max_iters_reached()) taylorinteg(kepler1!, q0TN, tspan[1], tspan[2], order, abstol,
+            Val(true), maxsteps=1))
         @time tTN, xTN, psolTN = taylorinteg(kepler1!, q0TN, tspan[1], tspan[2], order, abstol,
             Val(true), maxsteps=2000)
 
         probTN = ODEProblem(kepler1!, q0TN, tspan)
-        solve(probTN, TaylorMethod(order), abstol=abstol, parse_eqs=true, dense=true, maxiters=1)
+        (@test_logs (Warn,larger_maxiters_needed()) solve(probTN, TaylorMethod(order), abstol=abstol, parse_eqs=true, dense=true, maxiters=1))
         @time sol2TN = solve(probTN, TaylorMethod(order), abstol=abstol, parse_eqs=true, dense=true, maxiters=2000)
         @test sol2TN.alg.parse_eqs == true
         @test DiffEqBase.interp_summary(sol2TN.interp) == "Taylor series polynomial evaluation"
