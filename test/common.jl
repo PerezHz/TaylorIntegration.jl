@@ -129,26 +129,34 @@ import Logging: Warn
         q0 = [0.2, 0.0, 0.0, 3.0]
         q0TN = q0 + p
         tspan = (0.0, 10pi)
-        tvp, xvp, psolp = taylorinteg(kepler1!, q0, tspan[1], tspan[2], order, abstol,
-            Val(true), maxsteps=2000)
+        taylorinteg(kepler1!, q0, tspan[1], tspan[2], order, abstol,
+            Val(true), maxsteps=1)
+        @time tvp, xvp, psolp = taylorinteg(kepler1!, q0, tspan[1], tspan[2], order, abstol,
+            Val(true), maxsteps=1000)
         prob = ODEProblem(kepler1!, q0, tspan)
         @test isinplace(prob) == true
         sol1 = solve(prob, TaylorMethod(order), abstol=abstol, parse_eqs=false)
-        sol2 = solve(prob, TaylorMethod(order), abstol=abstol)
+        solve(prob, TaylorMethod(order), abstol=abstol, maxiters=1)
+        @time sol2 = solve(prob, TaylorMethod(order), abstol=abstol, maxiters=1000)
         @test sol1.alg.parse_eqs == false
         @test sol2.alg.parse_eqs == true
+        @test tvp == sol2.t
         @test sol1.u == sol2.u
         @test transpose(Array(sol2)) == xvp
 
-        tTN, xTN, psolTN = taylorinteg(kepler1!, q0TN, tspan[1], tspan[2], order, abstol,
+        taylorinteg(kepler1!, q0TN, tspan[1], tspan[2], order, abstol,
+            Val(true), maxsteps=1)
+        @time tTN, xTN, psolTN = taylorinteg(kepler1!, q0TN, tspan[1], tspan[2], order, abstol,
             Val(true), maxsteps=2000)
 
         probTN = ODEProblem(kepler1!, q0TN, tspan)
-        sol2TN = solve(probTN, TaylorMethod(order), abstol=abstol, parse_eqs=true, dense=true)
+        solve(probTN, TaylorMethod(order), abstol=abstol, parse_eqs=true, dense=true, maxiters=1)
+        @time sol2TN = solve(probTN, TaylorMethod(order), abstol=abstol, parse_eqs=true, dense=true, maxiters=2000)
         @test sol2TN.alg.parse_eqs == true
         @test DiffEqBase.interp_summary(sol2TN.interp) == "Taylor series polynomial evaluation"
         @test size(xTN) == size(Array(sol2TN)')
         @test xTN == Array(sol2TN)'
+        @test tTN == sol2TN.t
         @test psolTN[end,:](tTN[end]-tTN[end-1]) == sol2TN(sol2TN.t[end])
         @test psolTN[2,:](-(tTN[2]-tTN[1]) + 0.1) == sol2TN(0.1)
         @test norm( psolTN[end,:](-(tTN[end-1]-tTN[end-2]) + 0.1) - sol2TN(sol2TN.t[end-2] + 0.1) ) < 1e-12

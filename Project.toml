@@ -9,9 +9,11 @@ Espresso = "6912e4f1-e036-58b0-9138-08d1e6358ea9"
 InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Markdown = "d6f4376e-aef5-505a-96c1-9c027394607a"
+OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
 RecursiveArrayTools = "731186ca-8d62-57ce-b412-fbd966d074cd"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 Requires = "ae029012-a4dd-5104-9daa-d747884805df"
+SciMLBase = "0bca4576-84f4-4d90-8ffe-ffa030f20462"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 TaylorSeries = "6aa5eb33-94cf-58f4-a9d0-e4b2c4fc25ea"
 
@@ -59,6 +61,4 @@ TaylorSeries = "6aa5eb33-94cf-58f4-a9d0-e4b2c4fc25ea"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Aqua", "DiffEqBase", "Elliptic", "InteractiveUtils",
-    "LinearAlgebra", "Logging", "OrdinaryDiffEq", "Pkg",
-    "RecursiveArrayTools", "StaticArrays", "TaylorSeries", "Test"]
+test = ["Aqua", "DiffEqBase", "Elliptic", "InteractiveUtils", "LinearAlgebra", "Logging", "OrdinaryDiffEq", "Pkg", "RecursiveArrayTools", "StaticArrays", "TaylorSeries", "Test"]
