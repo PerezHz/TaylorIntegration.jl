@@ -40,5 +40,9 @@ function Base.setindex!(a::Taylor1{T}, x::T, n::Int) where {T<:AbstractSeries}
     a.coeffs[n+1] = deepcopy(x.coeffs)
     nothing
 end
+# function Base.setindex!(a::Array{T}, x::T, n::Int) where {T<:TaylorN}
+#     a[n+1].coeffs = deepcopy(x.coeffs)
+#     nothing
+# end
 
 end #module
