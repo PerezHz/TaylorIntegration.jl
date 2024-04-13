@@ -45,13 +45,15 @@ end
 
 
 """
-    RetAlloc{Taylor1{T}}
+    RetAlloc{T <: Number}
 
 Struct related to the returned variables that are pre-allocated when
 `@taylorize` is used.
-    - `v0`   : Vector{Taylor1{T}}
-    - `v1`   : Vector{Vector{Taylor1{T}}}
-
+    - `v0`   : Array{T,1}
+    - `v1`   : Vector{Array{T,1}}
+    - `v2`   : Vector{Array{T,2}}
+    - `v3`   : Vector{Array{T,3}}
+    - `v4`   : Vector{Array{T,4}}
 """
 struct RetAlloc{T <: Number}
     v0 :: Array{T,1}

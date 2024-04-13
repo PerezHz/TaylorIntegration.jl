@@ -7,12 +7,12 @@ using TaylorIntegration
 if isdefined(Base, :get_extension)
     using OrdinaryDiffEq: @unpack, @cache, OrdinaryDiffEqAdaptiveAlgorithm,
         OrdinaryDiffEqConstantCache, OrdinaryDiffEqMutableCache, ODEFunction,
-        DynamicalODEFunction, check_keywords, ODEProblem, DynamicalODEProblem
+        DynamicalODEFunction, check_keywords, warn_compat, ODEProblem, DynamicalODEProblem
     import OrdinaryDiffEq
 else
     using ..OrdinaryDiffEq: @unpack, @cache, OrdinaryDiffEqAdaptiveAlgorithm,
         OrdinaryDiffEqConstantCache, OrdinaryDiffEqMutableCache, ODEFunction,
-        DynamicalODEFunction, check_keywords, ODEProblem, DynamicalODEProblem
+        DynamicalODEFunction, check_keywords, warn_compat, ODEProblem, DynamicalODEProblem
     import ..OrdinaryDiffEq
 end
 
