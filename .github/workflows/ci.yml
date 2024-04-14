@@ -54,7 +54,7 @@ jobs:
             ${{ runner.os }}-test-${{ env.cache-name }}-
             ${{ runner.os }}-test-
             ${{ runner.os }}-
-      - run: julia --project=. -e 'import Pkg; Pkg.add(url="https://github.com/PerezHz/TaylorSeries.jl#jp/taylorn"); Pkg.instantiate()'
+      # - run: julia --project=. -e 'import Pkg; Pkg.add(url="https://github.com/PerezHz/TaylorSeries.jl#jp/taylorn"); Pkg.instantiate()'
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
       - uses: julia-actions/julia-processcoverage@v1
