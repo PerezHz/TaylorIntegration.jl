@@ -39,7 +39,8 @@ struct TaylorMethodParams <: TaylorAlgorithm
     parse_eqs::Bool
 end
 
-import TaylorIntegration: TaylorMethod, RetAlloc
+using TaylorIntegration: RetAlloc
+import TaylorIntegration: TaylorMethod, update_jetcoeffs_cache!
 
 TaylorMethod(order; parse_eqs=true) = TaylorMethodParams(order, parse_eqs) # set `parse_eqs` to `true` by default
 
@@ -187,7 +188,7 @@ function OrdinaryDiffEq.perform_step!(integrator, cache::TaylorMethodCache)
     evaluate!(uT, dt, u)
     tT[0] = t+dt
     for i in eachindex(u)
-        @inbounds uT[i][0] = deepcopy(u[i])
+        @inbounds uT[i][0] = u[i]
         @inbounds TaylorSeries.zero!(duT[i], 0)
     end
     TaylorIntegration.__jetcoeffs!(Val(parse_eqs.x), f, tT, uT, duT, uauxT, p, rv)
@@ -250,7 +251,7 @@ end
 function update_jetcoeffs_cache!(u,f,p,cache::TaylorMethodCache)
     @unpack tT, uT, duT, uauxT, parse_eqs, rv = cache
     @inbounds for i in eachindex(u)
-        @inbounds uT[i][0] = deepcopy(u[i])
+        @inbounds uT[i][0] = u[i]
         @inbounds TaylorSeries.zero!(duT[i], 0)
     end
     TaylorIntegration.__jetcoeffs!(Val(parse_eqs.x), f, tT, uT, duT, uauxT, p, rv)

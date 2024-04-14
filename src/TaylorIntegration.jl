@@ -32,4 +32,6 @@ function __init__()
     end
 end
 
+Base.identity(x::AbstractSeries) = deepcopy(x)
+
 end #module

@@ -123,11 +123,10 @@ import Logging: Warn
         # Kepler problem
         @taylorize function kepler1!(dq, q, p, t)
             local μ = -1.0
-            local ν = 1.0
             r_p2 = ((q[3]^2)+(q[4]^2))
             r_p3d2 = r_p2^1.5
-            dq[1] = ν*q[3]
-            dq[2] = ν*q[4]
+            dq[1] = q[3]
+            dq[2] = q[4]
             newtonianCoeff = μ / r_p3d2
             dq[3] = q[1] * newtonianCoeff
             dq[4] = q[2] * newtonianCoeff
