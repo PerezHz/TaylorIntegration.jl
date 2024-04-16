@@ -29,5 +29,6 @@ end
     TaylorIntegration;
     ambiguities=false,
     stale_deps=(ignore=[:DiffEqBase, :RecursiveArrayTools, :Requires, :StaticArrays],),
+    piracies=(broken=true,)
     )
 end

@@ -83,8 +83,8 @@ function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T, order::Int, abstol::T, 
     x = Array{Taylor1{U}}(undef, dof)
     dx = Array{Taylor1{U}}(undef, dof)
     @inbounds for i in eachindex(q0)
-        @inbounds x[i] = Taylor1( q0[i], order )
-        @inbounds dx[i] = Taylor1( zero(q0[i]), order )
+        x[i] = Taylor1( q0[i], order )
+        dx[i] = Taylor1( zero(q0[i]), order )
     end
 
     # Determine if specialized jetcoeffs! method exists
@@ -128,7 +128,7 @@ function _taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Tayl
         set_psol!(Val(dense), psol, nsteps, x) # Store the Taylor polynomial solution
         @inbounds for i in eachindex(x0)
             x[i][0] = x0[i]
-            dx[i][0] = zero(x0[i])
+            TaylorSeries.zero!(dx[i], 0)
         end
         t0 += δt
         @inbounds t[0] = t0
