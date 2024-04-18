@@ -101,18 +101,19 @@ using InteractiveUtils
 
     #testing 0-th order root-finding with time ranges/vectors
     tvr = [t0, Tend/2, Tend, 3Tend/2, 2Tend, 5Tend/2, 3Tend]
-    # @test_throws AssertionError taylorinteg(pendulum!, g, x0, view(tvr, :),
-    #     _order, _abstol, maxsteps=1000, eventorder=_order+1)
-    # xvr, tvSr, xvSr, gvSr = (@test_logs min_level=Logging.Warn taylorinteg(
-    #     pendulum!, g, x0, view(tvr, :), _order, _abstol, maxsteps=1000))
-    # @test xvr[1,:] == x0
-    # @test size(tvSr) == (5,)
-    # @test size(tvSr) == size(tvr[2:end-1])
-    # @test norm(tvSr-tvr[2:end-1], Inf) < 1E-13
-    # @test norm(tvr[2:end-1]-tvSr, Inf) < 1E-14
-    # @test norm(xvr[2:end-1,:]-xvSr, Inf) < 1E-14
-    # @test norm(gvSr[:]) < eps()
-    # @test norm(tvS-tvSr, Inf) < 5E-15
+    @test_throws AssertionError taylorinteg(pendulum!, g, x0, view(tvr, :),
+        _order, _abstol, maxsteps=1000, eventorder=_order+1)
+    solr, tvSr, xvSr, gvSr = (@test_logs min_level=Logging.Warn taylorinteg(
+        pendulum!, g, x0, view(tvr, :), _order, _abstol, maxsteps=1000))
+    xvr = solr.x
+    @test xvr[1,:] == x0
+    @test size(tvSr) == (5,)
+    @test size(tvSr) == size(tvr[2:end-1])
+    @test norm(tvSr-tvr[2:end-1], Inf) < 1E-13
+    @test norm(tvr[2:end-1]-tvSr, Inf) < 1E-14
+    @test norm(xvr[2:end-1,:]-xvSr, Inf) < 1E-14
+    @test norm(gvSr[:]) < eps()
+    @test norm(tvS-tvSr, Inf) < 5E-15
 
     #testing 0-th order root-finding + TaylorN jet transport
     solN, tvSN, xvSN, gvSN = (@test_logs min_level=Logging.Warn taylorinteg(
@@ -196,24 +197,26 @@ using InteractiveUtils
     @test norm( tvS1()-tvr[2:end-1], Inf ) < 1E-13
     @test norm( xvS1()-xvS, Inf ) < 1E-14
 
-    # # Tests if trange is properly sorted
-    # Δt = (3Tend-t0)/1000
-    # tspan = t0:Δt:(3Tend-0.125)
-    # xv1r, tvS1r, xvS1r, gvS1r = (@test_logs min_level=Logging.Warn taylorinteg(
-    #     pendulum!, g, x01, tspan, _order, _abstol, maxsteps=1000, eventorder=2))
-    # xv1rb, tvS1rb, xvS1rb, gvS1rb = (@test_logs min_level=Logging.Warn taylorinteg(
-    #     pendulum!, g, xv1r[end,:], reverse(tspan), _order, _abstol, maxsteps=1000, eventorder=2))
-    # @test size(xv1r) == size(xv1rb)
-    # @test size(tvS1r) == size(tvS1rb)
-    # @test size(xvS1r) == size(xvS1rb)
-    # @test size(gvS1r) == size(gvS1rb)
-    # @test norm(gvS1r[:], Inf) < 1E-14
-    # @test norm(gvS1rb[:], Inf) < 1E-13
-    # @test tvS1r[1]() < tvS1r[end]()
-    # @test tvS1rb[1]() > tvS1rb[end]()
-    # @test norm(tvS1r() - reverse(tvS1rb()), Inf) < 5e-14
-    # @test norm(xv1r[:,:]() - xv1rb[end:-1:1,:](), Inf) < 5e-14
+    # Tests if trange is properly sorted
+    Δt = (3Tend-t0)/1000
+    tspan = t0:Δt:(3Tend-0.125)
+    sol1r, tvS1r, xvS1r, gvS1r = (@test_logs min_level=Logging.Warn taylorinteg(
+        pendulum!, g, x01, tspan, _order, _abstol, maxsteps=1000, eventorder=2))
+    xv1r = sol1r.x
+    sol1rb, tvS1rb, xvS1rb, gvS1rb = (@test_logs min_level=Logging.Warn taylorinteg(
+        pendulum!, g, xv1r[end,:], reverse(tspan), _order, _abstol, maxsteps=1000, eventorder=2))
+    xv1rb = sol1rb.x
+    @test size(xv1r) == size(xv1rb)
+    @test size(tvS1r) == size(tvS1rb)
+    @test size(xvS1r) == size(xvS1rb)
+    @test size(gvS1r) == size(gvS1rb)
+    @test norm(gvS1r[:], Inf) < 1E-14
+    @test norm(gvS1rb[:], Inf) < 1E-13
+    @test tvS1r[1]() < tvS1r[end]()
+    @test tvS1rb[1]() > tvS1rb[end]()
+    @test norm(tvS1r() - reverse(tvS1rb()), Inf) < 5e-14
+    @test norm(xv1r[:,:]() - xv1rb[end:-1:1,:](), Inf) < 5e-14
 
-    # @test_throws AssertionError taylorinteg(pendulum!, g, x0, rand(t0:Δt:3Tend, 100),
-    #     _order, _abstol, maxsteps=1000, eventorder=2, newtoniter=2)
+    @test_throws AssertionError taylorinteg(pendulum!, g, x0, rand(t0:Δt:3Tend, 100),
+        _order, _abstol, maxsteps=1000, eventorder=2, newtoniter=2)
 end
