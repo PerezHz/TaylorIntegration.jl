@@ -147,7 +147,8 @@ import Logging: Warn
         @test isapprox(λv[end,2], -0.00830, rtol=mytol, atol=mytol)
         @test isapprox(λv[end,3], -22.46336, rtol=mytol, atol=mytol)
         # Check integration consistency (orbit should not depend on variational eqs)
-        t_, x_ = taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol; maxsteps=2000)
+        sol_ = taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol; maxsteps=2000)
+        t_, x_ = sol_.t, sol_.x
         @test t_ == tv
         @test x_ == xv
         # test backward integration
@@ -282,7 +283,8 @@ import Logging: Warn
         @test tz2_[end] == trange[end]
 
         # Check integration consistency (orbit should not depend on variational eqs)
-        x_ = taylorinteg(lorenz!, q0, vec(trange), _order, _abstol; maxsteps=2000)
+        sol_ = taylorinteg(lorenz!, q0, vec(trange), _order, _abstol; maxsteps=2000)
+        x_ = sol_.x
         @test x_ == xw2
 
     end
