@@ -35,7 +35,7 @@ struct TaylorSolution{T, U, N, VT<:AbstractVector{T}, AX<:AbstractArray{U,N},
     end
 end
 TaylorSolution(t::VT, x::AX, p::P, tevents::VTE, xevents::AXE, gresids::VTE, λ::VΛ) where {
-        T, U, N, VT<:AbstractVector{T}, AX<:AbstractArray{U,N}, 
+        T, U, N, VT<:AbstractVector{T}, AX<:AbstractArray{U,N},
         P<:Union{Nothing, AbstractArray{Taylor1{U},N}},
         VTE<:Union{Nothing, AbstractVector{U}}, AXE<:Union{Nothing, AbstractArray{U, N}},
         VΛ<:Union{Nothing, AbstractArray{U,N}}} =

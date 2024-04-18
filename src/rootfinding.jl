@@ -198,7 +198,7 @@ function _taylorinteg!(f!, g, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{T
     tv = Array{T}(undef, maxsteps+1)
     dof = length(q0)
     xv = Array{U}(undef, dof, maxsteps+1)
-    psol = Array{Taylor1{U}}(undef, dof, maxsteps)
+    psol = init_psol(Val(dense), xv)
     xaux = Array{Taylor1{U}}(undef, dof)
 
     # Initial conditions
