@@ -933,165 +933,177 @@ import Logging: Warn
     end
 
 
-    # local tf = 20.0
-    # @testset "Lyapunov spectrum and `@taylorize`" begin
-    #     #Lorenz system parameters
-    #     params = [16.0, 45.92, 4.0]
+    local tf = 20.0
+    @testset "Lyapunov spectrum and `@taylorize`" begin
+        #Lorenz system parameters
+        params = [16.0, 45.92, 4.0]
 
-    #     #Lorenz system ODE:
-    #     @taylorize function lorenz1!(dq, q, p, t)
-    #         x, y, z = q
-    #         local σ, ρ, β = p
-    #         dq[1] = σ*(y-x)
-    #         dq[2] = x*(ρ-z) - y
-    #         dq[3] = x*y - β*z
-    #         nothing
-    #     end
+        #Lorenz system ODE:
+        @taylorize function lorenz1!(dq, q, p, t)
+            x, y, z = q
+            local σ, ρ, β = p
+            dq[1] = σ*(y-x)
+            dq[2] = x*(ρ-z) - y
+            dq[3] = x*y - β*z
+            nothing
+        end
 
-    #     #Lorenz system Jacobian (in-place):
-    #     function lorenz1_jac!(jac, q, p, t)
-    #         x, y, z = q
-    #         σ, ρ, β = p
-    #         jac[1,1] = -σ+zero(x)
-    #         jac[2,1] = ρ-z
-    #         jac[3,1] = y
-    #         jac[1,2] = σ+zero(x)
-    #         jac[2,2] = -one(y)
-    #         jac[3,2] = x
-    #         jac[1,3] = zero(z)
-    #         jac[2,3] = -x
-    #         jac[3,3] = -β+zero(x)
-    #         nothing
-    #     end
+        #Lorenz system Jacobian (in-place):
+        function lorenz1_jac!(jac, q, p, t)
+            x, y, z = q
+            σ, ρ, β = p
+            jac[1,1] = -σ+zero(x)
+            jac[2,1] = ρ-z
+            jac[3,1] = y
+            jac[1,2] = σ+zero(x)
+            jac[2,2] = -one(y)
+            jac[3,2] = x
+            jac[1,3] = zero(z)
+            jac[2,3] = -x
+            jac[3,3] = -β+zero(x)
+            nothing
+        end
 
-    #     q0 = [19.0, 20.0, 50.0] #the initial condition
-    #     xi = set_variables("δ", order=1, numvars=length(q0))
+        q0 = [19.0, 20.0, 50.0] #the initial condition
+        xi = set_variables("δ", order=1, numvars=length(q0))
 
-    #     tv1, lv1, xv1 = lyap_taylorinteg(lorenz1!, q0, t0, tf, _order, _abstol,
-    #         params, maxsteps=2000, parse_eqs=false)
+        sol1 = lyap_taylorinteg(lorenz1!, q0, t0, tf, _order, _abstol,
+            params, maxsteps=2000, parse_eqs=false)
+        tv1, xv1, lv1 = sol1.t, sol1.x, sol1.λ
 
-    #     tv1p, lv1p, xv1p = (@test_logs min_level=Logging.Warn lyap_taylorinteg(
-    #         lorenz1!, q0, t0, tf, _order, _abstol, params, maxsteps=2000))
+        solp = (@test_logs min_level=Logging.Warn lyap_taylorinteg(
+            lorenz1!, q0, t0, tf, _order, _abstol, params, maxsteps=2000))
+        tv1p, xv1p, lv1p = solp.t, solp.x, solp.λ
 
-    #     @test tv1 == tv1p
-    #     @test lv1 == lv1p
-    #     @test xv1 == xv1p
+        @test tv1 == tv1p
+        @test xv1 == xv1p
+        @test lv1 == lv1p
 
-    #     tv2, lv2, xv2 = lyap_taylorinteg(lorenz1!, q0, t0, tf, _order, _abstol,
-    #         params, lorenz1_jac!, maxsteps=2000, parse_eqs=false)
+        sol2 = lyap_taylorinteg(lorenz1!, q0, t0, tf, _order, _abstol,
+            params, lorenz1_jac!, maxsteps=2000, parse_eqs=false)
+        tv2, xv2, lv2 = sol2.t, sol2.x, sol2.λ
 
-    #     tv2p, lv2p, xv2p = (@test_logs min_level=Logging.Warn lyap_taylorinteg(
-    #         lorenz1!, q0, t0, tf, _order, _abstol, params, lorenz1_jac!, maxsteps=2000,
-    #             parse_eqs=true))
+        sol2p = (@test_logs min_level=Logging.Warn lyap_taylorinteg(
+            lorenz1!, q0, t0, tf, _order, _abstol, params, lorenz1_jac!, maxsteps=2000,
+                parse_eqs=true))
+        tv2p, xv2p, lv2p = sol2p.t, sol2p.x, sol2p.λ
 
-    #     @test tv2 == tv2p
-    #     @test lv2 == lv2p
-    #     @test xv2 == xv2p
+        @test tv2 == tv2p
+        @test xv2 == xv2p
+        @test lv2 == lv2p
 
-    #     # Comparing both integrations (lorenz1)
-    #     @test tv1 == tv2
-    #     @test lv1 == lv2
-    #     @test xv1 == xv2
+        # Comparing both integrations (lorenz1)
+        @test tv1 == tv2
+        @test xv1 == xv2
+        @test lv1 == lv2
 
-    #     #Lorenz system ODE:
-    #     @taylorize function lorenz2!(dx, x, p, t)
-    #         #Lorenz system parameters
-    #         local σ = 16.0
-    #         local β = 4.0
-    #         local ρ = 45.92
+        #Lorenz system ODE:
+        @taylorize function lorenz2!(dx, x, p, t)
+            #Lorenz system parameters
+            local σ = 16.0
+            local β = 4.0
+            local ρ = 45.92
 
-    #         dx[1] = σ*(x[2]-x[1])
-    #         dx[2] = x[1]*(ρ-x[3])-x[2]
-    #         dx[3] = x[1]*x[2]-β*x[3]
-    #         nothing
-    #     end
+            dx[1] = σ*(x[2]-x[1])
+            dx[2] = x[1]*(ρ-x[3])-x[2]
+            dx[3] = x[1]*x[2]-β*x[3]
+            nothing
+        end
 
-    #     #Lorenz system Jacobian (in-place):
-    #     function lorenz2_jac!(jac, x, p, t)
-    #         #Lorenz system parameters
-    #         local σ = 16.0
-    #         local β = 4.0
-    #         local ρ = 45.92
+        #Lorenz system Jacobian (in-place):
+        function lorenz2_jac!(jac, x, p, t)
+            #Lorenz system parameters
+            local σ = 16.0
+            local β = 4.0
+            local ρ = 45.92
 
-    #         jac[1,1] = -σ+zero(x[1])
-    #         jac[2,1] = ρ-x[3]
-    #         jac[3,1] = x[2]
-    #         jac[1,2] = σ+zero(x[1])
-    #         jac[2,2] = -1.0+zero(x[1])
-    #         jac[3,2] = x[1]
-    #         jac[1,3] = zero(x[1])
-    #         jac[2,3] = -x[1]
-    #         jac[3,3] = -β+zero(x[1])
-    #         nothing
-    #     end
+            jac[1,1] = -σ+zero(x[1])
+            jac[2,1] = ρ-x[3]
+            jac[3,1] = x[2]
+            jac[1,2] = σ+zero(x[1])
+            jac[2,2] = -1.0+zero(x[1])
+            jac[3,2] = x[1]
+            jac[1,3] = zero(x[1])
+            jac[2,3] = -x[1]
+            jac[3,3] = -β+zero(x[1])
+            nothing
+        end
 
-    #     tv3, lv3, xv3 = lyap_taylorinteg(lorenz2!, q0, t0, tf, _order, _abstol,
-    #         maxsteps=2000, parse_eqs=false)
+        sol3 = lyap_taylorinteg(lorenz2!, q0, t0, tf, _order, _abstol,
+            maxsteps=2000, parse_eqs=false)
+        tv3, xv3, lv3 = sol3.t, sol3.x, sol3.λ
 
-    #     tv3p, lv3p, xv3p = (@test_logs min_level=Logging.Warn lyap_taylorinteg(
-    #         lorenz2!, q0, t0, tf, _order, _abstol, maxsteps=2000))
+        sol3p = (@test_logs min_level=Logging.Warn lyap_taylorinteg(
+            lorenz2!, q0, t0, tf, _order, _abstol, maxsteps=2000))
+        tv3p, xv3p, lv3p = sol3p.t, sol3p.x, sol3p.λ
 
-    #     @test tv3 == tv3p
-    #     @test lv3 == lv3p
-    #     @test xv3 == xv3p
+        @test tv3 == tv3p
+        @test xv3 == xv3p
+        @test lv3 == lv3p
 
-    #     tv4, lv4, xv4 = lyap_taylorinteg(lorenz2!, q0, t0, tf, _order, _abstol,
-    #         lorenz2_jac!, maxsteps=2000, parse_eqs=false)
+        sol4 = lyap_taylorinteg(lorenz2!, q0, t0, tf, _order, _abstol,
+            lorenz2_jac!, maxsteps=2000, parse_eqs=false)
+        tv4, xv4, lv4 = sol4.t, sol4.x, sol4.λ
 
-    #     tv4p, lv4p, xv4p = (@test_logs min_level=Logging.Warn lyap_taylorinteg(
-    #         lorenz2!, q0, t0, tf, _order, _abstol, lorenz2_jac!, maxsteps=2000,
-    #             parse_eqs=true))
+        sol4p = (@test_logs min_level=Logging.Warn lyap_taylorinteg(
+            lorenz2!, q0, t0, tf, _order, _abstol, lorenz2_jac!, maxsteps=2000,
+                parse_eqs=true))
+        tv4p, xv4p, lv4p = sol4p.t, sol4p.x, sol4p.λ
 
-    #     @test tv4 == tv4p
-    #     @test lv4 == lv4p
-    #     @test xv4 == xv4p
+        @test tv4 == tv4p
+        @test xv4 == xv4p
+        @test lv4 == lv4p
 
-    #     # Comparing both integrations (lorenz2)
-    #     @test tv3 == tv4
-    #     @test lv3 == lv4
-    #     @test xv3 == xv4
+        # Comparing both integrations (lorenz2)
+        @test tv3 == tv4
+        @test xv3 == xv4
+        @test lv3 == lv4
 
-    #     # Comparing both integrations (lorenz1! vs lorenz2!)
-    #     @test tv1 == tv3
-    #     @test lv1 == lv3
-    #     @test xv1 == xv3
+        # Comparing both integrations (lorenz1! vs lorenz2!)
+        @test tv1 == tv3
+        @test xv1 == xv3
+        @test lv1 == lv3
 
-    #     # Using ranges
-    #     lv5, xv5 = lyap_taylorinteg(lorenz2!, q0, t0:0.125:tf, _order, _abstol,
-    #         maxsteps=2000, parse_eqs=false)
+        # Using ranges
+        sol5 = lyap_taylorinteg(lorenz2!, q0, t0:0.125:tf, _order, _abstol,
+            maxsteps=2000, parse_eqs=false)
+        lv5, xv5 = sol5.x, sol5.λ
 
-    #     lv5p, xv5p = (@test_logs min_level=Logging.Warn lyap_taylorinteg(
-    #         lorenz2!, q0, t0:0.125:tf, _order, _abstol, maxsteps=2000, parse_eqs=true))
+        sol5p = (@test_logs min_level=Logging.Warn lyap_taylorinteg(
+            lorenz2!, q0, t0:0.125:tf, _order, _abstol, maxsteps=2000, parse_eqs=true))
+        lv5p, xv5p = sol5p.x, sol5p.λ
 
-    #     @test lv5 == lv5p
-    #     @test xv5 == xv5p
+        @test lv5 == lv5p
+        @test xv5 == xv5p
 
-    #     lv6, xv6 = lyap_taylorinteg(lorenz2!, q0, t0:0.125:tf, _order, _abstol,
-    #         lorenz2_jac!, maxsteps=2000, parse_eqs=false)
+        sol6 = lyap_taylorinteg(lorenz2!, q0, t0:0.125:tf, _order, _abstol,
+            lorenz2_jac!, maxsteps=2000, parse_eqs=false)
+        lv6, xv6 = sol6.x, sol6.λ
 
-    #     lv6p, xv6p = (@test_logs min_level=Logging.Warn lyap_taylorinteg(
-    #         lorenz2!, q0, t0:0.125:tf, _order, _abstol, lorenz2_jac!, maxsteps=2000,
-    #             parse_eqs=true))
+        sol6p = (@test_logs min_level=Logging.Warn lyap_taylorinteg(
+            lorenz2!, q0, t0:0.125:tf, _order, _abstol, lorenz2_jac!, maxsteps=2000,
+                parse_eqs=true))
+        lv6p, xv6p = sol6p.x, sol6p.λ
 
-    #     @test lv6 == lv6p
-    #     @test xv6 == xv6p
+        @test lv6 == lv6p
+        @test xv6 == xv6p
 
-    #     # Check that no errors are thrown
-    #     tT = 0.0 + Taylor1(_order)
-    #     qT = q0 .+ zero(tT)
-    #     dqT = similar(qT)
-    #     rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
-    #         Val(lorenz1!), tT, qT, dqT, params))
-    #     @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-    #         Val(lorenz1!), tT, qT, dqT, params, rv)
+        # Check that no errors are thrown
+        tT = 0.0 + Taylor1(_order)
+        qT = q0 .+ zero(tT)
+        dqT = similar(qT)
+        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
+            Val(lorenz1!), tT, qT, dqT, params))
+        @test_logs min_level=Logging.Warn TI.jetcoeffs!(
+            Val(lorenz1!), tT, qT, dqT, params, rv)
 
-    #     qT = q0 .+ zero(tT)
-    #     dqT = similar(qT)
-    #     rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
-    #         Val(lorenz2!), tT, qT, dqT, nothing))
-    #     @test_logs min_level=Logging.Warn TI.jetcoeffs!(
-    #         Val(lorenz2!), tT, qT, dqT, nothing, rv)
-    # end
+        qT = q0 .+ zero(tT)
+        dqT = similar(qT)
+        rv = (@test_logs min_level=Logging.Warn TI._allocate_jetcoeffs!(
+            Val(lorenz2!), tT, qT, dqT, nothing))
+        @test_logs min_level=Logging.Warn TI.jetcoeffs!(
+            Val(lorenz2!), tT, qT, dqT, nothing, rv)
+    end
 
 
     @testset "Tests for throwing errors" begin
@@ -1288,58 +1300,60 @@ import Logging: Warn
     end
 
 
-    # @testset "Poincare maps with the pendulum" begin
-    #     @taylorize function pendulum!(dx, x, p, t)
-    #         dx[1] = x[2]
-    #         dx[2] = -sin( x[1] )
-    #         nothing
-    #     end
+    @testset "Poincare maps with the pendulum" begin
+        @taylorize function pendulum!(dx, x, p, t)
+            dx[1] = x[2]
+            dx[2] = -sin( x[1] )
+            nothing
+        end
 
-    #     # Function defining the crossing events: the
-    #     # surface of section is x[2]==0, x[1]>0
-    #     function g(dx, x, params, t)
-    #         if constant_term(x[1]) > 0
-    #             return (true, x[2])
-    #         else
-    #             return (false, x[2])
-    #         end
-    #     end
+        # Function defining the crossing events: the
+        # surface of section is x[2]==0, x[1]>0
+        function g(dx, x, params, t)
+            if constant_term(x[1]) > 0
+                return (true, x[2])
+            else
+                return (false, x[2])
+            end
+        end
 
-    #     t0 = 0.0
-    #     x0 = [1.3, 0.0]
-    #     Tend = 7.019250311844546
+        t0 = 0.0
+        x0 = [1.3, 0.0]
+        Tend = 7.019250311844546
 
-    #     #warm-up lap and preliminary tests
-    #     @test_logs (Warn, max_iters_reached()) taylorinteg(
-    #         pendulum!, g, x0, t0, Tend, _order, _abstol, Val(false), maxsteps=1)
-    #     @test_throws AssertionError taylorinteg(
-    #         pendulum!, g, x0, t0, Tend, _order, _abstol, Val(false), maxsteps=1, eventorder=_order+1)
+        #warm-up lap and preliminary tests
+        @test_logs (Warn, max_iters_reached()) taylorinteg(
+            pendulum!, g, x0, t0, Tend, _order, _abstol, Val(false), maxsteps=1)
+        @test_throws AssertionError taylorinteg(
+            pendulum!, g, x0, t0, Tend, _order, _abstol, Val(false), maxsteps=1, eventorder=_order+1)
 
-    #     #testing 0-th order root-finding
-    #     tv, xv, tvS, xvS, gvS = (@test_logs min_level=Logging.Warn taylorinteg(
-    #         pendulum!, g, x0, t0, 3Tend, _order, _abstol, Val(false), maxsteps=1000))
-    #     @test tv[1] == t0
-    #     @test xv[1,:] == x0
-    #     @test size(tvS) == (2,)
-    #     @test norm(tvS-[Tend, 2Tend], Inf) < 1e-13
-    #     @test norm(gvS, Inf) < eps()
+        #testing 0-th order root-finding
+        sol = (@test_logs min_level=Logging.Warn taylorinteg(
+            pendulum!, g, x0, t0, 3Tend, _order, _abstol, Val(false), maxsteps=1000))
+        tv, xv, tvS, xvS, gvS = sol.t, sol.x, sol.tevents, sol.xevents, sol.gresids
+        @test tv[1] == t0
+        @test xv[1,:] == x0
+        @test size(tvS) == (2,)
+        @test norm(tvS-[Tend, 2Tend], Inf) < 1e-13
+        @test norm(gvS, Inf) < eps()
 
-    #     #testing 0-th order root-finding with time ranges/vectors
-    #     tvr = [t0, Tend/2, Tend, 3Tend/2, 2Tend, 5Tend/2, 3Tend]
-    #     @test_logs (Warn, max_iters_reached()) taylorinteg(
-    #         pendulum!, g, x0, view(tvr, :), _order, _abstol, maxsteps=1)
-    #     @test_throws AssertionError taylorinteg(
-    #         pendulum!, g, x0, view(tvr, :), _order, _abstol, maxsteps=1, eventorder=_order+1)
-    #     xvr, tvSr, xvSr, gvSr = (@test_logs min_level=Logging.Warn taylorinteg(
-    #         pendulum!, g, x0, view(tvr, :), _order, _abstol, maxsteps=1000))
-    #     @test xvr[1,:] == x0
-    #     @test size(tvSr) == (2,)
-    #     @test norm(tvSr-tvr[3:2:end-1], Inf) < 1e-13
-    #     @test norm(tvr[3:2:end-1]-tvSr, Inf) < 1e-14
-    #     @test norm(xvr[3:2:end-1,:]-xvSr, Inf) < 1e-14
-    #     @test norm(gvSr[:]) < eps()
-    #     @test norm(tvS-tvSr, Inf) < 5e-15
-    # end
+        #testing 0-th order root-finding with time ranges/vectors
+        tvr = [t0, Tend/2, Tend, 3Tend/2, 2Tend, 5Tend/2, 3Tend]
+        @test_logs (Warn, max_iters_reached()) taylorinteg(
+            pendulum!, g, x0, view(tvr, :), _order, _abstol, maxsteps=1)
+        @test_throws AssertionError taylorinteg(
+            pendulum!, g, x0, view(tvr, :), _order, _abstol, maxsteps=1, eventorder=_order+1)
+        solr = (@test_logs min_level=Logging.Warn taylorinteg(
+            pendulum!, g, x0, view(tvr, :), _order, _abstol, maxsteps=1000))
+        xvr, tvSr, xvSr, gvSr = solr.x, solr.tevents, solr.xevents, solr.gresids
+        @test xvr[1,:] == x0
+        @test size(tvSr) == (2,)
+        @test norm(tvSr-tvr[3:2:end-1], Inf) < 1e-13
+        @test norm(tvr[3:2:end-1]-tvSr, Inf) < 1e-14
+        @test norm(xvr[3:2:end-1,:]-xvSr, Inf) < 1e-14
+        @test norm(gvSr[:]) < eps()
+        @test norm(tvS-tvSr, Inf) < 5e-15
+    end
 
     @testset "Tests parsing specific aspects of the expression" begin
         ex = :(
