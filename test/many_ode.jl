@@ -36,6 +36,9 @@ import Logging: Warn
 
         sol = (@test_logs (Warn, max_iters_reached()) taylorinteg(
             eqs_mov!, q0, 0.0, 0.5, _order, _abstol, nothing))
+        @test_logs((Warn, max_iters_reached()),
+            @inferred(TaylorSolution{Float64, Float64, 2},
+                taylorinteg(eqs_mov!, q0, 0.0, 0.5, _order, _abstol, nothing)))
         tv = sol.t; xv = sol.x
         @test length(tv) == 501
         @test isa(xv, SubArray)

@@ -1210,10 +1210,8 @@ import Logging: Warn
         xvp = solp.x
 
         # "warmup" for jet transport integration
-        (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        solTN = (@test_logs (Warn, max_iters_reached()) @inferred taylorinteg(
             pendulum!, q0TN, tr, _order, _abstol, maxsteps=1, parse_eqs=false))
-        solTN = (@test_logs (Warn, max_iters_reached()) taylorinteg(
-            pendulum!, q0TN, tr, _order, _abstol, maxsteps=1))
         @test size(solTN.x) == (5,2)
         #jet transport integration with parsed jetcoeffs!
         solTNp = (@test_logs min_level=Logging.Warn taylorinteg(

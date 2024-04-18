@@ -4,14 +4,14 @@ testfiles = (
     "solution.jl",
     "one_ode.jl",
     "many_ode.jl",
-    # "complex.jl",
-    # "jettransport.jl",
+    "complex.jl",
+    "jettransport.jl",
     "lyapunov.jl",
-    # "bigfloats.jl",
-    # "common.jl",
+    "bigfloats.jl",
+    "common.jl",
     "rootfinding.jl",
-    # "taylorize.jl",
-    # "aqua.jl",
+    "taylorize.jl",
+    "aqua.jl",
     )
 
 for file in testfiles

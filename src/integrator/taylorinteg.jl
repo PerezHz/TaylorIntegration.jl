@@ -5,16 +5,16 @@
     @inbounds psol[nsteps] = deepcopy(x)
     return nothing
 end
-@inline function set_psol!(::Val{false}, ::Array{Taylor1{U},1}, ::Int, ::Taylor1{U}) where {U<:Number}
-    return nothing
-end
 @inline function set_psol!(::Val{true}, psol::Array{Taylor1{U},2}, nsteps::Int, x::Vector{Taylor1{U}}) where {U<:Number}
     @inbounds psol[:,nsteps] .= deepcopy.(x)
     return nothing
 end
-@inline function set_psol!(::Val{false}, ::Array{Taylor1{U},2}, ::Int, ::Vector{Taylor1{U}}) where {U<:Number}
-    return nothing
+@inline set_psol!(::Val{false}, args...) = nothing
+
+@inline function init_psol(::Val{true}, xv::Array{U,2}) where {U<:Number}
+    return Array{Taylor1{U}}(undef, size(xv, 1), size(xv, 2)-1)
 end
+@inline init_psol(::Val{false}, args...) = nothing
 
 # taylorinteg
 function taylorinteg(f, x0::U, t0::T, tmax::T, order::Int, abstol::T, params = nothing;
@@ -108,7 +108,8 @@ function _taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Tayl
     # Allocation of output
     tv = Array{T}(undef, maxsteps+1)
     xv = Array{U}(undef, dof, maxsteps+1)
-    psol = Array{Taylor1{U}}(undef, dof, maxsteps)
+    # psol = Array{Taylor1{U}}(undef, dof, maxsteps)
+    psol = init_psol(Val(dense), xv)
     xaux = Array{Taylor1{U}}(undef, dof)
 
     # Initial conditions
@@ -143,7 +144,7 @@ function _taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Tayl
         end
     end
 
-    return build_solution(tv, xv, dense ? psol : nothing, nsteps)
+    return build_solution(tv, xv, psol, nsteps)
 end
 
 @doc doc"""

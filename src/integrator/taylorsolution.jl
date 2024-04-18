@@ -7,40 +7,45 @@ abstract type AbstractTaylorSolution{T<:Real, U<:Number} end
 struct TaylorSolution{T, U, N, VT<:AbstractVector{T}, AX<:AbstractArray{U,N},
         P<:Union{Nothing, AbstractArray{Taylor1{U}, N}},
         VTE<:Union{Nothing, AbstractVector{U}},
-        AXE<:Union{Nothing, AbstractArray{U, N}}} <: AbstractTaylorSolution{T, U}
+        AXE<:Union{Nothing, AbstractArray{U, N}},
+        VΛ<:Union{Nothing, AbstractArray{U,N}}} <: AbstractTaylorSolution{T, U}
     t::VT
     x::AX
     p::P
     tevents::VTE
     xevents::AXE
     gresids::VTE
-    function TaylorSolution{T, U, N, VT, AX, P, VTE, AXE}(t::VT, x::AX, p::P, tevents::VTE, xevents::AXE, gresids::VTE) where {T, U,
-            N, VT, AX, P, VTE, AXE}
+    λ::VΛ
+    function TaylorSolution{T, U, N, VT, AX, P, VTE, AXE, VΛ}(t::VT, x::AX, p::P, tevents::VTE, xevents::AXE, gresids::VTE, λ::VΛ) where {T, U,
+            N, VT, AX, P, VTE, AXE, VΛ}
         @assert length(t) == size(x, 1)
         @assert issorted(t) || issorted(t, rev = true)
         !isnothing(p) && begin
             @assert size(x, 1) - 1 == size(p, 1)
             @assert size(x)[2:end] == size(p)[2:end]
         end
-        @assert isnothing(tevents) == isnothing(xevents) == isnothing(gresids) "`Nothing`-ness across `tevents`, `xevents` and `gresids` must be consistent."
+        @assert isnothing(tevents) == isnothing(xevents) == isnothing(gresids) "`Nothing`-ness must be consistent across `tevents`, `xevents` and `gresids`."
         !isnothing(tevents) && begin
             @assert length(tevents) == size(xevents, 1)
             @assert size(xevents, 2) == size(x, 2)
             @assert length(tevents) == length(gresids)
         end
-        return new{T, U, N, VT, AX, P, VTE, AXE}(t, x, p, tevents, xevents, gresids)
+        !isnothing(λ) && @assert size(λ) == size(x)
+        return new{T, U, N, VT, AX, P, VTE, AXE, VΛ}(t, x, p, tevents, xevents, gresids, λ)
     end
 end
-TaylorSolution(t::VT, x::AX, p::P, tevents::VTE, xevents::AXE, gresids::VTE) where {T, U, N, VT<:AbstractVector{T},
-    AX<:AbstractArray{U,N}, P<:Union{Nothing, AbstractArray{Taylor1{U},N}}, VTE<:Union{Nothing, AbstractVector{U}},
-    AXE<:Union{Nothing, AbstractArray{U, N}}} =
-    TaylorSolution{T, U, N, VT, AX, P, VTE, AXE}(t, x, p, tevents, xevents, gresids)
+TaylorSolution(t::VT, x::AX, p::P, tevents::VTE, xevents::AXE, gresids::VTE, λ::VΛ) where {
+        T, U, N, VT<:AbstractVector{T}, AX<:AbstractArray{U,N}, 
+        P<:Union{Nothing, AbstractArray{Taylor1{U},N}},
+        VTE<:Union{Nothing, AbstractVector{U}}, AXE<:Union{Nothing, AbstractArray{U, N}},
+        VΛ<:Union{Nothing, AbstractArray{U,N}}} =
+    TaylorSolution{T, U, N, VT, AX, P, VTE, AXE, VΛ}(t, x, p, tevents, xevents, gresids, λ)
 
-# 4-arg constructor (event-related fields are nothing)
-TaylorSolution(t, x, p, ::Nothing) = TaylorSolution(t, x, p, nothing, nothing, nothing)
-# 3-arg constructor (event-related fields are nothing; helps not to write too many nothings)
+# 4-arg constructor (root-finding and Lyapunov fields are nothing)
+TaylorSolution(t, x, p, ::Nothing) = TaylorSolution(t, x, p, nothing, nothing, nothing, nothing)
+# 3-arg constructor (root-finding and Lyapunov fields are nothing; helps not to write too many nothings)
 TaylorSolution(t, x, p) = TaylorSolution(t, x, p, nothing)
-# 2-arg constructor (dense polynomial and event-related fields are nothing)
+# 2-arg constructor (dense polynomial, root-finding and Lyapunov fields are nothing)
 TaylorSolution(t, x) = TaylorSolution(t, x, nothing)
 
 ### Solution construction auxiliary methods
@@ -53,9 +58,13 @@ matsol(m::Matrix, n::Int) = view( transpose(view(m, :, 1:n)), 1:n, : )
 
 ### `build_solution`: a helper function for constructing `TaylorSolution`s
 
-build_solution(t::AbstractVector{T}, x::Vector{U}, p::Union{Nothing, Vector{Taylor1{U}}}, nsteps::Int) where {T, U} =
+build_solution(t::AbstractVector{T}, x::Vector{U}, ::Nothing, nsteps::Int) where {T, U} =
+    TaylorSolution(vecsol(t, nsteps), vecsol(x, nsteps))
+build_solution(t::AbstractVector{T}, x::Vector{U}, p::Vector{Taylor1{U}}, nsteps::Int) where {T, U} =
     TaylorSolution(vecsol(t, nsteps), vecsol(x, nsteps), vecsol(p, nsteps-1))
-build_solution(t::AbstractVector{T}, x::Matrix{U}, p::Union{Nothing, Matrix{Taylor1{U}}}, nsteps::Int) where {T, U} =
+build_solution(t::AbstractVector{T}, x::Matrix{U}, ::Nothing, nsteps::Int) where {T, U} =
+    TaylorSolution(vecsol(t, nsteps), matsol(x, nsteps))
+build_solution(t::AbstractVector{T}, x::Matrix{U}, p::Matrix{Taylor1{U}}, nsteps::Int) where {T, U} =
     TaylorSolution(vecsol(t, nsteps), matsol(x, nsteps), matsol(p, nsteps-1))
 
 build_solution(t::AbstractVector{T}, x::Vector{U}) where {T, U} = TaylorSolution(t, x)
@@ -65,18 +74,19 @@ build_solution(t::AbstractVector{T}, x::Matrix{U}) where {T, U} = TaylorSolution
 
 build_solution(t::AbstractVector{T},
         x::Matrix{U},
-        p::Union{Nothing, Matrix{Taylor1{U}}},
+        p::P,
         tevents::AbstractVector{U},
         xevents::Matrix{U},
         gresids::AbstractVector{U},
         nsteps::Int,
-        nevents::Int) where {T, U} =
+        nevents::Int) where {T, U, P<:Union{Nothing, Matrix{Taylor1{U}}}} =
     TaylorSolution(vecsol(t, nsteps),
         matsol(x, nsteps),
         matsol(p, nsteps-1),
         vecsol(tevents, nevents-1),
         matsol(xevents, nevents-1),
-        vecsol(gresids, nevents-1))
+        vecsol(gresids, nevents-1),
+        nothing)
 
 #### `build_solution` method for root-finding with time-ranges
 
@@ -91,7 +101,33 @@ build_solution(t::AbstractVector{T},
         nothing,
         vecsol(tevents, nevents-1),
         matsol(xevents, nevents-1),
-        vecsol(gresids, nevents-1))
+        vecsol(gresids, nevents-1),
+        nothing)
+
+#### `build_solution` method for Lyapunov spectrum solutions
+
+build_lyap_solution(t::AbstractVector{T},
+        x::Matrix{U},
+        λ::Matrix{U},
+        nsteps::Int) where {T, U} =
+    TaylorSolution(vecsol(t, nsteps),
+        matsol(x, nsteps),
+        nothing,
+        nothing,
+        nothing,
+        nothing,
+        matsol(λ, nsteps))
+
+build_lyap_solution(t::AbstractVector{T},
+        x::Matrix{U},
+        λ::Matrix{U}) where {T, U} =
+    TaylorSolution(t,
+        transpose(x),
+        nothing,
+        nothing,
+        nothing,
+        nothing,
+        transpose(λ))
 
 ### Custom print
 

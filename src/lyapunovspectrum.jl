@@ -322,7 +322,7 @@ function _lyap_taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array
         end
     end
 
-    return view(tv,1:nsteps), view(transpose(xv),1:nsteps,:), view(transpose(λ),1:nsteps,:)
+    return build_lyap_solution(tv, xv, λ, nsteps)
 end
 
 
@@ -471,5 +471,5 @@ function _lyap_taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array
         end
     end
 
-    return transpose(xv), transpose(λ)
+    return build_lyap_solution(trange, xv, λ)
 end

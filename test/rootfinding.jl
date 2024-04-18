@@ -5,7 +5,6 @@ using Test
 using LinearAlgebra: norm
 using Logging
 import Logging: Warn
-using InteractiveUtils
 
 @testset "Testing `rootfinding.jl`" begin
 

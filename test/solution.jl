@@ -4,7 +4,6 @@ using TaylorIntegration
 using Test
 using Logging
 import Logging: Warn
-using InteractiveUtils
 
 @testset "Testing `solution.jl`" begin
     tv = [1.,2]
