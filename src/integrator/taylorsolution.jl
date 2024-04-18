@@ -23,10 +23,10 @@ TaylorSolution(t::VT, x::AX, p::P) where {T, U, N, VT<:AbstractVector{T},
     TaylorSolution{T, U, N, VT, AX, P}(t, x, p)
 TaylorSolution(t, x) = TaylorSolution(t, x, nothing)
 
-vecsol(p::Nothing, n::Int) = nothing
+vecsol(::Nothing, ::Int) = nothing
 vecsol(v::AbstractVector, n::Int) = view(v, 1:n)
 
-matsol(p::Nothing, n::Int) = nothing
+matsol(::Nothing, ::Int) = nothing
 matsol(m::Matrix, n::Int) = view(transpose(view(m,:,1:n)),1:n,:)
 
 build_solution(t::AbstractVector{T}, x::Vector{U}, p::Union{Nothing, Vector{Taylor1{U}}}, nsteps::Int) where {T, U} =
@@ -56,20 +56,18 @@ function timeindex(sol::TaylorSolution, t::TT) where TT
     t0 = sol.t[1]
     _t = constant_term(constant_term(t))  # Current time
     tmin, tmax = minmax(sol.t[end], t0)   # Min and max time in sol
-    Δt = t                           # Time since start of sol
-    _Δt = _t                         # Time since start of sol
 
-    @assert tmin ≤ _Δt ≤ tmax "Evaluation time outside range of interpolation"
+    @assert tmin ≤ _t ≤ tmax "Evaluation time outside range of interpolation"
 
-    if _Δt == sol.t[end]        # Compute solution at final time from last step expansion
+    if _t == sol.t[end]        # Compute solution at final time from last step expansion
         ind = lastindex(sol.t) - 1
     elseif issorted(sol.t)       # Forward integration
-        ind = searchsortedlast(sol.t, _Δt)
+        ind = searchsortedlast(sol.t, _t)
     elseif issorted(sol.t, rev=true) # Backward integration
-        ind = searchsortedlast(sol.t, _Δt, rev=true)
+        ind = searchsortedlast(sol.t, _t, rev=true)
     end
     # Time since the start of the ind-th timestep
-    δt = Δt - sol.t[ind]
+    δt = t - sol.t[ind]
     # Return index and elapsed time since i-th timestep
     return ind::Int, δt::TT
 end
