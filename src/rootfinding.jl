@@ -258,7 +258,7 @@ function _taylorinteg!(f!, g, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{T
         end
     end
 
-    return build_solution(tv, xv, dense ? psol : nothing, nsteps), vecsol(tvS, nevents-1), matsol(xvS, nevents-1), vecsol(gvS, nevents-1)
+    return build_solution(tv, xv, dense ? psol : nothing, tvS, xvS, gvS, nsteps, nevents)
 end
 
 function taylorinteg(f!, g, q0::Array{U,1}, trange::AbstractVector{T},
@@ -370,5 +370,5 @@ function _taylorinteg!(f!, g, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{T
         end
     end
 
-    return build_solution(trange, xv), vecsol(tvS, nevents-1), matsol(xvS, nevents-1), vecsol(gvS, nevents-1)
+    return build_solution(trange, xv, tvS, xvS, gvS, nevents)
 end

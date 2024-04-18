@@ -125,7 +125,7 @@ const _HEAD_ALLOC_TAYLOR1_VECTOR = sanitize(:(
 # Constants for the initial declaration and initialization of arrays
 const _DECL_ARRAY = sanitize( Expr(:block,
     :(__var1 = Array{Taylor1{_S}}(undef, __var2)),
-    :(  for i in CartesianIndices(__var1) __var1[i] = Taylor1( zero(constant_term(__x[1])), order ) end  ))
+    :(  for i in eachindex(__var1) __var1[i] = Taylor1( zero(constant_term(__x[1])), order ) end  ))
 );
 
 
