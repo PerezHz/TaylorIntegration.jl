@@ -34,17 +34,17 @@ function taylorinteg(f, x0::U, t0::T, tmax::T, order::Int, abstol::T, params = n
     # Re-initialize the Taylor1 expansions
     t = t0 + Taylor1( T, order )
     x = Taylor1( x0, order )
-    return _taylorinteg!(f, t, x, x0, t0, tmax, abstol, rv, params; parse_eqs, maxsteps, dense)
+    return _taylorinteg!(Val(dense), f, t, x, x0, t0, tmax, abstol, rv, params; parse_eqs, maxsteps)
 end
 
-function _taylorinteg!(f, t::Taylor1{T}, x::Taylor1{U},
+function _taylorinteg!(dense::Val{D}, f, t::Taylor1{T}, x::Taylor1{U},
         x0::U, t0::T, tmax::T, abstol::T, rv::RetAlloc{Taylor1{U}}, params;
-        parse_eqs::Bool, maxsteps::Int=500, dense::Bool=false) where {T<:Real, U<:Number}
+        parse_eqs::Bool, maxsteps::Int=500) where {T<:Real, U<:Number, D}
 
     # Allocation
     tv = Array{T}(undef, maxsteps+1)
     xv = Array{U}(undef, maxsteps+1)
-    psol = init_psol(Val(dense), xv)
+    psol = init_psol(dense, xv)
 
     # Initial conditions
     nsteps = 1
@@ -59,7 +59,7 @@ function _taylorinteg!(f, t::Taylor1{T}, x::Taylor1{U},
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
         x0 = evaluate(x, δt) # new initial condition
-        set_psol!(Val(dense), psol, nsteps, x) # Store the Taylor polynomial solution
+        set_psol!(dense, psol, nsteps, x) # Store the Taylor polynomial solution
         @inbounds x[0] = x0
         t0 += δt
         @inbounds t[0] = t0
@@ -74,7 +74,7 @@ function _taylorinteg!(f, t::Taylor1{T}, x::Taylor1{U},
         end
     end
 
-    return build_solution(tv, xv, dense ? psol : nothing, nsteps)
+    return build_solution(tv, xv, psol, nsteps)
 end
 
 
@@ -98,13 +98,13 @@ function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T, order::Int, abstol::T, 
     t = t0 + Taylor1( T, order )
     x .= Taylor1.( q0, order )
     dx .= Taylor1.( zero.(q0), order)
-    return _taylorinteg!(f!, t, x, dx, q0, t0, tmax, abstol, rv,
-        params; parse_eqs, maxsteps, dense)
+    return _taylorinteg!(Val(dense), f!, t, x, dx, q0, t0, tmax, abstol, rv,
+        params; parse_eqs, maxsteps)
 end
 
-function _taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
+function _taylorinteg!(dense::Val{D}, f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
         q0::Array{U,1}, t0::T, tmax::T, abstol::T, rv::RetAlloc{Taylor1{U}}, params;
-        parse_eqs::Bool, maxsteps::Int=500, dense::Bool=false) where {T<:Real, U<:Number}
+        parse_eqs::Bool, maxsteps::Int=500) where {T<:Real, U<:Number, D}
 
     # Initialize the vector of Taylor1 expansions
     dof = length(q0)
@@ -112,7 +112,7 @@ function _taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Tayl
     # Allocation of output
     tv = Array{T}(undef, maxsteps+1)
     xv = Array{U}(undef, dof, maxsteps+1)
-    psol = init_psol(Val(dense), xv)
+    psol = init_psol(dense, xv)
     xaux = Array{Taylor1{U}}(undef, dof)
 
     # Initial conditions
@@ -129,7 +129,7 @@ function _taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Tayl
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
         evaluate!(x, δt, x0) # new initial condition
-        set_psol!(Val(dense), psol, nsteps, x) # Store the Taylor polynomial solution
+        set_psol!(dense, psol, nsteps, x) # Store the Taylor polynomial solution
         @inbounds for i in eachindex(x0)
             x[i][0] = x0[i]
             TaylorSeries.zero!(dx[i], 0)
