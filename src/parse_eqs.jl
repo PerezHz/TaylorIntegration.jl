@@ -804,7 +804,7 @@ function _replacecalls!(bkkeep::BookKeeping, fnold::Expr, newvar::Symbol)
 
         def_fnexpr = Expr(:block,
             :(TaylorSeries.zero!(_res)),
-            :(_res.coeffs[1] = $(def_fnexpr.args[2])) )
+            :(_res[0] = $(def_fnexpr.args[2])) )
         def_fnexpr = subs(def_fnexpr,
             Dict(:_res => newvar, :_arg1 => :(constant_term($(newarg1))), :_k => :ord))
         # def_fnexpr = Expr(:block,
