@@ -28,7 +28,6 @@ end
     Aqua.test_all(
     TaylorIntegration;
     ambiguities=false,
-    stale_deps=(ignore=[:DiffEqBase, :RecursiveArrayTools, :Requires, :StaticArrays],),
-    piracies=(broken=true,)
+    stale_deps=(ignore=[:DiffEqBase, :RecursiveArrayTools, :Requires, :StaticArrays],)
     )
 end
