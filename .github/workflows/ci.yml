@@ -55,7 +55,7 @@ jobs:
             ${{ runner.os }}-test-
             ${{ runner.os }}-
       ### Uncomment line below to test using a dependency branch
-      - run: julia --project=. -e 'import Pkg; Pkg.add(url="https://github.com/PerezHz/TaylorSeries.jl", rev="jp/tipr192"); Pkg.instantiate()'
+      ### - run: julia --project=. -e 'import Pkg; Pkg.add(url="https://github.com/PerezHz/TaylorSeries.jl", rev="jp/tipr192"); Pkg.instantiate()'
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
       - uses: julia-actions/julia-processcoverage@v1
