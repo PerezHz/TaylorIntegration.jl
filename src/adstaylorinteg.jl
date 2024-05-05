@@ -35,8 +35,9 @@ function truncerror(P::TaylorN{T}) where {T <: Real}
     for i in eachindex(P.coeffs)
         idxs = TaylorSeries.coeff_table[i]
         for j in eachindex(idxs)
+            coef = abs(P.coeffs[i].coeffs[j])
             for k in eachindex(idxs[j])
-                ys[k, idxs[j][k]+1] += abs(P.coeffs[i].coeffs[j])
+                ys[k, idxs[j][k]+1] += coef
             end
         end
     end
@@ -63,12 +64,10 @@ function truncerror(P::AbstractVector{TaylorN{T}}) where {T <: Real}
     # Number of variables
     nv = get_numvars()
     # Size per variable per element of P
-    norms = Matrix{T}(undef, nv, length(P))
-    for i in eachindex(P)
-        norms[:, i] .= truncerror(P[i])
-    end
-    # Sum over element of P
-    return sum(norms, dims = 2)
+    norms = Vector{T}(undef, nv)
+    # Sum over elements of P
+    norms .= sum(truncerror.(P[:]))
+    return norms
 end
 
 """
@@ -101,11 +100,7 @@ function adsnorm(P::TaylorN{T}) where {T <: Real}
     # Jet transport order
     varorder = P.order
     # Absolute sum per order
-    ys = Vector{T}(undef, varorder+1)
-
-    for i in eachindex(ys)
-        ys[i] = sum(abs, P.coeffs[i].coeffs)
-    end
+    ys = norm.((P[i] for i in eachindex(P)), Ref(1))
     # Initial parameters
     p0 = ones(T, 2)
     # Orders
