@@ -107,7 +107,18 @@ import Logging: Warn
         @test sol.t == solti.t
         @test solti.x[end,:] == sol.u[end]
         @test DiffEqBase.interp_summary(sol.interp) == "Taylor series polynomial evaluation"
-        tvsol = range(tspan[1], tspan[2], length=10)
+        ### backwards integration
+        tspanb = (0.0, -10pi)
+        probb = ODEProblem(harmosc!, u0, tspanb)
+        solb = (@test_logs min_level=Logging.Warn solve(probb, TaylorMethod(order), abstol=abstol))
+        soltib = (@test_logs min_level=Logging.Warn taylorinteg(
+            harmosc!, u0, tspanb[1], tspanb[2], order, abstol))
+        @test soltib.t == solb.t
+        @test soltib.x[end,:] == solb.u[end]
+        @test solb.t == soltib.t
+        @test soltib.x[end,:] == solb.u[end]
+        @test DiffEqBase.interp_summary(solb.interp) == "Taylor series polynomial evaluation"
+        ### with dense output
         sol2 = (@test_logs min_level=Logging.Warn taylorinteg(
             harmosc!, u0, tspan[1], tspan[2], order, abstol, dense=true))
         tv2, xv2, psol2 = sol2.t, sol2.x, sol2.p

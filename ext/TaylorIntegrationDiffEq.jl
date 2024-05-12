@@ -242,7 +242,7 @@ function DiffEqBase.solve(
 
     # DiffEqBase.solve(prob, _alg, args...; kwargs...)
     integrator = DiffEqBase.__init(_prob, _alg, args...; kwargs...)
-    integrator.dt = TaylorIntegration.stepsize(integrator.cache.uT, integrator.opts.abstol) # override handle_dt! setting of initial dt
+    integrator.dt = integrator.tdir * TaylorIntegration.stepsize(integrator.cache.uT, integrator.opts.abstol) # override handle_dt! setting of initial dt
     DiffEqBase.solve!(integrator)
     integrator.sol
 end
