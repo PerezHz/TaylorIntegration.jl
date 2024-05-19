@@ -124,11 +124,11 @@ for i in 1:nconds
     x_ini .= x0 .+ 0.005 .* [0.0, sqrt(rand1)*cos(2pi*rand2), 0.0, sqrt(rand1)*sin(2pi*rand2)]
     px!(x_ini, E0)   # ensure initial energy is E0
 
-    tv_i, xv_i, tvS_i, xvS_i, gvS_i = taylorinteg(henonheiles!, g, x_ini, 0.0, 135.0,
+    sol_i = taylorinteg(henonheiles!, g, x_ini, 0.0, 135.0,
         25, 1e-25, maxsteps=30000);
-    tvSv[i] = vcat(0.0, tvS_i)
-    xvSv[i] = vcat(transpose(x_ini), xvS_i)
-    gvSv[i] = vcat(0.0, gvS_i)
+    tvSv[i] = vcat(0.0, sol_i.t)
+    xvSv[i] = vcat(transpose(x_ini), sol_i.x)
+    gvSv[i] = vcat(0.0, sol_i.gresids)
 end
 nothing # hide
 ```
@@ -202,7 +202,7 @@ nothing # hide
 
 We are now set to carry out the integration.
 ```@example poincare
-tvTN, xvTN, tvSTN, xvSTN, gvSTN = taylorinteg(henonheiles!, g, x0TN, 0.0, 135.0, 25, 1e-25, maxsteps=30000);
+solTN = taylorinteg(henonheiles!, g, x0TN, 0.0, 135.0, 25, 1e-25, maxsteps=30000);
 nothing # hide
 ```
 
@@ -210,6 +210,7 @@ We define some auxiliary arrays, and then make an animation with the results for
 plotting.
 ```@example poincare
 #some auxiliaries:
+tvTN, xvTN, tvSTN, xvSTN, gvSTN = solTN.t, solTN.x, solTN.tevents, solTN.xevents, solTN.gresids
 xvSTNaa = Array{Array{TaylorN{Float64},1}}(undef, length(tvSTN)+1 );
 xvSTNaa[1] = x0TN
 for ind in 2:length(tvSTN)+1

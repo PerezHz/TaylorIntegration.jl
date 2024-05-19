@@ -112,7 +112,7 @@ but it actually does not reach this value.
 Figure 1 displays the computed solution as a function of
 time, in log scale.
 ```@example example1
-plot(sol.t, log10.sol.x), shape=:circle)
+plot(sol.t, log10.(sol.x), shape=:circle)
 xlabel!("t")
 ylabel!("log10(x(t))")
 xlims!(0,0.34)

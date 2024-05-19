@@ -4,6 +4,15 @@ abstract type AbstractTaylorSolution{T<:Real, U<:Number} end
 
 ## Constructors
 
+"""
+TaylorSolution{T, U, N, VT<:AbstractVector{T}, AX<:AbstractArray{U,N},
+        P<:Union{Nothing, AbstractArray{Taylor1{U}, N}},
+        VTE<:Union{Nothing, AbstractVector{U}},
+        AXE<:Union{Nothing, AbstractArray{U, N}},
+        VΛ<:Union{Nothing, AbstractArray{U,N}}} <: AbstractTaylorSolution{T, U}
+
+Return type for `taylorinteg`.
+"""
 struct TaylorSolution{T, U, N, VT<:AbstractVector{T}, AX<:AbstractArray{U,N},
         P<:Union{Nothing, AbstractArray{Taylor1{U}, N}},
         VTE<:Union{Nothing, AbstractVector{U}},
