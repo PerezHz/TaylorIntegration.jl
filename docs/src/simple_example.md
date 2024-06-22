@@ -95,7 +95,7 @@ below we shall *try* to compute it up to ``t_\textrm{end}=0.34``; as we shall
 see, Taylor's method takes care of this. For
 the integration presented below, we use a 25-th series expansion, with
 ``\epsilon_\textrm{tol} = 10^{-20}``, and compute up to 150
-integration steps.
+integration steps. The type of the solution returned by `taylorinteg` is [`TaylorSolution`](@ref).
 
 ```@example example1
 sol = taylorinteg(diffeq, 3.0, 0.0, 0.34, 25, 1e-20, maxsteps=150);
