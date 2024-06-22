@@ -159,7 +159,7 @@ function lyap_jetcoeffs!(t::Taylor1{T}, x::AbstractVector{Taylor1{S}},
 end
 
 """
-    lyap_taylorstep!(f!, t, x, dx, xaux, δx, dδx, jac, t0, t1, order, abstol, _δv, varsaux, params[, jacobianfunc!])
+    lyap_taylorstep!(::Val{V}, f!, t, x, dx, xaux, δx, dδx, jac, abstol, _δv, varsaux, params, rv[, jacobianfunc!])
 
 Similar to [`taylorstep!`](@ref) for the calculation of the Lyapunov spectrum.
 `jac` is the Taylor expansion (wrt the independent variable) of the

@@ -2,14 +2,16 @@
 
 #taylorstep
 @doc doc"""
-    taylorstep!(f, t, x, t0, order, abstol, params, tmpTaylor, arrTaylor, parse_eqs=true) -> δt
-    taylorstep!(f!, t, x, dx, xaux, t0, order, abstol, params, tmpTaylor, arrTaylor, parse_eqs=true) -> δt
+    taylorstep!(::Val{false}, f, t, x, abstol, params, rv, parse_eqs=true) -> δt
+    taylorstep!(::Val{true}, f, t, x, abstol, params, rv, parse_eqs=true) -> δt
+    taylorstep!(::Val{false}, f!, t, x, dx, xaux, abstol, params, rv, parse_eqs=true) -> δt
+    taylorstep!(::Val{true}, f!, t, x, dx, xaux, abstol, params, rv, parse_eqs=true) -> δt
 
 One-step Taylor integration for the one-dependent variable ODE ``\dot{x}=dx/dt=f(x, p, t)``
 with initial conditions ``x(t_0)=x_0``.
 Returns the time-step `δt` of the actual integration carried out (δt is positive).
 
-Here, `f` is the function defining the RHS of the ODE (see
+Here, `f` represents the function defining the RHS of the ODE (see
 [`taylorinteg`](@ref)), `t` is the
 independent variable, `x` contains the Taylor expansion of the dependent
 variable, `order` is
@@ -24,6 +26,8 @@ created with [`@taylorize`](@ref); the default is `true` (parse the equations).
 Finally, `parse_eqs` is a switch
 to force *not* using (`parse_eqs=false`) the specialized method of `jetcoeffs!`
 created with [`@taylorize`](@ref); the default is `true` (parse the equations).
+The first argument in the function call `Val{bool}` (`bool::Bool`) controls whether
+a specialized [`jetcoeffs!](@ref) method is being used or not.
 
 """
 function taylorstep!(::Val{V}, f, t::Taylor1{T}, x::Taylor1{U}, abstol::T, params,

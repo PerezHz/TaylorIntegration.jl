@@ -11,7 +11,12 @@ TaylorSolution{T, U, N, VT<:AbstractVector{T}, AX<:AbstractArray{U,N},
         AXE<:Union{Nothing, AbstractArray{U, N}},
         VΛ<:Union{Nothing, AbstractArray{U,N}}} <: AbstractTaylorSolution{T, U}
 
-Return type for `taylorinteg`.
+This `struct` represents the return type for `taylorinteg`. Fields `t` and `x` represent,
+respectively, a vector with the values of time (independent variable), and a vector with the
+computed values of the dependent variable(s). When `taylorinteg` is called with `dense=true`,
+then field `p` stores the Taylor polynomial expansion computed at each time step. Fields
+`tevents`, `xevents` and `gresids` are related to root-finding methods of `taylorinteg`, while
+`λ` is related to the output of [lyap_taylorinteg](@ref).
 """
 struct TaylorSolution{T, U, N, VT<:AbstractVector{T}, AX<:AbstractArray{U,N},
         P<:Union{Nothing, AbstractArray{Taylor1{U}, N}},

@@ -101,8 +101,8 @@ end
 
 """
     taylorinteg(f, g, x0, t0, tmax, order, abstol, params[=nothing]; kwargs... )
-    taylorinteg(f, g, x0, t0, tmax, order, abstol, Val(false), params[=nothing]; kwargs... )
-    taylorinteg(f, g, x0, t0, tmax, order, abstol, Val(true), params[=nothing]; kwargs... )
+    taylorinteg(f, g, x0, t0, tmax, order, abstol, params[=nothing]; kwargs... )
+    taylorinteg(f, g, x0, t0, tmax, order, abstol, params[=nothing]; kwargs... )
     taylorinteg(f, g, x0, trange, order, abstol, params[=nothing]; kwargs... )
 
 Root-finding method of `taylorinteg`.
@@ -115,8 +115,7 @@ tuple (cond1, cond2). Then, `taylorinteg` attempts to find that
 root (or event, or crossing) by performing a Newton-Raphson process. When
 called with the `eventorder=n` keyword argument, `taylorinteg` searches for the
 roots of the `n`-th derivative of `cond2`, which is computed via automatic
-differentiation. When the method used involves `Val(true)`, it also
-outputs the Taylor polynomial solutions obtained at each time step.
+differentiation.
 
 The current keyword argument are:
 - `maxsteps[=500]`: maximum number of integration steps.
@@ -126,6 +125,7 @@ The current keyword argument are:
 - `newtoniter[=10]`: maximum Newton-Raphson iterations per detected root.
 - `nrabstol[=eps(T)]`: allowed tolerance for the Newton-Raphson process; T is the common
     type of `t0`, `tmax` (or `eltype(trange)`) and `abstol`.
+- `dense[=false]`: output the Taylor polynomial expansion at each time step.
 
 
 ## Examples:
@@ -144,22 +144,22 @@ g(dx, x, params, t) = (true, x[2])
 x0 = [1.3, 0.0]
 
 # find the roots of `g` along the solution
-tv, xv, tvS, xvS, gvS = taylorinteg(pendulum!, g, x0, 0.0, 22.0, 28, 1.0E-20)
+sol = taylorinteg(pendulum!, g, x0, 0.0, 22.0, 28, 1.0E-20)
 
 # find the roots of the 2nd derivative of `g` along the solution
-tv, xv, tvS, xvS, gvS = taylorinteg(pendulum!, g, x0, 0.0, 22.0, 28, 1.0E-20; eventorder=2)
+sol = taylorinteg(pendulum!, g, x0, 0.0, 22.0, 28, 1.0E-20; eventorder=2)
 
-# find the roots of `g` along the solution, with dense solution output `psol`
-tv, xv, psol, tvS, xvS, gvS = taylorinteg(pendulum!, g, x0, 0.0, 22.0, 28, 1.0E-20, Val(true))
+# find the roots of `g` along the solution, with dense solution output
+sol = taylorinteg(pendulum!, g, x0, 0.0, 22.0, 28, 1.0E-20, dense=true)
 
 # times at which the solution will be returned
 tv = 0.0:1.0:22.0
 
 # find the roots of `g` along the solution; return the solution *only* at each value of `tv`
-xv, tvS, xvS, gvS = taylorinteg(pendulum!, g, x0, tv, 28, 1.0E-20)
+sol = taylorinteg(pendulum!, g, x0, tv, 28, 1.0E-20)
 
 # find the roots of the 2nd derivative of `g` along the solution; return the solution *only* at each value of `tv`
-xv, tvS, xvS, gvS = taylorinteg(pendulum!, g, x0, tv, 28, 1.0E-20; eventorder=2)
+sol = taylorinteg(pendulum!, g, x0, tv, 28, 1.0E-20; eventorder=2)
 ```
 
 """

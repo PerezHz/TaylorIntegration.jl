@@ -165,10 +165,11 @@ The equations of motion are specified by the function `f`; we follow the same
 convention of `DifferentialEquations.jl` to define this function, i.e.,
 `f(x, p, t)` or `f!(dx, x, p, t)`; see the examples below.
 
-The functions return a vector with the values of time (independent variable),
+The functions returns a `TaylorSolution`, whose fields are `t` and `x`; they represent,
+respectively, a vector with the values of time (independent variable),
 and a vector with the computed values of
-the dependent variable(s), and if the method used involves `Val(true)` it also
-outputs the Taylor polynomial solutions obtained at each time step.
+the dependent variable(s). When the keyword argument `dense` is set to `true`, it also
+outputs in the field `p` the Taylor polynomial expansion computed at each time step.
 The integration stops when time is larger than `tmax`, in which case the last returned
 value(s) correspond to `tmax`, or when the number of saved steps is larger
 than `maxsteps`.
@@ -182,6 +183,7 @@ Currently, the recognized keyword arguments are:
 - `maxsteps[=500]`: maximum number of integration steps.
 - `parse_eqs[=true]`: use the specialized method of `jetcoeffs!` created
     with [`@taylorize`](@ref).
+- `dense[=false]`: output the Taylor polynomial expansion at each time step.
 
 ## Examples
 
@@ -202,7 +204,7 @@ using TaylorIntegration
 
 f(x, p, t) = x^2
 
-tv, xv = taylorinteg(f, 3, 0.0, 0.3, 25, 1.0e-20, maxsteps=100 )
+sol = taylorinteg(f, 3, 0.0, 0.3, 25, 1.0e-20, maxsteps=100 )
 
 function f!(dx, x, p, t)
     for i in eachindex(x)
@@ -211,9 +213,9 @@ function f!(dx, x, p, t)
     return nothing
 end
 
-tv, xv = taylorinteg(f!, [3, 3], 0.0, 0.3, 25, 1.0e-20, maxsteps=100 )
+sol = taylorinteg(f!, [3, 3], 0.0, 0.3, 25, 1.0e-20, maxsteps=100 )
 
-tv, xv, psol = taylorinteg(f!, [3, 3], 0.0, 0.3, 25, 1.0e-20, maxsteps=100, Val(true) )
+sol = taylorinteg(f!, [3, 3], 0.0, 0.3, 25, 1.0e-20, maxsteps=100, dense=true )
 ```
 
 """ taylorinteg
@@ -227,16 +229,16 @@ General-purpose Taylor integrator for the explicit ODE
 ``\dot{x}=f(x,p,t)`` with initial condition specified by `x0::{T<:Number}`
 or `x0::Vector{T}` at time `t0`.
 
-The method returns a vector with the computed values of
+The method returns a `TaylorSolution` whose field `x` represents the computed values of
 the dependent variable(s), evaluated *only* at the times specified by
 the range `trange`.
 
 ## Examples
 
 ```julia
-xv = taylorinteg(f, 3, 0.0:0.001:0.3, 25, 1.0e-20, maxsteps=100 )
+sol = taylorinteg(f, 3, 0.0:0.001:0.3, 25, 1.0e-20, maxsteps=100 )
 
-xv = taylorinteg(f!, [3, 3], 0.0:0.001:0.3, 25, 1.0e-20, maxsteps=100 );
+sol = taylorinteg(f!, [3, 3], 0.0:0.001:0.3, 25, 1.0e-20, maxsteps=100 );
 
 ```
 
