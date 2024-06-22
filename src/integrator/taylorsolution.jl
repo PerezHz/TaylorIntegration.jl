@@ -195,26 +195,30 @@ Evaluate `sol.x` at time `t`.
 
 See also [`timeindex`](@ref).
 """
-function (sol::TaylorSolution{T, U, 1})(t::T) where {T, U}
+(sol::TaylorSolution)(t) = sol(Val(isnothing(sol.p)), t)
+
+(sol::TaylorSolution{T, U, N})(::Val{true}, t::TT) where {T, U, N, TT<:TaylorSolutionCallingArgs{T,U}} = error("`TaylorSolution` objects computed from calls to `taylorinteg` with `dense=false` are not callable.")
+
+function (sol::TaylorSolution{T, U, 1})(::Val{false}, t::T) where {T, U}
     # Get index of sol.x that interpolates at time t
     ind::Int, δt::T = timeindex(sol, t)
     # Evaluate sol.x[ind] at δt
     return (sol.p[ind])(δt)::U
 end
-function (sol::TaylorSolution{T, U, 1})(t::TT) where {T, U, TT<:TaylorSolutionCallingArgs{T,U}}
+function (sol::TaylorSolution{T, U, 1})(::Val{false}, t::TT) where {T, U, TT<:TaylorSolutionCallingArgs{T,U}}
     # Get index of sol.x that interpolates at time t
     ind::Int, δt::TT = timeindex(sol, t)
     # Evaluate sol.x[ind] at δt
     return (sol.p[ind])(δt)::TT
 end
 
-function (sol::TaylorSolution{T, U, 2})(t::T) where {T, U}
+function (sol::TaylorSolution{T, U, 2})(::Val{false}, t::T) where {T, U}
     # Get index of sol.x that interpolates at time t
     ind::Int, δt::T = timeindex(sol, t)
     # Evaluate sol.x[ind] at δt
     return view(sol.p, ind, :)(δt)::Vector{U}
 end
-function (sol::TaylorSolution{T, U, 2})(t::TT) where {T, U, TT<:TaylorSolutionCallingArgs{T,U}}
+function (sol::TaylorSolution{T, U, 2})(::Val{false}, t::TT) where {T, U, TT<:TaylorSolutionCallingArgs{T,U}}
     # Get index of sol.x that interpolates at time t
     ind::Int, δt::TT = timeindex(sol, t)
     # Evaluate sol.x[ind] at δt
