@@ -148,9 +148,9 @@ import Logging: Warn
     @test size(tvS1) == size(tvS)
     @test size(xvS1) == size(xvS)
     @test size(gvS1) == size(gvS)
-    @test_broken norm(gvS1[:]) < 1E-14
-    @test_broken norm( tvS1()-tvS, Inf ) < 1E-13
-    @test_broken norm( xvS1()-xvS, Inf ) < 1E-14
+    @test norm(gvS1[:]) < 1E-14
+    @test norm( tvS1()-tvS, Inf ) < 1E-13
+    @test norm( xvS1()-xvS, Inf ) < 1E-14
 
     #testing surface higher order crossing detections and root-finding
     @test_throws AssertionError taylorinteg(pendulum!, g, x0, t0, 3Tend,
@@ -188,40 +188,34 @@ import Logging: Warn
     @test norm(xvSN()-xvS, Inf) < 1E-14
 
     #testing higher root-finding + Taylor1 jet transport
-    # sol1 = (@test_logs min_level=Logging.Warn taylorinteg(
-    #     pendulum!, g, x01, t0, 3Tend, _order, _abstol, maxsteps=1000, eventorder=2))
-    sol1 = taylorinteg(
-        pendulum!, g, x01, t0, 3Tend, _order, _abstol, maxsteps=1000, eventorder=2)
+    sol1 = (@test_logs min_level=Logging.Warn taylorinteg(
+        pendulum!, g, x01, t0, 3Tend, _order, _abstol, maxsteps=1000, eventorder=2))
     tv1, xv1, tvS1, xvS1, gvS1 = sol1.t, sol1.x, sol1.tevents, sol1.xevents, sol1.gresids
     @test size(tvS1) == size(tvS)
     @test size(xvS1) == size(xvS)
     @test size(gvS1) == size(gvS)
-    @test_broken norm(gvS1[:]) < 1E-14
-    @test_broken norm( tvS1()-tvr[2:end-1], Inf ) < 1E-13
-    @test_broken norm( xvS1()-xvS, Inf ) < 1E-14
+    @test norm(gvS1[:]) < 1E-14
+    @test norm( tvS1()-tvr[2:end-1], Inf ) < 1E-13
+    @test norm( xvS1()-xvS, Inf ) < 1E-14
 
     # Tests if trange is properly sorted
     Δt = (3Tend-t0)/1000
     tspan = t0:Δt:(3Tend-0.125)
-    # sol1r = (@test_logs min_level=Logging.Warn taylorinteg(
-    #     pendulum!, g, x01, tspan, _order, _abstol, maxsteps=1000, eventorder=2))
-    sol1r = taylorinteg(
-        pendulum!, g, x01, tspan, _order, _abstol, maxsteps=1000, eventorder=2)
+    sol1r = (@test_logs min_level=Logging.Warn taylorinteg(
+        pendulum!, g, x01, tspan, _order, _abstol, maxsteps=1000, eventorder=2))
     xv1r, tvS1r, xvS1r, gvS1r = sol1r.x, sol1r.tevents, sol1r.xevents, sol1r.gresids
-    # sol1rb = (@test_logs min_level=Logging.Warn taylorinteg(
-        # pendulum!, g, xv1r[end,:], reverse(tspan), _order, _abstol, maxsteps=1000, eventorder=2))
-    sol1rb = taylorinteg(
-        pendulum!, g, xv1r[end,:], reverse(tspan), _order, _abstol, maxsteps=1000, eventorder=2)
+    sol1rb = (@test_logs min_level=Logging.Warn taylorinteg(
+        pendulum!, g, xv1r[end,:], reverse(tspan), _order, _abstol, maxsteps=1000, eventorder=2))
     xv1rb, tvS1rb, xvS1rb, gvS1rb = sol1rb.x, sol1rb.tevents, sol1rb.xevents, sol1rb.gresids
     @test size(xv1r) == size(xv1rb)
     @test size(tvS1r) == size(tvS1rb)
     @test size(xvS1r) == size(xvS1rb)
     @test size(gvS1r) == size(gvS1rb)
-    @test_broken norm(gvS1r[:], Inf) < 1E-14
-    @test_broken norm(gvS1rb[:], Inf) < 1E-13
+    @test norm(gvS1r[:], Inf) < 1E-14
+    @test norm(gvS1rb[:], Inf) < 1E-13
     @test tvS1r[1]() < tvS1r[end]()
     @test tvS1rb[1]() > tvS1rb[end]()
-    @test_broken norm(tvS1r() - reverse(tvS1rb()), Inf) < 5e-14
+    @test norm(tvS1r() - reverse(tvS1rb()), Inf) < 5e-14
     @test norm(xv1r[:,:]() - xv1rb[end:-1:1,:](), Inf) < 5e-14
 
     @test_throws AssertionError taylorinteg(pendulum!, g, x0, rand(t0:Δt:3Tend, 100),
