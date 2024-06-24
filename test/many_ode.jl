@@ -34,11 +34,10 @@ import Logging: Warn
         δt = (_abstol/q0T[1].coeffs[end-1])^inv(_order-1)
         @test TaylorIntegration.stepsize(q0T, _abstol) == δt
 
-        sol = (@test_logs (Warn, max_iters_reached()) taylorinteg(
-            eqs_mov!, q0, 0.0, 0.5, _order, _abstol, nothing))
-        @test_logs((Warn, max_iters_reached()),
+        sol = @test_logs((Warn, max_iters_reached()),
             @inferred(TaylorSolution{Float64, Float64, 2},
                 taylorinteg(eqs_mov!, q0, 0.0, 0.5, _order, _abstol, nothing)))
+        @test_throws ErrorException sol(0.25)
         tv = sol.t; xv = sol.x
         @test length(tv) == 501
         @test isa(xv, SubArray)

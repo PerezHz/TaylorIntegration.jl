@@ -10,11 +10,9 @@ import Logging: Warn
     xv = rand(2,2)
     psol = Taylor1.(rand(2,1),2)
     nsteps = 2
-    # @show @code_warntype TaylorIntegration.build_solution(tv, xv, psol, nsteps)
     sol2 = TaylorIntegration.build_solution(tv, xv, psol, nsteps)
     @test sol2 isa TaylorSolution{Float64, Float64, 2}
     @test string(sol2) == "tspan: (1.0, 2.0), x: 2 Float64 variables"
-    # @show @code_warntype TaylorIntegration.build_solution(tv, Vector(xv[1,:]), Vector(psol[1,:]), nsteps)
     sol1 = TaylorIntegration.build_solution(tv, Vector(xv[1,:]), Vector(psol[1,:]), nsteps)
     @test sol1 isa TaylorSolution{Float64, Float64, 1}
     @test string(sol1) == "tspan: (1.0, 2.0), x: 1 Float64 variable"
