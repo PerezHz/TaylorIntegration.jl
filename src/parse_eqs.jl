@@ -45,13 +45,15 @@ end
 
 
 """
-    RetAlloc{Taylor1{T}}
+    RetAlloc{T <: Number}
 
 Struct related to the returned variables that are pre-allocated when
 `@taylorize` is used.
-    - `v0`   : Vector{Taylor1{T}}
-    - `v1`   : Vector{Vector{Taylor1{T}}}
-
+    - `v0`   : Array{T,1}
+    - `v1`   : Vector{Array{T,1}}
+    - `v2`   : Vector{Array{T,2}}
+    - `v3`   : Vector{Array{T,3}}
+    - `v4`   : Vector{Array{T,4}}
 """
 struct RetAlloc{T <: Number}
     v0 :: Array{T,1}
@@ -123,7 +125,7 @@ const _HEAD_ALLOC_TAYLOR1_VECTOR = sanitize(:(
 # Constants for the initial declaration and initialization of arrays
 const _DECL_ARRAY = sanitize( Expr(:block,
     :(__var1 = Array{Taylor1{_S}}(undef, __var2)),
-    :(  for i in CartesianIndices(__var1) __var1[i] = Taylor1( zero(constant_term(__x[1])), order ) end  ))
+    :(  for i in eachindex(__var1) __var1[i] = Taylor1( zero(constant_term(__x[1])), order ) end  ))
 );
 
 
@@ -802,7 +804,7 @@ function _replacecalls!(bkkeep::BookKeeping, fnold::Expr, newvar::Symbol)
 
         def_fnexpr = Expr(:block,
             :(TaylorSeries.zero!(_res)),
-            :(_res.coeffs[1] = $(def_fnexpr.args[2])) )
+            :(_res[0] = $(def_fnexpr.args[2])) )
         def_fnexpr = subs(def_fnexpr,
             Dict(:_res => newvar, :_arg1 => :(constant_term($(newarg1))), :_k => :ord))
         # def_fnexpr = Expr(:block,

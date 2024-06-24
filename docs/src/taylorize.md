@@ -56,7 +56,7 @@ tf = 10000.0
 q0 = [1.3, 0.0]
 
 # The actual integration
-t1, x1 = taylorinteg(pendulumNP!, q0, t0, tf, 25, 1e-20, maxsteps=50000); # warm-up run
+sol1 = taylorinteg(pendulumNP!, q0, t0, tf, 25, 1e-20, maxsteps=50000); # warm-up run
 e1 = @elapsed taylorinteg(pendulumNP!, q0, t0, tf, 25, 1e-20, maxsteps=50000);
 all1 = @allocated taylorinteg(pendulumNP!, q0, t0, tf, 25, 1e-20, maxsteps=50000);
 e1, all1
@@ -119,7 +119,7 @@ use the same instruction as above; the default value for the keyword argument `p
 is `true`, so we may omit it.
 
 ```@example taylorize
-t2, x2 = taylorinteg(pendulum!, q0, t0, tf, 25, 1e-20, maxsteps=50000); # warm-up run
+sol2 = taylorinteg(pendulum!, q0, t0, tf, 25, 1e-20, maxsteps=50000); # warm-up run
 e2 = @elapsed taylorinteg(pendulum!, q0, t0, tf, 25, 1e-20, maxsteps=50000);
 all2 = @allocated taylorinteg(pendulum!, q0, t0, tf, 25, 1e-20, maxsteps=50000);
 e2, all2
@@ -132,7 +132,7 @@ e1/e2, all1/all2
 
 We can check that both integrations yield the same results.
 ```@example taylorize
-t1 == t2 && x1 == x2
+sol1.t == sol2.t && sol1.x == sol2.x
 ```
 
 As stated above, in order to allow opting out of using the specialized method

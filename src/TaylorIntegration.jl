@@ -6,15 +6,19 @@ using Reexport
 @reexport using TaylorSeries
 using LinearAlgebra
 using Markdown
-using InteractiveUtils: methodswith
+using InteractiveUtils #: methodswith
 if !isdefined(Base, :get_extension)
     using Requires
 end
 
-export taylorinteg, lyap_taylorinteg, @taylorize
+export TaylorSolution, taylorinteg, lyap_taylorinteg, @taylorize
 
 include("parse_eqs.jl")
-include("integrator.jl")
+include("integrator/jetcoeffs.jl")
+include("integrator/stepsize.jl")
+include("integrator/taylorstep.jl")
+include("integrator/taylorsolution.jl")
+include("integrator/taylorinteg.jl")
 include("lyapunovspectrum.jl")
 include("rootfinding.jl")
 include("common.jl")
@@ -27,5 +31,6 @@ function __init__()
         end
     end
 end
+
 
 end #module

@@ -114,12 +114,14 @@ one with the values of the Lyapunov spectrum.
 
 We first carry out the integration computing internally the Jacobian
 ```@example lorenz
-tv, xv, λv = lyap_taylorinteg(lorenz!, x0, t0, tmax, 28, 1e-20, params; maxsteps=2000000);
+sol = lyap_taylorinteg(lorenz!, x0, t0, tmax, 28, 1e-20, params; maxsteps=2000000);
+tv, xv, λv = sol.t, sol.x, sol.λ
 nothing # hide
 ```
 Now, the integration is obtained exploiting `lorenz_jac!`:
 ```@example lorenz
-tv_, xv_, λv_ = lyap_taylorinteg(lorenz!, x0, t0, tmax, 28, 1e-20, params, lorenz_jac!; maxsteps=2000000);
+sol_ = lyap_taylorinteg(lorenz!, x0, t0, tmax, 28, 1e-20, params, lorenz_jac!; maxsteps=2000000);
+tv_, xv_, λv_ = sol_.t, sol_.x, sol_.λ
 nothing # hide
 ```
 In terms of performance the second method is about ~50% faster than the first.

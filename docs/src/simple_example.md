@@ -95,24 +95,24 @@ below we shall *try* to compute it up to ``t_\textrm{end}=0.34``; as we shall
 see, Taylor's method takes care of this. For
 the integration presented below, we use a 25-th series expansion, with
 ``\epsilon_\textrm{tol} = 10^{-20}``, and compute up to 150
-integration steps.
+integration steps. The type of the solution returned by `taylorinteg` is [`TaylorSolution`](@ref).
 
 ```@example example1
-tT, xT = taylorinteg(diffeq, 3.0, 0.0, 0.34, 25, 1e-20, maxsteps=150) ;
+sol = taylorinteg(diffeq, 3.0, 0.0, 0.34, 25, 1e-20, maxsteps=150);
 ```
 
 We first note that the last point of the
 calculation does not exceed ``t_\textrm{max}``.
 ```@example example1
-tT[end]
+sol.t[end]
 ```
-Increasing the `maxsteps` parameter pushes `tT[end]` closer to ``t_\textrm{max}``
+Increasing the `maxsteps` parameter pushes `sol.t[end]` closer to ``t_\textrm{max}``
 but it actually does not reach this value.
 
 Figure 1 displays the computed solution as a function of
 time, in log scale.
 ```@example example1
-plot(tT, log10.(xT), shape=:circle)
+plot(sol.t, log10.(sol.x), shape=:circle)
 xlabel!("t")
 ylabel!("log10(x(t))")
 xlims!(0,0.34)
@@ -128,8 +128,8 @@ and the analytical solution in terms of time.
 
 ```@example example1
 exactsol(t, x0) = x0 / (1 - x0 * t)
-δxT = abs.(xT .- exactsol.(tT, 3.0)) ./ exactsol.(tT, 3.0);
-plot(tT[6:end], log10.(δxT[6:end]), shape=:circle)
+δxT = abs.(sol.x .- exactsol.(sol.t, 3.0)) ./ exactsol.(sol.t, 3.0);
+plot(sol.t[6:end], log10.(sol.x[6:end]), shape=:circle)
 xlabel!("t")
 ylabel!("log10(dx(t))")
 xlims!(0, 0.4)
@@ -141,8 +141,8 @@ impose (arbitrarily) a relative accuracy of ``10^{-13}``; the time until
 such accuracy is satisfied is given by:
 ```@example example1
 indx = findfirst(δxT .> 1.0e-13);
-esol = exactsol(tT[indx-1],3.0);
-tT[indx-1], esol, eps(esol)
+esol = exactsol(sol.t[indx-1],3.0);
+sol.t[indx-1], esol, eps(esol)
 ```
 Note that, the accuracy imposed in terms of the actual value
 of the exact solution means that the difference of the computed

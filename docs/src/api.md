@@ -14,6 +14,12 @@ lyap_taylorinteg
 @taylorize
 ```
 
+## Exported types
+
+```@docs
+TaylorSolution
+```
+
 ## Internal
 
 ```@autodocs
