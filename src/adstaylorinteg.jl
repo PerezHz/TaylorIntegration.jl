@@ -230,7 +230,9 @@ function _taylorinteg!(
 
     # Integration
     while sign_tstep*t0 < sign_tstep*tmax
-
+        # TO DO: remove this @show
+        @show nsplits
+        @show t
         for (k, node) in enumerate(Leaves(nv))
             @inbounds for i in 1:M
                 @inbounds x[i, k] = Taylor1( node.x[i], order )
@@ -283,19 +285,24 @@ function _taylorinteg!(
     nv = ADSBinaryNode{N, M, T}(s, t0, SVector{M, TaylorN{T}}(q0),
                                 SVector{M, Taylor1{TaylorN{T}}}(x[:, 1]))
 
+    # IMPORTANT: each split needs its own RetAlloc
+    rvs = [deepcopy(rv) for _ in 1:maxsplits]
+
     nsteps = 1
     nsplits = 1
     sign_tstep = copysign(1, tmax-t0)
 
     # Integration
     while sign_tstep*t0 < sign_tstep*tmax
-
+        # TO DO: remove this @show
+        @show nsplits
+        @show t
         for (k, node) in enumerate(Leaves(nv))
             @inbounds for i in 1:M
                 @inbounds x[i, k] = Taylor1( node.x[i], order )
                 @inbounds dx[i, k] = Taylor1( zero(node.x[i]), order )
             end
-            dt[k] = taylorstep!(f!, t, x[:, k], dx[:, k], abstol, params, rv) # δt is positive!
+            dt[k] = taylorstep!(f!, t, x[:, k], dx[:, k], abstol, params, rvs[k]) # δt is positive!
             # Below, δt has the proper sign according to the direction of the integration
             dt[k] = sign_tstep * min(dt[k], sign_tstep*(tmax-t0))
         end
