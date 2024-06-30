@@ -1040,7 +1040,8 @@ function _recursionloop(fnargs, bkkeep::BookKeeping)
 
     if ll == 3
         rec_preamb = sanitize( :( $(fnargs[1]).coeffs[2] = $(bkkeep.retvar).coeffs[1] ) )
-        rec_fnbody = sanitize( :( $(fnargs[1]).coeffs[ordnext+1] = $(bkkeep.retvar).coeffs[ordnext]/ordnext ) )
+        # rec_fnbody = sanitize( :( $(fnargs[1]).coeffs[ordnext+1] = $(bkkeep.retvar).coeffs[ordnext]/ordnext ) )
+        rec_fnbody = sanitize( :( TaylorIntegration.diffeq!($(fnargs[1]), $(bkkeep.retvar), ordnext) ) )
 
     elseif ll == 4
         bkkeep.retvar = fnargs[1]
@@ -1050,8 +1051,9 @@ function _recursionloop(fnargs, bkkeep::BookKeeping)
             end))
         rec_fnbody = sanitize(:(
             for __idx in eachindex($(fnargs[2]))
-                $(fnargs[2])[__idx].coeffs[ordnext+1] =
-                    $(bkkeep.retvar)[__idx].coeffs[ordnext]/ordnext
+                # $(fnargs[2])[__idx].coeffs[ordnext+1] =
+                #     $(bkkeep.retvar)[__idx].coeffs[ordnext]/ordnext
+                TaylorIntegration.diffeq!($(fnargs[2])[__idx], $(bkkeep.retvar)[__idx], ordnext)
             end))
 
     else
