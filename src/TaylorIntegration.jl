@@ -11,6 +11,8 @@ if !isdefined(Base, :get_extension)
     using Requires
 end
 
+import Base: show
+
 export taylorinteg, lyap_taylorinteg, @taylorize
 
 include("parse_eqs.jl")
@@ -18,6 +20,8 @@ include("integrator.jl")
 include("lyapunovspectrum.jl")
 include("rootfinding.jl")
 include("common.jl")
+include("adsbinarynode.jl")
+include("adstaylorinteg.jl")
 
 function __init__()
 
