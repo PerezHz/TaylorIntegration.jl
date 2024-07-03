@@ -116,8 +116,8 @@ end
 
 # Split node's domain in half
 # See section 3 of https://doi.org/10.1007/s10569-015-9618-3
-function Base.split(node::ADSBinaryNode{N, M, T}, x::SVector{M, TaylorN{T}},
-               p::SVector{M, Taylor1{TaylorN{T}}}, dt::T) where {N, M, T <: Real}
+function Base.split(node::ADSBinaryNode{N, M, T}, x::SVector{M, TaylorN{T}}, dt::T,
+                    order::Int) where {N, M, T <: Real}
     # Split direction
     j = splitdirection(x)
     # Split domain
@@ -128,39 +128,35 @@ function Base.split(node::ADSBinaryNode{N, M, T}, x::SVector{M, TaylorN{T}},
     r = getroot(node).s
     v_1[j] = v_1[j]/2 + r.lo[j]/2
     v_2[j] = v_2[j]/2 + r.hi[j]/2
-    # Taylor1 order
-    order = p[1].order
     # Left half
     x1 = SVector{M, TaylorN{T}}(x[i](v_1) for i in eachindex(x))
-    p1 = SVector{M, Taylor1{TaylorN{T}}}(
-        Taylor1( map(z -> z(v_1), p[i].coeffs), order ) for i in eachindex(p)
-    )
+    p1 = Taylor1.(zero.(x1), order)
     # Right half
     x2 = SVector{M, TaylorN{T}}(x[i](v_2) for i in eachindex(x))
-    p2 = SVector{M, Taylor1{TaylorN{T}}}(
-        Taylor1( map(z -> z(v_2), p[i].coeffs), order ) for i in eachindex(p)
-    )
+    p2 = Taylor1.(zero.(x2), order)
 
     return ADSBinaryNode{N, M, T}(s1, node.t+dt, x1, p1, node.depth + 1, node),
            ADSBinaryNode{N, M, T}(s2, node.t+dt, x2, p2, node.depth + 1, node)
 end
 
 """
-    split!(node::ADSBinaryNode{N, M, T}, p::SVector{M, Taylor1{TaylorN{T}}},
-           dt::T, nsplits::Int, maxsplits::Int, stol::T) where {N, M, T <: Real}
+    split!(node::ADSBinaryNode{N, M, T}, dt::T, nsplits::Int, maxsplits::Int,
+           stol::T) where {N, M, T <: Real}
 
-Split `node` in half if any element of `p(dt)` has an `adsnorm` greater than `stol`.
+Split `node` in half if any element of `node.p(dt)` has an `adsnorm` greater than `stol`.
 """
-function split!(node::ADSBinaryNode{N, M, T}, p::SVector{M, Taylor1{TaylorN{T}}},
-                dt::T, nsplits::Int, maxsplits::Int, stol::T) where {N, M, T <: Real}
-    # Evaluate x at dt
-    x = _adseval(p, dt)
+function split!(node::ADSBinaryNode{N, M, T}, dt::T, nsplits::Int, maxsplits::Int,
+                stol::T) where {N, M, T <: Real}
+    # Taylor 1 order
+    order = get_order(node.p[1])
+    # Evaluate node.p at dt
+    x = _adseval(node.p, dt)
     # Split criteria for each element of x
     mask = adsnorm.(x)
     # Split
     if nsplits < maxsplits && any(mask .> stol)
         # Split
-        lchildnode, rchildnode = split(node, x, p, dt)
+        lchildnode, rchildnode = split(node, x, dt, order)
         # Left half
         leftchild!(node, lchildnode)
         # Right half
@@ -169,7 +165,7 @@ function split!(node::ADSBinaryNode{N, M, T}, p::SVector{M, Taylor1{TaylorN{T}}}
         nsplits += 1
     # No split
     else
-        leftchild!(node, node.s, node.t + dt, x, p)
+        leftchild!(node, node.s, node.t + dt, x, Taylor1.(zero.(x), order))
     end
 
     return nsplits
@@ -222,7 +218,7 @@ function _taylorinteg!(
         end
     end
     nv = ADSBinaryNode{N, M, T}(s, t0, SVector{M, TaylorN{T}}(q0),
-                                SVector{M, Taylor1{TaylorN{T}}}(x[:, 1]))
+                                Taylor1.(zero.(q0), order))
 
     nsteps = 1
     nsplits = 1
@@ -242,6 +238,8 @@ function _taylorinteg!(
             dt[k] = taylorstep!(f!, t, x[:, k], dx[:, k], xaux[:, k], abstol, params) # δt is positive!
             # Below, δt has the proper sign according to the direction of the integration
             dt[k] = sign_tstep * min(dt[k], sign_tstep*(tmax-t0))
+            # Store the Taylor polynomial solution
+            node.p = deepcopy.(x[:, k])
         end
 
         δt = minimum(view(dt, 1:nsplits))
@@ -250,8 +248,7 @@ function _taylorinteg!(
         nsteps += 1
 
         for (k, node) in enumerate(Leaves(nv))
-            nsplits = split!(node, SVector{M, Taylor1{TaylorN{T}}}(x[:, k]),
-                             δt, nsplits, maxsplits, stol)
+            nsplits = split!(node, δt, nsplits, maxsplits, stol)
         end
 
         if nsteps > maxsteps
@@ -283,7 +280,7 @@ function _taylorinteg!(
         end
     end
     nv = ADSBinaryNode{N, M, T}(s, t0, SVector{M, TaylorN{T}}(q0),
-                                SVector{M, Taylor1{TaylorN{T}}}(x[:, 1]))
+                                Taylor1.(zero.(q0), order))
 
     # IMPORTANT: each split needs its own RetAlloc
     rvs = [deepcopy(rv) for _ in 1:maxsplits]
@@ -305,6 +302,8 @@ function _taylorinteg!(
             dt[k] = taylorstep!(f!, t, x[:, k], dx[:, k], abstol, params, rvs[k]) # δt is positive!
             # Below, δt has the proper sign according to the direction of the integration
             dt[k] = sign_tstep * min(dt[k], sign_tstep*(tmax-t0))
+            # Store the Taylor polynomial solution
+            node.p = deepcopy.(x[:, k])
         end
 
         δt = minimum(view(dt, 1:nsplits))
@@ -313,8 +312,7 @@ function _taylorinteg!(
         nsteps += 1
 
         for (k, node) in enumerate(Leaves(nv))
-            nsplits = split!(node, SVector{M, Taylor1{TaylorN{T}}}(x[:, k]),
-                             δt, nsplits, maxsplits, stol)
+            nsplits = split!(node, δt, nsplits, maxsplits, stol)
         end
 
         if nsteps > maxsteps

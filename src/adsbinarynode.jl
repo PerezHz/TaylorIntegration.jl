@@ -318,7 +318,7 @@ function evaltree(n::ADSBinaryNode{N, M, T}, t::U) where {N, M, T <: Real, U <: 
         x = Matrix{TaylorN{T}}(undef, M, L)
 
         for i in eachindex(nodes)
-            dt = t - nodes[i].parent.t
+            dt = t - nodes[i].t
             s[i] = nodes[i].s
             x[:, i] .= _adseval(nodes[i].p, dt)
         end
@@ -329,12 +329,19 @@ end
 
 function evaltree!(n::ADSBinaryNode{N, M, T}, t::U,
                    ns::Set{ADSBinaryNode{N, M, T}}) where {N, M, T <: Real, U <: Number}
-    if !isnothing(n.parent) && (abs(n.parent.t) <= abs(t) < abs(n.t)) || (t == n.t && isnothing(n.left))
-            push!(ns, n)
+    # Last node
+    if isnothing(n.left) && (t == n.t)
+        push!(ns, n.parent)
+    # Not last node
     else
-        evaltree!(n.left, t, ns)
-        evaltree!(n.right, t, ns)
+        if abs(n.t) <= abs(t) < abs(n.left.t)
+            push!(ns, n)
+        else
+            evaltree!(n.left, t, ns)
+            evaltree!(n.right, t, ns)
+        end
     end
+
     nothing
 end
 
@@ -371,21 +378,28 @@ function evaltree(n::ADSBinaryNode{N, M, T}, t::U,
         x = Vector{T}(undef, 0)
     # Evaluate polynomials at time t and domain s
     else
-        # Choose the first node
-        node = nodes[1]
-        # Time delta
-        dt = t - node.parent.t
-        # Evaluate node polynomial at dt
-        p = _adseval(node.p, dt)
-        # Root and local domain
-        sup = getroot(n).s
-        loc = node.s
-        # Linear transformation
-        ms = widths(sup) ./ widths(loc)
-        ks = infima(sup) - infima(loc) .* ms
-        _s_ = ms .* s .+ ks
-        # Eval p at transformed point
-        x = map(y -> y(_s_), p)
+        # State vector of each node
+        X = Matrix{T}(undef, M, L)
+
+        for i in eachindex(nodes)
+            # Choose the first node
+            node = nodes[i]
+            # Time delta
+            dt = t - node.t
+            # Evaluate node polynomial at dt
+            p = _adseval(node.p, dt)
+            # Root and local domain
+            sup = getroot(n).s
+            loc = node.s
+            # Linear transformation
+            ms = widths(sup) ./ widths(loc)
+            ks = infima(sup) - infima(loc) .* ms
+            _s_ = ms .* s .+ ks
+            # Eval p at transformed point
+            X[:, i] .= map(y -> y(_s_), p)
+        end
+        # Average
+        x = sum(X, dims = 2)[:] ./ L
     end
 
     return x
@@ -393,14 +407,21 @@ end
 
 function evaltree!(n::ADSBinaryNode{N, M, T}, t::U, s::AbstractVector{T},
                    ns::Set{ADSBinaryNode{N, M, T}}) where {N, M, T <: Real, U <: Number}
+    # s is outside domain
     !(s in n.s) && return nothing
-    if !isnothing(n.parent) && (abs(n.parent.t) <= abs(t) < abs(n.t)) ||
-        (t == n.t && isnothing(n.left))
-        push!(ns, n)
+    # Last node
+    if isnothing(n.left) && (t == n.t)
+        push!(ns, n.parent)
+    # Not last node
     else
-        evaltree!(n.left, t, s, ns)
-        evaltree!(n.right, t, s, ns)
+        if abs(n.t) <= abs(t) < abs(n.left.t)
+            push!(ns, n)
+        else
+            evaltree!(n.left, t, s, ns)
+            evaltree!(n.right, t, s, ns)
+        end
     end
+
     nothing
 end
 
