@@ -124,7 +124,7 @@ const _HEAD_ALLOC_TAYLOR1_VECTOR = sanitize(:(
 # Constants for the initial declaration and initialization of arrays
 const _DECL_ARRAY = sanitize( Expr(:block,
     :(__var1 = Array{Taylor1{_S}}(undef, __var2)),
-    :(  for i in CartesianIndices(__var1) __var1[i] = Taylor1( zero(constant_term(__x[1])), order ) end  ))
+    :(  for i in eachindex(__var1) __var1[i] = Taylor1( zero(constant_term(__x[1])), order ) end  ))
 );
 
 
@@ -1061,7 +1061,6 @@ function _recursionloop(fnargs, bkkeep::BookKeeping)
 
     if ll == 3
         rec_preamb = sanitize( :( $(fnargs[1]).coeffs[2] = $(bkkeep.retvar).coeffs[1] ) )
-        # rec_fnbody = sanitize( :( $(fnargs[1]).coeffs[ordnext+1] = $(bkkeep.retvar).coeffs[ordnext]/ordnext ) )
         rec_fnbody = sanitize( :( TaylorIntegration.diffeq!($(fnargs[1]), $(bkkeep.retvar), ordnext) ) )
 
     elseif ll == 4
@@ -1072,8 +1071,6 @@ function _recursionloop(fnargs, bkkeep::BookKeeping)
             end))
         rec_fnbody = sanitize(:(
             for __idx in eachindex($(fnargs[2]))
-                # $(fnargs[2])[__idx].coeffs[ordnext+1] =
-                #     $(bkkeep.retvar)[__idx].coeffs[ordnext]/ordnext
                 TaylorIntegration.diffeq!($(fnargs[2])[__idx], $(bkkeep.retvar)[__idx], ordnext)
             end))
 
