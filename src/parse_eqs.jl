@@ -35,11 +35,12 @@ mutable struct BookKeeping
     v_array4 :: Vector{Symbol}
     v_preamb :: Vector{Union{Symbol,Expr}}
     retvar   :: Symbol
+    numaux   :: Int
 
     function BookKeeping()
         return new(Dict{Symbol, Expr}(), Dict{Union{Symbol,Expr}, Number}(),
             Dict{Symbol, Expr}(), Symbol[], Symbol[], Symbol[], Symbol[], Symbol[], Symbol[],
-            Union{Symbol,Expr}[], :nothing)
+            Union{Symbol,Expr}[], :nothing, 0)
     end
 end
 
@@ -341,7 +342,7 @@ function _preamble_body(fnbody, fnargs)
     bkkeep = BookKeeping()
 
     # Rename vars to have the body in non-indexed form; bkkeep has different entries
-    # for bookkeeping variables/symbolds, including indexed ones
+    # for bookkeeping variables/symbols, including indexed ones
     fnbody, bkkeep.d_indx = _rename_indexedvars(fnbody)
 
     # Create `newfnbody` which corresponds to `fnbody`, cleaned (without irrelevant comments)
@@ -370,7 +371,7 @@ function _preamble_body(fnbody, fnargs)
     newfnbody = subs(newfnbody, bkkeep.d_indx)
 
     # Define retvar; for scalar eqs is the last entry included in v_newvars
-    bkkeep.retvar = length(fnargs) == 3 ? subs(bkkeep.v_newvars[end], bkkeep.d_indx) : fnargs[1]
+    bkkeep.retvar = length(fnargs) == 3 ? subs(bkkeep.v_newvars[end-bkkeep.numaux], bkkeep.d_indx) : fnargs[1]
 
     return defspreamble, defsprealloc, newfnbody, bkkeep
 end
@@ -834,7 +835,7 @@ function _replacecalls!(bkkeep::BookKeeping, fnold::Expr, newvar::Symbol)
         end
 
     elseif ll == 3
-        # Binary call; no auxiliary expressions needed
+        # Binary call
         newarg2 = fnold.args[3]
 
         # Replacements
@@ -859,6 +860,28 @@ function _replacecalls!(bkkeep::BookKeeping, fnold::Expr, newvar::Symbol)
         #     Dict(:_res => newvar, :_arg1 => :(constant_term($(newarg1))),
         #         :_arg2 => :(constant_term($(newarg2))), :_k => :ord))
 
+        # Auxiliary expression
+        if aux_fnexpr.head != :nothing
+            newaux = genname()
+
+            aux_alloc = :( _res = Taylor1($(aux_fnexpr.args[2]), order) )
+            aux_alloc = subs(aux_alloc,
+                Dict(:_res => newaux, :_arg1 => :(constant_term($(newarg1))), :_aux => newaux))
+
+            aux_fnexpr = Expr(:block,
+                :(TaylorSeries.zero!(_res)),
+                :(_res.coeffs[1] = $(aux_fnexpr.args[2])) )
+            aux_fnexpr = subs(aux_fnexpr,
+                Dict(:_res => newaux, :_arg1 => :(constant_term($(newarg1))), :_aux => newaux))
+
+            fnexpr = subs(fnexpr, Dict(:_aux => newaux))
+            if newvar ∈ bkkeep.v_arraydecl
+                push!(bkkeep.v_arraydecl, newaux)
+            else
+                bkkeep.numaux += 1
+                push!(bkkeep.v_newvars, newaux)
+            end
+        end
     else
         # Recognized call, but not a unary or binary call; copy expression
         fnexpr = :($newvar = $fnold)
@@ -1038,7 +1061,8 @@ function _recursionloop(fnargs, bkkeep::BookKeeping)
 
     if ll == 3
         rec_preamb = sanitize( :( $(fnargs[1]).coeffs[2] = $(bkkeep.retvar).coeffs[1] ) )
-        rec_fnbody = sanitize( :( $(fnargs[1]).coeffs[ordnext+1] = $(bkkeep.retvar).coeffs[ordnext]/ordnext ) )
+        # rec_fnbody = sanitize( :( $(fnargs[1]).coeffs[ordnext+1] = $(bkkeep.retvar).coeffs[ordnext]/ordnext ) )
+        rec_fnbody = sanitize( :( TaylorIntegration.diffeq!($(fnargs[1]), $(bkkeep.retvar), ordnext) ) )
 
     elseif ll == 4
         bkkeep.retvar = fnargs[1]
@@ -1048,8 +1072,9 @@ function _recursionloop(fnargs, bkkeep::BookKeeping)
             end))
         rec_fnbody = sanitize(:(
             for __idx in eachindex($(fnargs[2]))
-                $(fnargs[2])[__idx].coeffs[ordnext+1] =
-                    $(bkkeep.retvar)[__idx].coeffs[ordnext]/ordnext
+                # $(fnargs[2])[__idx].coeffs[ordnext+1] =
+                #     $(bkkeep.retvar)[__idx].coeffs[ordnext]/ordnext
+                TaylorIntegration.diffeq!($(fnargs[2])[__idx], $(bkkeep.retvar)[__idx], ordnext)
             end))
 
     else

@@ -221,7 +221,7 @@ import Logging: Warn
     end
 
 
-    # Pendulum integrtf = 100.0
+    # Pendulum integration
     @testset "Integration of the pendulum and DiffEqs interface" begin
         @taylorize function pendulum!(dx::Array{T,1}, x::Array{T,1}, p, t) where {T}
             dx[1] = x[2]
