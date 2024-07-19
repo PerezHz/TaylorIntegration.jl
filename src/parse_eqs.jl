@@ -1060,14 +1060,14 @@ function _recursionloop(fnargs, bkkeep::BookKeeping)
     ll = length(fnargs)
 
     if ll == 3
-        rec_preamb = sanitize( :( $(fnargs[1]).coeffs[2] = $(bkkeep.retvar).coeffs[1] ) )
+        rec_preamb = sanitize( :( TaylorIntegration.diffeq!($(fnargs[1]), $(bkkeep.retvar), 1) ) )
         rec_fnbody = sanitize( :( TaylorIntegration.diffeq!($(fnargs[1]), $(bkkeep.retvar), ordnext) ) )
 
     elseif ll == 4
         bkkeep.retvar = fnargs[1]
         rec_preamb = sanitize(:(
             for __idx in eachindex($(fnargs[2]))
-                $(fnargs[2])[__idx].coeffs[2] = $(bkkeep.retvar)[__idx].coeffs[1]
+                TaylorIntegration.diffeq!($(fnargs[2])[__idx], $(bkkeep.retvar)[__idx], 1)
             end))
         rec_fnbody = sanitize(:(
             for __idx in eachindex($(fnargs[2]))
