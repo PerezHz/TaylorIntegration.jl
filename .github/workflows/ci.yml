@@ -5,6 +5,10 @@ on:
       - 'LICENSE.md'
       - 'README.md'
   pull_request:
+    branches:
+      - master
+    tags: '*'
+
 jobs:
   pre_job:
     runs-on: ubuntu-latest
