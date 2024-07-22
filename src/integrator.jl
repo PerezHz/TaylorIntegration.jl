@@ -33,7 +33,7 @@ function jetcoeffs!(eqsdiff::Function, t::Taylor1{T}, x::Taylor1{U}, params) whe
         dx = eqsdiff(xaux, params, t)
 
         # Recursion relation
-        @inbounds ode!(x, dx, ordnext)
+        @inbounds solcoeff!(x, dx, ordnext)
     end
     nothing
 end
@@ -76,7 +76,7 @@ function jetcoeffs!(eqsdiff!::Function, t::Taylor1{T},
 
         # Recursion relations
         for j in eachindex(x)
-            @inbounds ode!(x[j], dx[j], ordnext)
+            @inbounds solcoeff!(x[j], dx[j], ordnext)
         end
     end
     nothing

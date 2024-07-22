@@ -1067,13 +1067,13 @@ function _recursionloop(fnargs, bkkeep::BookKeeping)
     ll = length(fnargs)
 
     if ll == 3
-        rec_fnbody = sanitize( :( TaylorIntegration.ode!($(fnargs[1]), $(bkkeep.retvar), ordnext) ) )
+        rec_fnbody = sanitize( :( TaylorIntegration.solcoeff!($(fnargs[1]), $(bkkeep.retvar), ordnext) ) )
 
     elseif ll == 4
         bkkeep.retvar = fnargs[1]
         rec_fnbody = sanitize(:(
             for __idx in eachindex($(fnargs[2]))
-                TaylorIntegration.ode!($(fnargs[2])[__idx], $(bkkeep.retvar)[__idx], ordnext)
+                TaylorIntegration.solcoeff!($(fnargs[2])[__idx], $(bkkeep.retvar)[__idx], ordnext)
             end))
 
     else

@@ -28,12 +28,12 @@ function __init__()
     end
 end
 
-@inline function ode!(a::Taylor1{T}, b::Taylor1{T}, k::Int) where {T<:TaylorSeries.NumberNotSeries}
+@inline function solcoeff!(a::Taylor1{T}, b::Taylor1{T}, k::Int) where {T<:TaylorSeries.NumberNotSeries}
     a[k] = b[k-1]/k
     return nothing
 end
 
-@inline function ode!(res::Taylor1{Taylor1{T}}, a::Taylor1{Taylor1{T}},
+@inline function solcoeff!(res::Taylor1{Taylor1{T}}, a::Taylor1{Taylor1{T}},
         k::Int) where {T<:TaylorSeries.NumberNotSeries}
     for l in eachindex(a[k-1])
         res[k][l] = a[k-1][l]/k
@@ -41,7 +41,7 @@ end
     return nothing
 end
 
-@inline function ode!(res::Taylor1{TaylorN{T}}, a::Taylor1{TaylorN{T}},
+@inline function solcoeff!(res::Taylor1{TaylorN{T}}, a::Taylor1{TaylorN{T}},
         k::Int) where {T<:TaylorSeries.NumberNotSeries}
     for l in eachindex(a[k-1])
         for m in eachindex(a[k-1][l])
