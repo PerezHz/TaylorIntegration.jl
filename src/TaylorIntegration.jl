@@ -28,7 +28,6 @@ function __init__()
     end
 end
 
-
 @inline function ode!(a::Taylor1{T}, b::Taylor1{T}, k::Int) where {T<:TaylorSeries.NumberNotSeries}
     a[k] = b[k-1]/k
     return nothing
