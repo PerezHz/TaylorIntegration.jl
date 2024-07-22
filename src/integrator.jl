@@ -27,14 +27,13 @@ function jetcoeffs!(eqsdiff::Function, t::Taylor1{T}, x::Taylor1{U}, params) whe
         ordnext = ord+1
 
         # # Set `taux`, `xaux`, auxiliary Taylor1 variables to order `ord`
-        # @inbounds taux = Taylor1( t.coeffs[1:ordnext] )
         @inbounds xaux = Taylor1( x.coeffs[1:ordnext] )
 
         # Equations of motion
         dx = eqsdiff(xaux, params, t)
 
         # Recursion relation
-        @inbounds x[ordnext] = dx[ord]/ordnext
+        @inbounds solcoeff!(x, dx, ordnext)
     end
     nothing
 end
@@ -67,8 +66,6 @@ function jetcoeffs!(eqsdiff!::Function, t::Taylor1{T},
     for ord in 0:order-1
         ordnext = ord+1
 
-        # # Set `taux`, auxiliary Taylor1 variable to order `ord`
-        # @inbounds taux = Taylor1( t.coeffs[1:ordnext] )
         # Set `xaux`, auxiliary vector of Taylor1 to order `ord`
         for j in eachindex(x)
             @inbounds xaux[j] = Taylor1( x[j].coeffs[1:ordnext] )
@@ -79,7 +76,7 @@ function jetcoeffs!(eqsdiff!::Function, t::Taylor1{T},
 
         # Recursion relations
         for j in eachindex(x)
-            @inbounds x[j].coeffs[ordnext+1] = dx[j].coeffs[ordnext]/ordnext
+            @inbounds solcoeff!(x[j], dx[j], ordnext)
         end
     end
     nothing

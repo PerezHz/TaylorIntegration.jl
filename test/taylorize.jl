@@ -221,7 +221,7 @@ import Logging: Warn
     end
 
 
-    # Pendulum integrtf = 100.0
+    # Pendulum integration
     @testset "Integration of the pendulum and DiffEqs interface" begin
         @taylorize function pendulum!(dx::Array{T,1}, x::Array{T,1}, p, t) where {T}
             dx[1] = x[2]
@@ -1297,10 +1297,8 @@ import Logging: Warn
 
         # Include not recognized functions as they appear
         @test newex1.args[2].args[2] == :(aa = __ralloc.v0[1])
-        @test newex1.args[2].args[3] == :(aa = my_simple_function(q, p, t))
         @test newex2.args[2].args[2] == :(aa = my_simple_function(q, p, t))
-        @test newex1.args[2].args[6].args[2].args[2] ==
-            :(aa = my_simple_function(q, p, t))
+        @test newex1.args[2].args[3].args[2].args[2] == :(aa = my_simple_function(q, p, t))
 
         # Return line
         @test newex1.args[2].args[end] == :(return nothing)
@@ -1331,7 +1329,7 @@ import Logging: Warn
                 end
             end)
 
-        @test newex1.args[2].args[6].args[2].args[3] == Base.remove_linenums!(ex)
+        @test newex1.args[2].args[3].args[2].args[3] == Base.remove_linenums!(ex)
 
         # Throws no error
         ex = :(
