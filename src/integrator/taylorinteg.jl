@@ -47,7 +47,7 @@ end
 
 function _taylorinteg!(dense::Val{D}, f, t::Taylor1{T}, x::Taylor1{U},
         x0::U, t0::T, tmax::T, abstol::T, rv::RetAlloc{Taylor1{U}}, params;
-        parse_eqs::Bool, maxsteps::Int=500) where {T<:Real, U<:Number, D}
+        parse_eqs::Bool=true, maxsteps::Int=500) where {T<:Real, U<:Number, D}
 
     # Allocation
     tv = Array{T}(undef, maxsteps+1)
@@ -112,7 +112,7 @@ end
 
 function _taylorinteg!(dense::Val{D}, f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
         q0::Array{U,1}, t0::T, tmax::T, abstol::T, rv::RetAlloc{Taylor1{U}}, params;
-        parse_eqs::Bool, maxsteps::Int=500) where {T<:Real, U<:Number, D}
+        parse_eqs::Bool=true, maxsteps::Int=500) where {T<:Real, U<:Number, D}
 
     # Initialize the vector of Taylor1 expansions
     dof = length(q0)
@@ -272,7 +272,7 @@ function taylorinteg(f, x0::U, trange::AbstractVector{T},
 end
 
 function _taylorinteg!(f, t::Taylor1{T}, x::Taylor1{U}, x0::U, trange::AbstractVector{T},
-        abstol::T, rv::RetAlloc{Taylor1{U}}, params; parse_eqs::Bool, maxsteps::Int=500) where {T<:Real, U<:Number}
+        abstol::T, rv::RetAlloc{Taylor1{U}}, params; parse_eqs::Bool=true, maxsteps::Int=500) where {T<:Real, U<:Number}
 
     # Allocation
     nn = length(trange)
@@ -349,7 +349,7 @@ end
 
 function _taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
         q0::Array{U,1}, trange::AbstractVector{T}, abstol::T, rv::RetAlloc{Taylor1{U}}, params;
-        parse_eqs::Bool, maxsteps::Int=500) where {T<:Real, U<:Number}
+        parse_eqs::Bool=true, maxsteps::Int=500) where {T<:Real, U<:Number}
 
     # Allocation
     nn = length(trange)

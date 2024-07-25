@@ -250,7 +250,7 @@ end
 
 function _lyap_taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
         q0::Array{U,1}, t0::T, tmax::T, abstol::T, jt::Matrix{U}, _δv::Array{TaylorN{Taylor1{U}},1},
-        rv::RetAlloc{Taylor1{U}}, params, jacobianfunc!; parse_eqs::Bool,
+        rv::RetAlloc{Taylor1{U}}, params, jacobianfunc!; parse_eqs::Bool=true,
         maxsteps::Int=500) where {T<:Real, U<:Number}
 
     # Allocation
@@ -369,7 +369,7 @@ end
 
 function _lyap_taylorinteg!(f!, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
         q0::Array{U,1}, trange::AbstractVector{T}, abstol::T, jt::Matrix{U}, _δv::Array{TaylorN{Taylor1{U}},1},
-        rv::RetAlloc{Taylor1{U}}, params, jacobianfunc!; parse_eqs::Bool,
+        rv::RetAlloc{Taylor1{U}}, params, jacobianfunc!; parse_eqs::Bool=true,
         maxsteps::Int=500) where {T<:Real, U<:Number}
 
     # Allocation

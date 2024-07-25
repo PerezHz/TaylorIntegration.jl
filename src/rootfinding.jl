@@ -185,20 +185,20 @@ function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
     # Re-initialize the Taylor1 expansions
     t = t0 + Taylor1( T, order )
     x .= Taylor1.( q0, order )
-    return _taylorinteg!(f!, g, t, x, dx, q0, t0, tmax, abstol, rv, params;
-        parse_eqs, maxsteps, dense, eventorder, newtoniter, nrabstol)
+    return _taylorinteg!(Val(dense), f!, g, t, x, dx, q0, t0, tmax, abstol, rv, params;
+        parse_eqs, maxsteps, eventorder, newtoniter, nrabstol)
 end
 
-function _taylorinteg!(f!, g, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
+function _taylorinteg!(dense::Val{D}, f!, g, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
         q0::Array{U,1}, t0::T, tmax::T, abstol::T, rv::RetAlloc{Taylor1{U}}, params;
-        parse_eqs::Bool, maxsteps::Int=500, dense::Bool=false, eventorder::Int=0,
-        newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
+        parse_eqs::Bool=true, maxsteps::Int=500, eventorder::Int=0,
+        newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number, D}
 
     # Allocation
     tv = Array{T}(undef, maxsteps+1)
     dof = length(q0)
     xv = Array{U}(undef, dof, maxsteps+1)
-    psol = init_psol(Val(dense), xv, x)
+    psol = init_psol(dense, xv, x)
     xaux = Array{Taylor1{U}}(undef, dof)
 
     # Initial conditions
@@ -235,7 +235,7 @@ function _taylorinteg!(f!, g, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{T
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
         evaluate!(x, δt, x0) # new initial condition
-        set_psol!(Val(dense), psol, nsteps, x) # Store the Taylor polynomial solution
+        set_psol!(dense, psol, nsteps, x) # Store the Taylor polynomial solution
         g_tupl = g(dx, x, params, t)
         nevents = findroot!(t, x, dx, g_tupl_old, g_tupl, eventorder,
             tvS, xvS, gvS, t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val,
@@ -258,7 +258,7 @@ function _taylorinteg!(f!, g, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{T
         end
     end
 
-    return build_solution(tv, xv, dense ? psol : nothing, tvS, xvS, gvS, nsteps, nevents)
+    return build_solution(tv, xv, psol, tvS, xvS, gvS, nsteps, nevents)
 end
 
 function taylorinteg(f!, g, q0::Array{U,1}, trange::AbstractVector{T},
@@ -294,7 +294,7 @@ end
 
 function _taylorinteg!(f!, g, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
         q0::Array{U,1}, trange::AbstractVector{T}, abstol::T, rv::RetAlloc{Taylor1{U}}, params;
-        parse_eqs::Bool, maxsteps::Int=500, eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
+        parse_eqs::Bool=true, maxsteps::Int=500, eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
 
     # Allocation
     nn = length(trange)
