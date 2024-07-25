@@ -2,23 +2,31 @@
 
 # set_psol!
 @inline function set_psol!(::Val{true}, psol::Array{Taylor1{U},1}, nsteps::Int, x::Taylor1{U}) where {U<:Number}
-    @inbounds psol[nsteps] = deepcopy(x)
+    @inbounds for k in eachindex(x)
+        TaylorSeries.identity!(psol[nsteps], x, k)
+    end
     return nothing
 end
 @inline function set_psol!(::Val{true}, psol::Array{Taylor1{U},2}, nsteps::Int, x::Vector{Taylor1{U}}) where {U<:Number}
-    @inbounds psol[:,nsteps] .= deepcopy.(x)
+    @inbounds for i in eachindex(x)
+        for k in eachindex(x[i])
+            TaylorSeries.identity!(psol[i, nsteps], x[i], k)
+        end
+    end
     return nothing
 end
 @inline set_psol!(::Val{false}, args...) = nothing
 
-@inline function init_psol(::Val{true}, xv::Array{U,1}) where {U<:Number}
-    return Array{Taylor1{U}}(undef, size(xv, 1)-1)
+@inline function init_psol(::Val{true}, xv::Array{U,1}, x::Taylor1{U}) where {U<:Number}
+    return [zero(x) for _ in axes(xv, 1)]
 end
-@inline function init_psol(::Val{true}, xv::Array{U,2}) where {U<:Number}
-    return Array{Taylor1{U}}(undef, size(xv, 1), size(xv, 2)-1)
+@inline function init_psol(::Val{true}, xv::Array{U,2}, x::Array{Taylor1{U},1}) where {U<:Number}
+    return [zero(x[1]) for _ in axes(xv, 1), _ in axes(xv, 2)]
 end
-@inline init_psol(::Val{false}, ::Array{U,1}) where {U<:Number} = nothing
-@inline init_psol(::Val{false}, ::Array{U,2}) where {U<:Number} = nothing
+
+# init_psol
+@inline init_psol(::Val{false}, ::Array{U,1}, ::Taylor1{U}) where {U<:Number} = nothing
+@inline init_psol(::Val{false}, ::Array{U,2}, ::Array{Taylor1{U},1}) where {U<:Number} = nothing
 
 # taylorinteg
 function taylorinteg(f, x0::U, t0::T, tmax::T, order::Int, abstol::T, params = nothing;
@@ -44,7 +52,7 @@ function _taylorinteg!(dense::Val{D}, f, t::Taylor1{T}, x::Taylor1{U},
     # Allocation
     tv = Array{T}(undef, maxsteps+1)
     xv = Array{U}(undef, maxsteps+1)
-    psol = init_psol(dense, xv)
+    psol = init_psol(dense, xv, x)
 
     # Initial conditions
     nsteps = 1
@@ -112,7 +120,7 @@ function _taylorinteg!(dense::Val{D}, f!, t::Taylor1{T}, x::Array{Taylor1{U},1},
     # Allocation of output
     tv = Array{T}(undef, maxsteps+1)
     xv = Array{U}(undef, dof, maxsteps+1)
-    psol = init_psol(dense, xv)
+    psol = init_psol(dense, xv, x)
     xaux = Array{Taylor1{U}}(undef, dof)
 
     # Initial conditions
@@ -152,8 +160,6 @@ end
 
 @doc doc"""
     taylorinteg(f, x0, t0, tmax, order, abstol, params[=nothing]; kwargs... )
-    taylorinteg(f, x0, t0, tmax, order, abstol, Val(false), params[=nothing]; kwargs... )
-    taylorinteg(f, x0, t0, tmax, order, abstol, Val(true), params[=nothing]; kwargs... )
 
 General-purpose Taylor integrator for the explicit ODE ``\dot{x}=f(x, p, t)``,
 where `p` are the parameters encoded in `params`.
