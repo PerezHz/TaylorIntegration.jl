@@ -1,5 +1,40 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
+# build_lyap_solution
+
+@doc doc"""
+    build_lyap_solution(t, x, λ, nsteps)
+    build_lyap_solution(t, x, λ)
+
+Helper function to build a [`TaylorSolution`](@ref) from a call to
+[`lyap_taylorinteg`](@ref).
+
+"""
+build_lyap_solution(t::AbstractVector{T},
+        x::Matrix{U},
+        λ::Matrix{U},
+        nsteps::Int) where {T, U} =
+    TaylorSolution(arraysol(t, nsteps),
+        arraysol(x, nsteps),
+        nothing,
+        nothing,
+        nothing,
+        nothing,
+        arraysol(λ, nsteps))
+
+build_lyap_solution(t::AbstractVector{T},
+        x::Matrix{U},
+        λ::Matrix{U}) where {T, U} =
+    TaylorSolution(t,
+        transpose(x),
+        nothing,
+        nothing,
+        nothing,
+        nothing,
+        transpose(λ))
+
+# stabilitymatrix!
+
 """
     stabilitymatrix!(eqsdiff!, t, x, δx, dδx, jac, _δv, params[, jacobianfunc!=nothing])
 

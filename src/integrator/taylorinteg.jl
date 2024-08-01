@@ -1,6 +1,18 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
 # set_psol!
+@doc doc"""
+    set_psol!(::Val{true}, psol::Array{Taylor1{U},1}, nsteps::Int, x::Taylor1{U}) where {U<:Number}
+    set_psol!(::Val{true}, psol::Array{Taylor1{U},2}, nsteps::Int, x::Vector{Taylor1{U}}) where {U<:Number}
+    set_psol!(::Val{false}, args...)
+
+Auxiliary function to save Taylor polynomials in a call to [`taylorinteg`](@ref). When the
+first argument in the call signature is `Val(true)`, sets appropriate elements of argument
+`psol`. Otherwise, when the first argument in the call signature is `Val(false)`, this
+function simply returns `nothing`. Argument `psol` is the array
+where the Taylor polynomialsmassociated to the solution will be stored, corresponding to
+field `:p` in [`TaylorSolution`](@ref). See also [`init_psol`](@ref).
+"""
 @inline function set_psol!(::Val{true}, psol::Array{Taylor1{U},1}, nsteps::Int, x::Taylor1{U}) where {U<:Number}
     @inbounds for k in eachindex(x)
         TaylorSeries.identity!(psol[nsteps], x, k)
@@ -17,6 +29,19 @@ end
 end
 @inline set_psol!(::Val{false}, args...) = nothing
 
+@doc doc"""
+    init_psol(::Val{true}, xv::Array{U,1}, x::Taylor1{U}) where {U<:Number}
+    init_psol(::Val{true}, xv::Array{U,2}, x::Array{Taylor1{U},1}) where {U<:Number}
+    init_psol(::Val{false}, ::Array{U,1}, ::Taylor1{U}) where {U<:Number}
+    init_psol(::Val{false}, ::Array{U,2}, ::Array{Taylor1{U},1}) where {U<:Number}
+
+Auxiliary function to initialize `psol` during a call to [`taylorinteg`](@ref). When the
+first argument in the call signature is `Val(false)` this function simply returns `nothing`.
+Otherwise, when the first argument in the call signature is `Val(true)`, then the
+appropriate array is allocated and returned; this array is where the Taylor polynomials
+associated to the solution will be stored, corresponding to field `:p` in
+[`TaylorSolution`](@ref).
+"""
 @inline function init_psol(::Val{true}, xv::Array{U,1}, x::Taylor1{U}) where {U<:Number}
     return [zero(x) for _ in axes(xv, 1)]
 end

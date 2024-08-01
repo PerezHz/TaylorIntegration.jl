@@ -62,86 +62,33 @@ TaylorSolution(t, x, p) = TaylorSolution(t, x, p, nothing)
 # 2-arg constructor (dense polynomial, root-finding and Lyapunov fields are nothing)
 TaylorSolution(t, x) = TaylorSolution(t, x, nothing)
 
-### Solution construction auxiliary methods
+# arraysol: auxiliary function for solution construction
 
-vecsol(::Nothing, ::Int) = nothing
-vecsol(v::AbstractVector, n::Int) = view(v, 1:n)
+arraysol(::Nothing, ::Int) = nothing
+arraysol(v::AbstractVector, n::Int) = view(v, 1:n)
+arraysol(m::AbstractMatrix, n::Int) = view( transpose(view(m, :, 1:n)), 1:n, : )
 
-matsol(::Nothing, ::Int) = nothing
-matsol(m::Matrix, n::Int) = view( transpose(view(m, :, 1:n)), 1:n, : )
+# build_solution
 
-### `build_solution`: a helper function for constructing `TaylorSolution`s
+"""
+    build_solution(t, x, p, nsteps)
+    build_solution(t, x)
 
+Helper function to build a [`TaylorSolution`](@ref) from a call to
+[`taylorinteg`](@ref).
+
+"""
 build_solution(t::AbstractVector{T}, x::Vector{U}, ::Nothing, nsteps::Int) where {T, U} =
-    TaylorSolution(vecsol(t, nsteps), vecsol(x, nsteps))
+    TaylorSolution(arraysol(t, nsteps), arraysol(x, nsteps))
 build_solution(t::AbstractVector{T}, x::Vector{U}, p::Vector{Taylor1{U}}, nsteps::Int) where {T, U} =
-    TaylorSolution(vecsol(t, nsteps), vecsol(x, nsteps), vecsol(p, nsteps-1))
+    TaylorSolution(arraysol(t, nsteps), arraysol(x, nsteps), arraysol(p, nsteps-1))
 build_solution(t::AbstractVector{T}, x::Matrix{U}, ::Nothing, nsteps::Int) where {T, U} =
-    TaylorSolution(vecsol(t, nsteps), matsol(x, nsteps))
+    TaylorSolution(arraysol(t, nsteps), arraysol(x, nsteps))
 build_solution(t::AbstractVector{T}, x::Matrix{U}, p::Matrix{Taylor1{U}}, nsteps::Int) where {T, U} =
-    TaylorSolution(vecsol(t, nsteps), matsol(x, nsteps), matsol(p, nsteps-1))
+    TaylorSolution(arraysol(t, nsteps), arraysol(x, nsteps), arraysol(p, nsteps-1))
 
 build_solution(t::AbstractVector{T}, x::Vector{U}) where {T, U} = TaylorSolution(t, x)
 build_solution(t::AbstractVector{T}, x::Matrix{U}) where {T, U} = TaylorSolution(t, transpose(x))
-
-### `build_solution` method for root-finding
-
-build_solution(t::AbstractVector{T},
-        x::Matrix{U},
-        p::P,
-        tevents::AbstractVector{U},
-        xevents::Matrix{U},
-        gresids::AbstractVector{U},
-        nsteps::Int,
-        nevents::Int) where {T, U, P<:Union{Nothing, Matrix{Taylor1{U}}}} =
-    TaylorSolution(vecsol(t, nsteps),
-        matsol(x, nsteps),
-        matsol(p, nsteps-1),
-        vecsol(tevents, nevents-1),
-        matsol(xevents, nevents-1),
-        vecsol(gresids, nevents-1),
-        nothing)
-
-#### `build_solution` method for root-finding with time-ranges
-
-build_solution(t::AbstractVector{T},
-        x::Matrix{U},
-        tevents::AbstractVector{U},
-        xevents::Matrix{U},
-        gresids::AbstractVector{U},
-        nevents::Int) where {T, U} =
-    TaylorSolution(t,
-        transpose(x),
-        nothing,
-        vecsol(tevents, nevents-1),
-        matsol(xevents, nevents-1),
-        vecsol(gresids, nevents-1),
-        nothing)
-
-#### `build_solution` method for Lyapunov spectrum solutions
-
-build_lyap_solution(t::AbstractVector{T},
-        x::Matrix{U},
-        λ::Matrix{U},
-        nsteps::Int) where {T, U} =
-    TaylorSolution(vecsol(t, nsteps),
-        matsol(x, nsteps),
-        nothing,
-        nothing,
-        nothing,
-        nothing,
-        matsol(λ, nsteps))
-
-build_lyap_solution(t::AbstractVector{T},
-        x::Matrix{U},
-        λ::Matrix{U}) where {T, U} =
-    TaylorSolution(t,
-        transpose(x),
-        nothing,
-        nothing,
-        nothing,
-        nothing,
-        transpose(λ))
 
 ### Custom print
 
@@ -153,9 +100,9 @@ function Base.show(io::IO, sol::TaylorSolution)
     print(io, "tspan: ", tspan, ", x: ", nvars, " ", S, " variable"*plural)
 end
 
-### Callability ("functor") methods
+# Function-like (callability or "functor") methods
 
-@doc raw"""
+@doc doc"""
     timeindex(sol::TaylorSolution, t::TT) where TT
 
 Return the index of `sol.t` corresponding to `t` and the time elapsed from `sol.t0`
@@ -181,11 +128,9 @@ function timeindex(sol::TaylorSolution, t::TT) where TT
     return ind::Int, δt::TT
 end
 
-# Function-like (callability) methods
-
 const TaylorSolutionCallingArgs{T,U} = Union{T, U, Taylor1{U}, TaylorN{U}, Taylor1{TaylorN{U}}} where {T,U}
 
-@doc raw"""
+@doc doc"""
     (sol::TaylorSolution{T, U, 1})(t::T) where {T, U}
     (sol::TaylorSolution{T, U, 1})(t::TT) where {T, U, TT<:TaylorSolutionCallingArgs{T,U}}
     (sol::TaylorSolution{T, U, 2})(t::T) where {T, U}

@@ -1,3 +1,46 @@
+### `build_solution` method for root-finding
+
+@doc doc"""
+    build_solution(t, x, p, tevents, xevents, gresids, nsteps, nevents)
+    build_solution(t, x, tevents, xevents, gresids, nsteps, nevents)
+
+Helper function to build a [`TaylorSolution`](@ref) from a call to a
+root-finding method of [`taylorinteg`](@ref).
+
+"""
+build_solution(t::AbstractVector{T},
+        x::Matrix{U},
+        p::P,
+        tevents::AbstractVector{U},
+        xevents::Matrix{U},
+        gresids::AbstractVector{U},
+        nsteps::Int,
+        nevents::Int) where {T, U, P<:Union{Nothing, Matrix{Taylor1{U}}}} =
+    TaylorSolution(arraysol(t, nsteps),
+        arraysol(x, nsteps),
+        arraysol(p, nsteps-1),
+        arraysol(tevents, nevents-1),
+        arraysol(xevents, nevents-1),
+        arraysol(gresids, nevents-1),
+        nothing)
+
+#### `build_solution` method for root-finding with time-ranges
+
+build_solution(t::AbstractVector{T},
+        x::Matrix{U},
+        tevents::AbstractVector{U},
+        xevents::Matrix{U},
+        gresids::AbstractVector{U},
+        nevents::Int) where {T, U} =
+    TaylorSolution(t,
+        transpose(x),
+        nothing,
+        arraysol(tevents, nevents-1),
+        arraysol(xevents, nevents-1),
+        arraysol(gresids, nevents-1),
+        nothing)
+
+
 """
     surfacecrossing(g_old, g_now, eventorder::Int)
 
