@@ -19,7 +19,7 @@ TaylorSeries = "6aa5eb33-94cf-58f4-a9d0-e4b2c4fc25ea"
 OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
 
 [extensions]
-TaylorIntegrationDiffEq = "OrdinaryDiffEq"
+TaylorIntegrationDiffEqExt = "OrdinaryDiffEq"
 
 [compat]
 Aqua = "0.8"

@@ -133,6 +133,7 @@ import Logging: Warn
         @test size(psol) == ( size(xv, 1)-1, size(xv, 2) )
         @test psol[1,:] == fill(Taylor1([3.0^i for i in 1:_order+1]), 2)
         @test xv[end,1] == evaluate.(psol[end, 1], tv[end]-tv[end-1])
+        @test xv[end,:] == sol(tv[end])
         @test psol[:,1] == psol[:,2]
     end
 
@@ -172,6 +173,9 @@ import Logging: Warn
         @test abs(sin(t0)-xb[end,2]) < 5e-14
         @test solb(tmax) == [tmax, sin(tmax)]
         @test solb(x0[1]) == xb[end,:]
+        tmidT = (tmax+t0)/2 + Taylor1(order)
+        @test solb(tmidT)[1] == tmidT
+        @test norm(solb(tmidT)[2] - sin(tmidT), Inf) < 1e-13
 
         # Tests with a range, for comparison with backward integration
         tmax = 15*(2pi)

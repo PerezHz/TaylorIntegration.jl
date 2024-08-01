@@ -1,6 +1,6 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
-module TaylorIntegrationDiffEq
+module TaylorIntegrationDiffEqExt
 
 using TaylorIntegration
 
