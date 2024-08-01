@@ -130,7 +130,7 @@ import Logging: Warn
         Θm1 = Θ - 1
         dt_test = (tv2[end-1]-tv2[end-2])
         t_test = tv2[end-2] + Θ*dt_test
-        @test norm( sol(t_test) .- psol2[end,:]( Θm1*dt_test ) ) < 1e-14
+        @test norm( sol(t_test, idxs=1:1:2) .- psol2[end,:]( Θm1*dt_test ) ) < 1e-14
         # Kepler problem
         @taylorize function kepler1!(dq, q, p, t)
             local μ = -1.0
