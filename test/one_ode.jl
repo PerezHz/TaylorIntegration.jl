@@ -102,6 +102,9 @@ import Logging: Warn
         @test xv[1] == x0
         @test psol[1] == Taylor1(ones(_order+1))
         @test xv[2] == evaluate(psol[1], tv[2]-tv[1])
+        @test xv[3] == sol(tv[3])
+        @test psol[1] == sol(tv[1]+Taylor1(_order))
+        @test psol[2] == sol(tv[2]+Taylor1(_order))
     end
 
     @testset "Tests: dot{x}=x^2, x(0) = 3; nsteps <= maxsteps" begin

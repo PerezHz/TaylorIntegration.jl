@@ -161,7 +161,7 @@ import Logging: Warn
 
         # Backward integration
         solb = (@test_logs min_level=Logging.Warn taylorinteg(
-            f!, [tmax, sin(tmax)], tmax, t0, order, abstol))
+            f!, [tmax, sin(tmax)], tmax, t0, order, abstol, dense=true))
         tb = solb.t; xb = solb.x
         @test length(tb) < 501
         @test length(xb[:,1]) < 501
@@ -170,6 +170,8 @@ import Logging: Warn
         @test xb[1,1:end] == [tmax, sin(tmax)]
         @test tb[end] == xb[end,1]
         @test abs(sin(t0)-xb[end,2]) < 5e-14
+        @test solb(tmax) == [tmax, sin(tmax)]
+        @test solb(x0[1]) == xb[end,:]
 
         # Tests with a range, for comparison with backward integration
         tmax = 15*(2pi)
