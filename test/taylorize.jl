@@ -1261,12 +1261,10 @@ import Logging: Warn
 
         @taylorize function kepler1!(dq, q, p, t)
             local μ = -1.0
-            x1s = q[3]
-            y1s = q[4]
-            r_p2 = ((x1s^2)+(y1s^2))
+            r_p2 = ((q[1]^2)+(q[2]^2))
             r_p3d2 = r_p2^1.5
-            dq[1] = x1s
-            dq[2] = y1s
+            dq[1] = q[3]
+            dq[2] = q[4]
             newtonianCoeff = μ / r_p3d2
             dq[3] = q[1] * newtonianCoeff
             dq[4] = q[2] * newtonianCoeff
@@ -1295,8 +1293,22 @@ import Logging: Warn
 
         @test length(sol.t) == length(solp.t)
         @test sol.t == solp.t
+        @test solp.t[end] == tf
         @test iszero( norm(sol.x-solp.x, Inf) )
         @test iszero( norm(sol.p-solp.p, Inf) )
+
+        # Keplerian energy
+        function visviva(x)
+            v2 = x[3]^2 + x[4]^2
+            r = sqrt(x[1]^2 + x[2]^2)
+            return 0.5v2 - 1/r
+        end
+
+        # initial energy
+        E0 = visviva(solp(t0))
+        # final energy
+        Ef = visviva(solp(tf))
+        @test norm( E0() - Ef(), Inf ) < 1e-12
 
         @testset "Test _taylorinteg function barrier" begin
             _t0 = t0

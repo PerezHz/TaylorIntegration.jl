@@ -134,7 +134,7 @@ import Logging: Warn
         # Kepler problem
         @taylorize function kepler1!(dq, q, p, t)
             local μ = -1.0
-            r_p2 = ((q[3]^2)+(q[4]^2))
+            r_p2 = ((q[1]^2)+(q[2]^2))
             r_p3d2 = r_p2^1.5
             dq[1] = q[3]
             dq[2] = q[4]
@@ -150,13 +150,13 @@ import Logging: Warn
         (@test_logs (Warn, max_iters_reached()) taylorinteg(kepler1!, q0, tspan[1], tspan[2], order, abstol,
             dense=true, maxsteps=1))
         @time solp = taylorinteg(kepler1!, q0, tspan[1], tspan[2], order, abstol,
-            dense=true, maxsteps=1000)
+            dense=true, maxsteps=2000)
         tvp, xvp, psolp = solp.t, solp.x, solp.p
         prob = ODEProblem(kepler1!, q0, tspan)
         @test isinplace(prob) == true
-        sol1 = solve(prob, TaylorMethod(order), abstol=abstol, parse_eqs=false)
+        sol1 = solve(prob, TaylorMethod(order), abstol=abstol, maxiters=2000, parse_eqs=false)
         (@test_logs (Warn, larger_maxiters_needed()) solve(prob, TaylorMethod(order), abstol=abstol, maxiters=1))
-        @time sol2 = solve(prob, TaylorMethod(order), abstol=abstol, maxiters=1000)
+        @time sol2 = solve(prob, TaylorMethod(order), abstol=abstol, maxiters=2000)
         @test sol1.alg.parse_eqs == false
         @test sol2.alg.parse_eqs == true
         @test tvp == sol2.t
@@ -165,7 +165,7 @@ import Logging: Warn
         @test norm( solp(tspan[1]) - sol1(tspan[1]), Inf ) < 1e-16
         @test norm( solp(0.1) - sol1(0.1), Inf ) < 1e-13
         @test norm( solp(tspan[2]/2) - sol1(tspan[2]/2), Inf ) < 1e-13
-        @test norm( solp(solp.t[end-2] + 0.1) - sol1(sol1.t[end-2] + 0.1), Inf ) < 1e-13
+        @test norm( solp(solp.t[end-2] + 0.01) - sol1(sol1.t[end-2] + 0.01), Inf ) < 1e-13
         @test solp(tspan[2]) == sol1(tspan[2])
 
         (@test_logs (Warn, max_iters_reached()) taylorinteg(kepler1!, q0TN, tspan[1], tspan[2], order, abstol,
@@ -182,12 +182,13 @@ import Logging: Warn
         @test size(xTN) == size(Array(sol2TN)')
         @test xTN == Array(sol2TN)'
         @test tTN == sol2TN.t
-        @test norm( solTN(tspan[1]) - sol2TN(tspan[1]), Inf ) < 1e-15
-        @test psolTN[end,:](tTN[end]-tTN[end-1]) == sol2TN(sol2TN.t[end])
+        @test norm( solTN(tspan[1]) - sol2TN(tspan[1]), Inf ) < 1e-14
+        @test psolTN[end,:]( tTN[end] - tTN[end-1] ) == sol2TN(sol2TN.t[end])
         @test solTN(solTN.t[end]) == sol2TN(sol2TN.t[end])
-        @test psolTN[2,:](-(tTN[2]-tTN[1]) + 0.1) == sol2TN(0.1)
-        @test norm( solTN(0.1) - sol2TN(0.1), Inf ) < 1e-14
-        @test norm( solTN(tspan[2]/2) - sol2TN(tspan[2]/2), Inf ) < 1e-13
+        @test psolTN[2,:]( 0.005 - tTN[2] ) == sol2TN(0.005)
+        @test norm( solTN(0.1) - sol2TN(0.1), Inf ) < 1e-13
+        @test norm( solTN(tspan[2]/2)() - sol2TN(tspan[2]/2)(), Inf ) < 1e-15
+        @test norm( solTN(tspan[2]/2) - sol2TN(tspan[2]/2), Inf ) < 1e-10
         @test solTN(tspan[2]) == sol2TN(tspan[2])
     end
 
