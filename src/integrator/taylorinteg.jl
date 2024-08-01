@@ -10,7 +10,7 @@ Auxiliary function to save Taylor polynomials in a call to [`taylorinteg`](@ref)
 first argument in the call signature is `Val(true)`, sets appropriate elements of argument
 `psol`. Otherwise, when the first argument in the call signature is `Val(false)`, this
 function simply returns `nothing`. Argument `psol` is the array
-where the Taylor polynomialsmassociated to the solution will be stored, corresponding to
+where the Taylor polynomials associated to the solution will be stored, corresponding to
 field `:p` in [`TaylorSolution`](@ref). See also [`init_psol`](@ref).
 """
 @inline function set_psol!(::Val{true}, psol::Array{Taylor1{U},1}, nsteps::Int, x::Taylor1{U}) where {U<:Number}
