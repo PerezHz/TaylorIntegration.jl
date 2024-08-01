@@ -54,7 +54,7 @@ end
     _stepsize(aux1, epsilon, k)
 
 Helper function to avoid code repetition.
-Returns ``(epsilon/aux1)^(1/k)``.
+Returns `(epsilon/aux1)^(1/k)`.
 """
 @inline function _stepsize(aux1::U, epsilon::T, k::Int) where {T<:Real, U<:Number}
     aux = epsilon / aux1
