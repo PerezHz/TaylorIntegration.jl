@@ -168,7 +168,7 @@ The current keyword argument are:
 - `newtoniter[=10]`: maximum Newton-Raphson iterations per detected root.
 - `nrabstol[=eps(T)]`: allowed tolerance for the Newton-Raphson process; T is the common
     type of `t0`, `tmax` (or `eltype(trange)`) and `abstol`.
-- `dense[=false]`: output the Taylor polynomial expansion at each time step.
+- `dense[=true]`: output the Taylor polynomial expansion at each time step.
 
 
 ## Examples:
@@ -208,7 +208,7 @@ sol = taylorinteg(pendulum!, g, x0, tv, 28, 1.0E-20; eventorder=2)
 """
 function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
         order::Int, abstol::T, params = nothing; maxsteps::Int=500, parse_eqs::Bool=true,
-        dense::Bool=false, eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
+        dense::Bool=true, eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
 
     @assert order ≥ eventorder "`eventorder` must be less than or equal to `order`"
 

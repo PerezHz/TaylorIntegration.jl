@@ -55,7 +55,7 @@ end
 
 # taylorinteg
 function taylorinteg(f, x0::U, t0::T, tmax::T, order::Int, abstol::T, params = nothing;
-        maxsteps::Int=500, parse_eqs::Bool=true, dense::Bool=false) where {T<:Real, U<:Number}
+        maxsteps::Int=500, parse_eqs::Bool=true, dense::Bool=true) where {T<:Real, U<:Number}
 
     # Initialize the Taylor1 expansions
     t = t0 + Taylor1( T, order )
@@ -112,7 +112,7 @@ end
 
 
 function taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T, order::Int, abstol::T, params = nothing;
-        maxsteps::Int=500, parse_eqs::Bool=true, dense::Bool=false) where {T<:Real, U<:Number}
+        maxsteps::Int=500, parse_eqs::Bool=true, dense::Bool=true) where {T<:Real, U<:Number}
 
     # Initialize the vector of Taylor1 expansions
     dof = length(q0)
@@ -214,7 +214,7 @@ Currently, the recognized keyword arguments are:
 - `maxsteps[=500]`: maximum number of integration steps.
 - `parse_eqs[=true]`: use the specialized method of `jetcoeffs!` created
     with [`@taylorize`](@ref).
-- `dense[=false]`: output the Taylor polynomial expansion at each time step.
+- `dense[=true]`: output the Taylor polynomial expansion at each time step.
 
 ## Examples
 
