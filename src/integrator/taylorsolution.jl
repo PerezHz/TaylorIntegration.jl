@@ -45,22 +45,6 @@ struct TaylorSolution{T, U, N, VT<:AbstractVector{T}, AX<:AbstractArray{U,N},
             @assert length(tevents) == length(gresids)
         end
         !isnothing(λ) && @assert size(λ) == size(x)
-        Base.depwarn(
-            """Starting with TaylorIntegration v0.16.0, calls to `taylorinteg` and
-            `lyap_taylorinteg` will return an instance of type `TaylorSolution`
-            instead of returning a tuple. Backwards-compatibility can be obtained in some
-            cases by use of `taylorinteg_old` (see src/deprecated.jl). Otherwise, a
-            `TaylorSolution` variable can be destructured by doing e.g.
-
-                sol = taylorinteg(...) # `sol` isa `TaylorSolution`
-                tv, xv = sol.t, sol.x # no dense output
-                tv, xv, psol = sol.t, sol.x, sol.p # with dense output
-                tv, xv, tvS, xvS, gvS = sol.t, sol.x, sol.tevents, sol.xevents, sol.gresids # root-finding
-
-            This deprecation message will be deleted upon release of TaylorIntegration v0.16.0.
-            """,
-            :TaylorSolution,
-        )
         return new{T, U, N, VT, AX, P, VTE, AXE, VΛ}(t, x, p, tevents, xevents, gresids, λ)
     end
 end

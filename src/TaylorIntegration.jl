@@ -22,7 +22,6 @@ include("integrator/taylorinteg.jl")
 include("lyapunovspectrum.jl")
 include("rootfinding.jl")
 include("common.jl")
-include("deprecated.jl")
 
 function __init__()
 
