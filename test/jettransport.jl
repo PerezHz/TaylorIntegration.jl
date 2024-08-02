@@ -22,14 +22,17 @@ import Logging: Warn
         x0TN = x0 + p[1] #jet transport initial condition
         t0=0.0
         tmax=0.3
-        tvTN, xvTN = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        solTN = (@test_logs (Warn, max_iters_reached()) taylorinteg(
             f, x0TN, t0, tmax, _order, _abstol, maxsteps=1))
+        tvTN = solTN.t; xvTN = solTN.x
         @test size(tvTN) == (2,)
         @test size(xvTN) == (2,)
-        tvTN, xvTN = (@test_logs min_level=Logging.Warn taylorinteg(
+        solTN = (@test_logs min_level=Logging.Warn taylorinteg(
             f, x0TN, t0, tmax, _order, _abstol))
-        tv, xv = (@test_logs min_level=Logging.Warn taylorinteg(
+        tvTN = solTN.t; xvTN = solTN.x
+        sol = (@test_logs min_level=Logging.Warn taylorinteg(
             f, x0, t0, tmax, _order, _abstol))
+        tv = sol.t; xv = sol.x
         exactsol(t, x0, t0) = x0/(1.0-x0*(t-t0)) #the analytical solution
         δsol = exactsol(tvTN[end], x0TN, t0)-xvTN[end]
         δcoeffs = map(y->y[1], map(x->x.coeffs, δsol.coeffs))
@@ -43,9 +46,10 @@ import Logging: Warn
             disp = 0.001*rand() #a small, random displacement
             x0_disp = x0+disp
             dv = map(x->[disp], tvTN) #a vector of identical displacements
-            tv_disp, xv_disp = (@test_logs min_level=Logging.Warn taylorinteg(
+            sol_disp = (@test_logs min_level=Logging.Warn taylorinteg(
                 f, x0_disp, t0, tmax, _order, _abstol))
             xvTN_disp = evaluate.(xvTN, dv)
+            tv_disp = sol_disp.t; xv_disp = sol_disp.x
             @test norm(exactsol.(tvTN, x0_disp, t0)-xvTN_disp, Inf) < 1E-12 #analytical vs jet transport
             @test norm(x0_disp-evaluate(xvTN[1], [disp]), Inf) < 1E-12
             @test norm(xv_disp[1]-evaluate(xvTN[1], [disp]), Inf) < 1E-12
@@ -55,14 +59,17 @@ import Logging: Warn
         y0 = 1.0 #"nominal" initial condition
         u0 = 0.0 #initial time
         y0TN = y0 + p[1] #jet transport initial condition
-        uvTN, yvTN = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        solTN = (@test_logs (Warn, max_iters_reached()) taylorinteg(
             g, y0TN, u0, 10/0.3, _order, _abstol, maxsteps=1))
+        uvTN = solTN.t; yvTN = solTN.x
         @test size(uvTN) == (2,)
         @test size(yvTN) == (2,)
-        uvTN, yvTN = (@test_logs min_level=Logging.Warn taylorinteg(
+        solTN = (@test_logs min_level=Logging.Warn taylorinteg(
             g, y0TN, u0, 10/0.3, _order, _abstol))
-        uv, yv = (@test_logs min_level=Logging.Warn taylorinteg(
+        uvTN = solTN.t; yvTN = solTN.x
+        sol = (@test_logs min_level=Logging.Warn taylorinteg(
             g, y0, u0, 10/0.3, _order, _abstol))
+        uv = sol.t; yv = sol.x
         exactsol_g(u, y0, u0) = y0*exp(0.3(u-u0))
         δsol_g = exactsol_g(uvTN[end], y0TN, u0)-yvTN[end]
         δcoeffs_g = map(y->y[1], map(x->x.coeffs, δsol_g.coeffs))
@@ -76,8 +83,9 @@ import Logging: Warn
             disp = 0.001*rand() #a small, random displacement
             y0_disp = y0+disp
             dv = map(x->[disp], uvTN) #a vector of identical displacements
-            uv_disp, yv_disp = (@test_logs min_level=Logging.Warn taylorinteg(
+            sol_disp = (@test_logs min_level=Logging.Warn taylorinteg(
                 g, y0_disp, u0, 10/0.3, _order, _abstol))
+            uv_disp = sol_disp.t; yv_disp = sol_disp.x
             yvTN_disp = evaluate.(yvTN, dv)
             @test norm(exactsol_g.(uvTN, y0_disp, u0)-yvTN_disp, Inf) < 1E-9 #analytical vs jet transport
             @test norm(y0_disp-yvTN[1]([disp]), Inf) < 1E-9
@@ -92,14 +100,17 @@ import Logging: Warn
         x0T1 = x0 + p #jet transport initial condition
         t0 = 0.0
         tmax = 0.3
-        tvT1, xvT1 = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        solT1 = (@test_logs (Warn, max_iters_reached()) taylorinteg(
             f, x0T1, t0, tmax, _order, _abstol, maxsteps=1))
+        tvT1 = solT1.t; xvT1 = solT1.x
         @test size(tvT1) == (2,)
         @test size(xvT1) == (2,)
-        tvT1, xvT1 = (@test_logs min_level=Logging.Warn taylorinteg(
+        solT1 = (@test_logs min_level=Logging.Warn taylorinteg(
             f, x0T1, t0, tmax, _order, _abstol))
-        tv, xv = (@test_logs min_level=Logging.Warn taylorinteg(
+            tvT1 = solT1.t; xvT1 = solT1.x
+        sol = (@test_logs min_level=Logging.Warn taylorinteg(
             f, x0, t0, tmax, _order, _abstol))
+        tv = sol.t; xv = sol.x
         exactsol(t, x0, t0) = x0/(1.0-x0*(t-t0)) #the analytical solution
         δsol = exactsol(tvT1[end], x0T1, t0)-xvT1[end] #analytical vs jet transport diff at end of integration
         δcoeffs = δsol.coeffs
@@ -112,8 +123,9 @@ import Logging: Warn
         for i in 1:5
             disp = 0.001*rand() #a small, random displacement
             x0_disp = x0+disp
-            tv_disp, xv_disp = (@test_logs min_level=Logging.Warn taylorinteg(
+            sol_disp = (@test_logs min_level=Logging.Warn taylorinteg(
                 f, x0_disp, t0, tmax, _order, _abstol))
+            tv_disp = sol_disp.t; xv_disp = sol_disp.x
             xvT1_disp = evaluate.(xvT1, disp)
             @test norm(exactsol.(tvT1, x0_disp, t0)-xvT1_disp, Inf) < 1E-12 #analytical vs jet transport
             @test norm(x0_disp-evaluate(xvT1[1], disp), Inf) < 1E-12
@@ -124,15 +136,17 @@ import Logging: Warn
         y0 = 1.0 #"nominal" initial condition
         u0 = 0.0 #initial time
         y0T1 = y0 + p #jet transport initial condition
-        uvT1, yvT1 = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        solT1 = (@test_logs (Warn, max_iters_reached()) taylorinteg(
             g, y0T1, t0, 10/0.3, _order, _abstol, maxsteps=1)) #warmup lap
         # test maxsteps break
-        @test size(uvT1) == (2,)
-        @test size(yvT1) == (2,)
-        uvT1, yvT1 = (@test_logs min_level=Logging.Warn taylorinteg(
+        @test size(solT1.t) == (2,)
+        @test size(solT1.x) == (2,)
+        solT1 = (@test_logs min_level=Logging.Warn taylorinteg(
             g, y0T1, t0, 10/0.3, _order, _abstol)) #Taylor1 jet transport integration
-        uv, yv = (@test_logs min_level=Logging.Warn taylorinteg(
+        uvT1 = solT1.t; yvT1 = solT1.x
+        sol = (@test_logs min_level=Logging.Warn taylorinteg(
             g, y0, t0, 10/0.3, _order, _abstol)) #reference integration
+        uv = sol.t; yv = sol.x
         exactsol_g(u, y0, u0) = y0*exp(0.3(u-u0))  #the analytical solution
         δsol_g = exactsol_g(uvT1[end], y0T1, t0)-yvT1[end] #analytical vs jet transport diff at end of integration
         δcoeffs_g = δsol_g.coeffs
@@ -145,8 +159,9 @@ import Logging: Warn
         for i in 1:5
             disp = 0.001*rand() #a small, random displacement
             y0_disp = y0+disp
-            uv_disp, yv_disp = (@test_logs min_level=Logging.Warn taylorinteg(
+            sol_disp = (@test_logs min_level=Logging.Warn taylorinteg(
                 g, y0_disp, u0, 10/0.3, _order, _abstol))
+            uv_disp = sol_disp.t; yv_disp = sol_disp.x
             yvT1_disp = evaluate.(yvT1, disp)
             @test norm(exactsol_g.(uvT1, y0_disp, u0)-yvT1_disp, Inf) < 1E-9 #analytical vs jet transport
             @test norm(y0_disp-evaluate(yvT1[1], disp), Inf) < 1E-9
@@ -162,25 +177,25 @@ import Logging: Warn
         tv = 0.0:0.05:0.33
         xvT1 = (@test_logs (Warn, max_iters_reached()) taylorinteg(
             f, x0T1, tv, _order, _abstol, maxsteps=1))
-        @test size(xvT1) == (7,)
+        @test size(xvT1.x) == (7,)
         ta = vec(tv)
         xvT1 = (@test_logs (Warn, max_iters_reached()) taylorinteg(
             f, x0T1, ta, _order, _abstol, maxsteps=1))
-        @test size(xvT1) == (7,)
+        @test size(xvT1.x) == (7,)
         xvT1 = (@test_logs min_level=Logging.Warn taylorinteg(
             f, x0T1, tv, _order, _abstol))
         xvT11 = (@test_logs min_level=Logging.Warn taylorinteg(
             f, x0T1, ta, _order, _abstol))
-        @test xvT11 == xvT1
+        @test xvT11.x == xvT1.x
         xv = (@test_logs min_level=Logging.Warn taylorinteg(
             f, x0, tv, _order, _abstol))
         exactsol(t, x0, t0) = x0/(1.0-x0*(t-t0)) #the analytical solution
-        δsol = exactsol(tv[end], x0T1, tv[1])-xvT1[end]
+        δsol = exactsol(tv[end], x0T1, tv[1])-xvT1.x[end]
         δcoeffs = δsol.coeffs
-        @test length(tv) == length(xvT1)
+        @test length(tv) == length(xvT1.x)
         @test isapprox(δcoeffs, zeros(6), atol=1e-10, rtol=0)
         xv_analytical = exactsol.(tv, x0, tv[1])
-        xvT1_0 = xvT1.()
+        xvT1_0 = xvT1.x.()
         @test isapprox(xv_analytical, xvT1_0, atol=1e-10, rtol=0)
         for i in 1:5
             disp = 0.001*rand() #a small, random displacement
@@ -188,10 +203,10 @@ import Logging: Warn
                 f, x0+disp, tv, _order, _abstol))
             xv_disp2 = (@test_logs min_level=Logging.Warn taylorinteg(
                 f, x0+disp, ta, _order, _abstol))
-            @test xv_disp == xv_disp2
-            xvT1_disp = xvT1.(disp)
+            @test xv_disp.x == xv_disp2.x
+            xvT1_disp = xvT1.x.(disp)
             @test norm(exactsol.(tv, x0+disp, tv[1])-xvT1_disp, Inf) < 1E-12 #analytical vs jet transport
-            @test norm(xv_disp-xvT1_disp, Inf) < 1E-12 # integration vs jet transport
+            @test norm(xv_disp.x-xvT1_disp, Inf) < 1E-12 # integration vs jet transport
         end
 
         y0 = 1.0 #"nominal" initial condition
@@ -199,26 +214,26 @@ import Logging: Warn
         uv = 0.0:1/0.3:10/0.3
         yvT1 = (@test_logs (Warn, max_iters_reached()) taylorinteg(
             g, y0T1, uv, _order, _abstol, maxsteps=1))
-        @test size(yvT1) == (11,)
+        @test size(yvT1.x) == (11,)
         yvT1 = (@test_logs min_level=Logging.Warn taylorinteg(
             g, y0T1, uv, _order, _abstol))
         yv = (@test_logs min_level=Logging.Warn taylorinteg(
             g, y0, uv, _order, _abstol))
         exactsol_g(u, y0, u0) = y0*exp(0.3(u-u0))
-        δsol_g = exactsol_g(uv[end], y0T1, uv[1])-yvT1[end]
+        δsol_g = exactsol_g(uv[end], y0T1, uv[1])-yvT1.x[end]
         δcoeffs_g = δsol_g.coeffs
-        @test length(uv) == length(yvT1)
+        @test length(uv) == length(yvT1.x)
         @test isapprox(δcoeffs_g, zeros(6), atol=1e-10, rtol=0)
         yv_analytical = exactsol_g.(uv, y0, uv[1])
-        yvT1_0 = evaluate.(yvT1)
+        yvT1_0 = evaluate.(yvT1.x)
         @test isapprox(yv_analytical, yvT1_0, atol=1e-10, rtol=0)
         for i in 1:5
             disp = 0.001*rand() #a small, random displacement
-            yv_disp = (@test_logs min_level=Logging.Warn taylorinteg(
+            sol_disp = (@test_logs min_level=Logging.Warn taylorinteg(
                 g, y0+disp, uv, _order, _abstol))
-            yvT1_disp = evaluate.(yvT1, disp)
+            yvT1_disp = evaluate.(yvT1.x, disp)
             @test norm(exactsol_g.(uv, y0+disp, uv[1])-yvT1_disp, Inf) < 1E-9 #analytical vs jet transport
-            @test norm(yv_disp-yvT1_disp, Inf) < 1E-9 # integration vs jet transport
+            @test norm(sol_disp.x-yvT1_disp, Inf) < 1E-9 # integration vs jet transport
         end
     end
 
@@ -229,16 +244,17 @@ import Logging: Warn
         tv = 0.0:0.05:0.33
         xvTN = (@test_logs (Warn, max_iters_reached()) taylorinteg(
             f, x0TN, tv, _order, _abstol, maxsteps=1))
-        @test size(xvTN) == (7,)
+        @test size(xvTN.x) == (7,)
         ta = vec(tv)
         xvTN = (@test_logs (Warn, max_iters_reached()) taylorinteg(
             f, x0TN, ta, _order, _abstol, maxsteps=1))
-        @test size(xvTN) == (7,)
-        xvTN = (@test_logs min_level=Logging.Warn taylorinteg(
+        @test size(xvTN.x) == (7,)
+        solTN = (@test_logs min_level=Logging.Warn taylorinteg(
             f, x0TN, tv, _order, _abstol))
-        xvTN_ = (@test_logs min_level=Logging.Warn taylorinteg(
+        xvTN = solTN.x
+        solTN_ = (@test_logs min_level=Logging.Warn taylorinteg(
             f, x0TN, ta, _order, _abstol))
-        @test xvTN == xvTN_
+        @test xvTN == solTN_.x
         xv = (@test_logs min_level=Logging.Warn taylorinteg(
             f, x0, tv, _order, _abstol))
         exactsol(t, x0, t0) = x0/(1.0-x0*(t-t0)) #the analytical solution
@@ -252,24 +268,25 @@ import Logging: Warn
         for i in 1:5
             disp = 0.001*rand() #a small, random displacement
             dv = map(x->[disp], tv) #a vector of identical displacements
-            xv_disp = (@test_logs min_level=Logging.Warn taylorinteg(
+            sol_disp = (@test_logs min_level=Logging.Warn taylorinteg(
                 f, x0+disp, tv, _order, _abstol))
-            xv_disp_ = (@test_logs min_level=Logging.Warn taylorinteg(
+            sol_disp_ = (@test_logs min_level=Logging.Warn taylorinteg(
                 f, x0+disp, ta, _order, _abstol))
-            @test xv_disp == xv_disp_
+            @test sol_disp.x == sol_disp_.x
             xvTN_disp = evaluate.(xvTN, dv)
             @test norm(exactsol.(tv, x0+disp, tv[1])-xvTN_disp, Inf) < 1E-12 #analytical vs jet transport
-            @test norm(xv_disp-xvTN_disp, Inf) < 1E-12 # integration vs jet transport
+            @test norm(sol_disp.x-xvTN_disp, Inf) < 1E-12 # integration vs jet transport
         end
 
         y0 = 1.0 #"nominal" initial condition
         y0TN = y0 + p[1] #jet transport initial condition
         uv = 0.0:1/0.3:10/0.3
-        yvTN = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        solTN = (@test_logs (Warn, max_iters_reached()) taylorinteg(
             g, y0TN, uv, _order, _abstol, maxsteps=1))
-        @test size(yvTN) == (11,)
-        yvTN = (@test_logs min_level=Logging.Warn taylorinteg(
+        @test size(solTN.x) == (11,)
+        solTN = (@test_logs min_level=Logging.Warn taylorinteg(
             g, y0TN, uv, _order, _abstol))
+        yvTN = solTN.x
         yv = (@test_logs min_level=Logging.Warn taylorinteg(
             g, y0, uv, _order, _abstol))
         exactsol_g(u, y0, u0) = y0*exp(0.3(u-u0))
@@ -283,11 +300,11 @@ import Logging: Warn
         for i in 1:5
             disp = 0.001*rand() #a small, random displacement
             dv = map(x->[disp], uv) #a vector of identical displacements
-            yv_disp = (@test_logs min_level=Logging.Warn taylorinteg(
+            sol_disp = (@test_logs min_level=Logging.Warn taylorinteg(
                 g, y0+disp, uv, _order, _abstol))
             yvTN_disp = evaluate.(yvTN, dv)
             @test norm(exactsol_g.(uv, y0+disp, uv[1])-yvTN_disp, Inf) < 1E-9 #analytical vs jet transport
-            @test norm(yv_disp-yvTN_disp, Inf) < 1E-9 # integration vs jet transport
+            @test norm(sol_disp.x-yvTN_disp, Inf) < 1E-9 # integration vs jet transport
         end
     end
 
@@ -304,12 +321,14 @@ import Logging: Warn
             ω0 = 1.0
             x0 = [0.0,ω0,ω0]
             x0T1 = x0+[0t,t,t]
-            tv1, xv1 = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+            sol1 = (@test_logs (Warn, max_iters_reached()) taylorinteg(
                 harmosc!, x0T1, 0.0, 100pi, _order, _abstol, maxsteps=1))
+            tv1 = sol1.t; xv1 = sol1.x
             @test size(tv1) == (2,)
             @test size(xv1) == (2, 3)
-            tv1, xv1 = (@test_logs min_level=Logging.Warn taylorinteg(
+            sol1 = (@test_logs min_level=Logging.Warn taylorinteg(
                 harmosc!, x0T1, 0.0, 100pi, _order, _abstol, maxsteps=2000))
+            tv1 = sol1.t; xv1 = sol1.x
             y0 = evaluate.(xv1)
             x1(t,δω) = sin((ω0+δω)*t)
             x2(t,δω) = (ω0+δω)*cos((ω0+δω)*t)
@@ -318,8 +337,9 @@ import Logging: Warn
             for i in 1:5
                 δω=0.001*rand()
                 x0_disp = x0+[0.0,δω,δω]
-                tv, xv = (@test_logs min_level=Logging.Warn taylorinteg(
+                sol = (@test_logs min_level=Logging.Warn taylorinteg(
                     harmosc!, x0_disp, 0.0, 100pi, _order, _abstol, maxsteps=2000))
+                tv = sol.t; xv = sol.x
                 y1 = evaluate.(xv1, δω)
                 @test norm(y1[:,1]-x1.(tv1,δω),Inf) < 1E-11
                 @test norm(y1[:,2]-x2.(tv1,δω),Inf) < 1E-11
@@ -335,19 +355,23 @@ import Logging: Warn
             x0 = [0.0,ω0,ω0]
             x0T1 = x0+[0t,t,t]
             tv = 0.0:0.25*(2pi):100pi
-            xv1 = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+            sol1 = (@test_logs (Warn, max_iters_reached()) taylorinteg(
                 harmosc!, x0T1, tv, _order, _abstol, maxsteps=1))
+            xv1 = sol1.x
             @test length(tv) == 201
             @test size(xv1) == (201, 3)
             ta = vec(tv)
-            xv1 = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+            sol1 = (@test_logs (Warn, max_iters_reached()) taylorinteg(
                 harmosc!, x0T1, ta, _order, _abstol, maxsteps=1))
+            xv1 = sol1.x
             @test length(ta) == 201
             @test size(xv1) == (201, 3)
-            xv1 = (@test_logs min_level=Logging.Warn taylorinteg(
+            sol1 = (@test_logs min_level=Logging.Warn taylorinteg(
                 harmosc!, x0T1, tv, _order, _abstol, maxsteps=2000))
-            xv1_ = (@test_logs min_level=Logging.Warn taylorinteg(
+            xv1 = sol1.x
+            sol1_ = (@test_logs min_level=Logging.Warn taylorinteg(
                 harmosc!, x0T1, ta, _order, _abstol, maxsteps=2000))
+            xv1_ = sol1_.x
             @test xv1 == xv1_
             y0 = evaluate.(xv1)
             x1(t,δω) = sin((ω0+δω)*t)
@@ -357,10 +381,12 @@ import Logging: Warn
             for i in 1:5
                 δω=0.001*rand()
                 x0_disp = x0+[0.0,δω,δω]
-                xv = (@test_logs min_level=Logging.Warn taylorinteg(
+                sol = (@test_logs min_level=Logging.Warn taylorinteg(
                     harmosc!, x0_disp, tv, _order, _abstol, maxsteps=2000))
-                xv_ = (@test_logs min_level=Logging.Warn taylorinteg(
+                xv = sol.x
+                sol_ = (@test_logs min_level=Logging.Warn taylorinteg(
                     harmosc!, x0_disp, ta, _order, _abstol, maxsteps=2000))
+                xv_ = sol_.x
                 @test xv == xv_
                 y1 = evaluate.(xv1, δω)
                 @test norm(y1[:,1]-x1.(tv,δω), Inf) < 1E-11
@@ -381,14 +407,17 @@ import Logging: Warn
             p = set_variables("ξ", numvars=2, order=5)
             x0 = [-1.0,0.45]
             x0TN = x0 + p
-            tvTN, xvTN = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+            solTN = (@test_logs (Warn, max_iters_reached()) taylorinteg(
                 harmosc!, x0TN, 0.0, 10pi, _order, _abstol, maxsteps=1))
+            tvTN = solTN.t; xvTN = solTN.x
             @test length(tvTN) == 2
             @test size(xvTN) == (length(tvTN), length(x0TN))
-            tvTN, xvTN = (@test_logs min_level=Logging.Warn taylorinteg(
+            solTN = (@test_logs min_level=Logging.Warn taylorinteg(
                 harmosc!, x0TN, 0.0, 10pi, _order, _abstol))
-            tv , xv = (@test_logs min_level=Logging.Warn taylorinteg(
+            tvTN = solTN.t; xvTN = solTN.x
+            sol = (@test_logs min_level=Logging.Warn taylorinteg(
                 harmosc!, x0  , 0.0, 10pi, _order, _abstol))
+            tv = sol.t; xv = sol.x
             x_analyticsol(t,x0,p0) = p0*sin(t)+x0*cos(t)
             p_analyticsol(t,x0,p0) = p0*cos(t)-x0*sin(t)
             x_δsol = x_analyticsol(tvTN[end], x0TN[1], x0TN[2])-xvTN[end,1]
@@ -428,17 +457,20 @@ import Logging: Warn
         #the time range
         tr = t0:integstep:tmax;
         #xv is the solution vector representing the propagation of the initial condition q0 propagated until time T
-        xv = (@test_logs min_level=Logging.Warn taylorinteg(
+        sol = (@test_logs min_level=Logging.Warn taylorinteg(
             pendulum!, q0, tr, _order, _abstol, maxsteps=100))
+        xv = sol.x
         #xvTN is the solution vector representing the propagation of the initial condition q0 plus variations (ξ₁,ξ₂) propagated until time T
         #note that q0 is a Vector{Float64}, but q0TN is a Vector{TaylorN{Float64}}
         #but apart from that difference, we're calling `taylorinteg` essentially with the same parameters!
         #thus, jet transport is reduced to a beautiful application of Julia's multiple dispatch!
-        xvTN = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        solTN = (@test_logs (Warn, max_iters_reached()) taylorinteg(
             pendulum!, q0TN, tr, _order, _abstol, maxsteps=1))
+        xvTN = solTN.x
         @test size(xvTN) == (5,2)
-        xvTN = (@test_logs min_level=Logging.Warn taylorinteg(
+        solTN = (@test_logs min_level=Logging.Warn taylorinteg(
             pendulum!, q0TN, tr, _order, _abstol, maxsteps=100))
+        xvTN = solTN.x
 
         xvTN_0 = map( x->evaluate(x, [0.0, 0.0]), xvTN ) # the jet evaluated at the nominal solution
 
@@ -446,8 +478,9 @@ import Logging: Warn
         @test isapprox(xv, xvTN_0) #nominal solution must coincide with jet evaluated at ξ=(0,0)
 
         #testing another jet transport method:
-        tv, xv = (@test_logs min_level=Logging.Warn taylorinteg(
+        sol = (@test_logs min_level=Logging.Warn taylorinteg(
             pendulum!, q0, t0, tmax, _order, _abstol, maxsteps=100))
+        tv = sol.t; xv = sol.x
         @test isapprox(xv[1,:], xvTN_0[1,:]) #nominal solution must coincide with jet evaluated at ξ=(0,0) at initial time
         @test isapprox(xv[end,:], xvTN_0[end,:]) #nominal solution must coincide with jet evaluated at ξ=(0,0) at final time
 
@@ -455,8 +488,9 @@ import Logging: Warn
         disp = 0.0001 #works even with 0.001, but we're giving it some margin
 
         #compare the jet solution evaluated at various variation vectors ξ, wrt to full solution, at each time evaluation point
-        xv_disp = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        sol_disp = (@test_logs (Warn, max_iters_reached()) taylorinteg(
             pendulum!, q0+[disp,0.0], tr, _order, _abstol, maxsteps=1))
+        xv_disp = sol_disp.x
         @test size(xv_disp) == (5,2)
         for i in 1:10
             # generate a random angle
@@ -464,12 +498,12 @@ import Logging: Warn
             # generate a random point on a circumference of radius disp
             ξ = disp*[cos(ϕ), sin(ϕ)]
             #propagate in time full solution with initial condition q0+ξ
-            xv_disp = (@test_logs min_level=Logging.Warn taylorinteg(
+            sol_disp = (@test_logs min_level=Logging.Warn taylorinteg(
                 pendulum!, q0+ξ, tr, _order, _abstol, maxsteps=100))
             #evaluate jet at q0+ξ
             xvTN_disp = map( x->evaluate(x, ξ), xvTN )
             #the propagated exact solution at q0+ξ should be approximately equal to the propagated jet solution evaluated at the same point:
-            @test isapprox( xvTN_disp, xv_disp )
+            @test isapprox( xvTN_disp, sol_disp.x )
         end
     end
 end

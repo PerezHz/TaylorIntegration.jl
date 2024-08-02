@@ -34,16 +34,20 @@ import Logging: Warn
         δt = (_abstol/q0T[1].coeffs[end-1])^inv(_order-1)
         @test TaylorIntegration.stepsize(q0T, _abstol) == δt
 
-        tv, xv = (@test_logs (Warn, max_iters_reached()) taylorinteg(
-            eqs_mov!, q0, 0.0, 0.5, _order, _abstol, nothing))
+        sol = @test_logs((Warn, max_iters_reached()),
+            @inferred(TaylorSolution{Float64, Float64, 2},
+                taylorinteg(eqs_mov!, q0, 0.0, 0.5, _order, _abstol, nothing)))
+        @test_throws ErrorException sol(0.25)
+        tv = sol.t; xv = sol.x
         @test length(tv) == 501
         @test isa(xv, SubArray)
         @test xv[1,:] == q0
         @test tv[end] < 1/3
 
         trange = 0.0:1/8:1.0
-        xv = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        sol = (@test_logs (Warn, max_iters_reached()) taylorinteg(
             eqs_mov!, q0, trange, _order, _abstol))
+        xv = sol.x
         @test size(xv) == (9,2)
         @test q0 == [3.0, 1.0]
         @test typeof(xv) == Transpose{Float64, Array{Float64,2}}
@@ -54,8 +58,9 @@ import Logging: Warn
         @test abs(xv[2,1] - 4.8) ≤ eps(4.8)
 
         tarray = vec(trange)
-        xv2 = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        sol2 = (@test_logs (Warn, max_iters_reached()) taylorinteg(
             eqs_mov!, q0, tarray, _order, _abstol, nothing))
+        xv2 = sol2.x
         @test xv[1:3,:] == xv2[1:3,:]
         @test xv2[1:3,:] ≈ xv[1:3,:] atol=eps() rtol=0.0
         @test size(xv2) == (9,2)
@@ -68,8 +73,9 @@ import Logging: Warn
         @test abs(xv2[2,1] - 4.8) ≤ eps(4.8)
 
         # Output includes Taylor polynomial solution
-        tv, xv, psol = (@test_logs (Warn, max_iters_reached()) taylorinteg(
-            eqs_mov!, q0, 0, 0.5, _order, _abstol, Val(true), nothing, maxsteps=2))
+        sol = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+            eqs_mov!, q0, 0, 0.5, _order, _abstol, nothing, dense=true, maxsteps=2))
+        tv = sol.t; xv = sol.x; psol = sol.p
         @test size(psol) == (2, 2)
         @test xv[1,:] == q0
         @test xv[2,:] == evaluate.(psol[1, :], tv[2]-tv[1])
@@ -88,8 +94,9 @@ import Logging: Warn
 
         q0 = [3.0, 3.0]
         tmax = 0.3
-        tv, xv = (@test_logs min_level=Logging.Warn taylorinteg(
+        sol = (@test_logs min_level=Logging.Warn taylorinteg(
             eqs_mov!, q0, 0, tmax, _order, _abstol, nothing))
+        tv = sol.t; xv = sol.x
         @test length(tv) < 501
         @test length(xv[:,1]) < 501
         @test length(xv[:,2]) < 501
@@ -104,8 +111,9 @@ import Logging: Warn
         @test abs(xv[end,2]-exactsol(tv[end], xv[1,2])) < 5e-14
 
         tmax = 0.33
-        tv, xv = (@test_logs min_level=Logging.Warn taylorinteg(
+        sol = (@test_logs min_level=Logging.Warn taylorinteg(
             eqs_mov!, [3, 3], 0.0, tmax, _order, _abstol))
+        tv = sol.t; xv = sol.x
         @test length(tv) < 501
         @test length(xv[:,1]) < 501
         @test length(xv[:,2]) < 501
@@ -120,10 +128,12 @@ import Logging: Warn
         @test abs(xv[end,2]-exactsol(tv[end], xv[1,2])) < 1.0e-11
 
         # Output includes Taylor polynomial solution
-        tv, xv, psol = taylorinteg(eqs_mov!, q0, 0, tmax, _order, _abstol, Val(true), nothing)
+        sol = taylorinteg(eqs_mov!, q0, 0, tmax, _order, _abstol, nothing, dense=true)
+        tv = sol.t; xv = sol.x; psol = sol.p
         @test size(psol) == ( size(xv, 1)-1, size(xv, 2) )
         @test psol[1,:] == fill(Taylor1([3.0^i for i in 1:_order+1]), 2)
         @test xv[end,1] == evaluate.(psol[end, 1], tv[end]-tv[end-1])
+        @test xv[end,:] == sol(tv[end])
         @test psol[:,1] == psol[:,2]
     end
 
@@ -139,8 +149,9 @@ import Logging: Warn
         order = 25
         x0 = [t0, 0.0] #initial conditions such that x(t)=sin(t)
 
-        tv, xv = (@test_logs min_level=Logging.Warn taylorinteg(
+        sol = (@test_logs min_level=Logging.Warn taylorinteg(
             f!, x0, t0, tmax, order, abstol))
+        tv = sol.t; xv = sol.x
         @test length(tv) < 501
         @test length(xv[:,1]) < 501
         @test length(xv[:,2]) < 501
@@ -150,8 +161,9 @@ import Logging: Warn
         @test abs(sin(tmax)-xv[end,2]) < 1e-14
 
         # Backward integration
-        tb, xb = (@test_logs min_level=Logging.Warn taylorinteg(
-            f!, [tmax, sin(tmax)], tmax, t0, order, abstol))
+        solb = (@test_logs min_level=Logging.Warn taylorinteg(
+            f!, [tmax, sin(tmax)], tmax, t0, order, abstol, dense=true))
+        tb = solb.t; xb = solb.x
         @test length(tb) < 501
         @test length(xb[:,1]) < 501
         @test length(xb[:,2]) < 501
@@ -159,20 +171,27 @@ import Logging: Warn
         @test xb[1,1:end] == [tmax, sin(tmax)]
         @test tb[end] == xb[end,1]
         @test abs(sin(t0)-xb[end,2]) < 5e-14
+        @test solb(tmax) == [tmax, sin(tmax)]
+        @test solb(x0[1]) == xb[end,:]
+        tmidT = (tmax+t0)/2 + Taylor1(order)
+        @test solb(tmidT)[1] == tmidT
+        @test norm(solb(tmidT)[2] - sin(tmidT), Inf) < 1e-13
 
         # Tests with a range, for comparison with backward integration
         tmax = 15*(2pi)
         Δt = (tmax-t0)/1024
         tspan = t0:Δt:tmax
-        xv = (@test_logs min_level=Logging.Warn taylorinteg(
+        sol = (@test_logs min_level=Logging.Warn taylorinteg(
             f!, x0, tspan, order, abstol, nothing))
+        xv = sol.x
         @test xv[1,1:end] == x0
         @test tmax == xv[end,1]
         @test abs(sin(tmax)-xv[end,2]) < 1e-14
 
         # Backward integration
-        xback = (@test_logs min_level=Logging.Warn taylorinteg(
+        solback = (@test_logs min_level=Logging.Warn taylorinteg(
             f!, xv[end, :], reverse(tspan), order, abstol, nothing))
+        xback = solback.x
         @test xback[1,:] == xv[end, :]
         @test abs(xback[end,1]-x0[1]) < 5.0e-14
         @test abs(xback[end,2]-x0[2]) < 5.0e-14
@@ -195,8 +214,9 @@ import Logging: Warn
         abstol = 1e-20
         order = 10
         x0 = [10.0, 0.0] #initial conditions such that x(t)=sin(t)
-        tv, xv = (@test_logs min_level=Logging.Warn taylorinteg(
+        sol = (@test_logs min_level=Logging.Warn taylorinteg(
             fallball!, x0, t0, tmax, order, abstol))
+        tv = sol.t; xv = sol.x
         @test length(tv) < 501
         @test length(xv[:,1]) < 501
         @test exactsol.(tv, x0[1], x0[2]) ≈ xv[:,1]
