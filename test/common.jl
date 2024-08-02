@@ -149,14 +149,14 @@ import Logging: Warn
         tspan = (0.0, 10pi)
         (@test_logs (Warn, max_iters_reached()) taylorinteg(kepler1!, q0, tspan[1], tspan[2], order, abstol,
             dense=true, maxsteps=1))
-        @time solp = taylorinteg(kepler1!, q0, tspan[1], tspan[2], order, abstol,
+        solp = taylorinteg(kepler1!, q0, tspan[1], tspan[2], order, abstol,
             dense=true, maxsteps=2000)
         tvp, xvp, psolp = solp.t, solp.x, solp.p
         prob = ODEProblem(kepler1!, q0, tspan)
         @test isinplace(prob) == true
         sol1 = solve(prob, TaylorMethod(order), abstol=abstol, maxiters=2000, parse_eqs=false)
         (@test_logs (Warn, larger_maxiters_needed()) solve(prob, TaylorMethod(order), abstol=abstol, maxiters=1))
-        @time sol2 = solve(prob, TaylorMethod(order), abstol=abstol, maxiters=2000)
+        sol2 = solve(prob, TaylorMethod(order), abstol=abstol, maxiters=2000)
         @test sol1.alg.parse_eqs == false
         @test sol2.alg.parse_eqs == true
         @test tvp == sol2.t
@@ -170,13 +170,13 @@ import Logging: Warn
 
         (@test_logs (Warn, max_iters_reached()) taylorinteg(kepler1!, q0TN, tspan[1], tspan[2], order, abstol,
             dense = true, maxsteps=1))
-        @time solTN = taylorinteg(kepler1!, q0TN, tspan[1], tspan[2], order, abstol,
+        solTN = taylorinteg(kepler1!, q0TN, tspan[1], tspan[2], order, abstol,
             dense = true, maxsteps=2000)
         tTN, xTN, psolTN = solTN.t, solTN.x, solTN.p
 
         probTN = ODEProblem(kepler1!, q0TN, tspan)
         (@test_logs (Warn,larger_maxiters_needed()) solve(probTN, TaylorMethod(order), abstol=abstol, parse_eqs=true, dense=true, maxiters=1))
-        @time sol2TN = solve(probTN, TaylorMethod(order), abstol=abstol, parse_eqs=true, dense=true, maxiters=2000)
+        sol2TN = solve(probTN, TaylorMethod(order), abstol=abstol, parse_eqs=true, dense=true, maxiters=2000)
         @test sol2TN.alg.parse_eqs == true
         @test DiffEqBase.interp_summary(sol2TN.interp) == "Taylor series polynomial evaluation"
         @test size(xTN) == size(Array(sol2TN)')
