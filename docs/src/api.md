@@ -16,6 +16,12 @@ ADSDomain
 ADSBinaryNode
 ```
 
+## Exported types
+
+```@docs
+TaylorSolution
+```
+
 ## Internal
 
 ```@autodocs

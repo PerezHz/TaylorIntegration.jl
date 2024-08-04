@@ -1,7 +1,7 @@
 name = "TaylorIntegration"
 uuid = "92b13dbe-c966-51a2-8445-caca9f8a7d42"
 repo = "https://github.com/PerezHz/TaylorIntegration.jl.git"
-version = "0.15.2"
+version = "0.16.0"
 
 [deps]
 AbstractTrees = "1520ce14-60c1-5f80-bbc7-55ef81b5835c"
@@ -21,7 +21,7 @@ TaylorSeries = "6aa5eb33-94cf-58f4-a9d0-e4b2c4fc25ea"
 OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
 
 [extensions]
-TaylorIntegrationDiffEq = "OrdinaryDiffEq"
+TaylorIntegrationDiffEqExt = "OrdinaryDiffEq"
 
 [compat]
 AbstractTrees = "0.4"
@@ -42,7 +42,7 @@ RecursiveArrayTools = "2, 3"
 Reexport = "1"
 Requires = "1"
 StaticArrays = "0.12.5, 1"
-TaylorSeries = "0.17"
+TaylorSeries = "0.18"
 Test = "<0.0.1, 1"
 julia = "1.6"
 

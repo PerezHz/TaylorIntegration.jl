@@ -74,7 +74,8 @@ We now perform the integration, using a 25 order expansion and
 absolute tolerance of ``10^{-20}``.
 ```@example kepler
 using TaylorIntegration, Plots
-t, q = taylorinteg(kepler_eqs!, q0, 0.0, 10000*2pi, 25, 1.0e-20, maxsteps=700_000);
+sol = taylorinteg(kepler_eqs!, q0, 0.0, 10000*2pi, 25, 1.0e-20, maxsteps=700_000);
+t, q = sol.t, sol.x;
 t[end], q[end,:]
 ```
 

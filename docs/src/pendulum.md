@@ -103,7 +103,7 @@ We perform the Taylor integration using the initial condition `x0TN`, during
 6 periods of the pendulum (i.e., ``6T``), exploiting multiple dispatch:
 ```@example pendulum
 tv = t0:integstep:tmax # the times at which the solution will be evaluated
-xv = taylorinteg(pendulum!, q0TN, tv, order, abstol)
+sol = taylorinteg(pendulum!, q0TN, tv, order, abstol)
 nothing # hide
 ```
 
@@ -128,19 +128,19 @@ nothing # hide
 ```
 
 We evaluate the jet at ``\partial U_{x(t)}`` (the boundary of ``U_{x(t)}``) at each
-value of the solution vector `xv`; we organize these values such that we can plot
+value of the solution array `sol.x`; we organize these values such that we can plot
 them later:
 ```@example pendulum
-xjet_plot = map(λ->λ.(ξv), xv[:,1])
-pjet_plot = map(λ->λ.(ξv), xv[:,2])
+xjet_plot = map(λ->λ.(ξv), sol.x[:,1])
+pjet_plot = map(λ->λ.(ξv), sol.x[:,2])
 nothing # hide
 ```
 Above, we have exploited the fact that `Array{TaylorN{Float64}}` variables are
 callable objects. Now, we evaluate the jet at the nominal solution, which
-corresponds to ``\xi=(0,0)``, at each value of the solution vector `xv`:
+corresponds to ``\xi=(0,0)``, at each value of the solution vector `sol.x`:
 ```@example pendulum
-x_nom = xv[:,1]()
-p_nom = xv[:,2]()
+x_nom = sol.x[:,1]()
+p_nom = sol.x[:,2]()
 nothing # hide
 ```
 

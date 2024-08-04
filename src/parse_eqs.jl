@@ -46,13 +46,15 @@ end
 
 
 """
-    RetAlloc{Taylor1{T}}
+    RetAlloc{T <: Number}
 
 Struct related to the returned variables that are pre-allocated when
 `@taylorize` is used.
-    - `v0`   : Vector{Taylor1{T}}
-    - `v1`   : Vector{Vector{Taylor1{T}}}
-
+    - `v0`   : Array{T,1}
+    - `v1`   : Vector{Array{T,1}}
+    - `v2`   : Vector{Array{T,2}}
+    - `v3`   : Vector{Array{T,3}}
+    - `v4`   : Vector{Array{T,4}}
 """
 struct RetAlloc{T <: Number}
     v0 :: Array{T,1}
@@ -148,7 +150,7 @@ function _make_parsed_jetcoeffs(ex::Expr)
     new_jetcoeffs, new_allocjetcoeffs = _newhead(fn, fnargs)
 
     # Transform the graph representation of the body of the functions:
-    # defspreamble: inicializations used for the zeroth order (preamble)
+    # defspreamble: initializations used for the zeroth order (preamble)
     # defsprealloc: definitions (declarations) of auxiliary Taylor1's
     # fnbody: transformed function body, using mutating functions from TaylorSeries;
     #         used later within the recursion loop
@@ -156,17 +158,17 @@ function _make_parsed_jetcoeffs(ex::Expr)
     defspreamble, defsprealloc, fnbody, bkkeep = _preamble_body(fnbody, fnargs)
 
     # Create body of recursion loop; temporary assignements may be needed.
-    # rec_preamb: recursion loop for the preamble (first order correction)
-    # rec_fnbody: recursion loop for the body-function (recursion loop for higher orders)
-    rec_preamb, rec_fnbody = _recursionloop(fnargs, bkkeep)
+    # rec_fnbody: recursion loop for the body-function (recursion loop for all orders)
+    rec_fnbody = _recursionloop(fnargs, bkkeep)
 
     # Expr for the for-loop block for the recursion (of the `x` variable)
-    forloopblock = Expr(:for, :(ord = 1:order-1), Expr(:block, :(ordnext = ord + 1)) )
-    # Add rec_fnbody to forloopblock
+    forloopblock = Expr(:for, :(ord = 0:order-1), Expr(:block, :(ordnext = ord + 1)) )
+
+    # Add rec_fnbody to `forloopblock`
     push!(forloopblock.args[2].args, fnbody.args[1].args..., rec_fnbody)
 
     # Add preamble and recursion body to `new_jetcoeffs`
-    push!(new_jetcoeffs.args[2].args, defspreamble..., rec_preamb)
+    push!(new_jetcoeffs.args[2].args, defspreamble...)
 
     # Push preamble and forloopblock to `new_jetcoeffs` and return line
     push!(new_jetcoeffs.args[2].args, forloopblock, Meta.parse("return nothing"))
@@ -338,7 +340,7 @@ of the original diferential equations function.
 
 """
 function _preamble_body(fnbody, fnargs)
-    # Inicialize BookKeeping struct
+    # Initialize BookKeeping struct
     bkkeep = BookKeeping()
 
     # Rename vars to have the body in non-indexed form; bkkeep has different entries
@@ -363,10 +365,17 @@ function _preamble_body(fnbody, fnargs)
     preamble = subs(preamble, bkkeep.d_assign)
     prealloc = subs(prealloc, bkkeep.d_assign)
 
-    # Include the assignement of indexed auxiliary variables
+    # Include the assignment of indexed auxiliary variables
     defsprealloc = _defs_allocs!(prealloc, fnargs, bkkeep, false)
     preamble = subs(preamble, bkkeep.d_indx)
-    defspreamble = Expr[preamble.args...]
+
+    # Retain only `local` declarations from `preamble` in `new_preamble`
+    new_preamble = Expr(:block,)
+    for (i, arg) in enumerate(preamble.args)
+        (arg.head == :local) && push!(new_preamble.args, arg)
+    end
+    defspreamble = Expr[new_preamble.args...]
+
     # Bring back substitutions
     newfnbody = subs(newfnbody, bkkeep.d_indx)
 
@@ -803,7 +812,7 @@ function _replacecalls!(bkkeep::BookKeeping, fnold::Expr, newvar::Symbol)
 
         def_fnexpr = Expr(:block,
             :(TaylorSeries.zero!(_res)),
-            :(_res.coeffs[1] = $(def_fnexpr.args[2])) )
+            :(_res[0] = $(def_fnexpr.args[2])) )
         def_fnexpr = subs(def_fnexpr,
             Dict(:_res => newvar, :_arg1 => :(constant_term($(newarg1))), :_k => :ord))
         # def_fnexpr = Expr(:block,
@@ -1060,18 +1069,13 @@ function _recursionloop(fnargs, bkkeep::BookKeeping)
     ll = length(fnargs)
 
     if ll == 3
-        rec_preamb = sanitize( :( $(fnargs[1]).coeffs[2] = $(bkkeep.retvar).coeffs[1] ) )
-        rec_fnbody = sanitize( :( TaylorIntegration.diffeq!($(fnargs[1]), $(bkkeep.retvar), ordnext) ) )
+        rec_fnbody = sanitize( :( TaylorIntegration.solcoeff!($(fnargs[1]), $(bkkeep.retvar), ordnext) ) )
 
     elseif ll == 4
         bkkeep.retvar = fnargs[1]
-        rec_preamb = sanitize(:(
-            for __idx in eachindex($(fnargs[2]))
-                $(fnargs[2])[__idx].coeffs[2] = $(bkkeep.retvar)[__idx].coeffs[1]
-            end))
         rec_fnbody = sanitize(:(
             for __idx in eachindex($(fnargs[2]))
-                TaylorIntegration.diffeq!($(fnargs[2])[__idx], $(bkkeep.retvar)[__idx], ordnext)
+                TaylorIntegration.solcoeff!($(fnargs[2])[__idx], $(bkkeep.retvar)[__idx], ordnext)
             end))
 
     else
@@ -1079,7 +1083,7 @@ function _recursionloop(fnargs, bkkeep::BookKeeping)
         "Wrong number of arguments in the definition of the function $fn"))
     end
 
-    return rec_preamb, rec_fnbody
+    return rec_fnbody
 end
 
 

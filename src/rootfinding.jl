@@ -1,3 +1,46 @@
+### `build_solution` method for root-finding
+
+@doc doc"""
+    build_solution(t, x, p, tevents, xevents, gresids, nsteps, nevents)
+    build_solution(t, x, tevents, xevents, gresids, nsteps, nevents)
+
+Helper function to build a [`TaylorSolution`](@ref) from a call to a
+root-finding method of [`taylorinteg`](@ref).
+
+"""
+build_solution(t::AbstractVector{T},
+        x::Matrix{U},
+        p::P,
+        tevents::AbstractVector{U},
+        xevents::Matrix{U},
+        gresids::AbstractVector{U},
+        nsteps::Int,
+        nevents::Int) where {T, U, P<:Union{Nothing, Matrix{Taylor1{U}}}} =
+    TaylorSolution(arraysol(t, nsteps),
+        arraysol(x, nsteps),
+        arraysol(p, nsteps-1),
+        arraysol(tevents, nevents-1),
+        arraysol(xevents, nevents-1),
+        arraysol(gresids, nevents-1),
+        nothing)
+
+#### `build_solution` method for root-finding with time-ranges
+
+build_solution(t::AbstractVector{T},
+        x::Matrix{U},
+        tevents::AbstractVector{U},
+        xevents::Matrix{U},
+        gresids::AbstractVector{U},
+        nevents::Int) where {T, U} =
+    TaylorSolution(t,
+        transpose(x),
+        nothing,
+        arraysol(tevents, nevents-1),
+        arraysol(xevents, nevents-1),
+        arraysol(gresids, nevents-1),
+        nothing)
+
+
 """
     surfacecrossing(g_old, g_now, eventorder::Int)
 
@@ -101,8 +144,8 @@ end
 
 """
     taylorinteg(f, g, x0, t0, tmax, order, abstol, params[=nothing]; kwargs... )
-    taylorinteg(f, g, x0, t0, tmax, order, abstol, Val(false), params[=nothing]; kwargs... )
-    taylorinteg(f, g, x0, t0, tmax, order, abstol, Val(true), params[=nothing]; kwargs... )
+    taylorinteg(f, g, x0, t0, tmax, order, abstol, params[=nothing]; kwargs... )
+    taylorinteg(f, g, x0, t0, tmax, order, abstol, params[=nothing]; kwargs... )
     taylorinteg(f, g, x0, trange, order, abstol, params[=nothing]; kwargs... )
 
 Root-finding method of `taylorinteg`.
@@ -115,8 +158,7 @@ tuple (cond1, cond2). Then, `taylorinteg` attempts to find that
 root (or event, or crossing) by performing a Newton-Raphson process. When
 called with the `eventorder=n` keyword argument, `taylorinteg` searches for the
 roots of the `n`-th derivative of `cond2`, which is computed via automatic
-differentiation. When the method used involves `Val(true)`, it also
-outputs the Taylor polynomial solutions obtained at each time step.
+differentiation.
 
 The current keyword argument are:
 - `maxsteps[=500]`: maximum number of integration steps.
@@ -126,6 +168,7 @@ The current keyword argument are:
 - `newtoniter[=10]`: maximum Newton-Raphson iterations per detected root.
 - `nrabstol[=eps(T)]`: allowed tolerance for the Newton-Raphson process; T is the common
     type of `t0`, `tmax` (or `eltype(trange)`) and `abstol`.
+- `dense[=true]`: output the Taylor polynomial expansion at each time step.
 
 
 ## Examples:
@@ -144,225 +187,121 @@ g(dx, x, params, t) = (true, x[2])
 x0 = [1.3, 0.0]
 
 # find the roots of `g` along the solution
-tv, xv, tvS, xvS, gvS = taylorinteg(pendulum!, g, x0, 0.0, 22.0, 28, 1.0E-20)
+sol = taylorinteg(pendulum!, g, x0, 0.0, 22.0, 28, 1.0E-20)
 
 # find the roots of the 2nd derivative of `g` along the solution
-tv, xv, tvS, xvS, gvS = taylorinteg(pendulum!, g, x0, 0.0, 22.0, 28, 1.0E-20; eventorder=2)
+sol = taylorinteg(pendulum!, g, x0, 0.0, 22.0, 28, 1.0E-20; eventorder=2)
 
-# find the roots of `g` along the solution, with dense solution output `psol`
-tv, xv, psol, tvS, xvS, gvS = taylorinteg(pendulum!, g, x0, 0.0, 22.0, 28, 1.0E-20, Val(true))
+# find the roots of `g` along the solution, with dense solution output
+sol = taylorinteg(pendulum!, g, x0, 0.0, 22.0, 28, 1.0E-20, dense=true)
 
 # times at which the solution will be returned
 tv = 0.0:1.0:22.0
 
 # find the roots of `g` along the solution; return the solution *only* at each value of `tv`
-xv, tvS, xvS, gvS = taylorinteg(pendulum!, g, x0, tv, 28, 1.0E-20)
+sol = taylorinteg(pendulum!, g, x0, tv, 28, 1.0E-20)
 
 # find the roots of the 2nd derivative of `g` along the solution; return the solution *only* at each value of `tv`
-xv, tvS, xvS, gvS = taylorinteg(pendulum!, g, x0, tv, 28, 1.0E-20; eventorder=2)
+sol = taylorinteg(pendulum!, g, x0, tv, 28, 1.0E-20; eventorder=2)
 ```
 
 """
-taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
-    order::Int, abstol::T, params = nothing; maxsteps::Int=500, parse_eqs::Bool=true,
-    eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number} =
-taylorinteg(f!, g, q0, t0, tmax, order, abstol, Val(false), params; maxsteps, parse_eqs,
-    eventorder, newtoniter, nrabstol)
+function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
+        order::Int, abstol::T, params = nothing; maxsteps::Int=500, parse_eqs::Bool=true,
+        dense::Bool=true, eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
 
-for V in (:(Val{true}), :(Val{false}))
-    @eval begin
-        function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
-                order::Int, abstol::T, ::$V, params = nothing; maxsteps::Int=500, parse_eqs::Bool=true,
-                eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
+    @assert order ≥ eventorder "`eventorder` must be less than or equal to `order`"
 
-            @assert order ≥ eventorder "`eventorder` must be less than or equal to `order`"
+    # Initialize the vector of Taylor1 expansions
+    dof = length(q0)
+    t = t0 + Taylor1( T, order )
+    x = Array{Taylor1{U}}(undef, dof)
+    dx = Array{Taylor1{U}}(undef, dof)
+    @inbounds for i in eachindex(q0)
+        x[i] = Taylor1( q0[i], order )
+        dx[i] = Taylor1( zero(q0[i]), order )
+    end
 
-            # Initialize the vector of Taylor1 expansions
-            dof = length(q0)
-            t = t0 + Taylor1( T, order )
-            x = Array{Taylor1{U}}(undef, dof)
-            dx = Array{Taylor1{U}}(undef, dof)
-            @inbounds for i in eachindex(q0)
-                x[i] = Taylor1( q0[i], order )
-                dx[i] = Taylor1( zero(q0[i]), order )
-            end
+    # Determine if specialized jetcoeffs! method exists
+    parse_eqs, rv = _determine_parsing!(parse_eqs, f!, t, x, dx, params)
 
-            # Determine if specialized jetcoeffs! method exists
-            parse_eqs, rv = _determine_parsing!(parse_eqs, f!, t, x, dx, params)
+    # Re-initialize the Taylor1 expansions
+    t = t0 + Taylor1( T, order )
+    x .= Taylor1.( q0, order )
+    return _taylorinteg!(Val(dense), f!, g, t, x, dx, q0, t0, tmax, abstol, rv, params;
+        parse_eqs, maxsteps, eventorder, newtoniter, nrabstol)
+end
 
-            if parse_eqs
-                # Re-initialize the Taylor1 expansions
-                t = t0 + Taylor1( T, order )
-                x .= Taylor1.( q0, order )
-                return _taylorinteg!(f!, g, t, x, dx, q0, t0, tmax, abstol, rv, $V(), params;
-                    maxsteps, eventorder, newtoniter, nrabstol)
-            else
-                return _taylorinteg!(f!, g, t, x, dx, q0, t0, tmax, abstol, $V(), params;
-                    maxsteps, eventorder, newtoniter, nrabstol)
-            end
+function _taylorinteg!(dense::Val{D}, f!, g, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
+        q0::Array{U,1}, t0::T, tmax::T, abstol::T, rv::RetAlloc{Taylor1{U}}, params;
+        parse_eqs::Bool=true, maxsteps::Int=500, eventorder::Int=0,
+        newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number, D}
+
+    # Allocation
+    tv = Array{T}(undef, maxsteps+1)
+    dof = length(q0)
+    xv = Array{U}(undef, dof, maxsteps+1)
+    psol = init_psol(dense, xv, x)
+    xaux = Array{Taylor1{U}}(undef, dof)
+
+    # Initial conditions
+    order = get_order(t)
+    @inbounds t[0] = t0
+    x0 = deepcopy(q0)
+    x .= Taylor1.(q0, order)
+    dx .= zero.(x)
+    @inbounds tv[1] = t0
+    @inbounds xv[:,1] .= deepcopy(q0)
+    sign_tstep = copysign(1, tmax-t0)
+
+    # Some auxiliary arrays for root-finding/event detection/Poincaré surface of section evaluation
+    g_tupl = g(dx, x, params, t)
+    g_tupl_old = g(dx, x, params, t)
+    δt = zero(x[1])
+    δt_old = zero(x[1])
+
+    x_dx = vcat(x, dx)
+    g_dg = vcat(g_tupl[2], g_tupl_old[2])
+    x_dx_val = Array{U}(undef, length(x_dx) )
+    g_dg_val = vcat(evaluate(g_tupl[2]), evaluate(g_tupl_old[2]))
+
+    tvS = Array{U}(undef, maxsteps+1)
+    xvS = similar(xv)
+    gvS = similar(tvS)
+
+    # Integration
+    nsteps = 1
+    nevents = 1 #number of detected events
+    while sign_tstep*t0 < sign_tstep*tmax
+        δt_old = δt
+        δt = taylorstep!(Val(parse_eqs), f!, t, x, dx, xaux, abstol, params, rv) # δt is positive!
+        # Below, δt has the proper sign according to the direction of the integration
+        δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
+        evaluate!(x, δt, x0) # new initial condition
+        set_psol!(dense, psol, nsteps, x) # Store the Taylor polynomial solution
+        g_tupl = g(dx, x, params, t)
+        nevents = findroot!(t, x, dx, g_tupl_old, g_tupl, eventorder,
+            tvS, xvS, gvS, t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val,
+            nrabstol, newtoniter, nevents)
+        g_tupl_old = deepcopy(g_tupl)
+        @inbounds for i in eachindex(x0)
+            x[i][0] = x0[i]
+            TaylorSeries.zero!(dx[i], 0)
         end
-
-        function _taylorinteg!(f!, g, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
-                q0::Array{U,1}, t0::T, tmax::T, abstol::T, ::$V, params;
-                maxsteps::Int=500, eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
-
-            # Allocation
-            tv = Array{T}(undef, maxsteps+1)
-            dof = length(q0)
-            xv = Array{U}(undef, dof, maxsteps+1)
-            if $V == Val{true}
-                psol = Array{Taylor1{U}}(undef, dof, maxsteps)
-            end
-            xaux = Array{Taylor1{U}}(undef, dof)
-
-            # Initial conditions
-            order = get_order(t)
-            @inbounds t[0] = t0
-            x0 = deepcopy(q0)
-            x .= Taylor1.(q0, order)
-            dx .= zero.(x)
-            @inbounds tv[1] = t0
-            @inbounds xv[:,1] .= q0
-            sign_tstep = copysign(1, tmax-t0)
-
-            # Some auxiliary arrays for root-finding/event detection/Poincaré surface of section evaluation
-            g_tupl = g(dx, x, params, t)
-            g_tupl_old = g(dx, x, params, t)
-            δt = zero(x[1])
-            δt_old = zero(x[1])
-
-            x_dx = vcat(x, dx)
-            g_dg = vcat(g_tupl[2], g_tupl_old[2])
-            x_dx_val = Array{U}(undef, length(x_dx) )
-            g_dg_val = vcat(evaluate(g_tupl[2]), evaluate(g_tupl_old[2]))
-
-            tvS = Array{U}(undef, maxsteps+1)
-            xvS = similar(xv)
-            gvS = similar(tvS)
-
-
-            # Integration
-            nsteps = 1
-            nevents = 1 #number of detected events
-            while sign_tstep*t0 < sign_tstep*tmax
-                δt_old = δt
-                δt = taylorstep!(f!, t, x, dx, xaux, abstol, params) # δt is positive!
-                # Below, δt has the proper sign according to the direction of the integration
-                δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
-                evaluate!(x, δt, x0) # new initial condition
-                if $V == Val{true}
-                    # Store the Taylor polynomial solution
-                    @inbounds psol[:,nsteps] .= deepcopy.(x)
-                end
-                g_tupl = g(dx, x, params, t)
-                nevents = findroot!(t, x, dx, g_tupl_old, g_tupl, eventorder,
-                    tvS, xvS, gvS, t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val,
-                    nrabstol, newtoniter, nevents)
-                g_tupl_old = deepcopy(g_tupl)
-                for i in eachindex(x0)
-                    @inbounds x[i][0] = x0[i]
-                end
-                t0 += δt
-                @inbounds t[0] = t0
-                nsteps += 1
-                @inbounds tv[nsteps] = t0
-                @inbounds xv[:,nsteps] .= x0
-                if nsteps > maxsteps
-                    @warn("""
-                    Maximum number of integration steps reached; exiting.
-                    """)
-                    break
-                end
-            end
-
-            if $V == Val{true}
-                return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:),
-                    view(transpose(view(psol, :, 1:nsteps-1)), 1:nsteps-1, :), view(tvS,1:nevents-1), view(transpose(view(xvS,:,1:nevents-1)),1:nevents-1,:), view(gvS,1:nevents-1)
-            elseif $V == Val{false}
-                return return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:), view(tvS,1:nevents-1), view(transpose(view(xvS,:,1:nevents-1)),1:nevents-1,:), view(gvS,1:nevents-1)
-            end
-        end
-        function _taylorinteg!(f!, g, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
-                q0::Array{U,1}, t0::T, tmax::T, abstol::T, rv::RetAlloc{Taylor1{U}}, ::$V, params;
-                maxsteps::Int=500, eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
-
-            # Allocation
-            tv = Array{T}(undef, maxsteps+1)
-            dof = length(q0)
-            xv = Array{U}(undef, dof, maxsteps+1)
-            if $V == Val{true}
-                psol = Array{Taylor1{U}}(undef, dof, maxsteps)
-            end
-
-            # Initial conditions
-            order = get_order(t)
-            @inbounds t[0] = t0
-            x0 = deepcopy(q0)
-            x .= Taylor1.(q0, order)
-            dx .= zero.(x)
-            @inbounds tv[1] = t0
-            @inbounds xv[:,1] .= q0
-            sign_tstep = copysign(1, tmax-t0)
-
-            # Some auxiliary arrays for root-finding/event detection/Poincaré surface of section evaluation
-            g_tupl = g(dx, x, params, t)
-            g_tupl_old = g(dx, x, params, t)
-            δt = zero(x[1])
-            δt_old = zero(x[1])
-
-            x_dx = vcat(x, dx)
-            g_dg = vcat(g_tupl[2], g_tupl_old[2])
-            x_dx_val = Array{U}(undef, length(x_dx) )
-            g_dg_val = vcat(evaluate(g_tupl[2]), evaluate(g_tupl_old[2]))
-
-            tvS = Array{U}(undef, maxsteps+1)
-            xvS = similar(xv)
-            gvS = similar(tvS)
-
-
-            # Integration
-            nsteps = 1
-            nevents = 1 #number of detected events
-            while sign_tstep*t0 < sign_tstep*tmax
-                δt_old = δt
-                # δt = taylorstep!(f!, t, x, dx, xaux, abstol, params) # δt is positive!
-                δt = taylorstep!(f!, t, x, dx, abstol, params, rv) # δt is positive!
-                # Below, δt has the proper sign according to the direction of the integration
-                δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
-                evaluate!(x, δt, x0) # new initial condition
-                if $V == Val{true}
-                    # Store the Taylor polynomial solution
-                    @inbounds psol[:,nsteps] .= deepcopy.(x)
-                end
-                g_tupl = g(dx, x, params, t)
-                nevents = findroot!(t, x, dx, g_tupl_old, g_tupl, eventorder,
-                    tvS, xvS, gvS, t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val,
-                    nrabstol, newtoniter, nevents)
-                g_tupl_old = deepcopy(g_tupl)
-                for i in eachindex(x0)
-                    @inbounds x[i][0] = x0[i]
-                end
-                t0 += δt
-                @inbounds t[0] = t0
-                nsteps += 1
-                @inbounds tv[nsteps] = t0
-                @inbounds xv[:,nsteps] .= x0
-                if nsteps > maxsteps
-                    @warn("""
-                    Maximum number of integration steps reached; exiting.
-                    """)
-                    break
-                end
-            end
-
-            if $V == Val{true}
-                return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:),
-                    view(transpose(view(psol, :, 1:nsteps-1)), 1:nsteps-1, :), view(tvS,1:nevents-1), view(transpose(view(xvS,:,1:nevents-1)),1:nevents-1,:), view(gvS,1:nevents-1)
-            elseif $V == Val{false}
-                return view(tv,1:nsteps), view(transpose(view(xv,:,1:nsteps)),1:nsteps,:), view(tvS,1:nevents-1), view(transpose(view(xvS,:,1:nevents-1)),1:nevents-1,:), view(gvS,1:nevents-1)
-            end
+        t0 += δt
+        @inbounds t[0] = t0
+        nsteps += 1
+        @inbounds tv[nsteps] = t0
+        @inbounds xv[:,nsteps] .= deepcopy(x0)
+        if nsteps > maxsteps
+            @warn("""
+            Maximum number of integration steps reached; exiting.
+            """)
+            break
         end
     end
+
+    return build_solution(tv, xv, psol, tvS, xvS, gvS, nsteps, nevents)
 end
 
 function taylorinteg(f!, g, q0::Array{U,1}, trange::AbstractVector{T},
@@ -389,21 +328,16 @@ function taylorinteg(f!, g, q0::Array{U,1}, trange::AbstractVector{T},
     # Determine if specialized jetcoeffs! method exists
     parse_eqs, rv = _determine_parsing!(parse_eqs, f!, t, x, dx, params)
 
-    if parse_eqs
-        # Re-initialize the Taylor1 expansions
-        t = t0 + Taylor1( T, order )
-        x .= Taylor1.(q0, order)
-        return _taylorinteg!(f!, g, t, x, dx, q0, trange, abstol, rv, params;
-            maxsteps, eventorder, newtoniter, nrabstol)
-    else
-        return _taylorinteg!(f!, g, t, x, dx, q0, trange, abstol,params;
-            maxsteps, eventorder, newtoniter, nrabstol)
-    end
+    # Re-initialize the Taylor1 expansions
+    t = t0 + Taylor1( T, order )
+    x .= Taylor1.(q0, order)
+    return _taylorinteg!(f!, g, t, x, dx, q0, trange, abstol, rv, params;
+        parse_eqs, maxsteps, eventorder, newtoniter, nrabstol)
 end
 
 function _taylorinteg!(f!, g, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
-        q0::Array{U,1}, trange::AbstractVector{T}, abstol::T, params;
-        maxsteps::Int=500, eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
+        q0::Array{U,1}, trange::AbstractVector{T}, abstol::T, rv::RetAlloc{Taylor1{U}}, params;
+        parse_eqs::Bool=true, maxsteps::Int=500, eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
 
     # Allocation
     nn = length(trange)
@@ -412,7 +346,7 @@ function _taylorinteg!(f!, g, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{T
     fill!(x0, T(NaN))
     xv = Array{eltype(q0)}(undef, dof, nn)
     for ind in 1:nn
-        @inbounds xv[:,ind] .= x0
+        @inbounds xv[:,ind] .= deepcopy(x0)
     end
     xaux = Array{Taylor1{U}}(undef, dof)
 
@@ -421,7 +355,7 @@ function _taylorinteg!(f!, g, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{T
     sign_tstep = copysign(1, tmax-t0)
     x0 = deepcopy(q0)
     x1 = similar(x0)
-    @inbounds xv[:,1] .= q0
+    @inbounds xv[:,1] .= deepcopy(q0)
 
     # Some auxiliary arrays for root-finding/event detection/Poincaré surface of section evaluation
     g_tupl = g(dx, x, params, t)
@@ -444,8 +378,7 @@ function _taylorinteg!(f!, g, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{T
     nevents = 1 #number of detected events
     while sign_tstep*t0 < sign_tstep*tmax
         δt_old = δt
-        # δt = taylorstep!(f!, t, x, dx, xaux, abstol, params, tmpTaylor, arrTaylor, parse_eqs) # δt is positive!
-        δt = taylorstep!(f!, t, x, dx, xaux, abstol, params) # δt is positive!
+        δt = taylorstep!(Val(parse_eqs), f!, t, x, dx, xaux, abstol, params, rv) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
         evaluate!(x, δt, x0) # new initial condition
@@ -453,12 +386,12 @@ function _taylorinteg!(f!, g, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{T
         # Evaluate solution at times within convergence radius
         while sign_tstep*t1 < sign_tstep*tnext
             evaluate!(x, t1-t0, x1)
-            @inbounds xv[:,iter] .= x1
+            @inbounds xv[:,iter] .= deepcopy(x1)
             iter += 1
             @inbounds t1 = trange[iter]
         end
         if δt == tmax-t0
-            @inbounds xv[:,iter] .= x0
+            @inbounds xv[:,iter] .= deepcopy(x0)
             break
         end
         g_tupl = g(dx, x, params, t)
@@ -466,8 +399,8 @@ function _taylorinteg!(f!, g, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{T
             tvS, xvS, gvS, t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val,
             nrabstol, newtoniter, nevents)
         g_tupl_old = deepcopy(g_tupl)
-        for i in eachindex(x0)
-            @inbounds x[i][0] = x0[i]
+        @inbounds for i in eachindex(x0)
+            x[i][0] = x0[i]
         end
         t0 = tnext
         @inbounds t[0] = t0
@@ -480,85 +413,5 @@ function _taylorinteg!(f!, g, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{T
         end
     end
 
-    return transpose(xv), view(tvS,1:nevents-1), view(transpose(view(xvS,:,1:nevents-1)),1:nevents-1,:), view(gvS,1:nevents-1)
-end
-
-function _taylorinteg!(f!, g, t::Taylor1{T}, x::Array{Taylor1{U},1}, dx::Array{Taylor1{U},1},
-        q0::Array{U,1}, trange::AbstractVector{T}, abstol::T, rv::RetAlloc{Taylor1{U}}, params;
-        maxsteps::Int=500, eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T <: Real,U <: Number}
-
-    # Allocation
-    nn = length(trange)
-    dof = length(q0)
-    x0 = similar(q0, eltype(q0), dof)
-    fill!(x0, T(NaN))
-    xv = Array{eltype(q0)}(undef, dof, nn)
-    for ind in 1:nn
-        @inbounds xv[:,ind] .= x0
-    end
-
-    # Initial conditions
-    @inbounds t0, t1, tmax = trange[1], trange[2], trange[end]
-    sign_tstep = copysign(1, tmax-t0)
-    x0 = deepcopy(q0)
-    x1 = similar(x0)
-    @inbounds xv[:,1] .= q0
-
-    # Some auxiliary arrays for root-finding/event detection/Poincaré surface of section evaluation
-    g_tupl = g(dx, x, params, t)
-    g_tupl_old = g(dx, x, params, t)
-    δt = zero(U)
-    δt_old = zero(U)
-
-    x_dx = vcat(x, dx)
-    g_dg = vcat(g_tupl[2], g_tupl_old[2])
-    x_dx_val = Array{U}(undef, length(x_dx) )
-    g_dg_val = vcat(evaluate(g_tupl[2]), evaluate(g_tupl_old[2]))
-
-    tvS = Array{U}(undef, maxsteps+1)
-    xvS = similar(xv)
-    gvS = similar(tvS)
-
-    # Integration
-    iter = 2
-    nsteps = 1
-    nevents = 1 #number of detected events
-    while sign_tstep*t0 < sign_tstep*tmax
-        δt_old = δt
-        δt = taylorstep!(f!, t, x, dx, abstol, params, rv) # δt is positive!
-        # Below, δt has the proper sign according to the direction of the integration
-        δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
-        evaluate!(x, δt, x0) # new initial condition
-        tnext = t0+δt
-        # Evaluate solution at times within convergence radius
-        while sign_tstep*t1 < sign_tstep*tnext
-            evaluate!(x, t1-t0, x1)
-            @inbounds xv[:,iter] .= x1
-            iter += 1
-            @inbounds t1 = trange[iter]
-        end
-        if δt == tmax-t0
-            @inbounds xv[:,iter] .= x0
-            break
-        end
-        g_tupl = g(dx, x, params, t)
-        nevents = findroot!(t, x, dx, g_tupl_old, g_tupl, eventorder,
-            tvS, xvS, gvS, t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val,
-            nrabstol, newtoniter, nevents)
-        g_tupl_old = deepcopy(g_tupl)
-        for i in eachindex(x0)
-            @inbounds x[i][0] = x0[i]
-        end
-        t0 = tnext
-        @inbounds t[0] = t0
-        nsteps += 1
-        if nsteps > maxsteps
-            @warn("""
-            Maximum number of integration steps reached; exiting.
-            """)
-            break
-        end
-    end
-
-    return transpose(xv), view(tvS,1:nevents-1), view(transpose(view(xvS,:,1:nevents-1)),1:nevents-1,:), view(gvS,1:nevents-1)
+    return build_solution(trange, xv, tvS, xvS, gvS, nevents)
 end
