@@ -4,7 +4,7 @@ using Test
 
 @testset "Automatic Domain Splitting" begin
     @testset "2D Kepler problem" begin
-        # using TaylorIntegration: countnodes, timesvector, timeshift!
+        using TaylorIntegration: countnodes #, timesvector, timeshift!
 
         # This example is based upon section 3 of
         # https://doi.org/10.1007/s10569-015-9618-3.
@@ -66,15 +66,15 @@ using Test
         @test ts1[1] == t0
         @test ts1[end] == tmax
         @test length(ts1) == 85
-
-        @test isone(countnodes(nv1, 0))
-        @test countnodes(nv1, length(ts1)-1) == maxsplits
-        @test iszero(countnodes(nv1, length(ts1)))
-        @test iszero(countnodes(nv1, prevfloat(t0)))
-        @test countnodes(nv1, t0) == 1
-        @test countnodes(nv1, tmax) == maxsplits
-        @test iszero(countnodes(nv1, nextfloat(tmax)))
         =#
+
+        @test isone(countnodes(q1, 0))
+        # @test countnodes(q1, length(ts1)-1) == maxsplits
+        # @test iszero(countnodes(nv1, length(ts1)))
+        @test iszero(countnodes(q1, prevfloat(t0)))
+        @test countnodes(q1, t0) == 1
+        @test countnodes(q1, tmax) == maxsplits
+        @test iszero(countnodes(q1, nextfloat(tmax)))
 
         # ADS taylorinteg (parse_eqs = true)
         # Warmup
@@ -102,15 +102,15 @@ using Test
         @test ts2[1] == t0
         @test ts2[end] == tmax
         @test length(ts2) == 85
-
-        @test isone(countnodes(nv2, 0))
-        @test countnodes(nv2, length(ts2)-1) == maxsplits
-        @test iszero(countnodes(nv2, length(ts2)))
-        @test iszero(countnodes(nv2, prevfloat(t0)))
-        @test countnodes(nv2, t0) == 1
-        @test countnodes(nv2, tmax) == maxsplits
-        @test iszero(countnodes(nv2, nextfloat(tmax)))
         =#
+
+        @test isone(countnodes(q2, 0))
+        # @test countnodes(q2, length(ts2)-1) == maxsplits
+        # @test iszero(countnodes(q2, length(ts2)))
+        @test iszero(countnodes(q2, prevfloat(t0)))
+        @test countnodes(q2, t0) == 1
+        @test countnodes(q2, tmax) == maxsplits
+        @test iszero(countnodes(q2, nextfloat(tmax)))
 
         # Compatibility between parse_eqs = false/true
 

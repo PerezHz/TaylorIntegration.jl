@@ -143,6 +143,29 @@ Base.IteratorEltype(::Type{<:TreeIterator{ADSTaylorSolution}}) = HasEltype()
 Base.eltype(::Type{<:TreeIterator{ADSTaylorSolution{T, N, M}}}) where {T, N, M} =
     ADSTaylorSolution{T, N, M}
 
+## Evaluation
+
+"""
+    countnodes(n::ADSTaylorSolution{T, N, M}, k::Int) where {T <: Real, N, M}
+    countnodes(n::ADSTaylorSolution{T, N, M}, t::T) where {T <: Real, N, M}
+
+Return the number of nodes at depth `k` (time `t`) starting from root node `n`.
+"""
+countnodes(n::Nothing, x) = 0
+
+function countnodes(n::ADSTaylorSolution{T, N, M}, k::Int) where {T <: Real, N, M}
+    @assert k >= 0
+    iszero(k) && return 1
+    return countnodes(n.left, k-1) + countnodes(n.right, k-1)
+end
+
+function countnodes(n::ADSTaylorSolution{T, N, M}, t::T) where {T <: Real, N, M}
+    isnothing(n.left) && return Int(t == n.t)
+    t0, tf = minmax(n.t, n.left.t)
+    t0 <= t < tf && return 1
+    return countnodes(n.left, t) + countnodes(n.right, t)
+end
+
 ## ADS integrator
 
 # Exponential model y(t) = A * exp(B * t) used to estimate the truncation error
