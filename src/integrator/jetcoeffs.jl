@@ -27,7 +27,7 @@ function jetcoeffs!(eqsdiff::Function, t::Taylor1{T}, x::Taylor1{U}, params) whe
         ordnext = ord+1
 
         # Set `xaux` auxiliary Taylor1 variables to order `ord`
-        @inbounds xaux = Taylor1( x.coeffs[1:ordnext] )
+        @inbounds xaux = Taylor1(@views x.coeffs[begin:ordnext] )
 
         # Equations of motion
         dx = eqsdiff(xaux, params, t)
@@ -68,7 +68,7 @@ function jetcoeffs!(eqsdiff!::Function, t::Taylor1{T},
 
         # Set `xaux`, auxiliary vector of Taylor1 to order `ord`
         for j in eachindex(x)
-            @inbounds xaux[j] = Taylor1( x[j].coeffs[1:ordnext] )
+            @inbounds xaux[j] = Taylor1(@views x[j].coeffs[begin:ordnext] )
         end
 
         # Equations of motion

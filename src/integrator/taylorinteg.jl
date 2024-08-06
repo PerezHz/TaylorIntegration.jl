@@ -14,17 +14,11 @@ where the Taylor polynomials associated to the solution will be stored, correspo
 field `:p` in [`TaylorSolution`](@ref). See also [`init_psol`](@ref).
 """
 @inline function set_psol!(::Val{true}, psol::Array{Taylor1{U},1}, nsteps::Int, x::Taylor1{U}) where {U<:Number}
-    @inbounds for k in eachindex(x)
-        TaylorSeries.identity!(psol[nsteps], x, k)
-    end
+    @inbounds psol[nsteps] = deepcopy(x)
     return nothing
 end
 @inline function set_psol!(::Val{true}, psol::Array{Taylor1{U},2}, nsteps::Int, x::Vector{Taylor1{U}}) where {U<:Number}
-    @inbounds for i in eachindex(x)
-        for k in eachindex(x[i])
-            TaylorSeries.identity!(psol[i, nsteps], x[i], k)
-        end
-    end
+    @inbounds psol[:,nsteps] .= deepcopy.(x)
     return nothing
 end
 @inline set_psol!(::Val{false}, args...) = nothing
@@ -43,10 +37,10 @@ associated to the solution will be stored, corresponding to field `:p` in
 [`TaylorSolution`](@ref).
 """
 @inline function init_psol(::Val{true}, xv::Array{U,1}, x::Taylor1{U}) where {U<:Number}
-    return [zero(x) for _ in axes(xv, 1)]
+    return Array{Taylor1{U}}(undef, size(xv, 1)-1)
 end
 @inline function init_psol(::Val{true}, xv::Array{U,2}, x::Array{Taylor1{U},1}) where {U<:Number}
-    return [zero(x[1]) for _ in axes(xv, 1), _ in axes(xv, 2)]
+    return Array{Taylor1{U}}(undef, size(xv, 1), size(xv, 2)-1)
 end
 
 # init_psol
