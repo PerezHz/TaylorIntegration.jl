@@ -4,7 +4,7 @@ using Test
 
 @testset "Automatic Domain Splitting" begin
     @testset "2D Kepler problem" begin
-        using TaylorIntegration: countnodes #, timesvector, timeshift!
+        using TaylorIntegration: countnodes, timeshift!
 
         # This example is based upon section 3 of
         # https://doi.org/10.1007/s10569-015-9618-3.
@@ -193,15 +193,13 @@ using Test
             @test abs((af - a0) / a0) < 0.07
             @test abs((ef - e0) / e0) < 0.07
         end
+        =#
 
         # timeshift!
 
-        timeshift!(nv1, 1.0)
-        timeshift!(nv2, 1.0)
-        _ts1_ = timesvector(nv1)
-        _ts2_ = timesvector(nv2)
-        @test _ts1_ == ts1 .+ 1.0
-        @test _ts2_ == ts2 .+ 1.0
-        =#
+        timeshift!(q2, 1.0)
+        for (n1, n2) in zip(PreOrderDFS(q1), PreOrderDFS(q2))
+            @test n2.t == n1.t + 1.0
+        end
     end
 end

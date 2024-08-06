@@ -166,6 +166,17 @@ function countnodes(n::ADSTaylorSolution{T, N, M}, t::T) where {T <: Real, N, M}
     return countnodes(n.left, t) + countnodes(n.right, t)
 end
 
+"""
+    timeshift!(n::ADSTaylorSolution{T, N, M}, dt::T) where {T <: Real, N, M}
+
+Shift the time of every node in `n` by `dt`.
+"""
+function timeshift!(n::ADSTaylorSolution{T, N, M}, dt::T) where {T <: Real, N, M}
+    for node in PreOrderDFS(n)
+        node.t += dt
+    end
+end
+
 ## ADS integrator
 
 # Exponential model y(t) = A * exp(B * t) used to estimate the truncation error
