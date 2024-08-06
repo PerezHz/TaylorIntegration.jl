@@ -2,6 +2,17 @@
 
 ## Constructors
 
+"""
+    ADSTaylorSolution{T, N, M} <: AbstractTaylorSolution{T, TaylorN{T}}
+
+This `struct` is modified in-place in the ADS method of `taylorinteg`, and represents
+a node in a binary tree. Fields `t` and `x` represent, respectively, the value of time
+(independent variable) and the computed values of the dependent variables(s) at the
+current node. When `taylorinteg` is called with `dense=true`, then field `p` stores the
+Taylor polynomial expansion at the current node. Fields `lo` and `hi` correspond,
+respectively, to the lower and upper bounds of the jet transport domain. Fields `parent`,
+`left` and `right` are references to the current node's connections in the binary tree.
+"""
 mutable struct ADSTaylorSolution{T, N, M} <: AbstractTaylorSolution{T, TaylorN{T}}
     depth::Int
     t::T
@@ -31,7 +42,7 @@ ADSTaylorSolution(depth::Int, t::T, lo::SVector{N, T},
     right::Union{Nothing, ADSTaylorSolution{T, N, M}}) where {T, N, M} =
     ADSTaylorSolution{T, N, M}(depth, t, lo, hi, x, p, parent, left, right)
 
-# 2-arg constructor
+# 3-arg constructor
 function ADSTaylorSolution(lo::AbstractVector{T}, hi::AbstractVector{T},
     x::AbstractVector{TaylorN{T}}) where {T}
     @assert length(lo) == length(hi)
@@ -41,21 +52,7 @@ function ADSTaylorSolution(lo::AbstractVector{T}, hi::AbstractVector{T},
     SVector{M, TaylorN{T}}(x), nothing, nothing, nothing, nothing)
 end
 
-# Split [lo, hi] in half along direction i
-function halve(lo::SVector{N, T}, hi::SVector{N, T}, i::Int) where {T <: Real, N}
-    @assert 1 <= i <= N
-    mid = (lo[i] + hi[i])/2
-    a = SVector{N, T}(i == j ? mid : hi[j] for j in 1:N)
-    b = SVector{N, T}(i == j ? mid : lo[j] for j in 1:N)
-    return lo, a, b, hi
-end
-
-# Auxiliary evaluation methods
-function adseval(p::SVector{M, Taylor1{TaylorN{T}}}, dt::U) where {T <: Real, U <: Number, M}
-    return SVector{M, TaylorN{T}}(p[i](dt) for i in 1:M)
-end
-
-### Custom print
+## Custom print
 
 function Base.show(io::IO, n::ADSTaylorSolution{T, N, M}) where {T, N, M}
     s = Vector{String}(undef, N)
@@ -107,7 +104,7 @@ function rightchild!(parent::ADSTaylorSolution{T, N, M},
 end
 
 # AbstractTrees interface
-function AbstractTrees.children(node::ADSTaylorSolution{T, N, M}) where {T, N, M}
+function AbstractTrees.children(node::ADSTaylorSolution)
     if isnothing(node.left) && isnothing(node.right)
         ()
     elseif isnothing(node.left) && !isnothing(node.right)
@@ -159,6 +156,15 @@ function exp_model_jacobian!(J::Array{T, 2}, t, p) where {T <: Real}
     @. @views J[:, 2] = t * p[1] * J[:, 1]
 end
 
+"""
+    truncerror(P::TaylorN{T}) where {T <: Real}
+    truncerror(P::AbstractVector{TaylorN{T}}) where {T <: Real}
+
+Return the truncation error of each jet transport variable in `P`.
+
+!!! reference
+    See section 3 of https://doi.org/10.1007/s10569-015-9618-3.
+"""
 function truncerror(P::TaylorN{T}) where {T <: Real}
     # Jet transport order
     varorder = P.order
@@ -205,6 +211,13 @@ function truncerror(P::AbstractVector{TaylorN{T}}) where {T <: Real}
     return norms
 end
 
+"""
+    splitdirection(P::TaylorN{T}) where {T <: Real}
+    splitdirection(P::AbstractVector{TaylorN{T}}) where {T <: Real}
+
+Return the index of the jet transport variable with the largest truncation error
+according to [`truncerror`](@ref).
+"""
 function splitdirection(P::TaylorN{T}) where {T <: Real}
     # Size per variable
     M = truncerror(P)
@@ -219,6 +232,11 @@ function splitdirection(P::AbstractVector{TaylorN{T}}) where {T <: Real}
     return argmax(M)[1]
 end
 
+"""
+    adsnorm(P::TaylorN{T}) where {T <: Real}
+
+Return the truncation error of `P`.
+"""
 function adsnorm(P::TaylorN{T}) where {T <: Real}
     # Jet transport order
     varorder = P.order
@@ -237,7 +255,16 @@ function adsnorm(P::TaylorN{T}) where {T <: Real}
     return exp_model(varorder+1, fit.param)
 end
 
-# Split node's domain in half
+# Split [lo, hi] in half along direction i
+function halve(lo::SVector{N, T}, hi::SVector{N, T}, i::Int) where {T <: Real, N}
+    @assert 1 <= i <= N
+    mid = (lo[i] + hi[i])/2
+    a = SVector{N, T}(i == j ? mid : hi[j] for j in 1:N)
+    b = SVector{N, T}(i == j ? mid : lo[j] for j in 1:N)
+    return lo, a, b, hi
+end
+
+# Split node in half
 # See section 3 of https://doi.org/10.1007/s10569-015-9618-3
 function halve!(node::ADSTaylorSolution{T, N, M}, dt::T,
     x0::Vector{TaylorN{T}}) where {T, N, M}
@@ -261,6 +288,12 @@ function halve!(node::ADSTaylorSolution{T, N, M}, dt::T,
     return nothing
 end
 
+"""
+    decidesplit!(node::ADSTaylorSolution{T, N, M}, dt::T, x0::Vector{TaylorN{T}},
+                 nsplits::Int, maxsplits::Int, stol::T) where {T, N, M}
+
+Split `node` in half if any element of `x0` has an `adsnorm` greater than `stol`.
+"""
 function decidesplit!(node::ADSTaylorSolution{T, N, M}, dt::T, x0::Vector{TaylorN{T}},
     nsplits::Int, maxsplits::Int, stol::T) where {T, N, M}
     # Split criteria for each element of x

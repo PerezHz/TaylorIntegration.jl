@@ -12,14 +12,13 @@ CurrentModule = TaylorIntegration
 taylorinteg
 lyap_taylorinteg
 @taylorize
-ADSDomain
-ADSBinaryNode
 ```
 
 ## Exported types
 
 ```@docs
 TaylorSolution
+ADSTaylorSolution
 ```
 
 ## Internal
