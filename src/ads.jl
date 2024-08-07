@@ -151,7 +151,7 @@ Base.eltype(::Type{<:TreeIterator{ADSTaylorSolution{T, N, M}}}) where {T, N, M} 
 
 Return the number of nodes at depth `k` (time `t`) starting from root node `n`.
 """
-countnodes(n::Nothing, x) = 0
+countnodes(::Nothing, arg) = 0
 
 function countnodes(n::ADSTaylorSolution{T, N, M}, k::Int) where {T <: Real, N, M}
     @assert k >= 0
@@ -176,6 +176,148 @@ function timeshift!(n::ADSTaylorSolution{T, N, M}, dt::T) where {T <: Real, N, M
         node.t += dt
     end
 end
+
+"""
+    evaltree(n, t [, s])
+
+Evaluate binary tree `n` at time `t` (and domain point `s`).
+"""
+function evaltree(n::ADSTaylorSolution{T, N, M}, t::U) where {T<:Real, U<:Number, N, M}
+    # t is outside time range
+    if isnothing(n.left) || (n.t < n.left.t && t < n.t) ||
+        (n.t > n.left.t && t > n.t)
+        return Matrix{TaylorN{T}}(undef, 0, 0), Matrix{TaylorN{T}}(undef, 0, 0),
+            Matrix{TaylorN{T}}(undef, 0, 0)
+    end
+    # Allocate set of nodes
+    ns = Set{ADSTaylorSolution{T, N, M}}()
+    # Search nodes at time t (recursively)
+    evaltree!(n, t, ns)
+    # Set{...} to Vector{...}
+    nodes = collect(ns)
+    # Sort nodes by lowest corner of domain
+    sort!(nodes, by = x -> x.lo)
+    # Number of nodes at time t
+    L = length(nodes)
+    # There are 0 nodes at time t
+    iszero(L) && return Matrix{T}(undef, 0, 0), Matrix{T}(undef, 0, 0),
+        Matrix{TaylorN{T}}(undef, 0, 0)
+    # Domain of each node
+    lo = Matrix{T}(undef, N, L)
+    hi = Matrix{T}(undef, N, L)
+    # State vector of each node
+    x0 = Matrix{TaylorN{T}}(undef, M, L)
+    # Evaluate polynomials at time t
+    for i in eachindex(nodes)
+        dt = t - nodes[i].t
+        lo[:, i] .= nodes[i].lo
+        hi[:, i] .= nodes[i].hi
+        x0[:, i] .= zero.(nodes[i].x)
+        evaluate!(nodes[i].p, dt, view(x0, :, i))
+    end
+
+    return lo, hi, x0
+end
+
+evaltree!(::Nothing, args...) = nothing
+
+function evaltree!(n::ADSTaylorSolution{T, N, M}, t::U,
+        ns::Set{ADSTaylorSolution{T, N, M}}) where {T <: Real, U <: Number, N, M}
+    # Last node
+    if isnothing(n.left) && (t == n.t)
+        push!(ns, n.parent)
+    # Not last node
+    else
+        t0, tf = minmax(n.t, n.left.t)
+        if t0 <= t < tf
+            push!(ns, n)
+        else
+            evaltree!(n.left, t, ns)
+            evaltree!(n.right, t, ns)
+        end
+    end
+
+    return nothing
+end
+
+# Function-like callability method
+(n::ADSTaylorSolution{T, N, M})(t::U) where {T <: Real, U <: Number, N, M} = evaltree(n, t)
+
+#=
+function evaltree(n::ADSTaylorSolution{T, N, M}, t::U,
+                  s::AbstractVector{T}) where {T <: Real, U <: Number, N, M}
+    # Check length(s)
+    @assert length(s) == N "s must be of length $N"
+    # t is outside time range or s is outside domain
+    if !(s in n.s) || !isnothing(n.left) && (n.t < n.left.t && t < n.t) ||
+        (n.t > n.left.t && t > n.t)
+        return Vector{T}(undef, 0)
+    end
+    # Allocate set of nodes
+    ns = Set{ADSTaylorSolution{T, N, M}}()
+    # Search nodes at time t and domain s (recursively)
+    evaltree!(n, t, s, ns)
+    # Set{ADSTaylorSolution{T, N, M}} to Vector{ADSTaylorSolution{T, N, M}}
+    nodes = collect(ns)
+    # Number of nodes at time t and domain s
+    L = length(nodes)
+    # There are 0 nodes at time t and domain s
+    if iszero(L)
+        x = Vector{T}(undef, 0)
+    # Evaluate polynomials at time t and domain s
+    else
+        # State vector of each node
+        X = Matrix{T}(undef, M, L)
+
+        for i in eachindex(nodes)
+            # Choose the first node
+            node = nodes[i]
+            # Time delta
+            dt = t - node.t
+            # Evaluate node polynomial at dt
+            p = _adseval(node.p, dt)
+            # Root and local domain
+            sup = getroot(n).s
+            loc = node.s
+            # Linear transformation
+            ms = widths(sup) ./ widths(loc)
+            ks = infima(sup) - infima(loc) .* ms
+            _s_ = ms .* s .+ ks
+            # Eval p at transformed point
+            X[:, i] .= map(y -> y(_s_), p)
+        end
+        # Average
+        x = sum(X, dims = 2)[:] ./ L
+    end
+
+    return x
+end
+
+function evaltree!(n::ADSTaylorSolution{T, N, M}, t::U, s::AbstractVector{T},
+                   ns::Set{ADSTaylorSolution{T, N, M}}) where {N, M, T <: Real, U <: Number}
+    # s is outside domain
+    !(s in n.s) && return nothing
+    # Last node
+    if isnothing(n.left) && (t == n.t)
+        push!(ns, n.parent)
+    # Not last node
+    else
+        if abs(n.t) <= abs(t) < abs(n.left.t)
+            push!(ns, n)
+        else
+            evaltree!(n.left, t, s, ns)
+            evaltree!(n.right, t, s, ns)
+        end
+    end
+
+    nothing
+end
+
+# Function-like callability method
+function (n::ADSTaylorSolution{T, N, M})(t::U, s::AbstractVector{T}) where {N, M, T <: Real, U <: Number}
+    return evaltree(n, t, s)
+end
+=#
 
 ## ADS integrator
 

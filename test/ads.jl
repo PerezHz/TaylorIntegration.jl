@@ -1,5 +1,6 @@
 using TaylorIntegration
 using StaticArrays
+using AbstractTrees
 using Test
 
 @testset "Automatic Domain Splitting" begin
@@ -52,7 +53,7 @@ using Test
 
         @test isa(q1, ADSTaylorSolution{Float64, 2, 4})
         @test iszero(q1.depth)
-        @test iszero(q1.t)
+        @test q1.t == t0
         @test q1.lo == [-1.0, -1.0]
         @test q1.hi == [1.0, 1.0]
         @test q1.x == q0
@@ -60,19 +61,18 @@ using Test
         @test isnothing(q1.parent)
         @test isa(q1.left, ADSTaylorSolution{Float64, 2, 4})
         @test isnothing(q1.right)
-
-        #=
-        ts1 = timesvector(nv1)
-        @test ts1[1] == t0
-        @test ts1[end] == tmax
-        @test length(ts1) == 85
-        =#
+        l1 = collect(Leaves(q1))
+        @test all(getfield.(l1, Ref(:t)) .== tmax)
 
         @test isone(countnodes(q1, 0))
-        # @test countnodes(q1, length(ts1)-1) == maxsplits
-        # @test iszero(countnodes(nv1, length(ts1)))
+        d1 = maximum(getfield.(l1, Ref(:depth)))
+        @test isone(countnodes(q1, d1))
+        @test iszero(countnodes(q1, d1 + 1))
+
         @test iszero(countnodes(q1, prevfloat(t0)))
-        @test countnodes(q1, t0) == 1
+        @test isone(countnodes(q1, t0))
+        @test isone(countnodes(q1, t0 + 1.0))
+        @test countnodes(q1, tmax - 1.0) == maxsplits
         @test countnodes(q1, tmax) == maxsplits
         @test iszero(countnodes(q1, nextfloat(tmax)))
 
@@ -88,7 +88,7 @@ using Test
 
         @test isa(q2, ADSTaylorSolution{Float64, 2, 4})
         @test iszero(q2.depth)
-        @test iszero(q2.t)
+        @test q2.t == t0
         @test q2.lo == [-1.0, -1.0]
         @test q2.hi == [1.0, 1.0]
         @test q2.x == q0
@@ -96,41 +96,49 @@ using Test
         @test isnothing(q2.parent)
         @test isa(q2.left, ADSTaylorSolution{Float64, 2, 4})
         @test isnothing(q2.right)
-
-        #=
-        ts2 = timesvector(nv2)
-        @test ts2[1] == t0
-        @test ts2[end] == tmax
-        @test length(ts2) == 85
-        =#
+        l2= collect(Leaves(q2))
+        @test all(getfield.(l2, Ref(:t)) .== tmax)
 
         @test isone(countnodes(q2, 0))
-        # @test countnodes(q2, length(ts2)-1) == maxsplits
-        # @test iszero(countnodes(q2, length(ts2)))
+        d2 = maximum(getfield.(l2, Ref(:depth)))
+        @test isone(countnodes(q2, d2))
+        @test iszero(countnodes(q2, d2 + 1))
+
         @test iszero(countnodes(q2, prevfloat(t0)))
-        @test countnodes(q2, t0) == 1
+        @test isone(countnodes(q2, t0))
+        @test isone(countnodes(q2, t0 + 1.0))
+        @test countnodes(q2, tmax - 1.0) == maxsplits
         @test countnodes(q2, tmax) == maxsplits
         @test iszero(countnodes(q2, nextfloat(tmax)))
 
         # Compatibility between parse_eqs = false/true
 
-        #=
-        @test ts1 == ts2
+        for (n1, n2) in zip(PreOrderDFS(q1), PreOrderDFS(q2))
+            @test n1.depth == n2.depth
+            @test n1.t == n2.t
+            @test n1.lo == n2.lo
+            @test n1.hi == n2.hi
+            @test n1.x == n2.x
+            @test n1.p == n2.p
+        end
 
-        s1, x1 = nv1(t0)
-        s2, x2 = nv2(t0)
-        @test length(s1) == length(s2) == 1
-        @test s1[1] == s2[1] == dom
+        lo1, hi1, x1 = q1(t0)
+        lo2, hi2, x2 = q2(t0)
+        @test size(lo1) == size(hi1) == size(lo2) == size(hi2) == (2, 1)
+        @test all(lo1 .== lo2 .== q1.lo .== q2.lo)
+        @test all(hi1 .== hi2 .== q1.hi .== q2.hi)
         @test size(x1) == size(x2) == (4, 1)
-        @test x1[:, 1] == x2[:, 1] == q0
+        @test all(x1 .== x2 .== q1.x .== q2.x)
 
-        s1, x1 = nv1(tmax)
-        s2, x2 = nv2(tmax)
-        @test length(s1) == length(s2) == maxsplits
-        @test s1 == s2
+        lo1, hi1, x1 = q1(tmax)
+        lo2, hi2, x2 = q2(tmax)
+        @test size(lo1) == size(hi1) == size(lo2) == size(hi2) == (2, maxsplits)
+        @test lo1 == lo2
+        @test hi1 == hi2
         @test size(x1) == size(x2) == (4, maxsplits)
         @test x1 == x2
 
+        #=
         y1 = nv1(t0, SVector(0.1, 0.1))
         y2 = nv2(t0, SVector(0.1, 0.1))
         @test y1 == y2
