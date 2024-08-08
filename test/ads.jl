@@ -138,18 +138,15 @@ using Test
         @test size(x1) == size(x2) == (4, maxsplits)
         @test x1 == x2
 
-        #=
-        y1 = nv1(t0, SVector(0.1, 0.1))
-        y2 = nv2(t0, SVector(0.1, 0.1))
+        y1 = q1(t0, [0.1, 0.1])
+        y2 = q2(t0, [0.1, 0.1])
         @test y1 == y2
-        y1 = nv1(tmax, SVector(0.1, 0.1))
-        y2 = nv2(tmax, SVector(0.1, 0.1))
+        y1 = q1(tmax, [0.1, 0.1])
+        y2 = q2(tmax, [0.1, 0.1])
         @test y1 == y2
-        =#
 
         # ADS vs Monte Carlo both in cartesian coordinates and keplerian elements
 
-        #=
         # Semimajor axis and eccentricity
         function ae(rv)
             x, y, u, v = rv
@@ -171,14 +168,15 @@ using Test
         unique!(boundary)
 
         for s in boundary
-            tv, xv = taylorinteg(kepler_eqs!, q0_(s), t0, tmax, order, abstol, Val(false), params;
-                                 maxsteps, parse_eqs = false)
-            rfvmc = xv[end, :]
+            sol = taylorinteg(kepler_eqs!, q0(s), t0, tmax, order, abstol, params;
+                              maxsteps, parse_eqs = false, dense = false)
+            rv0mc = sol.x[1, :]
+            rvfmc = sol.x[end, :]
 
-            rv0ads, rvfads = nv1(t0, s), nv1(tmax, s)
+            rv0ads, rvfads = q1(t0, s), q1(tmax, s)
 
-            @test maximum(@. abs((rvfads - rfvmc) / rfvmc)) < 0.03
-            @test maximum(@. abs((rvfads - rfvmc) / rfvmc)) < 0.03
+            @test rv0ads == rv0mc
+            @test maximum(@. abs((rvfads - rvfmc) / rvfmc)) < 0.03
 
             a0, e0 = ae(rv0ads)
             af, ef = ae(rvfads)
@@ -186,14 +184,15 @@ using Test
             @test abs((af - a0) / a0) < 0.07
             @test abs((ef - e0) / e0) < 0.07
 
-            tv, xv = taylorinteg(kepler_eqs!, q0_(s), t0, tmax, order, abstol, Val(false), params;
-                                 maxsteps, parse_eqs = true)
-            rfvmc = xv[end, :]
+            sol = taylorinteg(kepler_eqs!, q0(s), t0, tmax, order, abstol, params;
+                              maxsteps, parse_eqs = true, dense = false)
+            rv0mc = sol.x[1, :]
+            rvfmc = sol.x[end, :]
 
-            rv0ads, rvfads = nv2(t0, s), nv2(tmax, s)
+            rv0ads, rvfads = q2(t0, s), q2(tmax, s)
 
-            @test maximum(@. abs((rvfads - rfvmc) / rfvmc)) < 0.03
-            @test maximum(@. abs((rvfads - rfvmc) / rfvmc)) < 0.03
+            @test rv0ads == rv0mc
+            @test maximum(@. abs((rvfads - rvfmc) / rvfmc)) < 0.03
 
             a0, e0 = ae(rv0ads)
             af, ef = ae(rvfads)
@@ -201,7 +200,6 @@ using Test
             @test abs((af - a0) / a0) < 0.07
             @test abs((ef - e0) / e0) < 0.07
         end
-        =#
 
         # timeshift!
 
