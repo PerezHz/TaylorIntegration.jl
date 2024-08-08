@@ -197,7 +197,15 @@ function evaltree(n::ADSTaylorSolution{T, N, M}, t::U) where {T<:Real, U<:Number
     # Allocate set of nodes
     ns = Set{ADSTaylorSolution{T, N, M}}()
     # Search nodes at time t (recursively)
-    evaltree!(n, t, ns)
+    for node in PreOrderDFS(x -> abs(x.t - n.t) <= t, n)
+        if isnothing(node.left) && (t == node.t)
+            push!(ns, node.parent)
+        else
+            if abs(node.t - n.t) <= t < abs(node.left.t - n.t)
+                push!(ns, node)
+            end
+        end
+    end
     # Set{...} to Vector{...}
     nodes = collect(ns)
     # Sort nodes by lowest corner of domain
@@ -225,27 +233,6 @@ function evaltree(n::ADSTaylorSolution{T, N, M}, t::U) where {T<:Real, U<:Number
     return lo, hi, x0
 end
 
-evaltree!(::Nothing, args...) = nothing
-
-function evaltree!(n::ADSTaylorSolution{T, N, M}, t::U,
-        ns::Set{ADSTaylorSolution{T, N, M}}) where {T <: Real, U <: Number, N, M}
-    # Last node
-    if isnothing(n.left) && (t == n.t)
-        push!(ns, n.parent)
-    # Not last node
-    else
-        t0, tf = minmax(n.t, n.left.t)
-        if t0 <= t < tf
-            push!(ns, n)
-        else
-            evaltree!(n.left, t, ns)
-            evaltree!(n.right, t, ns)
-        end
-    end
-
-    return nothing
-end
-
 # Function-like callability method
 (n::ADSTaylorSolution{T, N, M})(t::U) where {T <: Real, U <: Number, N, M} =
     evaltree(n, t)
@@ -262,7 +249,15 @@ function evaltree(n::ADSTaylorSolution{T, N, M}, t::U,
     # Allocate set of nodes
     ns = Set{ADSTaylorSolution{T, N, M}}()
     # Search nodes at time t and domain s (recursively)
-    evaltree!(n, t, s, ns)
+    for node in PreOrderDFS(x -> all(x.lo .<= s .<= x.hi) && abs(x.t - n.t) <= t, n)
+        if isnothing(node.left) && (t == node.t)
+            push!(ns, node.parent)
+        else
+            if abs(node.t - n.t) <= t < abs(node.left.t - n.t)
+                push!(ns, node)
+            end
+        end
+    end
     # Set{...} to Vector{...}
     nodes = collect(ns)
     # Number of nodes at time t and domain s
@@ -291,27 +286,6 @@ function evaltree(n::ADSTaylorSolution{T, N, M}, t::U,
     end
     # Average
     return sum(x0, dims = 2)[:] ./ L
-end
-
-function evaltree!(n::ADSTaylorSolution{T, N, M}, t::U, s::AbstractVector{T},
-        ns::Set{ADSTaylorSolution{T, N, M}}) where {T <: Real, U <: Number, N, M}
-    # s is outside domain
-    !all(n.lo .<= s .<= n.hi) && return nothing
-    # Last node
-    if isnothing(n.left) && (t == n.t)
-        push!(ns, n.parent)
-    # Not last node
-    else
-        t0, tf = minmax(n.t, n.left.t)
-        if t0 <= t < tf
-            push!(ns, n)
-        else
-            evaltree!(n.left, t, s, ns)
-            evaltree!(n.right, t, s, ns)
-        end
-    end
-
-    nothing
 end
 
 # Function-like callability method
