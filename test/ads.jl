@@ -66,7 +66,7 @@ using Test
 
         @test isone(countnodes(q1, 0))
         d1 = maximum(getfield.(l1, Ref(:depth)))
-        @test isone(countnodes(q1, d1))
+        @test countnodes(q1, d1) == 2
         @test iszero(countnodes(q1, d1 + 1))
 
         @test iszero(countnodes(q1, prevfloat(t0)))
@@ -101,7 +101,7 @@ using Test
 
         @test isone(countnodes(q2, 0))
         d2 = maximum(getfield.(l2, Ref(:depth)))
-        @test isone(countnodes(q2, d2))
+        @test countnodes(q2, d2) == 2
         @test iszero(countnodes(q2, d2 + 1))
 
         @test iszero(countnodes(q2, prevfloat(t0)))
@@ -176,13 +176,13 @@ using Test
             rv0ads, rvfads = q1(t0, s), q1(tmax, s)
 
             @test rv0ads == rv0mc
-            @test maximum(@. abs((rvfads - rvfmc) / rvfmc)) < 0.03
+            @test maximum(@. abs((rvfads - rvfmc) / rvfmc)) < 0.006
 
             a0, e0 = ae(rv0ads)
             af, ef = ae(rvfads)
 
-            @test abs((af - a0) / a0) < 0.07
-            @test abs((ef - e0) / e0) < 0.07
+            @test abs((af - a0) / a0) < 0.015
+            @test abs((ef - e0) / e0) < 0.009
 
             sol = taylorinteg(kepler_eqs!, q0(s), t0, tmax, order, abstol, params;
                               maxsteps, parse_eqs = true, dense = false)
@@ -192,13 +192,13 @@ using Test
             rv0ads, rvfads = q2(t0, s), q2(tmax, s)
 
             @test rv0ads == rv0mc
-            @test maximum(@. abs((rvfads - rvfmc) / rvfmc)) < 0.03
+            @test maximum(@. abs((rvfads - rvfmc) / rvfmc)) < 0.006
 
             a0, e0 = ae(rv0ads)
             af, ef = ae(rvfads)
 
-            @test abs((af - a0) / a0) < 0.07
-            @test abs((ef - e0) / e0) < 0.07
+            @test abs((af - a0) / a0) < 0.015
+            @test abs((ef - e0) / e0) < 0.009
         end
 
         # timeshift!
