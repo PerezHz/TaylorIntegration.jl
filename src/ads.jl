@@ -151,19 +151,24 @@ Base.eltype(::Type{<:TreeIterator{ADSTaylorSolution{T, N, M}}}) where {T, N, M} 
 
 Return the number of nodes at depth `k` (time `t`) starting from root node `n`.
 """
-countnodes(::Nothing, arg) = 0
-
 function countnodes(n::ADSTaylorSolution{T, N, M}, k::Int) where {T <: Real, N, M}
-    @assert k >= 0
-    iszero(k) && return 1
-    return countnodes(n.left, k-1) + countnodes(n.right, k-1)
+    s = 0
+    for node in PreOrderDFS(x -> x.depth <= k, n)
+        s += (node.depth == k)
+    end
+    return s
 end
 
 function countnodes(n::ADSTaylorSolution{T, N, M}, t::T) where {T <: Real, N, M}
-    isnothing(n.left) && return Int(t == n.t)
-    t0, tf = minmax(n.t, n.left.t)
-    t0 <= t < tf && return 1
-    return countnodes(n.left, t) + countnodes(n.right, t)
+    s = 0
+    for node in PreOrderDFS(x -> abs(x.t - n.t) <= t, n)
+        if isnothing(node.left)
+            s += (t == node.t)
+        else
+            s += abs(node.t - n.t) <= t < abs(node.left.t - n.t)
+        end
+    end
+    return s
 end
 
 """
