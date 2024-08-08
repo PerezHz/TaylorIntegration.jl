@@ -345,10 +345,10 @@ function truncerror(P::TaylorN{T}) where {T <: Real}
 
     for i in eachindex(P.coeffs)
         idxs = TaylorSeries.coeff_table[i]
-        for j in eachindex(idxs)
+        for (j, jdxs) in enumerate(idxs)
             coef = abs(P.coeffs[i].coeffs[j])
-            for k in eachindex(idxs[j])
-                ys[k, idxs[j][k]+1] += coef
+            for k in eachindex(jdxs)
+                ys[k, jdxs[k]+1] += coef
             end
         end
     end
@@ -411,7 +411,7 @@ function adsnorm(P::TaylorN{T}) where {T <: Real}
     # Jet transport order
     varorder = P.order
     # Absolute sum per order
-    ys = norm.((P[i] for i in eachindex(P)), Ref(1))
+    ys = norm.((P[i] for i in eachindex(P)), 1)
     # Initial parameters
     p0 = ones(T, 2)
     # Orders
@@ -443,16 +443,17 @@ function halve!(node::ADSTaylorSolution{T, N, M}, dt::T,
     # Split domain
     lo1, hi1, lo2, hi2 = halve(node.lo, node.hi, j)
     # Jet transport variables
-    v_1, v_2 = get_variables(), get_variables()
-    # Shift expansion point
+    v = get_variables()
+    # Root node
     r = getroot(node)
-    v_1[j] = v_1[j]/2 + r.lo[j]/2
-    v_2[j] = v_2[j]/2 + r.hi[j]/2
     # Left half
-    x1 = SVector{M, TaylorN{T}}(x0[i](v_1) for i in eachindex(x0))
+    v[j] = v[j]/2 + r.lo[j]/2
+    x1 = SVector{M, TaylorN{T}}(x0[i](v) for i in eachindex(x0))
     leftchild!(node, node.t + dt, lo1, hi1, x1)
     # Right half
-    x2 = SVector{M, TaylorN{T}}(x0[i](v_2) for i in eachindex(x0))
+    v .= get_variables()
+    v[j] = v[j]/2 + r.hi[j]/2
+    x2 = SVector{M, TaylorN{T}}(x0[i](v) for i in eachindex(x0))
     rightchild!(node, node.t + dt, lo2, hi2, x2)
 
     return nothing

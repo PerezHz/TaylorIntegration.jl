@@ -8,10 +8,8 @@ using LinearAlgebra
 using Markdown
 using InteractiveUtils #: methodswith
 using StaticArrays: SVector
-using AbstractTrees: StoredParents, HasNodeType, TreeIterator, PreOrderDFS, Leaves,
-      getroot
+using AbstractTrees
 using LsqFit: curve_fit
-import AbstractTrees
 
 if !isdefined(Base, :get_extension)
     using Requires
