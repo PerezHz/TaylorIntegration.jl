@@ -72,6 +72,8 @@ struct TaylorMethodConstantCache{uTType} <: OrdinaryDiffEqConstantCache
     rv::RetAlloc{uTType}
 end
 
+OrdinaryDiffEq.get_fsalfirstlast(cache::TaylorMethodCache, u) = (cache.fsalfirst, cache.k)
+
 function OrdinaryDiffEq.alg_cache(alg::TaylorMethodParams, u, rate_prototype, uEltypeNoUnits,
         uBottomEltypeNoUnits, tTypeNoUnits, uprev, uprev2, f, t, dt, reltol, p,
         calck,::Val{true})
