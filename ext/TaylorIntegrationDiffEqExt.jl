@@ -196,7 +196,7 @@ function OrdinaryDiffEq.perform_step!(integrator, cache::TaylorMethodCache)
     integrator.stats.nf += 1
 end
 
-function OrdinaryDiffEq.get_fsalfirstlast!(cache::TaylorMethodCache, f, t,
+function get_fsalfirstlast!(cache::TaylorMethodCache, f, t,
     u, uprev, p, tT, uT, duT, uauxT
     )
     fsalfirst = zero(rate_prototype)
