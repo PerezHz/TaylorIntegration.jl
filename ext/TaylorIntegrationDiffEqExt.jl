@@ -196,21 +196,7 @@ function OrdinaryDiffEq.perform_step!(integrator, cache::TaylorMethodCache)
     integrator.stats.nf += 1
 end
 
-function get_fsalfirstlast!(cache::TaylorMethodCache, f, t,
-    u, uprev, p, tT, uT, duT, uauxT
-    )
-    fsalfirst = zero(rate_prototype)
-    fsallast = zero(rate_prototype)
-    if parse_eqs[]
-        fsalfirst = f(t, u, p)
-        fsallast = f(t, u, p)
-    else
-        TaylorIntegration.__jetcoeffs!(Val(false), f, tT, uT, duT, uauxT, p, cache.rv)
-        fsalfirst = constant_term.(duT)
-        fsallast = constant_term.(duT)
-    end
-    return fsalfirst, fsallast
-end
+OrdinaryDiffEq.get_fsalfirstlast(cache::TaylorMethodCache, u) = (cache.fsalfirst, cache.k)
 
 OrdinaryDiffEq.stepsize_controller!(integrator,alg::TaylorMethodParams) =
     TaylorIntegration.stepsize(integrator.cache.uT, integrator.opts.abstol)
