@@ -196,6 +196,8 @@ function OrdinaryDiffEq.perform_step!(integrator, cache::TaylorMethodCache)
     integrator.stats.nf += 1
 end
 
+OrdinaryDiffEq.get_fsalfirstlast(cache::TaylorMethodCache, u) = (cache.fsalfirst, cache.k)
+
 OrdinaryDiffEq.stepsize_controller!(integrator,alg::TaylorMethodParams) =
     TaylorIntegration.stepsize(integrator.cache.uT, integrator.opts.abstol)
 OrdinaryDiffEq.step_accept_controller!(integrator, alg::TaylorMethodParams, q) = q
