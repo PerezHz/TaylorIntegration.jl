@@ -5,6 +5,7 @@ version = "0.16.1"
 
 [deps]
 DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
+Elliptic = "b305315f-e792-5b7a-8f41-49f472929428"
 Espresso = "6912e4f1-e036-58b0-9138-08d1e6358ea9"
 InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
@@ -40,7 +41,7 @@ Requires = "1"
 StaticArrays = "0.12.5, 1"
 TaylorSeries = "0.18"
 Test = "<0.0.1, 1"
-julia = "1.6"
+julia = "1.10"
 
 [extras]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
@@ -59,6 +60,4 @@ TaylorSeries = "6aa5eb33-94cf-58f4-a9d0-e4b2c4fc25ea"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Aqua", "DiffEqBase", "Elliptic", "InteractiveUtils",
-    "LinearAlgebra", "Logging", "OrdinaryDiffEq", "Pkg",
-    "RecursiveArrayTools", "StaticArrays", "TaylorSeries", "Test"]
+test = ["Aqua", "DiffEqBase", "Elliptic", "InteractiveUtils", "LinearAlgebra", "Logging", "OrdinaryDiffEq", "Pkg", "RecursiveArrayTools", "StaticArrays", "TaylorSeries", "Test"]
