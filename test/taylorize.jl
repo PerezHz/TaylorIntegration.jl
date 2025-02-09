@@ -1339,9 +1339,17 @@ import Logging: Warn
             solTN2 = @inferred TaylorIntegration.taylorinteg!(Val(false), kepler1!, _q0, _t0, _tmax, _abstol, __rv, _cache_false, _params; parse_eqs=__parse_eqs, maxsteps=_maxsteps)
             @test solTN isa TaylorSolution{typeof(_t0), eltype(_q0), ndims(solTN.x), typeof(solTN.t), typeof(solTN.x), typeof(solTN.p), Nothing, Nothing, Nothing}
             @test solTN2 isa TaylorSolution{typeof(_t0), eltype(_q0), ndims(solTN.x), typeof(solTN.t), typeof(solTN.x), Nothing, Nothing, Nothing, Nothing}
-            # # test cache update
-            # TaylorIntegration.update!(_cache_true, _t0, _q0)
-            # solTN = TaylorIntegration.taylorinteg!(Val(true), kepler1!, _q0, _t0, _tmax, _abstol, __rv, _cache_true, _params; parse_eqs=__parse_eqs, maxsteps=_maxsteps)
+            # test cache update
+            q1 = [-0.2, 0.0, 0.0, -2.8]
+            q1TN = q1 + p # JT initial condition
+            solTN3 = @inferred TaylorIntegration.taylorinteg!(Val(true), kepler1!, q1TN, _t0, _tmax, _abstol, __rv, _cache_true, _params; parse_eqs=__parse_eqs, maxsteps=_maxsteps)
+            @test solTN3 isa TaylorSolution{typeof(_t0), eltype(q1TN), ndims(solTN.x), typeof(solTN.t), typeof(solTN.x), typeof(solTN.p), Nothing, Nothing, Nothing}
+            # initial energy
+            E0 = visviva(solTN3(_t0))
+            # final energy
+            Ef = visviva(solTN3(_tmax))
+            @show norm( E0() - Ef(), Inf )
+            @show solTN3.x[end,:]()
         end
     end
 
