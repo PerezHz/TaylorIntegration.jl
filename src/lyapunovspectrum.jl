@@ -11,9 +11,9 @@ Helper function to build a [`TaylorSolution`](@ref) from a call to
 
 """
 build_lyap_solution(t::AbstractVector{T},
-        x::Matrix{U},
-        λ::Matrix{U},
-        nsteps::Int) where {T, U} =
+    x::Matrix{U},
+    λ::Matrix{U},
+    nsteps::Int) where {T,U} =
     TaylorSolution(arraysol(t, nsteps),
         arraysol(x, nsteps),
         nothing,
@@ -23,8 +23,8 @@ build_lyap_solution(t::AbstractVector{T},
         arraysol(λ, nsteps))
 
 build_lyap_solution(t::AbstractVector{T},
-        x::Matrix{U},
-        λ::Matrix{U}) where {T, U} =
+    x::Matrix{U},
+    λ::Matrix{U}) where {T,U} =
     TaylorSolution(t,
         transpose(x),
         nothing,
@@ -48,9 +48,9 @@ Optionally, the user may provide a Jacobian function `jacobianfunc!` to compute
 
 """
 function stabilitymatrix!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
-        δx::Vector{TaylorN{Taylor1{U}}}, dδx::Vector{TaylorN{Taylor1{U}}},
-        jac::Matrix{Taylor1{U}}, dvars::Vector{TaylorN{Taylor1{U}}}, params,
-        ::Nothing) where {T<:Real, U<:Number}
+    δx::Vector{TaylorN{Taylor1{U}}}, dδx::Vector{TaylorN{Taylor1{U}}},
+    jac::Matrix{Taylor1{U}}, dvars::Vector{TaylorN{Taylor1{U}}}, params,
+    ::Nothing) where {T<:Real,U<:Number}
     # Set δx equal to current value of x plus 1st-order variations
     for ind in eachindex(δx)
         @inbounds δx[ind] = x[ind] + dvars[ind]
@@ -61,9 +61,9 @@ function stabilitymatrix!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
     nothing
 end
 function stabilitymatrix!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
-        δx::Vector{TaylorN{Taylor1{U}}}, dδx::Vector{TaylorN{Taylor1{U}}},
-        jac::Matrix{Taylor1{U}}, dvars::Vector{TaylorN{Taylor1{U}}}, params,
-        jacobianfunc!::J) where {T<:Real, U<:Number, J}
+    δx::Vector{TaylorN{Taylor1{U}}}, dδx::Vector{TaylorN{Taylor1{U}}},
+    jac::Matrix{Taylor1{U}}, dvars::Vector{TaylorN{Taylor1{U}}}, params,
+    jacobianfunc!::J) where {T<:Real,U<:Number,J}
     jacobianfunc!(jac, x, params, t)
     nothing
 end
@@ -75,30 +75,30 @@ stabilitymatrix!(eqsdiff!, t, x, δx, dδx, jac, dvars, params) =
 # Classical Gram–Schmidt (Trefethen algorithm 7.1), implemented in the simplest way
 # (We could make it faster by unrolling loops to avoid temporaries arrays etc.)
 function classicalGS!(A, Q, R, aⱼ, qᵢ, vⱼ)
-    m,n = size(A)
+    m, n = size(A)
     fill!(R, zero(eltype(A)))
     for j = 1:n
         # aⱼ = A[:,j]
         for ind = 1:m
-            @inbounds aⱼ[ind] = A[ind,j]
+            @inbounds aⱼ[ind] = A[ind, j]
             @inbounds vⱼ[ind] = aⱼ[ind]
         end
         # vⱼ = copy(aⱼ) # use copy so that modifying vⱼ doesn't change aⱼ
         for i = 1:j-1
             # qᵢ = Q[:,i]
             for ind = 1:m
-                @inbounds qᵢ[ind] = Q[ind,i]
+                @inbounds qᵢ[ind] = Q[ind, i]
             end
-            @inbounds R[i,j] = dot(qᵢ, aⱼ)
+            @inbounds R[i, j] = dot(qᵢ, aⱼ)
             # vⱼ -= R[i,j] * qᵢ
             @inbounds for ind = 1:m
-                vⱼ[ind] -= R[i,j] * qᵢ[ind]
+                vⱼ[ind] -= R[i, j] * qᵢ[ind]
             end
         end
-        @inbounds R[j,j] = norm(vⱼ)
+        @inbounds R[j, j] = norm(vⱼ)
         # Q[:,j] = vⱼ / R[j,j]
         for ind = 1:m
-            @inbounds Q[ind,j] = vⱼ[ind] / R[j,j]
+            @inbounds Q[ind, j] = vⱼ[ind] / R[j, j]
         end
     end
     return nothing
@@ -107,30 +107,30 @@ end
 # Modified Gram–Schmidt (Trefethen algorithm 8.1); see also
 # http://nbviewer.jupyter.org/url/math.mit.edu/~stevenj/18.335/Gram-Schmidt.ipynb
 function modifiedGS!(A, Q, R, aⱼ, qᵢ, vⱼ)
-    m,n = size(A)
+    m, n = size(A)
     fill!(R, zero(eltype(A)))
     for j = 1:n
         # aⱼ = A[:,j]
         for ind = 1:m
-            @inbounds aⱼ[ind] = A[ind,j]
+            @inbounds aⱼ[ind] = A[ind, j]
             @inbounds vⱼ[ind] = aⱼ[ind]
         end
         # vⱼ = copy(aⱼ) # use copy so that modifying vⱼ doesn't change aⱼ
         for i = 1:j-1
             # qᵢ = Q[:,i]
             for ind = 1:m
-                @inbounds qᵢ[ind] = Q[ind,i]
+                @inbounds qᵢ[ind] = Q[ind, i]
             end
-            @inbounds R[i,j] = dot(qᵢ, vⱼ) # ⟵ NOTICE: mgs has vⱼ, clgs has aⱼ
+            @inbounds R[i, j] = dot(qᵢ, vⱼ) # ⟵ NOTICE: mgs has vⱼ, clgs has aⱼ
             # vⱼ -= R[i,j] * qᵢ
             @inbounds for ind = 1:m
-                vⱼ[ind] -= R[i,j] * qᵢ[ind]
+                vⱼ[ind] -= R[i, j] * qᵢ[ind]
             end
         end
-        @inbounds R[j,j] = norm(vⱼ)
+        @inbounds R[j, j] = norm(vⱼ)
         # Q[:,j] = vⱼ / R[j,j]
         for ind = 1:m
-            @inbounds Q[ind,j] = vⱼ[ind] / R[j,j]
+            @inbounds Q[ind, j] = vⱼ[ind] / R[j, j]
         end
     end
     return nothing
@@ -150,8 +150,8 @@ previously using [`stabilitymatrix!`](@ref).
 
 """
 function lyap_jetcoeffs!(t::Taylor1{T}, x::AbstractVector{Taylor1{S}},
-        dx::AbstractVector{Taylor1{S}}, jac::Matrix{Taylor1{S}},
-        varsaux::Array{Taylor1{S},3}) where {T <: Real, S <: Number}
+    dx::AbstractVector{Taylor1{S}}, jac::Matrix{Taylor1{S}},
+    varsaux::Array{Taylor1{S},3}) where {T<:Real,S<:Number}
     order = t.order
     # `dofrange` behaves like 1:dof, where `dof = size(jac, 1)`. Used to initialize `b` and `li`
     dofrange = axes(jac, 1)
@@ -166,8 +166,8 @@ function lyap_jetcoeffs!(t::Taylor1{T}, x::AbstractVector{Taylor1{S}},
     dx .= zero(x[1])
     # Compute 0-th Taylor coefficients of matrix product `jac * x` and save into `dx`
     for i in eachindex(b)
-        varsaux[i] = Taylor1(constant_term(jac[ i[1], i[3] ]) * constant_term(x[ li[i[3], i[2]] ]), order)
-        lin_indx = li[ i[1], i[2]] # map from cartesian to linear index
+        varsaux[i] = Taylor1(constant_term(jac[i[1], i[3]]) * constant_term(x[li[i[3], i[2]]]), order)
+        lin_indx = li[i[1], i[2]] # map from cartesian to linear index
         dx[lin_indx] = Taylor1(constant_term(dx[lin_indx]) + constant_term(varsaux[i]), order)
     end
     # Recursion relations, 0-th order
@@ -176,17 +176,17 @@ function lyap_jetcoeffs!(t::Taylor1{T}, x::AbstractVector{Taylor1{S}},
     end
 
     # Compute Taylor coefficients of variational equations `dx = jac * x` up to order `order`
-    for ord = 1:order - 1
+    for ord = 1:order-1
         ordnext = ord + 1
         # Compute `ord`-th Taylor coefficients of matrix product `jac * x` and save into `dx`
         for i in eachindex(b)
-            TaylorSeries.mul!(varsaux[i], jac[ i[1], i[3] ], x[ li[i[3], i[2]] ], ord)
-            lin_indx = li[ i[1], i[2]] # map from cartesian to linear index
+            TaylorSeries.mul!(varsaux[i], jac[i[1], i[3]], x[li[i[3], i[2]]], ord)
+            lin_indx = li[i[1], i[2]] # map from cartesian to linear index
             TaylorSeries.add!(dx[lin_indx], dx[lin_indx], varsaux[i], ord)
         end
         # Recursion relations, `ord`-th order
         for __idx = eachindex(x)
-            (x[__idx]).coeffs[ordnext + 1] = (dx[__idx]).coeffs[ordnext] / ordnext
+            (x[__idx]).coeffs[ordnext+1] = (dx[__idx]).coeffs[ordnext] / ordnext
         end
     end
 
@@ -210,7 +210,7 @@ function lyap_taylorstep!(::Val{V}, f!, t::Taylor1{T}, x::Vector{Taylor1{U}}, dx
     xaux::Vector{Taylor1{U}}, δx::Array{TaylorN{Taylor1{U}},1}, dδx::Array{TaylorN{Taylor1{U}},1},
     jac::Array{Taylor1{U},2}, abstol::T, dvars::Vector{TaylorN{Taylor1{U}}},
     varsaux::Array{Taylor1{U},3}, params, rv::RetAlloc{Taylor1{U}},
-    jacobianfunc! =nothing) where {T<:Real, U<:Number, V}
+    (jacobianfunc!)=nothing) where {T<:Real,U<:Number,V}
 
     # Dimensions of phase-space: dof
     nx = length(x)
@@ -249,34 +249,30 @@ differentiation using `TaylorSeries.jl`.
 
 """
 function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
-        order::Int, abstol::T, params = nothing, jacobianfunc! =nothing;
-        maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real, U<:Number}
+    order::Int, abstol::T, params=nothing, (jacobianfunc!)=nothing;
+    maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real,U<:Number}
 
     dof = length(q0)
 
     # Allocation
-    cache = init_cache_lyap(t0, q0, maxsteps, order)
+    cache = init_cache_lyap(t0, q0, maxsteps, order, f!, params; parse_eqs)
 
     # If user does not provide Jacobian, check number of TaylorN variables and initialize _dv
     if isa(jacobianfunc!, Nothing)
         @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
         for ind in eachindex(q0)
-            cache.dvars[ind] = one(cache.x[1])*TaylorN(Taylor1{U}, ind, order=1)
+            cache.dvars[ind] = one(cache.x[1]) * TaylorN(Taylor1{U}, ind, order=1)
         end
     end
 
-    # Determine if specialized jetcoeffs! method exists
-    parse_eqs, rv = _determine_parsing!(parse_eqs, f!, cache.t,
-                    view(cache.x, 1:dof), view(cache.dx, 1:dof), params)
-
-    return lyap_taylorinteg!(f!, q0, t0, tmax, abstol, rv,
-        cache, params, jacobianfunc!; maxsteps, parse_eqs)
+    return lyap_taylorinteg!(f!, q0, t0, tmax, abstol, cache.rv,
+        cache, params, jacobianfunc!; maxsteps, cache.parse_eqs)
 end
 
 function lyap_taylorinteg!(f!,
-        q0::Array{U,1}, t0::T, tmax::T, abstol::T,
-        rv::RetAlloc{Taylor1{U}}, cache::LyapunovSpectrumCache, params, jacobianfunc!; parse_eqs::Bool=true,
-        maxsteps::Int=500) where {T<:Real, U<:Number}
+    q0::Array{U,1}, t0::T, tmax::T, abstol::T,
+    rv::RetAlloc{Taylor1{U}}, cache::LyapunovSpectrumCache, params, jacobianfunc!; parse_eqs::Bool=true,
+    maxsteps::Int=500) where {T<:Real,U<:Number}
 
     @unpack tv, xv, xaux, x0, λ, λtsum, δx, dδx, jac, varsaux, QH, RH, aⱼ, qᵢ, vⱼ, t, x, dx, jt, dvars = cache
 
@@ -284,7 +280,7 @@ function lyap_taylorinteg!(f!,
     dof = length(q0)
 
     # Initial conditions
-    sign_tstep = copysign(1, tmax-t0)
+    sign_tstep = copysign(1, tmax - t0)
     x0[1:dof] .= q0
     @views x0[dof+1:end] .= jt[:]
     update!(cache, t0, x0)
@@ -292,31 +288,31 @@ function lyap_taylorinteg!(f!,
     tspan = zero(T)
     @inbounds tv[1] = t0
     @inbounds for ind in eachindex(q0)
-        xv[ind,1] = q0[ind]
-        λ[ind,1] = zero(U)
+        xv[ind, 1] = q0[ind]
+        λ[ind, 1] = zero(U)
         λtsum[ind] = zero(U)
     end
 
     # Integration
     nsteps = 1
-    while sign_tstep*t0 < sign_tstep*tmax
+    while sign_tstep * t0 < sign_tstep * tmax
         δt = lyap_taylorstep!(Val(parse_eqs), f!, t, x, dx, xaux, δx, dδx, jac, abstol, dvars,
             varsaux, params, rv, jacobianfunc!) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
-        δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
+        δt = sign_tstep * min(δt, sign_tstep * (tmax - t0))
         evaluate!(x, δt, x0) # Update x0
         for ind in eachindex(jt)
             @inbounds jt[ind] = x0[dof+ind]
         end
-        modifiedGS!( jt, QH, RH, aⱼ, qᵢ, vⱼ )
+        modifiedGS!(jt, QH, RH, aⱼ, qᵢ, vⱼ)
         t0 += δt
-        tspan = t0-t00
+        tspan = t0 - t00
         nsteps += 1
         @inbounds tv[nsteps] = t0
         @inbounds for ind in eachindex(q0)
-            xv[ind,nsteps] = x0[ind]
-            λtsum[ind] += log(RH[ind,ind])
-            λ[ind,nsteps] = λtsum[ind]/tspan
+            xv[ind, nsteps] = x0[ind]
+            λtsum[ind] += log(RH[ind, ind])
+            λ[ind, nsteps] = λtsum[ind] / tspan
         end
         for ind in eachindex(QH)
             @inbounds x0[dof+ind] = QH[ind]
@@ -335,39 +331,35 @@ end
 
 
 function lyap_taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
-        order::Int, abstol::T, params = nothing, jacobianfunc! = nothing;
-        maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real, U<:Number}
+    order::Int, abstol::T, params=nothing, (jacobianfunc!)=nothing;
+    maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real,U<:Number}
 
     dof = length(q0)
 
-        # Check if trange is increasingly or decreasingly sorted
+    # Check if trange is increasingly or decreasingly sorted
     @assert (issorted(trange) ||
-        issorted(trange, rev=true)) "`trange` or `reverse(trange)` must be sorted"
+             issorted(trange, rev=true)) "`trange` or `reverse(trange)` must be sorted"
 
     # Allocation
-    cache = init_cache_lyap(trange, q0, maxsteps, order)
+    cache = init_cache_lyap(trange, q0, maxsteps, order, f!, params; parse_eqs)
 
     # If user does not provide Jacobian, check number of TaylorN variables and initialize _dv
     if isnothing(jacobianfunc!)
         @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
         for ind in eachindex(q0)
-            cache.dvars[ind] = one(cache.x[1])*TaylorN(Taylor1{U}, ind, order=1)
+            cache.dvars[ind] = one(cache.x[1]) * TaylorN(Taylor1{U}, ind, order=1)
         end
     end
 
-    # Determine if specialized jetcoeffs! method exists
-    parse_eqs, rv = _determine_parsing!(parse_eqs, f!, cache.t,
-                    view(cache.x, 1:dof), view(cache.dx, 1:dof), params)
-
-    return lyap_taylorinteg!(f!, q0, trange, abstol, rv, cache,
-        params, jacobianfunc!; parse_eqs, maxsteps)
+    return lyap_taylorinteg!(f!, q0, trange, abstol, cache.rv, cache,
+        params, jacobianfunc!; cache.parse_eqs, maxsteps)
 
 end
 
 function lyap_taylorinteg!(f!,
-        q0::Array{U,1}, trange::AbstractVector{T}, abstol::T,
-        rv::RetAlloc{Taylor1{U}}, cache::LyapunovSpectrumTRangeCache, params, jacobianfunc!; parse_eqs::Bool=true,
-        maxsteps::Int=500) where {T<:Real, U<:Number}
+    q0::Array{U,1}, trange::AbstractVector{T}, abstol::T,
+    rv::RetAlloc{Taylor1{U}}, cache::LyapunovSpectrumTRangeCache, params, jacobianfunc!; parse_eqs::Bool=true,
+    maxsteps::Int=500) where {T<:Real,U<:Number}
 
     @unpack xv, xaux, x0, q1, λ, λtsum, δx, dδx, jac, varsaux, QH, RH, aⱼ, qᵢ, vⱼ, t, x, dx, jt, dvars = cache
 
@@ -376,52 +368,52 @@ function lyap_taylorinteg!(f!,
 
     # Initial conditions
     @inbounds t0, t1, tmax = trange[1], trange[2], trange[end]
-    sign_tstep = copysign(1, tmax-t0)
+    sign_tstep = copysign(1, tmax - t0)
     x0[1:dof] .= q0
     @views x0[dof+1:end] .= jt[:]
     update!(cache, t0, x0)
     t00 = t0
     tspan = zero(T)
     @inbounds for ind in eachindex(q0)
-        xv[ind,1] = q0[ind]
-        λ[ind,1] = zero(U)
+        xv[ind, 1] = q0[ind]
+        λ[ind, 1] = zero(U)
         λtsum[ind] = zero(U)
     end
 
     # Integration
     iter = 2
     nsteps = 1
-    while sign_tstep*t0 < sign_tstep*tmax
+    while sign_tstep * t0 < sign_tstep * tmax
         δt = lyap_taylorstep!(Val(parse_eqs), f!, t, x, dx, xaux, δx, dδx, jac, abstol, dvars,
             varsaux, params, rv, jacobianfunc!) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
-        δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
+        δt = sign_tstep * min(δt, sign_tstep * (tmax - t0))
         evaluate!(x, δt, x0) # Update x0
-        tnext = t0+δt
+        tnext = t0 + δt
         # Evaluate solution at times within convergence radius
         while t1 < tnext
-            evaluate!(x[1:dof], t1-t0, q1)
-            @inbounds xv[:,iter] .= q1
+            evaluate!(x[1:dof], t1 - t0, q1)
+            @inbounds xv[:, iter] .= q1
             for ind in eachindex(jt)
                 @inbounds jt[ind] = evaluate(x[dof+ind], δt)
             end
-            modifiedGS!( jt, QH, RH, aⱼ, qᵢ, vⱼ )
-            tspan = t1-t00
+            modifiedGS!(jt, QH, RH, aⱼ, qᵢ, vⱼ)
+            tspan = t1 - t00
             @inbounds for ind in eachindex(q0)
-                λ[ind,iter] = (λtsum[ind]+log(RH[ind,ind]))/tspan
+                λ[ind, iter] = (λtsum[ind] + log(RH[ind, ind])) / tspan
             end
             iter += 1
             @inbounds t1 = trange[iter]
         end
-        if δt == tmax-t0
-            @inbounds xv[:,iter] .= x0[1:dof]
+        if δt == tmax - t0
+            @inbounds xv[:, iter] .= x0[1:dof]
             for ind in eachindex(jt)
                 @inbounds jt[ind] = x0[dof+ind]
             end
-            modifiedGS!( jt, QH, RH, aⱼ, qᵢ, vⱼ )
-            tspan = tmax-t00
+            modifiedGS!(jt, QH, RH, aⱼ, qᵢ, vⱼ)
+            tspan = tmax - t00
             @inbounds for ind in eachindex(q0)
-                λ[ind,iter] = (λtsum[ind]+log(RH[ind,ind]))/tspan
+                λ[ind, iter] = (λtsum[ind] + log(RH[ind, ind])) / tspan
             end
             break
         end
@@ -429,12 +421,12 @@ function lyap_taylorinteg!(f!,
         for ind in eachindex(jt)
             @inbounds jt[ind] = x0[dof+ind]
         end
-        modifiedGS!( jt, QH, RH, aⱼ, qᵢ, vⱼ )
+        modifiedGS!(jt, QH, RH, aⱼ, qᵢ, vⱼ)
 
         t0 = tnext
         nsteps += 1
         @inbounds for ind in eachindex(q0)
-            λtsum[ind] += log(RH[ind,ind])
+            λtsum[ind] += log(RH[ind, ind])
         end
         for ind in eachindex(QH)
             @inbounds x0[dof+ind] = QH[ind]

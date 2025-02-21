@@ -18,7 +18,7 @@ field `:p` in [`TaylorSolution`](@ref). See also [`init_psol`](@ref).
     return nothing
 end
 @inline function set_psol!(::Val{true}, psol::Array{Taylor1{U},2}, nsteps::Int, x::Vector{Taylor1{U}}) where {U<:Number}
-    @inbounds psol[:,nsteps] .= deepcopy.(x)
+    @inbounds psol[:, nsteps] .= deepcopy.(x)
     return nothing
 end
 @inline set_psol!(::Val{false}, args...) = nothing
@@ -48,36 +48,33 @@ end
 @inline init_psol(::Val{false}, ::Int, ::Int, ::Array{Taylor1{U},1}) where {U<:Number} = nothing
 
 # taylorinteg
-function taylorinteg(f, x0::U, t0::T, tmax::T, order::Int, abstol::T, params = nothing;
-        maxsteps::Int=500, parse_eqs::Bool=true, dense::Bool=true) where {T<:Real, U<:Number}
+function taylorinteg(f, x0::U, t0::T, tmax::T, order::Int, abstol::T, params=nothing;
+    maxsteps::Int=500, parse_eqs::Bool=true, dense::Bool=true) where {T<:Real,U<:Number}
 
     # Allocation
-    cache = init_cache(Val(dense), t0, x0, maxsteps, order)
+    cache = init_cache(Val(dense), t0, x0, maxsteps, order, f, params; parse_eqs)
 
-    # Determine if specialized jetcoeffs! method exists
-    parse_eqs, rv = _determine_parsing!(parse_eqs, f, cache.t, cache.x, params)
-
-    return taylorinteg!(Val(dense), f, x0, t0, tmax, abstol, rv, cache, params; parse_eqs, maxsteps)
+    return taylorinteg!(Val(dense), f, x0, t0, tmax, abstol, cache, params; maxsteps)
 end
 
 function taylorinteg!(dense::Val{D}, f,
-        x0::U, t0::T, tmax::T, abstol::T, rv::RetAlloc{Taylor1{U}}, cache::ScalarCache, params;
-        parse_eqs::Bool=true, maxsteps::Int=500) where {T<:Real,U<:Number,D}
+    x0::U, t0::T, tmax::T, abstol::T, cache::ScalarCache, params;
+    maxsteps::Int=500) where {T<:Real,U<:Number,D}
 
-    @unpack tv, xv, psol, t, x = cache
+    @unpack tv, xv, psol, t, x, rv, parse_eqs = cache
 
     # Initial conditions
     update!(cache, t0, x0)
     nsteps = 1
     @inbounds tv[1] = t0
     @inbounds xv[1] = x0
-    sign_tstep = copysign(1, tmax-t0)
+    sign_tstep = copysign(1, tmax - t0)
 
     # Integration
-    while sign_tstep*t0 < sign_tstep*tmax
+    while sign_tstep * t0 < sign_tstep * tmax
         δt = taylorstep!(Val(parse_eqs), f, t, x, abstol, params, rv) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
-        δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
+        δt = sign_tstep * min(δt, sign_tstep * (tmax - t0))
         x0 = evaluate(x, δt) # new initial condition
         set_psol!(dense, psol, nsteps, x) # Store the Taylor polynomial solution
         t0 += δt
@@ -97,45 +94,42 @@ function taylorinteg!(dense::Val{D}, f,
 end
 
 
-function taylorinteg(f!, q0::Vector{U}, t0::T, tmax::T, order::Int, abstol::T, params = nothing;
-        maxsteps::Int=500, parse_eqs::Bool=true, dense::Bool=true) where {T<:Real, U<:Number}
+function taylorinteg(f!, q0::Vector{U}, t0::T, tmax::T, order::Int, abstol::T, params=nothing;
+    maxsteps::Int=500, parse_eqs::Bool=true, dense::Bool=true) where {T<:Real,U<:Number}
 
     # Allocation
-    cache = init_cache(Val(dense), t0, q0, maxsteps, order)
+    cache = init_cache(Val(dense), t0, q0, maxsteps, order, f!, params; parse_eqs)
 
-    # Determine if specialized jetcoeffs! method exists
-    parse_eqs, rv = _determine_parsing!(parse_eqs, f!, cache.t, cache.x, cache.dx, params)
-
-    return taylorinteg!(Val(dense), f!, q0, t0, tmax, abstol, rv,
-        cache, params; parse_eqs, maxsteps)
+    return taylorinteg!(Val(dense), f!, q0, t0, tmax, abstol,
+        cache, params; maxsteps)
 end
 
 function taylorinteg!(dense::Val{D}, f!,
-        q0::Array{U,1}, t0::T, tmax::T, abstol::T, rv::RetAlloc{Taylor1{U}}, cache::VectorCache, params;
-        parse_eqs::Bool=true, maxsteps::Int=500) where {T<:Real,U<:Number,D}
+    q0::Array{U,1}, t0::T, tmax::T, abstol::T, cache::VectorCache, params;
+    maxsteps::Int=500) where {T<:Real,U<:Number,D}
 
-    @unpack tv, xv, psol, xaux, t, x, dx = cache
+    @unpack tv, xv, psol, xaux, t, x, dx, rv, parse_eqs = cache
 
     # Initial conditions
     x0 = deepcopy(q0)
     update!(cache, t0, x0)
     @inbounds tv[1] = t0
-    @inbounds xv[:,1] .= q0
-    sign_tstep = copysign(1, tmax-t0)
+    @inbounds xv[:, 1] .= q0
+    sign_tstep = copysign(1, tmax - t0)
 
     # Integration
     nsteps = 1
-    while sign_tstep*t0 < sign_tstep*tmax
+    while sign_tstep * t0 < sign_tstep * tmax
         δt = taylorstep!(Val(parse_eqs), f!, t, x, dx, xaux, abstol, params, rv) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
-        δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
+        δt = sign_tstep * min(δt, sign_tstep * (tmax - t0))
         evaluate!(x, δt, x0) # new initial condition
         set_psol!(dense, psol, nsteps, x) # Store the Taylor polynomial solution
         t0 += δt
         update!(cache, t0, x0)
         nsteps += 1
         @inbounds tv[nsteps] = t0
-        @inbounds xv[:,nsteps] .= deepcopy.(x0)
+        @inbounds xv[:, nsteps] .= deepcopy.(x0)
         if nsteps > maxsteps
             @warn("""
             Maximum number of integration steps reached; exiting.
@@ -239,50 +233,47 @@ sol = taylorinteg(f!, [3, 3], 0.0:0.001:0.3, 25, 1.0e-20, maxsteps=100 );
 
 """
 function taylorinteg(f, x0::U, trange::AbstractVector{T},
-        order::Int, abstol::T, params = nothing;
-        maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real, U<:Number}
+    order::Int, abstol::T, params=nothing;
+    maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real,U<:Number}
 
     # Check if trange is increasingly or decreasingly sorted
     @assert (issorted(trange) ||
-        issorted(trange, rev=true)) "`trange` or `reverse(trange)` must be sorted"
+             issorted(trange, rev=true)) "`trange` or `reverse(trange)` must be sorted"
 
     # Allocation
-    cache = init_cache(Val(false), trange, x0, maxsteps, order)
+    cache = init_cache(Val(false), trange, x0, maxsteps, order, f, params; parse_eqs)
 
-    # Determine if specialized jetcoeffs! method exists
-    parse_eqs, rv = _determine_parsing!(parse_eqs, f, cache.t, cache.x, params)
-
-    return taylorinteg!(f, x0, trange, abstol, rv, cache, params; parse_eqs, maxsteps)
+    return taylorinteg!(f, x0, trange, abstol, cache, params; maxsteps)
 end
 
 function taylorinteg!(f, x0::U, trange::AbstractVector{T},
-        abstol::T, rv::RetAlloc{Taylor1{U}}, cache::ScalarCache, params; parse_eqs::Bool=true, maxsteps::Int=500) where {T<:Real, U<:Number}
+    abstol::T, cache::ScalarCache, params; maxsteps::Int=500) where {T<:Real,U<:Number}
 
-    @unpack xv, t, x = cache
+    @unpack xv, t, x, rv, parse_eqs = cache
 
     # Initial conditions
     @inbounds t0, t1, tmax = trange[1], trange[2], trange[end]
     update!(cache, t0, x0)
-    sign_tstep = copysign(1, tmax-t0)
+    sign_tstep = copysign(1, tmax - t0)
     @inbounds xv[1] = x0
 
     # Integration
     iter = 2
     nsteps = 1
-    while sign_tstep*t0 < sign_tstep*tmax
+    while sign_tstep * t0 < sign_tstep * tmax
         δt = taylorstep!(Val(parse_eqs), f, t, x, abstol, params, rv)# δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
-        δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
+        δt = sign_tstep * min(δt, sign_tstep * (tmax - t0))
         x0 = evaluate(x, δt) # new initial condition
-        tnext = t0+δt
+        tnext = t0 + δt
         # Evaluate solution at times within convergence radius
-        while sign_tstep*t1 < sign_tstep*tnext
-            x1 = evaluate(x, t1-t0)
+        while sign_tstep * t1 < sign_tstep * tnext
+            x1 = evaluate(x, t1 - t0)
             @inbounds xv[iter] = x1
             iter += 1
             @inbounds t1 = trange[iter]
         end
-        if δt == tmax-t0
+        if δt == tmax - t0
             @inbounds xv[iter] = x0
             break
         end
@@ -300,54 +291,51 @@ function taylorinteg!(f, x0::U, trange::AbstractVector{T},
 end
 
 function taylorinteg(f!, q0::Vector{U}, trange::AbstractVector{T},
-        order::Int, abstol::T, params = nothing;
-        maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real, U<:Number}
+    order::Int, abstol::T, params=nothing;
+    maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real,U<:Number}
 
     # Check if trange is increasingly or decreasingly sorted
     @assert (issorted(trange) ||
-        issorted(trange, rev=true)) "`trange` or `reverse(trange)` must be sorted"
+             issorted(trange, rev=true)) "`trange` or `reverse(trange)` must be sorted"
 
     # Allocation
-    cache = init_cache(Val(false), trange, q0, maxsteps, order)
+    cache = init_cache(Val(false), trange, q0, maxsteps, order, f!, params; parse_eqs)
 
-    # Determine if specialized jetcoeffs! method exists
-    parse_eqs, rv = _determine_parsing!(parse_eqs, f!, cache.t, cache.x, cache.dx, params)
-
-    return taylorinteg!(f!, q0, trange, abstol, rv,
-        cache, params; parse_eqs, maxsteps)
+    return taylorinteg!(f!, q0, trange, abstol,
+        cache, params; maxsteps)
 end
 
 function taylorinteg!(f!,
-        q0::Vector{U}, trange::AbstractVector{T}, abstol::T, rv::RetAlloc{Taylor1{U}}, cache::VectorTRangeCache, params;
-        parse_eqs::Bool=true, maxsteps::Int=500) where {T<:Real, U<:Number}
+    q0::Vector{U}, trange::AbstractVector{T}, abstol::T, cache::VectorTRangeCache, params;
+    maxsteps::Int=500) where {T<:Real,U<:Number}
 
-    @unpack xv, xaux, x0, x1, t, x, dx = cache
+    @unpack xv, xaux, x0, x1, t, x, dx, rv, parse_eqs = cache
 
     # Initial conditions
     @inbounds t0, t1, tmax = trange[1], trange[2], trange[end]
-    sign_tstep = copysign(1, tmax-t0)
+    sign_tstep = copysign(1, tmax - t0)
     @inbounds x0 .= deepcopy(q0)
     update!(cache, t0, x0)
-    @inbounds xv[:,1] .= q0
+    @inbounds xv[:, 1] .= q0
 
     # Integration
     iter = 2
     nsteps = 1
-    while sign_tstep*t0 < sign_tstep*tmax
+    while sign_tstep * t0 < sign_tstep * tmax
         δt = taylorstep!(Val(parse_eqs), f!, t, x, dx, xaux, abstol, params, rv) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
-        δt = sign_tstep * min(δt, sign_tstep*(tmax-t0))
+        δt = sign_tstep * min(δt, sign_tstep * (tmax - t0))
         evaluate!(x, δt, x0) # new initial condition
-        tnext = t0+δt
+        tnext = t0 + δt
         # Evaluate solution at times within convergence radius
-        while sign_tstep*t1 < sign_tstep*tnext
-            evaluate!(x, t1-t0, x1)
-            @inbounds xv[:,iter] .= x1
+        while sign_tstep * t1 < sign_tstep * tnext
+            evaluate!(x, t1 - t0, x1)
+            @inbounds xv[:, iter] .= x1
             iter += 1
             @inbounds t1 = trange[iter]
         end
-        if δt == tmax-t0
-            @inbounds xv[:,iter] .= x0
+        if δt == tmax - t0
+            @inbounds xv[:, iter] .= x0
             break
         end
         t0 = tnext
@@ -370,8 +358,8 @@ for R in (:Number, :Integer)
     @eval begin
 
         function taylorinteg(f, xx0::S, tt0::T, ttmax::U, order::Int, aabstol::V,
-                params = nothing; dense=false, maxsteps::Int=500, parse_eqs::Bool=true) where
-                {S<:$R, T<:Real, U<:Real, V<:Real}
+            params=nothing; dense=false, maxsteps::Int=500, parse_eqs::Bool=true) where
+        {S<:$R,T<:Real,U<:Real,V<:Real}
 
             # In order to handle mixed input types, we promote types before integrating:
             t0, tmax, abstol, _ = promote(tt0, ttmax, aabstol, one(Float64))
@@ -382,8 +370,8 @@ for R in (:Number, :Integer)
         end
 
         function taylorinteg(f, q0::Array{S,1}, tt0::T, ttmax::U, order::Int, aabstol::V,
-                params = nothing; dense=false, maxsteps::Int=500, parse_eqs::Bool=true) where
-                {S<:$R, T<:Real, U<:Real, V<:Real}
+            params=nothing; dense=false, maxsteps::Int=500, parse_eqs::Bool=true) where
+        {S<:$R,T<:Real,U<:Real,V<:Real}
 
             #promote to common type before integrating:
             t0, tmax, abstol, _ = promote(tt0, ttmax, aabstol, one(Float64))
@@ -395,8 +383,8 @@ for R in (:Number, :Integer)
                 dense=dense, maxsteps=maxsteps, parse_eqs=parse_eqs)
         end
 
-        function taylorinteg(f, xx0::S, trange::AbstractVector{T}, order::Int, aabstol::U, params = nothing;
-                maxsteps::Int=500, parse_eqs::Bool=true) where {S<:$R, T<:Real, U<:Real}
+        function taylorinteg(f, xx0::S, trange::AbstractVector{T}, order::Int, aabstol::U, params=nothing;
+            maxsteps::Int=500, parse_eqs::Bool=true) where {S<:$R,T<:Real,U<:Real}
 
             t0, abstol, _ = promote(trange[1], aabstol, one(Float64))
             x0, _ = promote(xx0, t0)
@@ -405,8 +393,8 @@ for R in (:Number, :Integer)
                 maxsteps=maxsteps, parse_eqs=parse_eqs)
         end
 
-        function taylorinteg(f, q0::Array{S,1}, trange::AbstractVector{T}, order::Int, aabstol::U, params = nothing;
-                maxsteps::Int=500, parse_eqs::Bool=true) where {S<:$R, T<:Real, U<:Real}
+        function taylorinteg(f, q0::Array{S,1}, trange::AbstractVector{T}, order::Int, aabstol::U, params=nothing;
+            maxsteps::Int=500, parse_eqs::Bool=true) where {S<:$R,T<:Real,U<:Real}
 
             t0, abstol, _ = promote(trange[1], aabstol, one(Float64))
             elq0, _ = promote(q0[1], t0)
