@@ -14,13 +14,13 @@ also the cases `Taylor1{TaylorN{U}}` and `Vector{Taylor1{TaylorN{U}}}`.
 Depending of `eltype(x)`, i.e., `U<:Number`, it may be necessary to overload
 `stepsize`, specializing it on the type `U`, to avoid type instabilities.
 """
-function stepsize(x::Taylor1{U}, epsilon::T) where {T<:Real, U<:Number}
+function stepsize(x::Taylor1{U}, epsilon::T) where {T<:Real,U<:Number}
     R = promote_type(typeof(norm(constant_term(x), Inf)), T)
     ord = x.order
     h = convert(R, Inf)
     z = zero(R)
-    for k in (ord-1, ord)
-        @inbounds aux = norm( x[k], Inf)
+    for k in (ord - 1, ord)
+        @inbounds aux = norm(x[k], Inf)
         aux == z && continue
         aux1 = _stepsize(aux, epsilon, k)
         h = min(h, aux1)
@@ -28,13 +28,12 @@ function stepsize(x::Taylor1{U}, epsilon::T) where {T<:Real, U<:Number}
     return h::R
 end
 
-function stepsize(q::AbstractArray{Taylor1{U}, N}, epsilon::T) where
-        {T<:Real, U<:Number, N}
+function stepsize(q::AbstractArray{Taylor1{U},N}, epsilon::T) where {T<:Real,U<:Number,N}
     R = promote_type(typeof(norm(constant_term(q[1]), Inf)), T)
     h = convert(R, Inf)
     for i in eachindex(q)
-        @inbounds hi = stepsize( q[i], epsilon )
-        h = min( h, hi )
+        @inbounds hi = stepsize(q[i], epsilon)
+        h = min(h, hi)
     end
 
     # If `isinf(h)==true`, we use the maximum (finite)
@@ -44,7 +43,7 @@ function stepsize(q::AbstractArray{Taylor1{U}, N}, epsilon::T) where
         h = zero(R)
         for i in eachindex(q)
             @inbounds hi = _second_stepsize(q[i], epsilon)
-            h = max( h, hi )
+            h = max(h, hi)
         end
     end
     return h::R
@@ -56,7 +55,7 @@ end
 Helper function to avoid code repetition.
 Returns `(epsilon/aux1)^(1/k)`.
 """
-@inline function _stepsize(aux1::U, epsilon::T, k::Int) where {T<:Real, U<:Number}
+@inline function _stepsize(aux1::U, epsilon::T, k::Int) where {T<:Real,U<:Number}
     aux = epsilon / aux1
     kinv = 1 / k
     return aux^kinv
@@ -68,15 +67,15 @@ end
 Corresponds to the "second stepsize control" in Jorba and Zou
 (2005) paper. We use it if [`stepsize`](@ref) returns `Inf`.
 """
-function _second_stepsize(x::Taylor1{U}, epsilon::T) where {T<:Real, U<:Number}
+function _second_stepsize(x::Taylor1{U}, epsilon::T) where {T<:Real,U<:Number}
     R = promote_type(typeof(norm(constant_term(x), Inf)), T)
     x == zero(x) && return convert(R, Inf)
     ord = x.order
     z = zero(R)
     u = one(R)
     h = z
-    for k in 1:ord-2
-        @inbounds aux = norm( x[k], Inf)
+    for k = 1:ord-2
+        @inbounds aux = norm(x[k], Inf)
         aux == z && continue
         aux1 = _stepsize(aux, u, k)
         h = max(h, aux1)

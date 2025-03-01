@@ -61,7 +61,31 @@ end
 
 # LyapunovSpectrumCache
 
-struct LyapunovSpectrumCache{TV,XV,PSOL,XAUX,X0,Λ,ΛTSUM,ΔX,DΔX,JAC,VARSAUX,QQH,RRH,AJ,QI,VJ,T,X,DX,JT,DVARS,RV,PARSE_EQS} <: AbstractVectorCache
+struct LyapunovSpectrumCache{
+    TV,
+    XV,
+    PSOL,
+    XAUX,
+    X0,
+    Λ,
+    ΛTSUM,
+    ΔX,
+    DΔX,
+    JAC,
+    VARSAUX,
+    QQH,
+    RRH,
+    AJ,
+    QI,
+    VJ,
+    T,
+    X,
+    DX,
+    JT,
+    DVARS,
+    RV,
+    PARSE_EQS,
+} <: AbstractVectorCache
     tv::TV
     xv::XV
     psol::PSOL
@@ -89,7 +113,32 @@ end
 
 # LyapunovSpectrumTRangeCache
 
-struct LyapunovSpectrumTRangeCache{TV,XV,PSOL,XAUX,X0,Q1,Λ,ΛTSUM,ΔX,DΔX,JAC,VARSAUX,QQH,RRH,AJ,QI,VJ,T,X,DX,JT,DVARS,RV,PARSE_EQS} <: AbstractVectorCache
+struct LyapunovSpectrumTRangeCache{
+    TV,
+    XV,
+    PSOL,
+    XAUX,
+    X0,
+    Q1,
+    Λ,
+    ΛTSUM,
+    ΔX,
+    DΔX,
+    JAC,
+    VARSAUX,
+    QQH,
+    RRH,
+    AJ,
+    QI,
+    VJ,
+    T,
+    X,
+    DX,
+    JT,
+    DVARS,
+    RV,
+    PARSE_EQS,
+} <: AbstractVectorCache
     tv::TV
     xv::XV
     psol::PSOL
@@ -136,7 +185,16 @@ end
 
 # init_cache
 
-function init_cache(dense::Val{D}, t0::T, x0::U, maxsteps::Int, order::Int, f, params=nothing; parse_eqs::Bool=true) where {D,U,T}
+function init_cache(
+    dense::Val{D},
+    t0::T,
+    x0::U,
+    maxsteps::Int,
+    order::Int,
+    f,
+    params = nothing;
+    parse_eqs::Bool = true,
+) where {D,U,T}
     # Initialize the Taylor1 expansions
     t, x = init_expansions(t0, x0, order)
     # Determine if specialized jetcoeffs! method exists
@@ -149,10 +207,20 @@ function init_cache(dense::Val{D}, t0::T, x0::U, maxsteps::Int, order::Int, f, p
         t,
         x,
         rv,
-        parse_eqs)
+        parse_eqs,
+    )
 end
 
-function init_cache(::Val{false}, trange::AbstractVector{T}, x0::U, maxsteps::Int, order::Int, f, params=nothing; parse_eqs::Bool=true) where {U,T}
+function init_cache(
+    ::Val{false},
+    trange::AbstractVector{T},
+    x0::U,
+    maxsteps::Int,
+    order::Int,
+    f,
+    params = nothing;
+    parse_eqs::Bool = true,
+) where {U,T}
     # Initialize the Taylor1 expansions
     t0 = trange[1]
     t, x = init_expansions(t0, x0, order)
@@ -167,12 +235,22 @@ function init_cache(::Val{false}, trange::AbstractVector{T}, x0::U, maxsteps::In
         t,
         x,
         rv,
-        parse_eqs)
+        parse_eqs,
+    )
     fill!(cache.xv, T(NaN))
     return cache
 end
 
-function init_cache(dense::Val{D}, t0::T, q0::Vector{U}, maxsteps::Int, order::Int, f!, params=nothing; parse_eqs::Bool=true) where {D,U,T}
+function init_cache(
+    dense::Val{D},
+    t0::T,
+    q0::Vector{U},
+    maxsteps::Int,
+    order::Int,
+    f!,
+    params = nothing;
+    parse_eqs::Bool = true,
+) where {D,U,T}
     # Initialize the vector of Taylor1 expansions
     t, x, dx = init_expansions(t0, q0, order)
     # Determine if specialized jetcoeffs! method exists
@@ -188,10 +266,20 @@ function init_cache(dense::Val{D}, t0::T, q0::Vector{U}, maxsteps::Int, order::I
         x,
         dx,
         rv,
-        parse_eqs)
+        parse_eqs,
+    )
 end
 
-function init_cache(::Val{false}, trange::AbstractVector{T}, q0::Vector{U}, maxsteps::Int, order::Int, f!, params=nothing; parse_eqs::Bool=true) where {U,T}
+function init_cache(
+    ::Val{false},
+    trange::AbstractVector{T},
+    q0::Vector{U},
+    maxsteps::Int,
+    order::Int,
+    f!,
+    params = nothing;
+    parse_eqs::Bool = true,
+) where {U,T}
     # Initialize the vector of Taylor1 expansions
     t0 = trange[1]
     t, x, dx = init_expansions(t0, q0, order)
@@ -211,15 +299,24 @@ function init_cache(::Val{false}, trange::AbstractVector{T}, q0::Vector{U}, maxs
         x,
         dx,
         rv,
-        parse_eqs)
+        parse_eqs,
+    )
     fill!(cache.x0, T(NaN))
-    for ind in 1:nn
+    for ind = 1:nn
         @inbounds cache.xv[:, ind] .= cache.x0
     end
     return cache
 end
 
-function init_cache_lyap(t0::T, q0::Vector{U}, maxsteps::Int, order::Int, f!, params=nothing; parse_eqs::Bool=true) where {U,T}
+function init_cache_lyap(
+    t0::T,
+    q0::Vector{U},
+    maxsteps::Int,
+    order::Int,
+    f!,
+    params = nothing;
+    parse_eqs::Bool = true,
+) where {U,T}
     # Initialize the vector of Taylor1 expansions
     dof = length(q0)
     jt = Matrix{U}(I, dof, dof)
@@ -228,8 +325,8 @@ function init_cache_lyap(t0::T, q0::Vector{U}, maxsteps::Int, order::Int, f!, pa
     @views x0[dof+1:end] .= jt[:]
     t, x, dx = init_expansions(t0, x0, order)
     # Determine if specialized jetcoeffs! method exists
-    parse_eqs, rv = _determine_parsing!(parse_eqs, f!, t,
-        view(x, 1:dof), view(dx, 1:dof), params)
+    parse_eqs, rv =
+        _determine_parsing!(parse_eqs, f!, t, view(x, 1:dof), view(dx, 1:dof), params)
     # Initialize cache
     nx0 = length(x0)
     dvars = Array{TaylorN{Taylor1{U}}}(undef, dof)
@@ -256,13 +353,21 @@ function init_cache_lyap(t0::T, q0::Vector{U}, maxsteps::Int, order::Int, f!, pa
         jt,
         dvars,
         rv,
-        parse_eqs
+        parse_eqs,
     )
     fill!(cache.jac, zero(x[1]))
     return cache
 end
 
-function init_cache_lyap(trange::AbstractVector{T}, q0::Vector{U}, maxsteps::Int, order::Int, f!, params=nothing; parse_eqs::Bool=true) where {U,T}
+function init_cache_lyap(
+    trange::AbstractVector{T},
+    q0::Vector{U},
+    maxsteps::Int,
+    order::Int,
+    f!,
+    params = nothing;
+    parse_eqs::Bool = true,
+) where {U,T}
     # Initialize the vector of Taylor1 expansions
     t0 = trange[1]
     dof = length(q0)
@@ -272,8 +377,8 @@ function init_cache_lyap(trange::AbstractVector{T}, q0::Vector{U}, maxsteps::Int
     @views x0[dof+1:end] .= jt[:]
     t, x, dx = init_expansions(t0, x0, order)
     # Determine if specialized jetcoeffs! method exists
-    parse_eqs, rv = _determine_parsing!(parse_eqs, f!, t,
-        view(x, 1:dof), view(dx, 1:dof), params)
+    parse_eqs, rv =
+        _determine_parsing!(parse_eqs, f!, t, view(x, 1:dof), view(dx, 1:dof), params)
     # Initialize cache
     nn = length(trange)
     nx0 = length(x0)
@@ -302,7 +407,7 @@ function init_cache_lyap(trange::AbstractVector{T}, q0::Vector{U}, maxsteps::Int
         jt,
         dvars,
         rv,
-        parse_eqs
+        parse_eqs,
     )
     fill!(cache.xv, U(NaN))
     fill!(cache.λ, U(NaN))

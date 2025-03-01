@@ -33,12 +33,29 @@ import Logging: Warn
         @test (@isdefined xdot1)
 
         x0 = 1.0
-        sol1 = taylorinteg(xdot1, x0, t0, tf, _order, _abstol, maxsteps=1000,
-            dense=false, parse_eqs=false)
+        sol1 = taylorinteg(
+            xdot1,
+            x0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            maxsteps = 1000,
+            dense = false,
+            parse_eqs = false,
+        )
         tv1 = sol1.t
         xv1 = sol1.x
         sol1p = (@test_logs min_level = Logging.Warn taylorinteg(
-            xdot1, x0, t0, tf, _order, _abstol, maxsteps=1000, dense=false))
+            xdot1,
+            x0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            maxsteps = 1000,
+            dense = false,
+        ))
         tv1p = sol1p.t
         xv1p = sol1p.x
 
@@ -50,12 +67,29 @@ import Logging: Warn
         @taylorize xdot2(x, p, t) = (local b2 = 3; b2 - x^2)
         @test (@isdefined xdot2)
 
-        sol2 = taylorinteg(xdot2, x0, t0, tf, _order, _abstol, maxsteps=1000,
-            dense=false, parse_eqs=false)
+        sol2 = taylorinteg(
+            xdot2,
+            x0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            maxsteps = 1000,
+            dense = false,
+            parse_eqs = false,
+        )
         tv2 = sol2.t
         xv2 = sol2.x
         sol2p = (@test_logs min_level = Logging.Warn taylorinteg(
-            xdot2, x0, t0, tf, _order, _abstol, maxsteps=1000, dense=false))
+            xdot2,
+            x0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            maxsteps = 1000,
+            dense = false,
+        ))
         tv2p = sol2p.t
         xv2p = sol2p.x
 
@@ -67,12 +101,31 @@ import Logging: Warn
         @taylorize xdot3(x, p, t) = p - x^2
         @test (@isdefined xdot3)
 
-        sol3 = taylorinteg(xdot3, x0, t0, tf, _order, _abstol, b1, maxsteps=1000,
-            dense=false, parse_eqs=false)
+        sol3 = taylorinteg(
+            xdot3,
+            x0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            b1,
+            maxsteps = 1000,
+            dense = false,
+            parse_eqs = false,
+        )
         tv3 = sol3.t
         xv3 = sol3.x
         sol3p = (@test_logs min_level = Logging.Warn taylorinteg(
-            xdot3, x0, t0, tf, _order, _abstol, b1, maxsteps=1000, dense=false))
+            xdot3,
+            x0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            b1,
+            maxsteps = 1000,
+            dense = false,
+        ))
         tv3p = sol3p.t
         xv3p = sol3p.x
 
@@ -87,17 +140,31 @@ import Logging: Warn
         @test iszero(norm(xv1p - xv2p, Inf))
         @test iszero(norm(xv1p - xv3p, Inf))
 
-        sol4 = taylorinteg(xdot2, x0, t0:0.5:tf, _order, _abstol, maxsteps=1000,
-            parse_eqs=false)
+        sol4 = taylorinteg(
+            xdot2,
+            x0,
+            t0:0.5:tf,
+            _order,
+            _abstol,
+            maxsteps = 1000,
+            parse_eqs = false,
+        )
         xv4 = sol4.x
         sol4p = (@test_logs min_level = Logging.Warn taylorinteg(
-            xdot2, x0, t0:0.5:tf, _order, _abstol, maxsteps=1000))
+            xdot2,
+            x0,
+            t0:0.5:tf,
+            _order,
+            _abstol,
+            maxsteps = 1000,
+        ))
         xv4p = sol4p.x
         @test iszero(norm(xv4 - xv4p, Inf))
 
         # Compare to exact solution
-        exact_sol(t, b, x0) = sqrt(b) * ((sqrt(b) + x0) - (sqrt(b) - x0) * exp(-2sqrt(b) * t)) /
-                              ((sqrt(b) + x0) + (sqrt(b) - x0) * exp(-2sqrt(b) * t))
+        exact_sol(t, b, x0) =
+            sqrt(b) * ((sqrt(b) + x0) - (sqrt(b) - x0) * exp(-2sqrt(b) * t)) /
+            ((sqrt(b) + x0) + (sqrt(b) - x0) * exp(-2sqrt(b) * t))
         @test norm(xv1p[end] - exact_sol(tv1p[end], b1, x0), Inf) < 1.0e-15
 
         # Check that the parsed `jetcoeffs` produces the correct series in `x` and no error
@@ -105,23 +172,32 @@ import Logging: Warn
         tT = t0 + Taylor1(_order)
         xT = x0 + zero(tT)
         rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
-            Val(xdot1), tT, xT, nothing))
-        @test_logs min_level = Logging.Warn TI.jetcoeffs!(
-            Val(xdot1), tT, xT, nothing, rv)
+            Val(xdot1),
+            tT,
+            xT,
+            nothing,
+        ))
+        @test_logs min_level = Logging.Warn TI.jetcoeffs!(Val(xdot1), tT, xT, nothing, rv)
         @test xT ≈ exact_sol(tT, b1, x0)
 
         xT = x0 + zero(tT)
         rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
-            Val(xdot2), tT, xT, nothing))
-        @test_logs min_level = Logging.Warn TI.jetcoeffs!(
-            Val(xdot2), tT, xT, nothing, rv)
+            Val(xdot2),
+            tT,
+            xT,
+            nothing,
+        ))
+        @test_logs min_level = Logging.Warn TI.jetcoeffs!(Val(xdot2), tT, xT, nothing, rv)
         @test xT ≈ exact_sol(tT, 3.0, x0)
 
         xT = x0 + zero(tT)
         rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
-            Val(xdot2), tT, xT, b1))
-        @test_logs min_level = Logging.Warn TI.jetcoeffs!(
-            Val(xdot2), tT, xT, b1, rv)
+            Val(xdot2),
+            tT,
+            xT,
+            b1,
+        ))
+        @test_logs min_level = Logging.Warn TI.jetcoeffs!(Val(xdot2), tT, xT, b1, rv)
         @test xT ≈ exact_sol(tT, b1, x0)
 
         # The macro returns a (parsed) jetcoeffs! function which yields a `MethodError`
@@ -137,7 +213,15 @@ import Logging: Warn
         @test (@isdefined xdot2_err)
         @test !isempty(methodswith(Val{xdot2_err}, TI.jetcoeffs!))
         sol2e = (@test_logs (Warn, unable_to_parse(xdot2_err)) taylorinteg(
-            xdot2_err, x0, t0, tf, _order, _abstol, maxsteps=1000, dense=false))
+            xdot2_err,
+            x0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            maxsteps = 1000,
+            dense = false,
+        ))
         tv2e = sol2e.t
         xv2e = sol2e.x
         @test length(tv2) == length(tv2e)
@@ -145,13 +229,24 @@ import Logging: Warn
         @test iszero(norm(xv2 - xv2e, Inf))
         xT = x0 + zero(tT)
         rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
-            Val(xdot2_err), tT, xT, nothing))
-        @test_throws MethodError TI.jetcoeffs!(
-            Val(xdot2_err), tT, xT, nothing, rv)
+            Val(xdot2_err),
+            tT,
+            xT,
+            nothing,
+        ))
+        @test_throws MethodError TI.jetcoeffs!(Val(xdot2_err), tT, xT, nothing, rv)
 
         # Output includes Taylor polynomial solution
         sol3 = (@test_logs (Warn, max_iters_reached()) taylorinteg(
-            xdot3, x0, t0, tf, _order, _abstol, 0.0, maxsteps=2))
+            xdot3,
+            x0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            0.0,
+            maxsteps = 2,
+        ))
         tv3t = sol3.t
         xv3t = sol3.x
         psol3t = sol3.p
@@ -169,11 +264,26 @@ import Logging: Warn
         @taylorize xdot1_parsed(x, p, t) = -10 # `zero(t)` can be avoided here !
 
         @test (@isdefined xdot1_parsed)
-        sol1 = taylorinteg(xdot1, 10, 1, 20.0, _order, _abstol, dense=false,
-            parse_eqs=false)
+        sol1 = taylorinteg(
+            xdot1,
+            10,
+            1,
+            20.0,
+            _order,
+            _abstol,
+            dense = false,
+            parse_eqs = false,
+        )
         tv1, xv1 = sol1.t, sol1.x
         sol1p = (@test_logs min_level = Logging.Warn taylorinteg(
-            xdot1_parsed, 10.0, 1.0, 20.0, _order, _abstol, dense=false))
+            xdot1_parsed,
+            10.0,
+            1.0,
+            20.0,
+            _order,
+            _abstol,
+            dense = false,
+        ))
         tv1p, xv1p = sol1p.t, sol1p.x
 
         @test length(tv1) == length(tv1p)
@@ -188,11 +298,26 @@ import Logging: Warn
 
         @test (@isdefined xdot2)
 
-        sol2 = taylorinteg(xdot2, 10.0, 1.0, 20.0, _order, _abstol, dense=false,
-            parse_eqs=false)
+        sol2 = taylorinteg(
+            xdot2,
+            10.0,
+            1.0,
+            20.0,
+            _order,
+            _abstol,
+            dense = false,
+            parse_eqs = false,
+        )
         tv2, xv2 = sol2.t, sol2.x
         sol2p = (@test_logs min_level = Logging.Warn taylorinteg(
-            xdot2, 10.0, 1, 20.0, _order, _abstol, dense=false))
+            xdot2,
+            10.0,
+            1,
+            20.0,
+            _order,
+            _abstol,
+            dense = false,
+        ))
         tv2p, xv2p = sol2p.t, sol2p.x
 
         @test length(tv2) == length(tv2p)
@@ -204,11 +329,28 @@ import Logging: Warn
 
         @test (@isdefined xdot3)
 
-        sol3 = taylorinteg(xdot3, 10.0, 1.0, 20.0, _order, _abstol, -10,
-            dense=false, parse_eqs=false)
+        sol3 = taylorinteg(
+            xdot3,
+            10.0,
+            1.0,
+            20.0,
+            _order,
+            _abstol,
+            -10,
+            dense = false,
+            parse_eqs = false,
+        )
         tv3, xv3 = sol3.t, sol3.x
         sol3p = (@test_logs min_level = Logging.Warn taylorinteg(
-            xdot3, 10, 1.0, 20.0, _order, _abstol, -10, dense=false))
+            xdot3,
+            10,
+            1.0,
+            20.0,
+            _order,
+            _abstol,
+            -10,
+            dense = false,
+        ))
         tv3p, xv3p = sol3p.t, sol3p.x
 
         @test length(tv3) == length(tv3p)
@@ -230,23 +372,38 @@ import Logging: Warn
         tT = 1.0 + Taylor1(_order)
         xT = 10.0 + zero(tT)
         rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
-            Val(xdot1_parsed), tT, xT, nothing))
+            Val(xdot1_parsed),
+            tT,
+            xT,
+            nothing,
+        ))
         @test_logs min_level = Logging.Warn TI.jetcoeffs!(
-            Val(xdot1_parsed), tT, xT, nothing, rv)
+            Val(xdot1_parsed),
+            tT,
+            xT,
+            nothing,
+            rv,
+        )
         @test xT ≈ exact_sol(tT, -10, 10)
 
         xT = 10.0 + zero(tT)
         rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
-            Val(xdot2), tT, xT, nothing))
-        @test_logs min_level = Logging.Warn TI.jetcoeffs!(
-            Val(xdot2), tT, xT, nothing, rv)
+            Val(xdot2),
+            tT,
+            xT,
+            nothing,
+        ))
+        @test_logs min_level = Logging.Warn TI.jetcoeffs!(Val(xdot2), tT, xT, nothing, rv)
         @test xT ≈ exact_sol(tT, -10, 10)
 
         xT = 10.0 + zero(tT)
         rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
-            Val(xdot3), tT, xT, -10))
-        @test_logs min_level = Logging.Warn TI.jetcoeffs!(
-            Val(xdot3), tT, xT, -10, rv)
+            Val(xdot3),
+            tT,
+            xT,
+            -10,
+        ))
+        @test_logs min_level = Logging.Warn TI.jetcoeffs!(Val(xdot3), tT, xT, -10, rv)
         @test xT ≈ exact_sol(tT, -10, 10)
     end
 
@@ -261,12 +418,29 @@ import Logging: Warn
 
         @test (@isdefined pendulum!)
         q0 = [pi - 0.001, 0.0]
-        sol2 = taylorinteg(pendulum!, q0, t0, tf, _order, _abstol, parse_eqs=false,
-            maxsteps=5000, dense=false)
+        sol2 = taylorinteg(
+            pendulum!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            parse_eqs = false,
+            maxsteps = 5000,
+            dense = false,
+        )
         tv2, xv2 = sol2.t, sol2.x
 
         sol2p = (@test_logs min_level = Logging.Warn taylorinteg(
-            pendulum!, q0, t0, tf, _order, _abstol, maxsteps=5000, dense=false))
+            pendulum!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            maxsteps = 5000,
+            dense = false,
+        ))
         tv2p, xv2p = sol2p.t, sol2p.x
 
         @test length(tv2) == length(tv2p)
@@ -274,9 +448,9 @@ import Logging: Warn
         @test iszero(norm(xv2 - xv2p, Inf))
 
         prob = ODEProblem(pendulum!, q0, (t0, tf), nothing) # no parameters
-        sol1 = solve(prob, TaylorMethod(_order), abstol=_abstol, parse_eqs=true)
-        sol2 = solve(prob, TaylorMethod(_order), abstol=_abstol, parse_eqs=false)
-        sol3 = solve(prob, TaylorMethod(_order), abstol=_abstol)
+        sol1 = solve(prob, TaylorMethod(_order), abstol = _abstol, parse_eqs = true)
+        sol2 = solve(prob, TaylorMethod(_order), abstol = _abstol, parse_eqs = false)
+        sol3 = solve(prob, TaylorMethod(_order), abstol = _abstol)
 
         @test sol1.t == sol2.t == sol3.t == tv2p
         @test sol1.u[end] == sol2.u[end] == sol3.u[end] == xv2p[end, 1:2]
@@ -286,9 +460,20 @@ import Logging: Warn
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
         rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
-            Val(pendulum!), tT, qT, dqT, nothing))
+            Val(pendulum!),
+            tT,
+            qT,
+            dqT,
+            nothing,
+        ))
         @test_logs min_level = Logging.Warn TI.jetcoeffs!(
-            Val(pendulum!), tT, qT, dqT, nothing, rv)
+            Val(pendulum!),
+            tT,
+            qT,
+            dqT,
+            nothing,
+            rv,
+        )
     end
 
 
@@ -299,11 +484,28 @@ import Logging: Warn
 
         @test (@isdefined eqscmplx)
         cx0 = complex(1.0, 0.0)
-        sol1 = taylorinteg(eqscmplx, cx0, t0, tf, _order, _abstol, maxsteps=1500,
-            parse_eqs=false, dense=false)
+        sol1 = taylorinteg(
+            eqscmplx,
+            cx0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            maxsteps = 1500,
+            parse_eqs = false,
+            dense = false,
+        )
         tv1, xv1 = sol1.t, sol1.x
         sol1p = (@test_logs min_level = Logging.Warn taylorinteg(
-            eqscmplx, cx0, t0, tf, _order, _abstol, maxsteps=1500, dense=false))
+            eqscmplx,
+            cx0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            maxsteps = 1500,
+            dense = false,
+        ))
         tv1p, xv1p = sol1p.t, sol1p.x
 
         @test length(tv1) == length(tv1p)
@@ -314,11 +516,28 @@ import Logging: Warn
         @taylorize eqscmplx2(x, p, t) = (local cc1 = Complex(0.0, 1.0); cc1 * x)
 
         @test (@isdefined eqscmplx2)
-        sol2 = taylorinteg(eqscmplx2, cx0, t0, tf, _order, _abstol, maxsteps=1500,
-            parse_eqs=false, dense=false)
+        sol2 = taylorinteg(
+            eqscmplx2,
+            cx0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            maxsteps = 1500,
+            parse_eqs = false,
+            dense = false,
+        )
         tv2, xv2 = sol2.t, sol2.x
         sol2p = (@test_logs min_level = Logging.Warn taylorinteg(
-            eqscmplx2, cx0, t0, tf, _order, _abstol, maxsteps=1500, dense=false))
+            eqscmplx2,
+            cx0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            maxsteps = 1500,
+            dense = false,
+        ))
         tv2p, xv2p = sol2p.t, sol2p.x
 
         @test length(tv2) == length(tv2p)
@@ -328,11 +547,30 @@ import Logging: Warn
         # Passing a parameter
         @taylorize eqscmplx3(x, p, t) = p * x
         @test (@isdefined eqscmplx3)
-        sol3 = taylorinteg(eqscmplx3, cx0, t0, tf, _order, _abstol, cc, maxsteps=1500,
-            parse_eqs=false, dense=false)
+        sol3 = taylorinteg(
+            eqscmplx3,
+            cx0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            cc,
+            maxsteps = 1500,
+            parse_eqs = false,
+            dense = false,
+        )
         tv3, xv3 = sol3.t, sol3.x
         sol3p = (@test_logs min_level = Logging.Warn taylorinteg(
-            eqscmplx3, cx0, t0, tf, _order, _abstol, cc, maxsteps=1500, dense=false))
+            eqscmplx3,
+            cx0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            cc,
+            maxsteps = 1500,
+            dense = false,
+        ))
         tv3p, xv3p = sol3p.t, sol3p.x
 
         @test length(tv3) == length(tv3p)
@@ -367,10 +605,17 @@ import Logging: Warn
         zz0 = [z0, z0]
         ts = 0.0:pi:2pi
 
-        zsol = taylorinteg(eqs3!, zz0, ts, _order, _abstol, parse_eqs=false, maxsteps=10)
+        zsol =
+            taylorinteg(eqs3!, zz0, ts, _order, _abstol, parse_eqs = false, maxsteps = 10)
         tz, xz = zsol.t, zsol.x
         zsolp = (@test_logs min_level = Logging.Warn taylorinteg(
-            eqs3!, zz0, ts, _order, _abstol, maxsteps=10))
+            eqs3!,
+            zz0,
+            ts,
+            _order,
+            _abstol,
+            maxsteps = 10,
+        ))
         tzp, xzp = zsolp.t, zsolp.x
         @test length(tz) == length(tzp)
         @test iszero(norm(tz - tzp, Inf))
@@ -380,9 +625,20 @@ import Logging: Warn
         zT = zz0 .+ zero(tT)
         dzT = similar(zT)
         rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
-            Val(eqs3!), tT, zT, dzT, nothing))
+            Val(eqs3!),
+            tT,
+            zT,
+            dzT,
+            nothing,
+        ))
         @test_logs min_level = Logging.Warn TI.jetcoeffs!(
-            Val(eqs3!), tT, zT, dzT, nothing, rv)
+            Val(eqs3!),
+            tT,
+            zT,
+            dzT,
+            nothing,
+            rv,
+        )
         @test typeof(rv.v0) == Vector{Taylor1{ComplexF64}}
         @test typeof(rv.v1) == Vector{Vector{Taylor1{ComplexF64}}}
         @test zT[1] == exact_sol(tT, -1, z0)
@@ -404,21 +660,51 @@ import Logging: Warn
         @test (@isdefined integ_cos1)
         @test (@isdefined integ_cos2)
 
-        sol11 = taylorinteg(integ_cos1, 0.0, 0.0, pi, _order, _abstol, parse_eqs=false,
-            dense=false)
+        sol11 = taylorinteg(
+            integ_cos1,
+            0.0,
+            0.0,
+            pi,
+            _order,
+            _abstol,
+            parse_eqs = false,
+            dense = false,
+        )
         tv11, xv11 = sol11.t, sol11.x
         sol12 = (@test_logs min_level = Logging.Warn taylorinteg(
-            integ_cos1, 0.0, 0.0, pi, _order, _abstol, dense=false))
+            integ_cos1,
+            0.0,
+            0.0,
+            pi,
+            _order,
+            _abstol,
+            dense = false,
+        ))
         tv12, xv12 = sol12.t, sol12.x
         @test length(tv11) == length(tv12)
         @test iszero(norm(tv11 - tv12, Inf))
         @test iszero(norm(xv11 - xv12, Inf))
 
-        sol21 = taylorinteg(integ_cos2, 0.0, 0.0, pi, _order, _abstol, parse_eqs=false,
-            dense=false)
+        sol21 = taylorinteg(
+            integ_cos2,
+            0.0,
+            0.0,
+            pi,
+            _order,
+            _abstol,
+            parse_eqs = false,
+            dense = false,
+        )
         tv21, xv21 = sol21.t, sol21.x
         sol22 = (@test_logs min_level = Logging.Warn taylorinteg(
-            integ_cos2, 0.0, 0.0, pi, _order, _abstol, dense=false))
+            integ_cos2,
+            0.0,
+            0.0,
+            pi,
+            _order,
+            _abstol,
+            dense = false,
+        ))
         tv22, xv22 = sol22.t, sol22.x
         @test length(tv21) == length(tv22)
         @test iszero(norm(tv21 - tv22, Inf))
@@ -441,11 +727,26 @@ import Logging: Warn
 
         @test (@isdefined integ_vec)
         x0 = [0.0, 1.0]
-        sol11 = taylorinteg(integ_vec, x0, 0.0, pi, _order, _abstol, parse_eqs=false,
-            dense=false)
+        sol11 = taylorinteg(
+            integ_vec,
+            x0,
+            0.0,
+            pi,
+            _order,
+            _abstol,
+            parse_eqs = false,
+            dense = false,
+        )
         tv11, xv11 = sol11.t, sol11.x
         sol12 = (@test_logs min_level = Logging.Warn taylorinteg(
-            integ_vec, x0, 0.0, pi, _order, _abstol, dense=false))
+            integ_vec,
+            x0,
+            0.0,
+            pi,
+            _order,
+            _abstol,
+            dense = false,
+        ))
         tv12, xv12 = sol12.t, sol12.x
         @test length(tv11) == length(tv12)
         @test iszero(norm(tv11 - tv12, Inf))
@@ -469,8 +770,16 @@ import Logging: Warn
             return du
         end
 
-        solF = taylorinteg(ggg!, [1.0, 0.0], 0.0, 10.0, 20, 1.0e-20, parse_eqs=false,
-            dense=false)
+        solF = taylorinteg(
+            ggg!,
+            [1.0, 0.0],
+            0.0,
+            10.0,
+            20,
+            1.0e-20,
+            parse_eqs = false,
+            dense = false,
+        )
         tvF, xvF = solF.t, solF.x
         sol1 = taylorinteg(ggg!, [1.0, 0.0], 0.0, 10.0, 20, 1.0e-20)
         tv1, xv1 = sol1.t, sol1.x
@@ -496,11 +805,30 @@ import Logging: Warn
         q0 = [1.0, 0.0]
         p = [2.0]
         local tf = 300.0
-        sol1 = taylorinteg(harm_osc!, q0, t0, tf, _order, _abstol,
-            p, maxsteps=1000, parse_eqs=false, dense=false)
+        sol1 = taylorinteg(
+            harm_osc!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            p,
+            maxsteps = 1000,
+            parse_eqs = false,
+            dense = false,
+        )
         tv1, xv1 = sol1.t, sol1.x
         sol1p = (@test_logs min_level = Logging.Warn taylorinteg(
-            harm_osc!, q0, t0, tf, _order, _abstol, p, maxsteps=1000, dense=false))
+            harm_osc!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            p,
+            maxsteps = 1000,
+            dense = false,
+        ))
         tv1p, xv1p = sol1p.t, sol1p.x
 
         @test length(tv1) == length(tv1p)
@@ -516,9 +844,20 @@ import Logging: Warn
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
         rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
-            Val(harm_osc!), tT, qT, dqT, [1.0]))
+            Val(harm_osc!),
+            tT,
+            qT,
+            dqT,
+            [1.0],
+        ))
         @test_logs min_level = Logging.Warn TI.jetcoeffs!(
-            Val(harm_osc!), tT, qT, dqT, [1.0], rv)
+            Val(harm_osc!),
+            tT,
+            qT,
+            dqT,
+            [1.0],
+            rv,
+        )
         @test qT[1] ≈ cos(tT)
         @test qT[2] ≈ -sin(tT)
 
@@ -534,10 +873,18 @@ import Logging: Warn
         end
 
         @test !isempty(methodswith(Val{harm_osc_error!}, TI.jetcoeffs!))
-        sol2e = (
-            @test_logs (Warn, unable_to_parse(harm_osc_error!)) taylorinteg(
-            harm_osc_error!, q0, t0, tf, _order, _abstol, p, maxsteps=1000,
-            parse_eqs=true, dense=false))
+        sol2e = (@test_logs (Warn, unable_to_parse(harm_osc_error!)) taylorinteg(
+            harm_osc_error!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            p,
+            maxsteps = 1000,
+            parse_eqs = true,
+            dense = false,
+        ))
         tv2e, xv2e = sol2e.t, sol2e.x
         @test length(tv1) == length(tv1p)
         @test iszero(norm(tv1 - tv2e, Inf))
@@ -547,9 +894,13 @@ import Logging: Warn
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
         rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
-            Val(harm_osc_error!), tT, qT, dqT, [1.0]))
-        @test_throws MethodError TI.jetcoeffs!(
-            Val(harm_osc_error!), tT, qT, dqT, [1.0], rv)
+            Val(harm_osc_error!),
+            tT,
+            qT,
+            dqT,
+            [1.0],
+        ))
+        @test_throws MethodError TI.jetcoeffs!(Val(harm_osc_error!), tT, qT, dqT, [1.0], rv)
     end
 
     local tf = 100.0
@@ -566,12 +917,30 @@ import Logging: Warn
 
         @test (@isdefined multpendula1!)
         q0 = [pi - 0.001, 0.0, pi - 0.001, 0.0, pi - 0.001, 0.0]
-        sol1 = taylorinteg(multpendula1!, q0, t0, tf, _order, _abstol,
-            [NN, nnrange], maxsteps=1000, parse_eqs=false, dense=false)
+        sol1 = taylorinteg(
+            multpendula1!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            [NN, nnrange],
+            maxsteps = 1000,
+            parse_eqs = false,
+            dense = false,
+        )
         tv1, xv1 = sol1.t, sol1.x
         sol1p = (@test_logs min_level = Logging.Warn taylorinteg(
-            multpendula1!, q0, t0, tf, _order, _abstol, [NN, nnrange], maxsteps=1000,
-            dense=false))
+            multpendula1!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            [NN, nnrange],
+            maxsteps = 1000,
+            dense = false,
+        ))
         tv1p, xv1p = sol1p.t, sol1p.x
 
         @test length(tv1) == length(tv1p)
@@ -589,11 +958,28 @@ import Logging: Warn
         end
 
         @test (@isdefined multpendula2!)
-        sol2 = taylorinteg(multpendula2!, q0, t0, tf, _order, _abstol,
-            maxsteps=1000, parse_eqs=false, dense=false)
+        sol2 = taylorinteg(
+            multpendula2!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            maxsteps = 1000,
+            parse_eqs = false,
+            dense = false,
+        )
         tv2, xv2 = sol2.t, sol2.x
         sol2p = (@test_logs min_level = Logging.Warn taylorinteg(
-            multpendula2!, q0, t0, tf, _order, _abstol, maxsteps=1000, dense=false))
+            multpendula2!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            maxsteps = 1000,
+            dense = false,
+        ))
         tv2p, xv2p = sol2p.t, sol2p.x
 
         @test length(tv2) == length(tv2p)
@@ -611,12 +997,30 @@ import Logging: Warn
         end
 
         @test (@isdefined multpendula3!)
-        sol3 = taylorinteg(multpendula3!, q0, t0, tf, _order, _abstol,
-            [NN, nnrange], maxsteps=1000, parse_eqs=false, dense=false)
+        sol3 = taylorinteg(
+            multpendula3!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            [NN, nnrange],
+            maxsteps = 1000,
+            parse_eqs = false,
+            dense = false,
+        )
         tv3, xv3 = sol3.t, sol3.x
         sol3p = (@test_logs min_level = Logging.Warn taylorinteg(
-            multpendula3!, q0, t0, tf, _order, _abstol, [NN, nnrange], maxsteps=1000,
-            dense=false))
+            multpendula3!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            [NN, nnrange],
+            maxsteps = 1000,
+            dense = false,
+        ))
         tv3p, xv3p = sol3p.t, sol3p.x
 
         # Comparing integrations
@@ -631,21 +1035,54 @@ import Logging: Warn
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
         rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
-            Val(multpendula1!), tT, qT, dqT, (NN, nnrange)))
+            Val(multpendula1!),
+            tT,
+            qT,
+            dqT,
+            (NN, nnrange),
+        ))
         @test_logs min_level = Logging.Warn TI.jetcoeffs!(
-            Val(multpendula1!), tT, qT, dqT, (NN, nnrange), rv)
+            Val(multpendula1!),
+            tT,
+            qT,
+            dqT,
+            (NN, nnrange),
+            rv,
+        )
 
         qT = q0 .+ zero(tT)
         rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
-            Val(multpendula2!), tT, qT, dqT, nothing))
+            Val(multpendula2!),
+            tT,
+            qT,
+            dqT,
+            nothing,
+        ))
         @test_logs min_level = Logging.Warn TI.jetcoeffs!(
-            Val(multpendula2!), tT, qT, dqT, nothing, rv)
+            Val(multpendula2!),
+            tT,
+            qT,
+            dqT,
+            nothing,
+            rv,
+        )
 
         qT = q0 .+ zero(tT)
         rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
-            Val(multpendula3!), tT, qT, dqT, [NN, nnrange]))
+            Val(multpendula3!),
+            tT,
+            qT,
+            dqT,
+            [NN, nnrange],
+        ))
         @test_logs min_level = Logging.Warn TI.jetcoeffs!(
-            Val(multpendula3!), tT, qT, dqT, [NN, nnrange], rv)
+            Val(multpendula3!),
+            tT,
+            qT,
+            dqT,
+            [NN, nnrange],
+            rv,
+        )
     end
 
 
@@ -686,18 +1123,56 @@ import Logging: Warn
         @test (@isdefined kepler2!)
         pars = (2, -1.0)
         q0 = [0.2, 0.0, 0.0, 3.0]
-        sol1 = taylorinteg(kepler1!, q0, t0, tf, _order, _abstol, -1.0,
-            maxsteps=500000, parse_eqs=false, dense=false)
+        sol1 = taylorinteg(
+            kepler1!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            -1.0,
+            maxsteps = 500000,
+            parse_eqs = false,
+            dense = false,
+        )
         tv1, xv1 = sol1.t, sol1.x
-        sol1p = (@test_logs min_level = Logging.Warn taylorinteg(kepler1!, q0, t0, tf, _order,
-            _abstol, -1.0, maxsteps=500000, dense=false))
+        sol1p = (@test_logs min_level = Logging.Warn taylorinteg(
+            kepler1!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            -1.0,
+            maxsteps = 500000,
+            dense = false,
+        ))
         tv1p, xv1p = sol1p.t, sol1p.x
 
-        sol6p = taylorinteg(kepler2!, q0, t0, tf, _order, _abstol, pars,
-            maxsteps=500000, parse_eqs=false, dense=false)
+        sol6p = taylorinteg(
+            kepler2!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            pars,
+            maxsteps = 500000,
+            parse_eqs = false,
+            dense = false,
+        )
         tv6p, xv6p = sol6p.t, sol6p.x
-        sol7p = (@test_logs min_level = Logging.Warn taylorinteg(kepler2!, q0, t0, tf, _order,
-            _abstol, pars, maxsteps=500000, dense=false))
+        sol7p = (@test_logs min_level = Logging.Warn taylorinteg(
+            kepler2!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            pars,
+            maxsteps = 500000,
+            dense = false,
+        ))
         tv7p, xv7p = sol7p.t, sol7p.x
 
         @test length(tv1) == length(tv1p) == length(tv6p)
@@ -739,18 +1214,52 @@ import Logging: Warn
 
         @test (@isdefined kepler3!)
         @test (@isdefined kepler4!)
-        sol3 = taylorinteg(kepler3!, q0, t0, tf, _order, _abstol,
-            maxsteps=500000, parse_eqs=false, dense=false)
+        sol3 = taylorinteg(
+            kepler3!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            maxsteps = 500000,
+            parse_eqs = false,
+            dense = false,
+        )
         tv3, xv3 = sol3.t, sol3.x
-        sol3p = (@test_logs min_level = Logging.Warn taylorinteg(kepler3!, q0, t0, tf, _order,
-            _abstol, maxsteps=500000, dense=false))
+        sol3p = (@test_logs min_level = Logging.Warn taylorinteg(
+            kepler3!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            maxsteps = 500000,
+            dense = false,
+        ))
         tv3p, xv3p = sol3p.t, sol3p.x
 
-        sol4 = taylorinteg(kepler4!, q0, t0, tf, _order, _abstol,
-            maxsteps=500000, parse_eqs=false, dense=false)
+        sol4 = taylorinteg(
+            kepler4!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            maxsteps = 500000,
+            parse_eqs = false,
+            dense = false,
+        )
         tv4, xv4 = sol4.t, sol4.x
-        sol4p = (@test_logs min_level = Logging.Warn taylorinteg(kepler4!, q0, t0, tf, _order,
-            _abstol, maxsteps=500000, dense=false))
+        sol4p = (@test_logs min_level = Logging.Warn taylorinteg(
+            kepler4!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            maxsteps = 500000,
+            dense = false,
+        ))
         tv4p, xv4p = sol4p.t, sol4p.x
 
         @test length(tv3) == length(tv3p) == length(tv4)
@@ -771,30 +1280,74 @@ import Logging: Warn
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
         rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
-            Val(kepler1!), tT, qT, dqT, -1.0))
+            Val(kepler1!),
+            tT,
+            qT,
+            dqT,
+            -1.0,
+        ))
         @test_logs min_level = Logging.Warn TI.jetcoeffs!(
-            Val(kepler1!), tT, qT, dqT, -1.0, rv)
+            Val(kepler1!),
+            tT,
+            qT,
+            dqT,
+            -1.0,
+            rv,
+        )
 
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
         rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
-            Val(kepler2!), tT, qT, dqT, pars))
+            Val(kepler2!),
+            tT,
+            qT,
+            dqT,
+            pars,
+        ))
         @test_logs min_level = Logging.Warn TI.jetcoeffs!(
-            Val(kepler2!), tT, qT, dqT, pars, rv)
+            Val(kepler2!),
+            tT,
+            qT,
+            dqT,
+            pars,
+            rv,
+        )
 
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
         rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
-            Val(kepler3!), tT, qT, dqT, nothing))
+            Val(kepler3!),
+            tT,
+            qT,
+            dqT,
+            nothing,
+        ))
         @test_logs min_level = Logging.Warn TI.jetcoeffs!(
-            Val(kepler3!), tT, qT, dqT, nothing, rv)
+            Val(kepler3!),
+            tT,
+            qT,
+            dqT,
+            nothing,
+            rv,
+        )
 
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
         rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
-            Val(kepler4!), tT, qT, dqT, nothing))
+            Val(kepler4!),
+            tT,
+            qT,
+            dqT,
+            nothing,
+        ))
         @test_logs min_level = Logging.Warn TI.jetcoeffs!(
-            Val(kepler4!), tT, qT, dqT, nothing, rv)
+            Val(kepler4!),
+            tT,
+            qT,
+            dqT,
+            nothing,
+            rv,
+        )
     end
 
 
@@ -833,18 +1386,54 @@ import Logging: Warn
         @test (@isdefined kepler1!)
         @test (@isdefined kepler2!)
         q0 = [0.2, 0.0, 0.0, 3.0]
-        sol1 = taylorinteg(kepler1!, q0, t0, tf, _order, _abstol,
-            maxsteps=500000, parse_eqs=false, dense=false)
+        sol1 = taylorinteg(
+            kepler1!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            maxsteps = 500000,
+            parse_eqs = false,
+            dense = false,
+        )
         tv1, xv1 = sol1.t, sol1.x
         sol1p = (@test_logs min_level = Logging.Warn taylorinteg(
-            kepler1!, q0, t0, tf, _order, _abstol, maxsteps=500000, dense=false))
+            kepler1!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            maxsteps = 500000,
+            dense = false,
+        ))
         tv1p, xv1p = sol1p.t, sol1p.x
 
-        sol2 = taylorinteg(kepler2!, q0, t0, tf, _order, _abstol, -1.0,
-            maxsteps=500000, parse_eqs=false, dense=false)
+        sol2 = taylorinteg(
+            kepler2!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            -1.0,
+            maxsteps = 500000,
+            parse_eqs = false,
+            dense = false,
+        )
         tv2, xv2 = sol2.t, sol2.x
         sol2p = (@test_logs min_level = Logging.Warn taylorinteg(
-            kepler2!, q0, t0, tf, _order, _abstol, -1.0, maxsteps=500000, dense=false))
+            kepler2!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            -1.0,
+            maxsteps = 500000,
+            dense = false,
+        ))
         tv2p, xv2p = sol2p.t, sol2p.x
 
         @test length(tv1) == length(tv1p) == length(tv2)
@@ -889,18 +1478,54 @@ import Logging: Warn
 
         @test (@isdefined kepler3!)
         @test (@isdefined kepler4!)
-        sol3 = taylorinteg(kepler3!, q0, t0, tf, _order, _abstol, -1.0,
-            maxsteps=500000, parse_eqs=false, dense=false)
+        sol3 = taylorinteg(
+            kepler3!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            -1.0,
+            maxsteps = 500000,
+            parse_eqs = false,
+            dense = false,
+        )
         tv3, xv3 = sol3.t, sol3.x
         sol3p = (@test_logs min_level = Logging.Warn taylorinteg(
-            kepler3!, q0, t0, tf, _order, _abstol, -1.0, maxsteps=500000, dense=false))
+            kepler3!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            -1.0,
+            maxsteps = 500000,
+            dense = false,
+        ))
         tv3p, xv3p = sol3p.t, sol3p.x
 
-        sol4 = taylorinteg(kepler4!, q0, t0, tf, _order, _abstol,
-            maxsteps=500000, parse_eqs=false, dense=false)
+        sol4 = taylorinteg(
+            kepler4!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            maxsteps = 500000,
+            parse_eqs = false,
+            dense = false,
+        )
         tv4, xv4 = sol4.t, sol4.x
         sol4p = (@test_logs min_level = Logging.Warn taylorinteg(
-            kepler4!, q0, t0, tf, _order, _abstol, maxsteps=500000, dense=false))
+            kepler4!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            maxsteps = 500000,
+            dense = false,
+        ))
         tv4p, xv4p = sol4p.t, sol4p.x
 
         @test length(tv3) == length(tv3p) == length(tv4)
@@ -921,27 +1546,71 @@ import Logging: Warn
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
         rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
-            Val(kepler1!), tT, qT, dqT, nothing))
+            Val(kepler1!),
+            tT,
+            qT,
+            dqT,
+            nothing,
+        ))
         @test_logs min_level = Logging.Warn TI.jetcoeffs!(
-            Val(kepler1!), tT, qT, dqT, nothing, rv)
+            Val(kepler1!),
+            tT,
+            qT,
+            dqT,
+            nothing,
+            rv,
+        )
 
         qT = q0 .+ zero(tT)
         rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
-            Val(kepler2!), tT, qT, dqT, -1.0))
+            Val(kepler2!),
+            tT,
+            qT,
+            dqT,
+            -1.0,
+        ))
         @test_logs min_level = Logging.Warn TI.jetcoeffs!(
-            Val(kepler2!), tT, qT, dqT, -1.0, rv)
+            Val(kepler2!),
+            tT,
+            qT,
+            dqT,
+            -1.0,
+            rv,
+        )
 
         qT = q0 .+ zero(tT)
         rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
-            Val(kepler3!), tT, qT, dqT, -1.0))
+            Val(kepler3!),
+            tT,
+            qT,
+            dqT,
+            -1.0,
+        ))
         @test_logs min_level = Logging.Warn TI.jetcoeffs!(
-            Val(kepler3!), tT, qT, dqT, -1.0, rv)
+            Val(kepler3!),
+            tT,
+            qT,
+            dqT,
+            -1.0,
+            rv,
+        )
 
         qT = q0 .+ zero(tT)
         rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
-            Val(kepler4!), tT, qT, dqT, nothing))
+            Val(kepler4!),
+            tT,
+            qT,
+            dqT,
+            nothing,
+        ))
         @test_logs min_level = Logging.Warn TI.jetcoeffs!(
-            Val(kepler4!), tT, qT, dqT, nothing, rv)
+            Val(kepler4!),
+            tT,
+            qT,
+            dqT,
+            nothing,
+            rv,
+        )
     end
 
 
@@ -977,27 +1646,63 @@ import Logging: Warn
         end
 
         q0 = [19.0, 20.0, 50.0] #the initial condition
-        xi = set_variables("δ", order=1, numvars=length(q0))
+        xi = set_variables("δ", order = 1, numvars = length(q0))
 
-        sol1 = lyap_taylorinteg(lorenz1!, q0, t0, tf, _order, _abstol,
-            params, maxsteps=2000, parse_eqs=false)
+        sol1 = lyap_taylorinteg(
+            lorenz1!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            params,
+            maxsteps = 2000,
+            parse_eqs = false,
+        )
         tv1, xv1, lv1 = sol1.t, sol1.x, sol1.λ
 
         solp = (@test_logs min_level = Logging.Warn lyap_taylorinteg(
-            lorenz1!, q0, t0, tf, _order, _abstol, params, maxsteps=2000))
+            lorenz1!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            params,
+            maxsteps = 2000,
+        ))
         tv1p, xv1p, lv1p = solp.t, solp.x, solp.λ
 
         @test tv1 == tv1p
         @test xv1 == xv1p
         @test lv1 == lv1p
 
-        sol2 = lyap_taylorinteg(lorenz1!, q0, t0, tf, _order, _abstol,
-            params, lorenz1_jac!, maxsteps=2000, parse_eqs=false)
+        sol2 = lyap_taylorinteg(
+            lorenz1!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            params,
+            lorenz1_jac!,
+            maxsteps = 2000,
+            parse_eqs = false,
+        )
         tv2, xv2, lv2 = sol2.t, sol2.x, sol2.λ
 
         sol2p = (@test_logs min_level = Logging.Warn lyap_taylorinteg(
-            lorenz1!, q0, t0, tf, _order, _abstol, params, lorenz1_jac!, maxsteps=2000,
-            parse_eqs=true))
+            lorenz1!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            params,
+            lorenz1_jac!,
+            maxsteps = 2000,
+            parse_eqs = true,
+        ))
         tv2p, xv2p, lv2p = sol2p.t, sol2p.x, sol2p.λ
 
         @test tv2 == tv2p
@@ -1041,25 +1746,57 @@ import Logging: Warn
             nothing
         end
 
-        sol3 = lyap_taylorinteg(lorenz2!, q0, t0, tf, _order, _abstol,
-            maxsteps=2000, parse_eqs=false)
+        sol3 = lyap_taylorinteg(
+            lorenz2!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            maxsteps = 2000,
+            parse_eqs = false,
+        )
         tv3, xv3, lv3 = sol3.t, sol3.x, sol3.λ
 
         sol3p = (@test_logs min_level = Logging.Warn lyap_taylorinteg(
-            lorenz2!, q0, t0, tf, _order, _abstol, maxsteps=2000))
+            lorenz2!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            maxsteps = 2000,
+        ))
         tv3p, xv3p, lv3p = sol3p.t, sol3p.x, sol3p.λ
 
         @test tv3 == tv3p
         @test xv3 == xv3p
         @test lv3 == lv3p
 
-        sol4 = lyap_taylorinteg(lorenz2!, q0, t0, tf, _order, _abstol,
-            lorenz2_jac!, maxsteps=2000, parse_eqs=false)
+        sol4 = lyap_taylorinteg(
+            lorenz2!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            lorenz2_jac!,
+            maxsteps = 2000,
+            parse_eqs = false,
+        )
         tv4, xv4, lv4 = sol4.t, sol4.x, sol4.λ
 
         sol4p = (@test_logs min_level = Logging.Warn lyap_taylorinteg(
-            lorenz2!, q0, t0, tf, _order, _abstol, lorenz2_jac!, maxsteps=2000,
-            parse_eqs=true))
+            lorenz2!,
+            q0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            lorenz2_jac!,
+            maxsteps = 2000,
+            parse_eqs = true,
+        ))
         tv4p, xv4p, lv4p = sol4p.t, sol4p.x, sol4p.λ
 
         @test tv4 == tv4p
@@ -1077,24 +1814,53 @@ import Logging: Warn
         @test lv1 == lv3
 
         # Using ranges
-        sol5 = lyap_taylorinteg(lorenz2!, q0, t0:0.125:tf, _order, _abstol,
-            maxsteps=2000, parse_eqs=false)
+        sol5 = lyap_taylorinteg(
+            lorenz2!,
+            q0,
+            t0:0.125:tf,
+            _order,
+            _abstol,
+            maxsteps = 2000,
+            parse_eqs = false,
+        )
         lv5, xv5 = sol5.x, sol5.λ
 
         sol5p = (@test_logs min_level = Logging.Warn lyap_taylorinteg(
-            lorenz2!, q0, t0:0.125:tf, _order, _abstol, maxsteps=2000, parse_eqs=true))
+            lorenz2!,
+            q0,
+            t0:0.125:tf,
+            _order,
+            _abstol,
+            maxsteps = 2000,
+            parse_eqs = true,
+        ))
         lv5p, xv5p = sol5p.x, sol5p.λ
 
         @test lv5 == lv5p
         @test xv5 == xv5p
 
-        sol6 = lyap_taylorinteg(lorenz2!, q0, t0:0.125:tf, _order, _abstol,
-            lorenz2_jac!, maxsteps=2000, parse_eqs=false)
+        sol6 = lyap_taylorinteg(
+            lorenz2!,
+            q0,
+            t0:0.125:tf,
+            _order,
+            _abstol,
+            lorenz2_jac!,
+            maxsteps = 2000,
+            parse_eqs = false,
+        )
         lv6, xv6 = sol6.x, sol6.λ
 
         sol6p = (@test_logs min_level = Logging.Warn lyap_taylorinteg(
-            lorenz2!, q0, t0:0.125:tf, _order, _abstol, lorenz2_jac!, maxsteps=2000,
-            parse_eqs=true))
+            lorenz2!,
+            q0,
+            t0:0.125:tf,
+            _order,
+            _abstol,
+            lorenz2_jac!,
+            maxsteps = 2000,
+            parse_eqs = true,
+        ))
         lv6p, xv6p = sol6p.x, sol6p.λ
 
         @test lv6 == lv6p
@@ -1105,16 +1871,38 @@ import Logging: Warn
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
         rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
-            Val(lorenz1!), tT, qT, dqT, params))
+            Val(lorenz1!),
+            tT,
+            qT,
+            dqT,
+            params,
+        ))
         @test_logs min_level = Logging.Warn TI.jetcoeffs!(
-            Val(lorenz1!), tT, qT, dqT, params, rv)
+            Val(lorenz1!),
+            tT,
+            qT,
+            dqT,
+            params,
+            rv,
+        )
 
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
         rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
-            Val(lorenz2!), tT, qT, dqT, nothing))
+            Val(lorenz2!),
+            tT,
+            qT,
+            dqT,
+            nothing,
+        ))
         @test_logs min_level = Logging.Warn TI.jetcoeffs!(
-            Val(lorenz2!), tT, qT, dqT, nothing, rv)
+            Val(lorenz2!),
+            tT,
+            qT,
+            dqT,
+            nothing,
+            rv,
+        )
     end
 
 
@@ -1171,10 +1959,24 @@ import Logging: Warn
         end
         tT = t0 + Taylor1(_order)
         qT = [1.0, 0.0] .+ zero(tT)
-        parse_eqs, rv = (@test_logs (Warn, unable_to_parse(harm_osc!)) TI._determine_parsing!(
-            true, harm_osc!, tT, qT, similar(qT), [2.0]))
+        parse_eqs, rv =
+            (@test_logs (Warn, unable_to_parse(harm_osc!)) TI._determine_parsing!(
+                true,
+                harm_osc!,
+                tT,
+                qT,
+                similar(qT),
+                [2.0],
+            ))
         @test !parse_eqs
-        @test_throws MethodError TI.__jetcoeffs!(Val(harm_osc!), tT, qT, similar(qT), [2.0], rv)
+        @test_throws MethodError TI.__jetcoeffs!(
+            Val(harm_osc!),
+            tT,
+            qT,
+            similar(qT),
+            [2.0],
+            rv,
+        )
 
         @taylorize function kepler1!(dq, q, p, t)
             μ = p
@@ -1189,10 +1991,24 @@ import Logging: Warn
         end
         tT = t0 + Taylor1(_order)
         qT = [0.2, 0.0, 0.0, 3.0] .+ zero(tT)
-        parse_eqs, rv = (@test_logs (Warn, unable_to_parse(kepler1!)) TI._determine_parsing!(
-            true, kepler1!, tT, qT, similar(qT), -1.0))
+        parse_eqs, rv =
+            (@test_logs (Warn, unable_to_parse(kepler1!)) TI._determine_parsing!(
+                true,
+                kepler1!,
+                tT,
+                qT,
+                similar(qT),
+                -1.0,
+            ))
         @test !parse_eqs
-        @test_throws MethodError TI.__jetcoeffs!(Val(kepler1!), tT, qT, similar(qT), -1.0, rv)
+        @test_throws MethodError TI.__jetcoeffs!(
+            Val(kepler1!),
+            tT,
+            qT,
+            similar(qT),
+            -1.0,
+            rv,
+        )
 
         # Error: `@taylorize` allows only to parse up tp 5-index arrays
         ex = :(function err_arr_indx!(Dz, z, p, t)
@@ -1206,7 +2022,9 @@ import Logging: Warn
             end
             nothing
         end)
-        @test_throws ErrorException("Error: `@taylorize` allows only to parse up tp 5-index arrays") TI._make_parsed_jetcoeffs(ex)
+        @test_throws ErrorException(
+            "Error: `@taylorize` allows only to parse up tp 5-index arrays",
+        ) TI._make_parsed_jetcoeffs(ex)
 
     end
 
@@ -1220,7 +2038,7 @@ import Logging: Warn
         end
 
         varorder = 2 #the order of the variational expansion
-        p = set_variables("ξ", numvars=2, order=varorder) #TaylorN steup
+        p = set_variables("ξ", numvars = 2, order = varorder) #TaylorN steup
         q0 = [1.3, 0.0] #the initial conditions
         q0TN = q0 + p #parametrization of a small neighbourhood around the initial conditions
         # T is the librational period == 4Elliptic.K(sin(q0[1]/2)^2)
@@ -1231,27 +2049,59 @@ import Logging: Warn
         tr = t0:integstep:T
         #note that as called below, taylorinteg uses the parsed jetcoeffs! method by default
         solp = (@test_logs min_level = Logging.Warn taylorinteg(
-            pendulum!, q0, tr, _order, _abstol, maxsteps=100))
+            pendulum!,
+            q0,
+            tr,
+            _order,
+            _abstol,
+            maxsteps = 100,
+        ))
         @test tr == solp.t
         xvp = solp.x
 
         # "warmup" for jet transport integration
         solTN = (@test_logs (Warn, max_iters_reached()) @inferred taylorinteg(
-            pendulum!, q0TN, tr, _order, _abstol, maxsteps=1, parse_eqs=false))
+            pendulum!,
+            q0TN,
+            tr,
+            _order,
+            _abstol,
+            maxsteps = 1,
+            parse_eqs = false,
+        ))
         @test size(solTN.x) == (5, 2)
         #jet transport integration with parsed jetcoeffs!
         solTNp = (@test_logs min_level = Logging.Warn taylorinteg(
-            pendulum!, q0TN, tr, _order, _abstol, maxsteps=100))
+            pendulum!,
+            q0TN,
+            tr,
+            _order,
+            _abstol,
+            maxsteps = 100,
+        ))
         #jet transport integration with non-parsed jetcoeffs!
         solTN = (@test_logs min_level = Logging.Warn taylorinteg(
-            pendulum!, q0TN, tr, _order, _abstol, maxsteps=100, parse_eqs=false))
+            pendulum!,
+            q0TN,
+            tr,
+            _order,
+            _abstol,
+            maxsteps = 100,
+            parse_eqs = false,
+        ))
         @test solTN.x == solTNp.x
         @test norm(solTNp.x[:, :]() - xvp, Inf) < 1e-15
 
         dq = 0.0001rand(2)
         q1 = q0 + dq
         y = (@test_logs min_level = Logging.Warn taylorinteg(
-            pendulum!, q1, tr, _order, _abstol, maxsteps=100))
+            pendulum!,
+            q1,
+            tr,
+            _order,
+            _abstol,
+            maxsteps = 100,
+        ))
         y_jt = solTNp.x[:, :](dq)
         @test norm(y.x - y_jt, Inf) < 1e-11
 
@@ -1260,13 +2110,35 @@ import Logging: Warn
         x0T1 = q0 + [0t, t]
         q1 = q0 + [0.0, dq]
         sol = (@test_logs min_level = Logging.Warn taylorinteg(
-            pendulum!, q1, t0, 2T, _order, _abstol, dense=false))
+            pendulum!,
+            q1,
+            t0,
+            2T,
+            _order,
+            _abstol,
+            dense = false,
+        ))
         tv, xv = sol.t, sol.x
         solT1 = (@test_logs min_level = Logging.Warn taylorinteg(
-            pendulum!, x0T1, t0, 2T, _order, _abstol, parse_eqs=false, dense=false))
+            pendulum!,
+            x0T1,
+            t0,
+            2T,
+            _order,
+            _abstol,
+            parse_eqs = false,
+            dense = false,
+        ))
         tvT1, xvT1 = solT1.t, solT1.x
         solT1p = (@test_logs min_level = Logging.Warn taylorinteg(
-            pendulum!, x0T1, t0, 2T, _order, _abstol, dense=false))
+            pendulum!,
+            x0T1,
+            t0,
+            2T,
+            _order,
+            _abstol,
+            dense = false,
+        ))
         tvT1p, xvT1p = solT1p.t, solT1p.x
         @test tvT1 == tvT1p
         @test xvT1 == xvT1p
@@ -1286,24 +2158,56 @@ import Logging: Warn
         end
 
         varorder = 2 #the order of the variational expansion
-        p = set_variables("ξ", numvars=4, order=varorder) #TaylorN setup
+        p = set_variables("ξ", numvars = 4, order = varorder) #TaylorN setup
         q0 = [0.2, 0.0, 0.0, 3.0]
         q0TN = q0 + p # JT initial condition
 
         sol = (@test_logs (Warn, max_iters_reached()) taylorinteg(
-            kepler1!, q0TN, t0, tf, _order, _abstol, maxsteps=2, parse_eqs=false, dense=false))
+            kepler1!,
+            q0TN,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            maxsteps = 2,
+            parse_eqs = false,
+            dense = false,
+        ))
         tv, xv, psol = sol.t, sol.x, sol.p
         solp = (@test_logs (Warn, max_iters_reached()) taylorinteg(
-            kepler1!, q0TN, t0, tf, _order, _abstol, maxsteps=2, dense=false))
+            kepler1!,
+            q0TN,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            maxsteps = 2,
+            dense = false,
+        ))
         tvp, xvp, psolp = sol.t, sol.x, sol.p
         @test tv == tvp
         @test xv == xvp
         @test psol == psolp
 
         sol = (@test_logs min_level = Logging.Warn taylorinteg(
-            kepler1!, q0TN, t0, tf, _order, _abstol, maxsteps=3000, parse_eqs=false))
+            kepler1!,
+            q0TN,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            maxsteps = 3000,
+            parse_eqs = false,
+        ))
         solp = (@test_logs min_level = Logging.Warn taylorinteg(
-            kepler1!, q0TN, t0, tf, _order, _abstol, maxsteps=3000))
+            kepler1!,
+            q0TN,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            maxsteps = 3000,
+        ))
 
         @test length(sol.t) == length(solp.t)
         @test sol.t == solp.t
@@ -1333,18 +2237,94 @@ import Logging: Warn
             _T = eltype(_t0)
             _U = eltype(_q0)
             # Allocation
-            _cache_true = TaylorIntegration.init_cache(Val(true), _t0, _q0, _maxsteps, _order, kepler1!, _params)
-            _cache_false = TaylorIntegration.init_cache(Val(false), _t0, _q0, _maxsteps, _order, kepler1!, _params)
+            _cache_true = TaylorIntegration.init_cache(
+                Val(true),
+                _t0,
+                _q0,
+                _maxsteps,
+                _order,
+                kepler1!,
+                _params,
+            )
+            _cache_false = TaylorIntegration.init_cache(
+                Val(false),
+                _t0,
+                _q0,
+                _maxsteps,
+                _order,
+                kepler1!,
+                _params,
+            )
             # Determine if specialized jetcoeffs! method exists
-            solTN = @inferred TaylorIntegration.taylorinteg!(Val(true), kepler1!, _q0, _t0, _tmax, _abstol, _cache_true, _params; maxsteps=_maxsteps)
-            solTN2 = @inferred TaylorIntegration.taylorinteg!(Val(false), kepler1!, _q0, _t0, _tmax, _abstol, _cache_false, _params; maxsteps=_maxsteps)
-            @test solTN isa TaylorSolution{typeof(_t0),eltype(_q0),ndims(solTN.x),typeof(solTN.t),typeof(solTN.x),typeof(solTN.p),Nothing,Nothing,Nothing}
-            @test solTN2 isa TaylorSolution{typeof(_t0),eltype(_q0),ndims(solTN.x),typeof(solTN.t),typeof(solTN.x),Nothing,Nothing,Nothing,Nothing}
+            solTN = @inferred TaylorIntegration.taylorinteg!(
+                Val(true),
+                kepler1!,
+                _q0,
+                _t0,
+                _tmax,
+                _abstol,
+                _cache_true,
+                _params;
+                maxsteps = _maxsteps,
+            )
+            solTN2 = @inferred TaylorIntegration.taylorinteg!(
+                Val(false),
+                kepler1!,
+                _q0,
+                _t0,
+                _tmax,
+                _abstol,
+                _cache_false,
+                _params;
+                maxsteps = _maxsteps,
+            )
+            @test solTN isa TaylorSolution{
+                typeof(_t0),
+                eltype(_q0),
+                ndims(solTN.x),
+                typeof(solTN.t),
+                typeof(solTN.x),
+                typeof(solTN.p),
+                Nothing,
+                Nothing,
+                Nothing,
+            }
+            @test solTN2 isa TaylorSolution{
+                typeof(_t0),
+                eltype(_q0),
+                ndims(solTN.x),
+                typeof(solTN.t),
+                typeof(solTN.x),
+                Nothing,
+                Nothing,
+                Nothing,
+                Nothing,
+            }
             # test cache update
             q1 = [-0.2, 0.0, 0.0, -2.8]
             q1TN = q1 + p # JT initial condition
-            solTN3 = @inferred TaylorIntegration.taylorinteg!(Val(true), kepler1!, q1TN, _t0, _tmax, _abstol, _cache_true, _params; maxsteps=_maxsteps)
-            @test solTN3 isa TaylorSolution{typeof(_t0),eltype(q1TN),ndims(solTN.x),typeof(solTN.t),typeof(solTN.x),typeof(solTN.p),Nothing,Nothing,Nothing}
+            solTN3 = @inferred TaylorIntegration.taylorinteg!(
+                Val(true),
+                kepler1!,
+                q1TN,
+                _t0,
+                _tmax,
+                _abstol,
+                _cache_true,
+                _params;
+                maxsteps = _maxsteps,
+            )
+            @test solTN3 isa TaylorSolution{
+                typeof(_t0),
+                eltype(q1TN),
+                ndims(solTN.x),
+                typeof(solTN.t),
+                typeof(solTN.x),
+                typeof(solTN.p),
+                Nothing,
+                Nothing,
+                Nothing,
+            }
             # initial energy
             E0 = visviva(solTN3(_t0))
             # final energy
@@ -1378,13 +2358,41 @@ import Logging: Warn
 
         #warm-up lap and preliminary tests
         @test_logs (Warn, max_iters_reached()) taylorinteg(
-            pendulum!, g, x0, t0, Tend, _order, _abstol, Val(false), maxsteps=1)
+            pendulum!,
+            g,
+            x0,
+            t0,
+            Tend,
+            _order,
+            _abstol,
+            Val(false),
+            maxsteps = 1,
+        )
         @test_throws AssertionError taylorinteg(
-            pendulum!, g, x0, t0, Tend, _order, _abstol, Val(false), maxsteps=1, eventorder=_order + 1)
+            pendulum!,
+            g,
+            x0,
+            t0,
+            Tend,
+            _order,
+            _abstol,
+            Val(false),
+            maxsteps = 1,
+            eventorder = _order + 1,
+        )
 
         #testing 0-th order root-finding
         sol = (@test_logs min_level = Logging.Warn taylorinteg(
-            pendulum!, g, x0, t0, 3Tend, _order, _abstol, Val(false), maxsteps=1000))
+            pendulum!,
+            g,
+            x0,
+            t0,
+            3Tend,
+            _order,
+            _abstol,
+            Val(false),
+            maxsteps = 1000,
+        ))
         tv, xv, tvS, xvS, gvS = sol.t, sol.x, sol.tevents, sol.xevents, sol.gresids
         @test tv[1] == t0
         @test xv[1, :] == x0
@@ -1395,11 +2403,33 @@ import Logging: Warn
         #testing 0-th order root-finding with time ranges/vectors
         tvr = [t0, Tend / 2, Tend, 3Tend / 2, 2Tend, 5Tend / 2, 3Tend]
         @test_logs (Warn, max_iters_reached()) taylorinteg(
-            pendulum!, g, x0, view(tvr, :), _order, _abstol, maxsteps=1)
+            pendulum!,
+            g,
+            x0,
+            view(tvr, :),
+            _order,
+            _abstol,
+            maxsteps = 1,
+        )
         @test_throws AssertionError taylorinteg(
-            pendulum!, g, x0, view(tvr, :), _order, _abstol, maxsteps=1, eventorder=_order + 1)
+            pendulum!,
+            g,
+            x0,
+            view(tvr, :),
+            _order,
+            _abstol,
+            maxsteps = 1,
+            eventorder = _order + 1,
+        )
         solr = (@test_logs min_level = Logging.Warn taylorinteg(
-            pendulum!, g, x0, view(tvr, :), _order, _abstol, maxsteps=1000))
+            pendulum!,
+            g,
+            x0,
+            view(tvr, :),
+            _order,
+            _abstol,
+            maxsteps = 1000,
+        ))
         xvr, tvSr, xvSr, gvSr = solr.x, solr.tevents, solr.xevents, solr.gresids
         @test xvr[1, :] == x0
         @test size(tvSr) == (2,)
@@ -1411,34 +2441,37 @@ import Logging: Warn
     end
 
     @testset "Tests parsing specific aspects of the expression" begin
-        ex = :(
-            function f!(dq::Array{T,1}, q::Array{T,1}, p, t) where {T}
-                aa = my_simple_function(q, p, t)
-                for i in 1:length(q)
-                    if i == 1
-                        dq[i] = 2q[i]
-                    elseif i == 2
-                        dq[i] = q[i]
-                    elseif i == 3
-                        dq[i] = aa
-                        continue
-                    else
-                        dq[i] = my_complicate_function(q)
-                        break
-                    end
+        ex = :(function f!(dq::Array{T,1}, q::Array{T,1}, p, t) where {T}
+            aa = my_simple_function(q, p, t)
+            for i = 1:length(q)
+                if i == 1
+                    dq[i] = 2q[i]
+                elseif i == 2
+                    dq[i] = q[i]
+                elseif i == 3
+                    dq[i] = aa
+                    continue
+                else
+                    dq[i] = my_complicate_function(q)
+                    break
                 end
-                nothing
-            end)
+            end
+            nothing
+        end)
 
         newex1, newex2 = TI._make_parsed_jetcoeffs(ex)
 
         # Ignore declarations in the function
         @test newex1.args[1] == :(
-            TaylorIntegration.jetcoeffs!(::Val{f!}, t::Taylor1{_T},
+            TaylorIntegration.jetcoeffs!(
+                ::Val{f!},
+                t::Taylor1{_T},
                 q::AbstractArray{Taylor1{_S},_N},
-                dq::AbstractArray{Taylor1{_S},_N}, p,
-                __ralloc::TaylorIntegration.RetAlloc{Taylor1{_S}}) where
-            {_T<:Real,_S<:Number,_N})
+                dq::AbstractArray{Taylor1{_S},_N},
+                p,
+                __ralloc::TaylorIntegration.RetAlloc{Taylor1{_S}},
+            ) where {_T<:Real,_S<:Number,_N}
+        )
 
         # Include not recognized functions as they appear
         @test newex1.args[2].args[2] == :(aa = __ralloc.v0[1])
@@ -1447,12 +2480,15 @@ import Logging: Warn
 
         # Return line
         @test newex1.args[2].args[end] == :(return nothing)
-        @test newex2.args[2].args[end] ==
-              :(return TaylorIntegration.RetAlloc{Taylor1{_S}}([aa],
-            [Array{Taylor1{_S},1}(undef, 0)],
-            [Array{Taylor1{_S},2}(undef, 0, 0)],
-            [Array{Taylor1{_S},3}(undef, 0, 0, 0)],
-            [Array{Taylor1{_S},4}(undef, 0, 0, 0, 0)]))
+        @test newex2.args[2].args[end] == :(
+            return TaylorIntegration.RetAlloc{Taylor1{_S}}(
+                [aa],
+                [Array{Taylor1{_S},1}(undef, 0)],
+                [Array{Taylor1{_S},2}(undef, 0, 0)],
+                [Array{Taylor1{_S},3}(undef, 0, 0, 0)],
+                [Array{Taylor1{_S},4}(undef, 0, 0, 0, 0)],
+            )
+        )
 
         # Issue 96: deal with `elseif`s, `continue` and `break`
         ex = :(
@@ -1472,56 +2508,58 @@ import Logging: Warn
                         end
                     end
                 end
-            end)
+            end
+        )
 
         @test newex1.args[2].args[3].args[2].args[3] == Base.remove_linenums!(ex)
 
         # Throws no error
-        ex = :(
-            function err_arr_indx!(Dz, z, p, t)
-                local n = size(z, 1)  # important to include it!
-                arr3 = Array{typeof(z[1])}(undef, n, 1, 1)
-                arr4 = Array{typeof(z[1])}(undef, n, 1, 1, 1)
-                for i in eachindex(z)
-                    arr3[i, 1, 1] = zero(z[1])
-                    arr4[i, 1, 1, 1] = zero(z[1])
-                    Dz[i] = z[i] + arr4[i, 1, 1, 1]
-                end
-                nothing
-            end)
+        ex = :(function err_arr_indx!(Dz, z, p, t)
+            local n = size(z, 1)  # important to include it!
+            arr3 = Array{typeof(z[1])}(undef, n, 1, 1)
+            arr4 = Array{typeof(z[1])}(undef, n, 1, 1, 1)
+            for i in eachindex(z)
+                arr3[i, 1, 1] = zero(z[1])
+                arr4[i, 1, 1, 1] = zero(z[1])
+                Dz[i] = z[i] + arr4[i, 1, 1, 1]
+            end
+            nothing
+        end)
         newex1, newex2 = TI._make_parsed_jetcoeffs(ex)
         @test newex1.args[2].args[2] == :(arr3 = __ralloc.v3[1])
         @test newex1.args[2].args[3] == :(arr4 = __ralloc.v4[1])
-        @test newex2.args[2].args[end].args[1].args[3] == :([Array{Taylor1{_S},1}(undef, 0)])
-        @test newex2.args[2].args[end].args[1].args[4] == :([Array{Taylor1{_S},2}(undef, 0, 0)])
+        @test newex2.args[2].args[end].args[1].args[3] ==
+              :([Array{Taylor1{_S},1}(undef, 0)])
+        @test newex2.args[2].args[end].args[1].args[4] ==
+              :([Array{Taylor1{_S},2}(undef, 0, 0)])
         @test newex2.args[2].args[end].args[1].args[5] == :([arr3])
         @test newex2.args[2].args[end].args[1].args[6] == :([arr4])
     end
 
     @testset "Test @taylorize with @threads" begin
         @taylorize function f1!(dq, q, params, t)
-            for i in 1:10
+            for i = 1:10
                 dq[i] = q[i]
             end
             nothing
         end
 
         @taylorize function f1_parsed!(dq, q, params, t)
-            for i in 1:10
+            for i = 1:10
                 dq[i] = q[i]
             end
             nothing
         end
 
         @taylorize function f2!(dq, q, params, t)
-            Threads.@threads for i in 1:10
+            Threads.@threads for i = 1:10
                 dq[i] = q[i]
             end
             nothing
         end
 
         @taylorize function f3!(dq, q, params, t)
-            @threads for i in 1:10
+            @threads for i = 1:10
                 dq[i] = q[i]
             end
             nothing
@@ -1546,22 +2584,46 @@ import Logging: Warn
 
         # No error is thrown
         parse_eqs, rv = (@test_logs min_level = Warn TI._determine_parsing!(
-            true, f1!, t1, x01, dx01, nothing))
+            true,
+            f1!,
+            t1,
+            x01,
+            dx01,
+            nothing,
+        ))
         @test parse_eqs
         @test typeof(rv.v0) == Vector{Taylor1{Float64}}
         @test typeof(rv.v1) == Vector{Vector{Taylor1{Float64}}}
         parse_eqs, rv = (@test_logs min_level = Warn TI._determine_parsing!(
-            true, f1_parsed!, t1p, x01p, dx01p, nothing))
+            true,
+            f1_parsed!,
+            t1p,
+            x01p,
+            dx01p,
+            nothing,
+        ))
         @test parse_eqs
         @test typeof(rv.v0) == Vector{Taylor1{Float64}}
         @test typeof(rv.v1) == Vector{Vector{Taylor1{Float64}}}
         parse_eqs, rv = (@test_logs min_level = Warn TI._determine_parsing!(
-            true, f2!, t2, x02, dx02, nothing))
+            true,
+            f2!,
+            t2,
+            x02,
+            dx02,
+            nothing,
+        ))
         @test parse_eqs
         @test typeof(rv.v0) == Vector{Taylor1{Float64}}
         @test typeof(rv.v1) == Vector{Vector{Taylor1{Float64}}}
         parse_eqs, rv = (@test_logs min_level = Warn TI._determine_parsing!(
-            true, f3!, t3, x03, dx03, nothing))
+            true,
+            f3!,
+            t3,
+            x03,
+            dx03,
+            nothing,
+        ))
         @test parse_eqs
         @test typeof(rv.v0) == Vector{Taylor1{Float64}}
         @test typeof(rv.v1) == Vector{Vector{Taylor1{Float64}}}
@@ -1577,13 +2639,13 @@ import Logging: Warn
             local μ = params
             X = Array{_eltype_q_}(undef, N, N)
             accX = Array{_eltype_q_}(undef, N) #acceleration
-            for j in 1:N
+            for j = 1:N
                 accX[j] = zero(q[1])
                 dq[j] = q[N+j]
             end
             #compute accelerations
-            for j in 1:N
-                for i in 1:N
+            for j = 1:N
+                for i = 1:N
                     if i == j
                     else
                         X[i, j] = q[i] - q[j]
@@ -1592,7 +2654,7 @@ import Logging: Warn
                     end #if i != j
                 end #for, i
             end #for, j
-            for i in 1:N
+            for i = 1:N
                 dq[N+i] = accX[i]
             end
             nothing
@@ -1605,13 +2667,13 @@ import Logging: Warn
             local μ = params
             X = Array{_eltype_q_}(undef, N, N)
             accX = Array{_eltype_q_}(undef, N) #acceleration
-            for j in 1:N
+            for j = 1:N
                 accX[j] = zero(q[1])
                 dq[j] = q[N+j]
             end
             #compute accelerations
-            Threads.@threads for j in 1:N
-                for i in 1:N
+            Threads.@threads for j = 1:N
+                for i = 1:N
                     if i == j
                     else
                         X[i, j] = q[i] - q[j]
@@ -1620,7 +2682,7 @@ import Logging: Warn
                     end #if i != j
                 end #for, i
             end #for, j
-            for i in 1:N
+            for i = 1:N
                 dq[N+i] = accX[i]
             end
             nothing
@@ -1639,20 +2701,46 @@ import Logging: Warn
         @show Threads.nthreads()
 
         parse_eqs, rv = (@test_logs min_level = Warn TI._determine_parsing!(
-            true, harmosc1dchain!, t, x, dx, μ))
+            true,
+            harmosc1dchain!,
+            t,
+            x,
+            dx,
+            μ,
+        ))
         @test parse_eqs
         parse_eqs, rv = (@test_logs min_level = Warn TI._determine_parsing!(
-            true, harmosc1dchain_threads!, t, x_, dx_, μ))
+            true,
+            harmosc1dchain_threads!,
+            t,
+            x_,
+            dx_,
+            μ,
+        ))
         @test parse_eqs
 
         @test x == x_
         @test dx == dx_
 
         sol = (@test_logs min_level = Warn taylorinteg(
-            harmosc1dchain!, x0, t0, 10000.0, _order, _abstol, μ))
+            harmosc1dchain!,
+            x0,
+            t0,
+            10000.0,
+            _order,
+            _abstol,
+            μ,
+        ))
         tv, xv = sol.t, sol.x
         sol_ = (@test_logs min_level = Warn taylorinteg(
-            harmosc1dchain_threads!, x0, t0, 10000.0, _order, _abstol, μ))
+            harmosc1dchain_threads!,
+            x0,
+            t0,
+            10000.0,
+            _order,
+            _abstol,
+            μ,
+        ))
         tv_, xv_ = sol_.t, sol_.x
 
         @test tv == tv_
@@ -1667,7 +2755,7 @@ import Logging: Warn
         # everything is compiled fine. Finally, we check that the parsed
         # jetcoeffs! expressions (nex1, nex2, nex3) generated from inside Test Pkg
         # are equivalent to (nex_1, nex_2, nex_3) generated here
-        Pkg.develop(Pkg.PackageSpec(path=joinpath(@__DIR__, "TestPkg")))
+        Pkg.develop(Pkg.PackageSpec(path = joinpath(@__DIR__, "TestPkg")))
         using TestPkg
         nex1_, nall1_ = TI._make_parsed_jetcoeffs(TestPkg.ex1)
         nex2_, nall2_ = TI._make_parsed_jetcoeffs(TestPkg.ex2)

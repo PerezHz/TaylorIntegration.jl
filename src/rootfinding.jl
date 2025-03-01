@@ -8,37 +8,43 @@ Helper function to build a [`TaylorSolution`](@ref) from a call to a
 root-finding method of [`taylorinteg`](@ref).
 
 """
-build_solution(t::AbstractVector{T},
+build_solution(
+    t::AbstractVector{T},
     x::Matrix{U},
     p::P,
     tevents::AbstractVector{U},
     xevents::Matrix{U},
     gresids::AbstractVector{U},
     nsteps::Int,
-    nevents::Int) where {T,U,P<:Union{Nothing,Matrix{Taylor1{U}}}} =
-    TaylorSolution(arraysol(t, nsteps),
-        arraysol(x, nsteps),
-        arraysol(p, nsteps - 1),
-        arraysol(tevents, nevents - 1),
-        arraysol(xevents, nevents - 1),
-        arraysol(gresids, nevents - 1),
-        nothing)
+    nevents::Int,
+) where {T,U,P<:Union{Nothing,Matrix{Taylor1{U}}}} = TaylorSolution(
+    arraysol(t, nsteps),
+    arraysol(x, nsteps),
+    arraysol(p, nsteps - 1),
+    arraysol(tevents, nevents - 1),
+    arraysol(xevents, nevents - 1),
+    arraysol(gresids, nevents - 1),
+    nothing,
+)
 
 #### `build_solution` method for root-finding with time-ranges
 
-build_solution(t::AbstractVector{T},
+build_solution(
+    t::AbstractVector{T},
     x::Matrix{U},
     tevents::AbstractVector{U},
     xevents::Matrix{U},
     gresids::AbstractVector{U},
-    nevents::Int) where {T,U} =
-    TaylorSolution(t,
-        transpose(x),
-        nothing,
-        arraysol(tevents, nevents - 1),
-        arraysol(xevents, nevents - 1),
-        arraysol(gresids, nevents - 1),
-        nothing)
+    nevents::Int,
+) where {T,U} = TaylorSolution(
+    t,
+    transpose(x),
+    nothing,
+    arraysol(tevents, nevents - 1),
+    arraysol(xevents, nevents - 1),
+    arraysol(gresids, nevents - 1),
+    nothing,
+)
 
 
 """
@@ -53,8 +59,11 @@ if one is positive and the other
 one is negative). Otherwise, if `g_old[2]` and `g_now[2]` have the same sign or if
 the first component of either of them is `false`, then it returns `false`.
 """
-function surfacecrossing(g_old::Tuple{Bool,Taylor1{T}}, g_now::Tuple{Bool,Taylor1{T}},
-    eventorder::Int) where {T<:Number}
+function surfacecrossing(
+    g_old::Tuple{Bool,Taylor1{T}},
+    g_now::Tuple{Bool,Taylor1{T}},
+    eventorder::Int,
+) where {T<:Number}
     (g_old[1] && g_now[1]) || return false
     g_product = constant_term(g_old[2][eventorder]) * constant_term(g_now[2][eventorder])
     return g_product < zero(g_product)
@@ -73,8 +82,12 @@ tolerance; and 2) the number of iterations `nriter` of the Newton-Raphson proces
 is less than the maximum allowed number of iterations, `newtoniter`; otherwise,
 returns `false`.
 """
-nrconvergencecriterion(g_val::U, nrabstol::T, nriter::Int,
-    newtoniter::Int) where {U<:Number,T<:Real} = abs(constant_term(g_val)) > nrabstol && nriter ≤ newtoniter
+nrconvergencecriterion(
+    g_val::U,
+    nrabstol::T,
+    nriter::Int,
+    newtoniter::Int,
+) where {U<:Number,T<:Real} = abs(constant_term(g_val)) > nrabstol && nriter ≤ newtoniter
 
 """
     findroot!(t, x, dx, g_tupl_old, g_tupl, eventorder, tvS, xvS, gvS,
@@ -98,9 +111,26 @@ current time; `δt_old` is the last time-step size; `x_dx`, `x_dx_val`, `g_dg`,
 tolerance; `newtoniter` is the maximum allowed number of Newton-Raphson
 iteration; `nevents` is the current number of detected events/crossings.
 """
-function findroot!(t, x, dx, g_tupl_old, g_tupl, eventorder, tvS, xvS, gvS,
-    t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val, nrabstol,
-    newtoniter, nevents)
+function findroot!(
+    t,
+    x,
+    dx,
+    g_tupl_old,
+    g_tupl,
+    eventorder,
+    tvS,
+    xvS,
+    gvS,
+    t0,
+    δt_old,
+    x_dx,
+    x_dx_val,
+    g_dg,
+    g_dg_val,
+    nrabstol,
+    newtoniter,
+    nevents,
+)
 
     if surfacecrossing(g_tupl_old, g_tupl, eventorder)
         #auxiliary variables
@@ -206,23 +236,60 @@ sol = taylorinteg(pendulum!, g, x0, tv, 28, 1.0E-20; eventorder=2)
 ```
 
 """
-function taylorinteg(f!, g, q0::Array{U,1}, t0::T, tmax::T,
-    order::Int, abstol::T, params=nothing; maxsteps::Int=500, parse_eqs::Bool=true,
-    dense::Bool=true, eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T<:Real,U<:Number}
+function taylorinteg(
+    f!,
+    g,
+    q0::Array{U,1},
+    t0::T,
+    tmax::T,
+    order::Int,
+    abstol::T,
+    params = nothing;
+    maxsteps::Int = 500,
+    parse_eqs::Bool = true,
+    dense::Bool = true,
+    eventorder::Int = 0,
+    newtoniter::Int = 10,
+    nrabstol::T = eps(T),
+) where {T<:Real,U<:Number}
 
     @assert order ≥ eventorder "`eventorder` must be less than or equal to `order`"
 
     # Allocation
     cache = init_cache(Val(dense), t0, q0, maxsteps, order, f!, params; parse_eqs)
 
-    return taylorinteg!(Val(dense), f!, g, q0, t0, tmax, abstol, cache, params;
-        maxsteps, eventorder, newtoniter, nrabstol)
+    return taylorinteg!(
+        Val(dense),
+        f!,
+        g,
+        q0,
+        t0,
+        tmax,
+        abstol,
+        cache,
+        params;
+        maxsteps,
+        eventorder,
+        newtoniter,
+        nrabstol,
+    )
 end
 
-function taylorinteg!(dense::Val{D}, f!, g,
-    q0::Array{U,1}, t0::T, tmax::T, abstol::T, cache::VectorCache, params;
-    maxsteps::Int=500, eventorder::Int=0,
-    newtoniter::Int=10, nrabstol::T=eps(T)) where {T<:Real,U<:Number,D}
+function taylorinteg!(
+    dense::Val{D},
+    f!,
+    g,
+    q0::Array{U,1},
+    t0::T,
+    tmax::T,
+    abstol::T,
+    cache::VectorCache,
+    params;
+    maxsteps::Int = 500,
+    eventorder::Int = 0,
+    newtoniter::Int = 10,
+    nrabstol::T = eps(T),
+) where {T<:Real,U<:Number,D}
 
     @unpack tv, xv, psol, xaux, t, x, dx, rv, parse_eqs = cache
 
@@ -259,9 +326,26 @@ function taylorinteg!(dense::Val{D}, f!, g,
         evaluate!(x, δt, x0) # new initial condition
         set_psol!(dense, psol, nsteps, x) # Store the Taylor polynomial solution
         g_tupl = g(dx, x, params, t)
-        nevents = findroot!(t, x, dx, g_tupl_old, g_tupl, eventorder,
-            tvS, xvS, gvS, t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val,
-            nrabstol, newtoniter, nevents)
+        nevents = findroot!(
+            t,
+            x,
+            dx,
+            g_tupl_old,
+            g_tupl,
+            eventorder,
+            tvS,
+            xvS,
+            gvS,
+            t0,
+            δt_old,
+            x_dx,
+            x_dx_val,
+            g_dg,
+            g_dg_val,
+            nrabstol,
+            newtoniter,
+            nevents,
+        )
         g_tupl_old = deepcopy(g_tupl)
         t0 += δt
         update!(cache, t0, x0)
@@ -279,26 +363,57 @@ function taylorinteg!(dense::Val{D}, f!, g,
     return build_solution(tv, xv, psol, tvS, xvS, gvS, nsteps, nevents)
 end
 
-function taylorinteg(f!, g, q0::Array{U,1}, trange::AbstractVector{T},
-    order::Int, abstol::T, params=nothing; maxsteps::Int=500, parse_eqs::Bool=true,
-    eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T<:Real,U<:Number}
+function taylorinteg(
+    f!,
+    g,
+    q0::Array{U,1},
+    trange::AbstractVector{T},
+    order::Int,
+    abstol::T,
+    params = nothing;
+    maxsteps::Int = 500,
+    parse_eqs::Bool = true,
+    eventorder::Int = 0,
+    newtoniter::Int = 10,
+    nrabstol::T = eps(T),
+) where {T<:Real,U<:Number}
 
     @assert order ≥ eventorder "`eventorder` must be less than or equal to `order`"
 
     # Check if trange is increasingly or decreasingly sorted
-    @assert (issorted(trange) ||
-             issorted(trange, rev=true)) "`trange` or `reverse(trange)` must be sorted"
+    @assert (issorted(trange) || issorted(trange, rev = true)) "`trange` or `reverse(trange)` must be sorted"
 
     # Allocation
     cache = init_cache(Val(false), trange, q0, maxsteps, order, f!, params; parse_eqs)
 
-    return taylorinteg!(f!, g, q0, trange, abstol, cache, params;
-        maxsteps, eventorder, newtoniter, nrabstol)
+    return taylorinteg!(
+        f!,
+        g,
+        q0,
+        trange,
+        abstol,
+        cache,
+        params;
+        maxsteps,
+        eventorder,
+        newtoniter,
+        nrabstol,
+    )
 end
 
-function taylorinteg!(f!, g,
-    q0::Array{U,1}, trange::AbstractVector{T}, abstol::T, cache::VectorTRangeCache, params;
-    maxsteps::Int=500, eventorder::Int=0, newtoniter::Int=10, nrabstol::T=eps(T)) where {T<:Real,U<:Number}
+function taylorinteg!(
+    f!,
+    g,
+    q0::Array{U,1},
+    trange::AbstractVector{T},
+    abstol::T,
+    cache::VectorTRangeCache,
+    params;
+    maxsteps::Int = 500,
+    eventorder::Int = 0,
+    newtoniter::Int = 10,
+    nrabstol::T = eps(T),
+) where {T<:Real,U<:Number}
 
     @unpack tv, xv, xaux, x0, x1, t, x, dx, rv, parse_eqs = cache
 
@@ -347,9 +462,26 @@ function taylorinteg!(f!, g,
             break
         end
         g_tupl = g(dx, x, params, t)
-        nevents = findroot!(t, x, dx, g_tupl_old, g_tupl, eventorder,
-            tvS, xvS, gvS, t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val,
-            nrabstol, newtoniter, nevents)
+        nevents = findroot!(
+            t,
+            x,
+            dx,
+            g_tupl_old,
+            g_tupl,
+            eventorder,
+            tvS,
+            xvS,
+            gvS,
+            t0,
+            δt_old,
+            x_dx,
+            x_dx_val,
+            g_dg,
+            g_dg_val,
+            nrabstol,
+            newtoniter,
+            nevents,
+        )
         g_tupl_old = deepcopy(g_tupl)
         t0 = tnext
         update!(cache, t0, x0)

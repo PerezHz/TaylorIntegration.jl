@@ -30,8 +30,15 @@ The first argument in the function call `Val{bool}` (`bool::Bool`) controls whet
 a specialized [`jetcoeffs!](@ref) method is being used or not.
 
 """
-function taylorstep!(::Val{V}, f, t::Taylor1{T}, x::Taylor1{U}, abstol::T, params,
-        rv::RetAlloc{Taylor1{U}}) where {T<:Real, U<:Number, V}
+function taylorstep!(
+    ::Val{V},
+    f,
+    t::Taylor1{T},
+    x::Taylor1{U},
+    abstol::T,
+    params,
+    rv::RetAlloc{Taylor1{U}},
+) where {T<:Real,U<:Number,V}
 
     # Compute the Taylor coefficients
     __jetcoeffs!(Val(V), f, t, x, params, rv)
@@ -45,9 +52,17 @@ function taylorstep!(::Val{V}, f, t::Taylor1{T}, x::Taylor1{U}, abstol::T, param
     return δt
 end
 
-function taylorstep!(::Val{V}, f!, t::Taylor1{T}, x::Vector{Taylor1{U}},
-        dx::Vector{Taylor1{U}}, xaux::Vector{Taylor1{U}}, abstol::T, params,
-        rv::RetAlloc{Taylor1{U}}) where {T<:Real, U<:Number, V}
+function taylorstep!(
+    ::Val{V},
+    f!,
+    t::Taylor1{T},
+    x::Vector{Taylor1{U}},
+    dx::Vector{Taylor1{U}},
+    xaux::Vector{Taylor1{U}},
+    abstol::T,
+    params,
+    rv::RetAlloc{Taylor1{U}},
+) where {T<:Real,U<:Number,V}
 
     # Compute the Taylor coefficients
     __jetcoeffs!(Val(V), f!, t, x, dx, xaux, params, rv)

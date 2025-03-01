@@ -13,11 +13,21 @@ function simply returns `nothing`. Argument `psol` is the array
 where the Taylor polynomials associated to the solution will be stored, corresponding to
 field `:p` in [`TaylorSolution`](@ref). See also [`init_psol`](@ref).
 """
-@inline function set_psol!(::Val{true}, psol::Array{Taylor1{U},1}, nsteps::Int, x::Taylor1{U}) where {U<:Number}
+@inline function set_psol!(
+    ::Val{true},
+    psol::Array{Taylor1{U},1},
+    nsteps::Int,
+    x::Taylor1{U},
+) where {U<:Number}
     @inbounds psol[nsteps] = deepcopy(x)
     return nothing
 end
-@inline function set_psol!(::Val{true}, psol::Array{Taylor1{U},2}, nsteps::Int, x::Vector{Taylor1{U}}) where {U<:Number}
+@inline function set_psol!(
+    ::Val{true},
+    psol::Array{Taylor1{U},2},
+    nsteps::Int,
+    x::Vector{Taylor1{U}},
+) where {U<:Number}
     @inbounds psol[:, nsteps] .= deepcopy.(x)
     return nothing
 end
@@ -37,19 +47,40 @@ appropriate array is allocated and returned; this array is where the Taylor poly
 associated to the solution will be stored, corresponding to field `:p` in
 [`TaylorSolution`](@ref).
 """
-@inline function init_psol(::Val{true}, maxsteps::Int, ::Int, ::Taylor1{U}) where {U<:Number}
+@inline function init_psol(
+    ::Val{true},
+    maxsteps::Int,
+    ::Int,
+    ::Taylor1{U},
+) where {U<:Number}
     return Array{Taylor1{U}}(undef, maxsteps)
 end
-@inline function init_psol(::Val{true}, maxsteps::Int, dof::Int, ::Array{Taylor1{U},1}) where {U<:Number}
+@inline function init_psol(
+    ::Val{true},
+    maxsteps::Int,
+    dof::Int,
+    ::Array{Taylor1{U},1},
+) where {U<:Number}
     return Array{Taylor1{U}}(undef, dof, maxsteps)
 end
 
 @inline init_psol(::Val{false}, ::Int, ::Int, ::Taylor1{U}) where {U<:Number} = nothing
-@inline init_psol(::Val{false}, ::Int, ::Int, ::Array{Taylor1{U},1}) where {U<:Number} = nothing
+@inline init_psol(::Val{false}, ::Int, ::Int, ::Array{Taylor1{U},1}) where {U<:Number} =
+    nothing
 
 # taylorinteg
-function taylorinteg(f, x0::U, t0::T, tmax::T, order::Int, abstol::T, params=nothing;
-    maxsteps::Int=500, parse_eqs::Bool=true, dense::Bool=true) where {T<:Real,U<:Number}
+function taylorinteg(
+    f,
+    x0::U,
+    t0::T,
+    tmax::T,
+    order::Int,
+    abstol::T,
+    params = nothing;
+    maxsteps::Int = 500,
+    parse_eqs::Bool = true,
+    dense::Bool = true,
+) where {T<:Real,U<:Number}
 
     # Allocation
     cache = init_cache(Val(dense), t0, x0, maxsteps, order, f, params; parse_eqs)
@@ -57,9 +88,17 @@ function taylorinteg(f, x0::U, t0::T, tmax::T, order::Int, abstol::T, params=not
     return taylorinteg!(Val(dense), f, x0, t0, tmax, abstol, cache, params; maxsteps)
 end
 
-function taylorinteg!(dense::Val{D}, f,
-    x0::U, t0::T, tmax::T, abstol::T, cache::ScalarCache, params;
-    maxsteps::Int=500) where {T<:Real,U<:Number,D}
+function taylorinteg!(
+    dense::Val{D},
+    f,
+    x0::U,
+    t0::T,
+    tmax::T,
+    abstol::T,
+    cache::ScalarCache,
+    params;
+    maxsteps::Int = 500,
+) where {T<:Real,U<:Number,D}
 
     @unpack tv, xv, psol, t, x, rv, parse_eqs = cache
 
@@ -94,19 +133,36 @@ function taylorinteg!(dense::Val{D}, f,
 end
 
 
-function taylorinteg(f!, q0::Vector{U}, t0::T, tmax::T, order::Int, abstol::T, params=nothing;
-    maxsteps::Int=500, parse_eqs::Bool=true, dense::Bool=true) where {T<:Real,U<:Number}
+function taylorinteg(
+    f!,
+    q0::Vector{U},
+    t0::T,
+    tmax::T,
+    order::Int,
+    abstol::T,
+    params = nothing;
+    maxsteps::Int = 500,
+    parse_eqs::Bool = true,
+    dense::Bool = true,
+) where {T<:Real,U<:Number}
 
     # Allocation
     cache = init_cache(Val(dense), t0, q0, maxsteps, order, f!, params; parse_eqs)
 
-    return taylorinteg!(Val(dense), f!, q0, t0, tmax, abstol,
-        cache, params; maxsteps)
+    return taylorinteg!(Val(dense), f!, q0, t0, tmax, abstol, cache, params; maxsteps)
 end
 
-function taylorinteg!(dense::Val{D}, f!,
-    q0::Array{U,1}, t0::T, tmax::T, abstol::T, cache::VectorCache, params;
-    maxsteps::Int=500) where {T<:Real,U<:Number,D}
+function taylorinteg!(
+    dense::Val{D},
+    f!,
+    q0::Array{U,1},
+    t0::T,
+    tmax::T,
+    abstol::T,
+    cache::VectorCache,
+    params;
+    maxsteps::Int = 500,
+) where {T<:Real,U<:Number,D}
 
     @unpack tv, xv, psol, xaux, t, x, dx, rv, parse_eqs = cache
 
@@ -232,13 +288,19 @@ sol = taylorinteg(f!, [3, 3], 0.0:0.001:0.3, 25, 1.0e-20, maxsteps=100 );
 ```
 
 """
-function taylorinteg(f, x0::U, trange::AbstractVector{T},
-    order::Int, abstol::T, params=nothing;
-    maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real,U<:Number}
+function taylorinteg(
+    f,
+    x0::U,
+    trange::AbstractVector{T},
+    order::Int,
+    abstol::T,
+    params = nothing;
+    maxsteps::Int = 500,
+    parse_eqs::Bool = true,
+) where {T<:Real,U<:Number}
 
     # Check if trange is increasingly or decreasingly sorted
-    @assert (issorted(trange) ||
-             issorted(trange, rev=true)) "`trange` or `reverse(trange)` must be sorted"
+    @assert (issorted(trange) || issorted(trange, rev = true)) "`trange` or `reverse(trange)` must be sorted"
 
     # Allocation
     cache = init_cache(Val(false), trange, x0, maxsteps, order, f, params; parse_eqs)
@@ -246,8 +308,15 @@ function taylorinteg(f, x0::U, trange::AbstractVector{T},
     return taylorinteg!(f, x0, trange, abstol, cache, params; maxsteps)
 end
 
-function taylorinteg!(f, x0::U, trange::AbstractVector{T},
-    abstol::T, cache::ScalarCache, params; maxsteps::Int=500) where {T<:Real,U<:Number}
+function taylorinteg!(
+    f,
+    x0::U,
+    trange::AbstractVector{T},
+    abstol::T,
+    cache::ScalarCache,
+    params;
+    maxsteps::Int = 500,
+) where {T<:Real,U<:Number}
 
     @unpack xv, t, x, rv, parse_eqs = cache
 
@@ -290,24 +359,35 @@ function taylorinteg!(f, x0::U, trange::AbstractVector{T},
     return build_solution(trange, xv)
 end
 
-function taylorinteg(f!, q0::Vector{U}, trange::AbstractVector{T},
-    order::Int, abstol::T, params=nothing;
-    maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real,U<:Number}
+function taylorinteg(
+    f!,
+    q0::Vector{U},
+    trange::AbstractVector{T},
+    order::Int,
+    abstol::T,
+    params = nothing;
+    maxsteps::Int = 500,
+    parse_eqs::Bool = true,
+) where {T<:Real,U<:Number}
 
     # Check if trange is increasingly or decreasingly sorted
-    @assert (issorted(trange) ||
-             issorted(trange, rev=true)) "`trange` or `reverse(trange)` must be sorted"
+    @assert (issorted(trange) || issorted(trange, rev = true)) "`trange` or `reverse(trange)` must be sorted"
 
     # Allocation
     cache = init_cache(Val(false), trange, q0, maxsteps, order, f!, params; parse_eqs)
 
-    return taylorinteg!(f!, q0, trange, abstol,
-        cache, params; maxsteps)
+    return taylorinteg!(f!, q0, trange, abstol, cache, params; maxsteps)
 end
 
-function taylorinteg!(f!,
-    q0::Vector{U}, trange::AbstractVector{T}, abstol::T, cache::VectorTRangeCache, params;
-    maxsteps::Int=500) where {T<:Real,U<:Number}
+function taylorinteg!(
+    f!,
+    q0::Vector{U},
+    trange::AbstractVector{T},
+    abstol::T,
+    cache::VectorTRangeCache,
+    params;
+    maxsteps::Int = 500,
+) where {T<:Real,U<:Number}
 
     @unpack xv, xaux, x0, x1, t, x, dx, rv, parse_eqs = cache
 
@@ -357,21 +437,49 @@ end
 for R in (:Number, :Integer)
     @eval begin
 
-        function taylorinteg(f, xx0::S, tt0::T, ttmax::U, order::Int, aabstol::V,
-            params=nothing; dense=false, maxsteps::Int=500, parse_eqs::Bool=true) where
-        {S<:$R,T<:Real,U<:Real,V<:Real}
+        function taylorinteg(
+            f,
+            xx0::S,
+            tt0::T,
+            ttmax::U,
+            order::Int,
+            aabstol::V,
+            params = nothing;
+            dense = false,
+            maxsteps::Int = 500,
+            parse_eqs::Bool = true,
+        ) where {S<:$R,T<:Real,U<:Real,V<:Real}
 
             # In order to handle mixed input types, we promote types before integrating:
             t0, tmax, abstol, _ = promote(tt0, ttmax, aabstol, one(Float64))
             x0, _ = promote(xx0, t0)
 
-            return taylorinteg(f, x0, t0, tmax, order, abstol, params,
-                dense=dense, maxsteps=maxsteps, parse_eqs=parse_eqs)
+            return taylorinteg(
+                f,
+                x0,
+                t0,
+                tmax,
+                order,
+                abstol,
+                params,
+                dense = dense,
+                maxsteps = maxsteps,
+                parse_eqs = parse_eqs,
+            )
         end
 
-        function taylorinteg(f, q0::Array{S,1}, tt0::T, ttmax::U, order::Int, aabstol::V,
-            params=nothing; dense=false, maxsteps::Int=500, parse_eqs::Bool=true) where
-        {S<:$R,T<:Real,U<:Real,V<:Real}
+        function taylorinteg(
+            f,
+            q0::Array{S,1},
+            tt0::T,
+            ttmax::U,
+            order::Int,
+            aabstol::V,
+            params = nothing;
+            dense = false,
+            maxsteps::Int = 500,
+            parse_eqs::Bool = true,
+        ) where {S<:$R,T<:Real,U<:Real,V<:Real}
 
             #promote to common type before integrating:
             t0, tmax, abstol, _ = promote(tt0, ttmax, aabstol, one(Float64))
@@ -379,29 +487,71 @@ for R in (:Number, :Integer)
             #convert the elements of q0 to the common, promoted type:
             q0_ = convert(Array{typeof(elq0)}, q0)
 
-            return taylorinteg(f, q0_, t0, tmax, order, abstol, params,
-                dense=dense, maxsteps=maxsteps, parse_eqs=parse_eqs)
+            return taylorinteg(
+                f,
+                q0_,
+                t0,
+                tmax,
+                order,
+                abstol,
+                params,
+                dense = dense,
+                maxsteps = maxsteps,
+                parse_eqs = parse_eqs,
+            )
         end
 
-        function taylorinteg(f, xx0::S, trange::AbstractVector{T}, order::Int, aabstol::U, params=nothing;
-            maxsteps::Int=500, parse_eqs::Bool=true) where {S<:$R,T<:Real,U<:Real}
+        function taylorinteg(
+            f,
+            xx0::S,
+            trange::AbstractVector{T},
+            order::Int,
+            aabstol::U,
+            params = nothing;
+            maxsteps::Int = 500,
+            parse_eqs::Bool = true,
+        ) where {S<:$R,T<:Real,U<:Real}
 
             t0, abstol, _ = promote(trange[1], aabstol, one(Float64))
             x0, _ = promote(xx0, t0)
 
-            return taylorinteg(f, x0, trange .* one(t0), order, abstol, params,
-                maxsteps=maxsteps, parse_eqs=parse_eqs)
+            return taylorinteg(
+                f,
+                x0,
+                trange .* one(t0),
+                order,
+                abstol,
+                params,
+                maxsteps = maxsteps,
+                parse_eqs = parse_eqs,
+            )
         end
 
-        function taylorinteg(f, q0::Array{S,1}, trange::AbstractVector{T}, order::Int, aabstol::U, params=nothing;
-            maxsteps::Int=500, parse_eqs::Bool=true) where {S<:$R,T<:Real,U<:Real}
+        function taylorinteg(
+            f,
+            q0::Array{S,1},
+            trange::AbstractVector{T},
+            order::Int,
+            aabstol::U,
+            params = nothing;
+            maxsteps::Int = 500,
+            parse_eqs::Bool = true,
+        ) where {S<:$R,T<:Real,U<:Real}
 
             t0, abstol, _ = promote(trange[1], aabstol, one(Float64))
             elq0, _ = promote(q0[1], t0)
             q0_ = convert(Array{typeof(elq0)}, q0)
 
-            return taylorinteg(f, q0_, trange .* one(t0), order, abstol, params,
-                maxsteps=maxsteps, parse_eqs=parse_eqs)
+            return taylorinteg(
+                f,
+                q0_,
+                trange .* one(t0),
+                order,
+                abstol,
+                params,
+                maxsteps = maxsteps,
+                parse_eqs = parse_eqs,
+            )
         end
 
     end

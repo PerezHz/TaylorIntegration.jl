@@ -26,8 +26,10 @@ end
 @testset "Aqua tests (additional)" begin
     Aqua.test_ambiguities(TaylorIntegration)
     Aqua.test_all(
-    TaylorIntegration;
-    ambiguities=false,
-    stale_deps=(ignore=[:DiffEqBase, :RecursiveArrayTools, :Requires, :StaticArrays],)
+        TaylorIntegration;
+        ambiguities = false,
+        stale_deps = (
+            ignore = [:DiffEqBase, :RecursiveArrayTools, :Requires, :StaticArrays],
+        ),
     )
 end

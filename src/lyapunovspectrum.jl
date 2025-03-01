@@ -10,28 +10,23 @@ Helper function to build a [`TaylorSolution`](@ref) from a call to
 [`lyap_taylorinteg`](@ref).
 
 """
-build_lyap_solution(t::AbstractVector{T},
+build_lyap_solution(
+    t::AbstractVector{T},
     x::Matrix{U},
     λ::Matrix{U},
-    nsteps::Int) where {T,U} =
-    TaylorSolution(arraysol(t, nsteps),
-        arraysol(x, nsteps),
-        nothing,
-        nothing,
-        nothing,
-        nothing,
-        arraysol(λ, nsteps))
+    nsteps::Int,
+) where {T,U} = TaylorSolution(
+    arraysol(t, nsteps),
+    arraysol(x, nsteps),
+    nothing,
+    nothing,
+    nothing,
+    nothing,
+    arraysol(λ, nsteps),
+)
 
-build_lyap_solution(t::AbstractVector{T},
-    x::Matrix{U},
-    λ::Matrix{U}) where {T,U} =
-    TaylorSolution(t,
-        transpose(x),
-        nothing,
-        nothing,
-        nothing,
-        nothing,
-        transpose(λ))
+build_lyap_solution(t::AbstractVector{T}, x::Matrix{U}, λ::Matrix{U}) where {T,U} =
+    TaylorSolution(t, transpose(x), nothing, nothing, nothing, nothing, transpose(λ))
 
 # stabilitymatrix!
 
@@ -47,10 +42,17 @@ Optionally, the user may provide a Jacobian function `jacobianfunc!` to compute
 `TaylorSeries.jl`.
 
 """
-function stabilitymatrix!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
-    δx::Vector{TaylorN{Taylor1{U}}}, dδx::Vector{TaylorN{Taylor1{U}}},
-    jac::Matrix{Taylor1{U}}, dvars::Vector{TaylorN{Taylor1{U}}}, params,
-    ::Nothing) where {T<:Real,U<:Number}
+function stabilitymatrix!(
+    eqsdiff!,
+    t::Taylor1{T},
+    x::Vector{Taylor1{U}},
+    δx::Vector{TaylorN{Taylor1{U}}},
+    dδx::Vector{TaylorN{Taylor1{U}}},
+    jac::Matrix{Taylor1{U}},
+    dvars::Vector{TaylorN{Taylor1{U}}},
+    params,
+    ::Nothing,
+) where {T<:Real,U<:Number}
     # Set δx equal to current value of x plus 1st-order variations
     for ind in eachindex(δx)
         @inbounds δx[ind] = x[ind] + dvars[ind]
@@ -60,10 +62,17 @@ function stabilitymatrix!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
     TaylorSeries.jacobian!(jac, dδx)
     nothing
 end
-function stabilitymatrix!(eqsdiff!, t::Taylor1{T}, x::Vector{Taylor1{U}},
-    δx::Vector{TaylorN{Taylor1{U}}}, dδx::Vector{TaylorN{Taylor1{U}}},
-    jac::Matrix{Taylor1{U}}, dvars::Vector{TaylorN{Taylor1{U}}}, params,
-    jacobianfunc!::J) where {T<:Real,U<:Number,J}
+function stabilitymatrix!(
+    eqsdiff!,
+    t::Taylor1{T},
+    x::Vector{Taylor1{U}},
+    δx::Vector{TaylorN{Taylor1{U}}},
+    dδx::Vector{TaylorN{Taylor1{U}}},
+    jac::Matrix{Taylor1{U}},
+    dvars::Vector{TaylorN{Taylor1{U}}},
+    params,
+    jacobianfunc!::J,
+) where {T<:Real,U<:Number,J}
     jacobianfunc!(jac, x, params, t)
     nothing
 end
@@ -149,9 +158,13 @@ avoid allocations. Calling this method assumes that `jac` has been computed
 previously using [`stabilitymatrix!`](@ref).
 
 """
-function lyap_jetcoeffs!(t::Taylor1{T}, x::AbstractVector{Taylor1{S}},
-    dx::AbstractVector{Taylor1{S}}, jac::Matrix{Taylor1{S}},
-    varsaux::Array{Taylor1{S},3}) where {T<:Real,S<:Number}
+function lyap_jetcoeffs!(
+    t::Taylor1{T},
+    x::AbstractVector{Taylor1{S}},
+    dx::AbstractVector{Taylor1{S}},
+    jac::Matrix{Taylor1{S}},
+    varsaux::Array{Taylor1{S},3},
+) where {T<:Real,S<:Number}
     order = t.order
     # `dofrange` behaves like 1:dof, where `dof = size(jac, 1)`. Used to initialize `b` and `li`
     dofrange = axes(jac, 1)
@@ -166,12 +179,16 @@ function lyap_jetcoeffs!(t::Taylor1{T}, x::AbstractVector{Taylor1{S}},
     dx .= zero(x[1])
     # Compute 0-th Taylor coefficients of matrix product `jac * x` and save into `dx`
     for i in eachindex(b)
-        varsaux[i] = Taylor1(constant_term(jac[i[1], i[3]]) * constant_term(x[li[i[3], i[2]]]), order)
+        varsaux[i] = Taylor1(
+            constant_term(jac[i[1], i[3]]) * constant_term(x[li[i[3], i[2]]]),
+            order,
+        )
         lin_indx = li[i[1], i[2]] # map from cartesian to linear index
-        dx[lin_indx] = Taylor1(constant_term(dx[lin_indx]) + constant_term(varsaux[i]), order)
+        dx[lin_indx] =
+            Taylor1(constant_term(dx[lin_indx]) + constant_term(varsaux[i]), order)
     end
     # Recursion relations, 0-th order
-    for __idx = eachindex(x)
+    for __idx in eachindex(x)
         (x[__idx]).coeffs[2] = (dx[__idx]).coeffs[1]
     end
 
@@ -185,7 +202,7 @@ function lyap_jetcoeffs!(t::Taylor1{T}, x::AbstractVector{Taylor1{S}},
             TaylorSeries.add!(dx[lin_indx], dx[lin_indx], varsaux[i], ord)
         end
         # Recursion relations, `ord`-th order
-        for __idx = eachindex(x)
+        for __idx in eachindex(x)
             (x[__idx]).coeffs[ordnext+1] = (dx[__idx]).coeffs[ordnext] / ordnext
         end
     end
@@ -206,18 +223,39 @@ via automatic differentiation using `TaylorSeries.jl`.
 
 """
 
-function lyap_taylorstep!(::Val{V}, f!, t::Taylor1{T}, x::Vector{Taylor1{U}}, dx::Vector{Taylor1{U}},
-    xaux::Vector{Taylor1{U}}, δx::Array{TaylorN{Taylor1{U}},1}, dδx::Array{TaylorN{Taylor1{U}},1},
-    jac::Array{Taylor1{U},2}, abstol::T, dvars::Vector{TaylorN{Taylor1{U}}},
-    varsaux::Array{Taylor1{U},3}, params, rv::RetAlloc{Taylor1{U}},
-    (jacobianfunc!)=nothing) where {T<:Real,U<:Number,V}
+function lyap_taylorstep!(
+    ::Val{V},
+    f!,
+    t::Taylor1{T},
+    x::Vector{Taylor1{U}},
+    dx::Vector{Taylor1{U}},
+    xaux::Vector{Taylor1{U}},
+    δx::Array{TaylorN{Taylor1{U}},1},
+    dδx::Array{TaylorN{Taylor1{U}},1},
+    jac::Array{Taylor1{U},2},
+    abstol::T,
+    dvars::Vector{TaylorN{Taylor1{U}}},
+    varsaux::Array{Taylor1{U},3},
+    params,
+    rv::RetAlloc{Taylor1{U}},
+    (jacobianfunc!) = nothing,
+) where {T<:Real,U<:Number,V}
 
     # Dimensions of phase-space: dof
     nx = length(x)
     dof = length(δx)
 
     # Compute the Taylor coefficients associated to trajectory
-    __jetcoeffs!(Val(V), f!, t, view(x, 1:dof), view(dx, 1:dof), view(xaux, 1:dof), params, rv)
+    __jetcoeffs!(
+        Val(V),
+        f!,
+        t,
+        view(x, 1:dof),
+        view(dx, 1:dof),
+        view(xaux, 1:dof),
+        params,
+        rv,
+    )
 
     # Compute stability matrix
     stabilitymatrix!(f!, t, x, δx, dδx, jac, dvars, params, jacobianfunc!)
@@ -248,9 +286,18 @@ Otherwise, the current value of the Jacobian is computed via automatic
 differentiation using `TaylorSeries.jl`.
 
 """
-function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
-    order::Int, abstol::T, params=nothing, (jacobianfunc!)=nothing;
-    maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real,U<:Number}
+function lyap_taylorinteg(
+    f!,
+    q0::Array{U,1},
+    t0::T,
+    tmax::T,
+    order::Int,
+    abstol::T,
+    params = nothing,
+    (jacobianfunc!) = nothing;
+    maxsteps::Int = 500,
+    parse_eqs::Bool = true,
+) where {T<:Real,U<:Number}
 
     dof = length(q0)
 
@@ -261,20 +308,59 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, t0::T, tmax::T,
     if isa(jacobianfunc!, Nothing)
         @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
         for ind in eachindex(q0)
-            cache.dvars[ind] = one(cache.x[1]) * TaylorN(Taylor1{U}, ind, order=1)
+            cache.dvars[ind] = one(cache.x[1]) * TaylorN(Taylor1{U}, ind, order = 1)
         end
     end
 
-    return lyap_taylorinteg!(f!, q0, t0, tmax, abstol, cache.rv,
-        cache, params, jacobianfunc!; maxsteps, cache.parse_eqs)
+    return lyap_taylorinteg!(
+        f!,
+        q0,
+        t0,
+        tmax,
+        abstol,
+        cache.rv,
+        cache,
+        params,
+        jacobianfunc!;
+        maxsteps,
+        cache.parse_eqs,
+    )
 end
 
-function lyap_taylorinteg!(f!,
-    q0::Array{U,1}, t0::T, tmax::T, abstol::T,
-    rv::RetAlloc{Taylor1{U}}, cache::LyapunovSpectrumCache, params, jacobianfunc!; parse_eqs::Bool=true,
-    maxsteps::Int=500) where {T<:Real,U<:Number}
+function lyap_taylorinteg!(
+    f!,
+    q0::Array{U,1},
+    t0::T,
+    tmax::T,
+    abstol::T,
+    rv::RetAlloc{Taylor1{U}},
+    cache::LyapunovSpectrumCache,
+    params,
+    jacobianfunc!;
+    parse_eqs::Bool = true,
+    maxsteps::Int = 500,
+) where {T<:Real,U<:Number}
 
-    @unpack tv, xv, xaux, x0, λ, λtsum, δx, dδx, jac, varsaux, QH, RH, aⱼ, qᵢ, vⱼ, t, x, dx, jt, dvars = cache
+    @unpack tv,
+    xv,
+    xaux,
+    x0,
+    λ,
+    λtsum,
+    δx,
+    dδx,
+    jac,
+    varsaux,
+    QH,
+    RH,
+    aⱼ,
+    qᵢ,
+    vⱼ,
+    t,
+    x,
+    dx,
+    jt,
+    dvars = cache
 
     # Allocation
     dof = length(q0)
@@ -296,8 +382,23 @@ function lyap_taylorinteg!(f!,
     # Integration
     nsteps = 1
     while sign_tstep * t0 < sign_tstep * tmax
-        δt = lyap_taylorstep!(Val(parse_eqs), f!, t, x, dx, xaux, δx, dδx, jac, abstol, dvars,
-            varsaux, params, rv, jacobianfunc!) # δt is positive!
+        δt = lyap_taylorstep!(
+            Val(parse_eqs),
+            f!,
+            t,
+            x,
+            dx,
+            xaux,
+            δx,
+            dδx,
+            jac,
+            abstol,
+            dvars,
+            varsaux,
+            params,
+            rv,
+            jacobianfunc!,
+        ) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep * (tmax - t0))
         evaluate!(x, δt, x0) # Update x0
@@ -330,15 +431,22 @@ function lyap_taylorinteg!(f!,
 end
 
 
-function lyap_taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
-    order::Int, abstol::T, params=nothing, (jacobianfunc!)=nothing;
-    maxsteps::Int=500, parse_eqs::Bool=true) where {T<:Real,U<:Number}
+function lyap_taylorinteg(
+    f!,
+    q0::Array{U,1},
+    trange::AbstractVector{T},
+    order::Int,
+    abstol::T,
+    params = nothing,
+    (jacobianfunc!) = nothing;
+    maxsteps::Int = 500,
+    parse_eqs::Bool = true,
+) where {T<:Real,U<:Number}
 
     dof = length(q0)
 
     # Check if trange is increasingly or decreasingly sorted
-    @assert (issorted(trange) ||
-             issorted(trange, rev=true)) "`trange` or `reverse(trange)` must be sorted"
+    @assert (issorted(trange) || issorted(trange, rev = true)) "`trange` or `reverse(trange)` must be sorted"
 
     # Allocation
     cache = init_cache_lyap(trange, q0, maxsteps, order, f!, params; parse_eqs)
@@ -347,21 +455,58 @@ function lyap_taylorinteg(f!, q0::Array{U,1}, trange::AbstractVector{T},
     if isnothing(jacobianfunc!)
         @assert get_numvars() == dof "`length(q0)` must be equal to number of variables set by `TaylorN`"
         for ind in eachindex(q0)
-            cache.dvars[ind] = one(cache.x[1]) * TaylorN(Taylor1{U}, ind, order=1)
+            cache.dvars[ind] = one(cache.x[1]) * TaylorN(Taylor1{U}, ind, order = 1)
         end
     end
 
-    return lyap_taylorinteg!(f!, q0, trange, abstol, cache.rv, cache,
-        params, jacobianfunc!; cache.parse_eqs, maxsteps)
+    return lyap_taylorinteg!(
+        f!,
+        q0,
+        trange,
+        abstol,
+        cache.rv,
+        cache,
+        params,
+        jacobianfunc!;
+        cache.parse_eqs,
+        maxsteps,
+    )
 
 end
 
-function lyap_taylorinteg!(f!,
-    q0::Array{U,1}, trange::AbstractVector{T}, abstol::T,
-    rv::RetAlloc{Taylor1{U}}, cache::LyapunovSpectrumTRangeCache, params, jacobianfunc!; parse_eqs::Bool=true,
-    maxsteps::Int=500) where {T<:Real,U<:Number}
+function lyap_taylorinteg!(
+    f!,
+    q0::Array{U,1},
+    trange::AbstractVector{T},
+    abstol::T,
+    rv::RetAlloc{Taylor1{U}},
+    cache::LyapunovSpectrumTRangeCache,
+    params,
+    jacobianfunc!;
+    parse_eqs::Bool = true,
+    maxsteps::Int = 500,
+) where {T<:Real,U<:Number}
 
-    @unpack xv, xaux, x0, q1, λ, λtsum, δx, dδx, jac, varsaux, QH, RH, aⱼ, qᵢ, vⱼ, t, x, dx, jt, dvars = cache
+    @unpack xv,
+    xaux,
+    x0,
+    q1,
+    λ,
+    λtsum,
+    δx,
+    dδx,
+    jac,
+    varsaux,
+    QH,
+    RH,
+    aⱼ,
+    qᵢ,
+    vⱼ,
+    t,
+    x,
+    dx,
+    jt,
+    dvars = cache
 
     # Auxiliary variables
     dof = length(q0)
@@ -384,8 +529,23 @@ function lyap_taylorinteg!(f!,
     iter = 2
     nsteps = 1
     while sign_tstep * t0 < sign_tstep * tmax
-        δt = lyap_taylorstep!(Val(parse_eqs), f!, t, x, dx, xaux, δx, dδx, jac, abstol, dvars,
-            varsaux, params, rv, jacobianfunc!) # δt is positive!
+        δt = lyap_taylorstep!(
+            Val(parse_eqs),
+            f!,
+            t,
+            x,
+            dx,
+            xaux,
+            δx,
+            dδx,
+            jac,
+            abstol,
+            dvars,
+            varsaux,
+            params,
+            rv,
+            jacobianfunc!,
+        ) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep * (tmax - t0))
         evaluate!(x, δt, x0) # Update x0
