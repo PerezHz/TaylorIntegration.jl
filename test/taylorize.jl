@@ -2256,7 +2256,7 @@ import Logging: Warn
                 _params,
             )
             # Determine if specialized jetcoeffs! method exists
-            solTN = @inferred TaylorIntegration.taylorinteg!(
+            solTN = @inferred taylorinteg!(
                 Val(true),
                 kepler1!,
                 _q0,
@@ -2267,7 +2267,7 @@ import Logging: Warn
                 _params;
                 maxsteps = _maxsteps,
             )
-            solTN2 = @inferred TaylorIntegration.taylorinteg!(
+            solTN2 = @inferred taylorinteg!(
                 Val(false),
                 kepler1!,
                 _q0,
@@ -2303,7 +2303,7 @@ import Logging: Warn
             # test cache update
             q1 = [-0.2, 0.0, 0.0, -2.8]
             q1TN = q1 + p # JT initial condition
-            solTN3 = @inferred TaylorIntegration.taylorinteg!(
+            solTN3 = @inferred taylorinteg!(
                 Val(true),
                 kepler1!,
                 q1TN,
