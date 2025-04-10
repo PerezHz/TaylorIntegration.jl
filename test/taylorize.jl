@@ -2329,8 +2329,6 @@ import Logging: Warn
             E0 = visviva(solTN3(_t0))
             # final energy
             Ef = visviva(solTN3(_tmax))
-            @show norm(E0() - Ef(), Inf)
-            @show solTN3.x[end, :]()
         end
     end
 
