@@ -8,7 +8,7 @@
 @taylorize function multpendula1!(dx, x, p, t)
     for i in p[2]
         dx[i] = x[p[1]+i]
-        dx[i+p[1]] = -sin( x[i] )
+        dx[i+p[1]] = -sin(x[i])
     end
     return nothing
 end
@@ -23,7 +23,7 @@ const t0 = 0.0
 const tf1 = 1000.0
 const tf2 = 10_000.0
 const maxsteps = 10_000
-const q0 = [pi-0.001, 0.0, pi-0.001, 0.0,  pi-0.001, 0.0]
+const q0 = [pi - 0.001, 0.0, pi - 0.001, 0.0, pi - 0.001, 0.0]
 
 # ==========
 # Run benchmarks
@@ -31,11 +31,43 @@ const q0 = [pi-0.001, 0.0, pi-0.001, 0.0,  pi-0.001, 0.0]
 SUITE["Pendumum"] = BenchmarkGroup()
 
 SUITE["Pendumum"]["pendulum1-1"] = @benchmarkable taylorinteg(
-    multpendula1!, $q0, $t0, $tf1, $_order, $_abstol, $pars, maxsteps=$maxsteps)
+    multpendula1!,
+    $q0,
+    $t0,
+    $tf1,
+    $_order,
+    $_abstol,
+    $pars,
+    maxsteps = $maxsteps,
+)
 SUITE["Pendumum"]["pendulum1-2"] = @benchmarkable taylorinteg(
-    multpendula1!, $q0, $t0, $tf2, $_order, $_abstol, $pars, maxsteps=$maxsteps)
+    multpendula1!,
+    $q0,
+    $t0,
+    $tf2,
+    $_order,
+    $_abstol,
+    $pars,
+    maxsteps = $maxsteps,
+)
 
 SUITE["Pendumum"]["pendulum1-1"] = @benchmarkable taylorinteg(
-    multpendula1!, $q0, $t0, $tf1, $_order, $_abstol, $pars, maxsteps=$maxsteps)
+    multpendula1!,
+    $q0,
+    $t0,
+    $tf1,
+    $_order,
+    $_abstol,
+    $pars,
+    maxsteps = $maxsteps,
+)
 SUITE["Pendumum"]["pendulum1-2"] = @benchmarkable taylorinteg(
-    multpendula1!, $q0, $t0, $tf2, $_order, $_abstol, $pars, maxsteps=$maxsteps)
+    multpendula1!,
+    $q0,
+    $t0,
+    $tf2,
+    $_order,
+    $_abstol,
+    $pars,
+    maxsteps = $maxsteps,
+)
