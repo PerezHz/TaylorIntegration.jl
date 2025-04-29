@@ -31,9 +31,8 @@ include("Lyap_benchmark.jl")
 println("Load `tune.json`")
 paramspath = joinpath(directorypath, "tune.json")
 if isfile(paramspath)
-    loadparams!(SUITE, BT.load(paramspath)[1], :evals, :samples);
+    loadparams!(SUITE, BT.load(paramspath)[1], :evals, :samples)
 else
     tune!(SUITE)
-    BT.save(paramspath, params(SUITE));
+    BT.save(paramspath, params(SUITE))
 end
-

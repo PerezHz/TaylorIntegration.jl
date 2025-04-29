@@ -12,7 +12,7 @@ testfiles = (
     "rootfinding.jl",
     "taylorize.jl",
     "aqua.jl",
-    )
+)
 
 for file in testfiles
     include(file)

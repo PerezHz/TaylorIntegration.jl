@@ -1,8 +1,18 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
 # Load necessary components of Espresso
-using Espresso: subs, simplify, ExGraph, ExH, to_expr, sanitize, genname,
-    find_vars, findex, find_indices, isindexed
+using Espresso:
+    subs,
+    simplify,
+    ExGraph,
+    ExH,
+    to_expr,
+    sanitize,
+    genname,
+    find_vars,
+    findex,
+    find_indices,
+    isindexed
 
 
 """
@@ -24,23 +34,34 @@ Mutable struct that contains all the bookkeeping vectors/dictionaries used withi
 
 """
 mutable struct BookKeeping
-    d_indx   :: Dict{Symbol, Expr}
-    d_assign :: Dict{Union{Symbol,Expr}, Number}
-    d_decl   :: Dict{Symbol, Expr}
-    v_newvars   :: Vector{Symbol}
-    v_arraydecl :: Vector{Symbol}
-    v_array1 :: Vector{Symbol}
-    v_array2 :: Vector{Symbol}
-    v_array3 :: Vector{Symbol}
-    v_array4 :: Vector{Symbol}
-    v_preamb :: Vector{Union{Symbol,Expr}}
-    retvar   :: Symbol
-    numaux   :: Int
+    d_indx::Dict{Symbol,Expr}
+    d_assign::Dict{Union{Symbol,Expr},Number}
+    d_decl::Dict{Symbol,Expr}
+    v_newvars::Vector{Symbol}
+    v_arraydecl::Vector{Symbol}
+    v_array1::Vector{Symbol}
+    v_array2::Vector{Symbol}
+    v_array3::Vector{Symbol}
+    v_array4::Vector{Symbol}
+    v_preamb::Vector{Union{Symbol,Expr}}
+    retvar::Symbol
+    numaux::Int
 
     function BookKeeping()
-        return new(Dict{Symbol, Expr}(), Dict{Union{Symbol,Expr}, Number}(),
-            Dict{Symbol, Expr}(), Symbol[], Symbol[], Symbol[], Symbol[], Symbol[], Symbol[],
-            Union{Symbol,Expr}[], :nothing, 0)
+        return new(
+            Dict{Symbol,Expr}(),
+            Dict{Union{Symbol,Expr},Number}(),
+            Dict{Symbol,Expr}(),
+            Symbol[],
+            Symbol[],
+            Symbol[],
+            Symbol[],
+            Symbol[],
+            Symbol[],
+            Union{Symbol,Expr}[],
+            :nothing,
+            0,
+        )
     end
 end
 
@@ -56,21 +77,31 @@ Struct related to the returned variables that are pre-allocated when
     - `v3`   : Vector{Array{T,3}}
     - `v4`   : Vector{Array{T,4}}
 """
-struct RetAlloc{T <: Number}
-    v0 :: Array{T,1}
-    v1 :: Vector{Array{T,1}}
-    v2 :: Vector{Array{T,2}}
-    v3 :: Vector{Array{T,3}}
-    v4 :: Vector{Array{T,4}}
+struct RetAlloc{T<:Number}
+    v0::Array{T,1}
+    v1::Vector{Array{T,1}}
+    v2::Vector{Array{T,2}}
+    v3::Vector{Array{T,3}}
+    v4::Vector{Array{T,4}}
 
     function RetAlloc{T}() where {T}
         v1 = Array{T,1}(undef, 0)
-        return new(v1, [v1], [Array{T,2}(undef, 0, 0)], [Array{T,3}(undef, 0, 0, 0)],
-            [Array{T,4}(undef, 0, 0, 0, 0)])
+        return new(
+            v1,
+            [v1],
+            [Array{T,2}(undef, 0, 0)],
+            [Array{T,3}(undef, 0, 0, 0)],
+            [Array{T,4}(undef, 0, 0, 0, 0)],
+        )
     end
 
-    function RetAlloc{T}(v0::Array{T,1}, v1::Vector{Array{T,1}},
-            v2::Vector{Array{T,2}}, v3::Vector{Array{T,3}}, v4::Vector{Array{T,4}}) where {T}
+    function RetAlloc{T}(
+        v0::Array{T,1},
+        v1::Vector{Array{T,1}},
+        v2::Vector{Array{T,2}},
+        v3::Vector{Array{T,3}},
+        v4::Vector{Array{T,4}},
+    ) where {T}
         return new(v0, v1, v2, v3, v4)
     end
 end
@@ -83,50 +114,83 @@ Checks if `v` is declared in `bkkeep`, considering the `d_indx`, `v_newvars` and
 `v_arraydecl` fields.
 
 """
-@inline inbookkeeping(v, bkkeep::BookKeeping) = (v ∈ keys(bkkeep.d_indx) ||
-    v ∈ bkkeep.v_newvars || v ∈ bkkeep.v_arraydecl)
+@inline inbookkeeping(v, bkkeep::BookKeeping) =
+    (v ∈ keys(bkkeep.d_indx) || v ∈ bkkeep.v_newvars || v ∈ bkkeep.v_arraydecl)
 
 
 # Constants to create the structure of the new jetcoeffs! and _allocate_jetcoeffs! methods.
 # The (irrelevant) `nothing` below is there to have a `:block` Expr; it is deleted later
-const _HEAD_PARSEDFN_SCALAR = sanitize(:(
-    function TaylorIntegration.jetcoeffs!(::Val{__fn}, __tT::Taylor1{_T}, __x::Taylor1{_S},
-            __params, __ralloc::TaylorIntegration.RetAlloc{Taylor1{_S}}) where {_T<:Real, _S<:Number}
-        order = __tT.order
-        nothing
-    end)
+const _HEAD_PARSEDFN_SCALAR = sanitize(
+    :(
+        function TaylorIntegration.jetcoeffs!(
+            ::Val{__fn},
+            __tT::Taylor1{_T},
+            __x::Taylor1{_S},
+            __params,
+            __ralloc::TaylorIntegration.RetAlloc{Taylor1{_S}},
+        ) where {_T<:Real,_S<:Number}
+            order = __tT.order
+            nothing
+        end
+    ),
 );
 
-const _HEAD_PARSEDFN_VECTOR = sanitize(:(
-    function TaylorIntegration.jetcoeffs!(::Val{__fn}, __tT::Taylor1{_T},
-            __x::AbstractArray{Taylor1{_S}, _N}, __dx::AbstractArray{Taylor1{_S}, _N},
-            __params, __ralloc::TaylorIntegration.RetAlloc{Taylor1{_S}}) where {_T<:Real, _S<:Number, _N}
-        order = __tT.order
-        nothing
-    end)
+const _HEAD_PARSEDFN_VECTOR = sanitize(
+    :(
+        function TaylorIntegration.jetcoeffs!(
+            ::Val{__fn},
+            __tT::Taylor1{_T},
+            __x::AbstractArray{Taylor1{_S},_N},
+            __dx::AbstractArray{Taylor1{_S},_N},
+            __params,
+            __ralloc::TaylorIntegration.RetAlloc{Taylor1{_S}},
+        ) where {_T<:Real,_S<:Number,_N}
+            order = __tT.order
+            nothing
+        end
+    ),
 );
 
-const _HEAD_ALLOC_TAYLOR1_SCALAR = sanitize(:(
-    function TaylorIntegration._allocate_jetcoeffs!( ::Val{__fn}, __tT::Taylor1{_T},
-            __x::Taylor1{_S}, __params) where {_T<:Real, _S<:Number}
-        order = __tT.order
-        nothing
-    end)
+const _HEAD_ALLOC_TAYLOR1_SCALAR = sanitize(
+    :(
+        function TaylorIntegration._allocate_jetcoeffs!(
+            ::Val{__fn},
+            __tT::Taylor1{_T},
+            __x::Taylor1{_S},
+            __params,
+        ) where {_T<:Real,_S<:Number}
+            order = __tT.order
+            nothing
+        end
+    ),
 );
 
-const _HEAD_ALLOC_TAYLOR1_VECTOR = sanitize(:(
-    function TaylorIntegration._allocate_jetcoeffs!( ::Val{__fn}, __tT::Taylor1{_T},
-            __x::AbstractArray{Taylor1{_S}, _N}, __dx::AbstractArray{Taylor1{_S}, _N},
-            __params) where {_T<:Real, _S<:Number, _N}
-        order = __tT.order
-        nothing
-    end)
+const _HEAD_ALLOC_TAYLOR1_VECTOR = sanitize(
+    :(
+        function TaylorIntegration._allocate_jetcoeffs!(
+            ::Val{__fn},
+            __tT::Taylor1{_T},
+            __x::AbstractArray{Taylor1{_S},_N},
+            __dx::AbstractArray{Taylor1{_S},_N},
+            __params,
+        ) where {_T<:Real,_S<:Number,_N}
+            order = __tT.order
+            nothing
+        end
+    ),
 );
 
 # Constants for the initial declaration and initialization of arrays
-const _DECL_ARRAY = sanitize( Expr(:block,
-    :(__var1 = Array{Taylor1{_S}}(undef, __var2)),
-    :(  for i in eachindex(__var1) __var1[i] = Taylor1( zero(constant_term(__x[1])), order ) end  ))
+const _DECL_ARRAY = sanitize(
+    Expr(
+        :block,
+        :(__var1 = Array{Taylor1{_S}}(undef, __var2)),
+        :(
+            for i in eachindex(__var1)
+                __var1[i] = Taylor1(zero(constant_term(__x[1])), order)
+            end
+        ),
+    ),
 );
 
 
@@ -162,7 +226,7 @@ function _make_parsed_jetcoeffs(ex::Expr)
     rec_fnbody = _recursionloop(fnargs, bkkeep)
 
     # Expr for the for-loop block for the recursion (of the `x` variable)
-    forloopblock = Expr(:for, :(ord = 0:order-1), Expr(:block, :(ordnext = ord + 1)) )
+    forloopblock = Expr(:for, :(ord = 0:order-1), Expr(:block, :(ordnext = ord + 1)))
 
     # Add rec_fnbody to `forloopblock`
     push!(forloopblock.args[2].args, fnbody.args[1].args..., rec_fnbody)
@@ -190,23 +254,50 @@ function _make_parsed_jetcoeffs(ex::Expr)
 
     # Rename variables in the calling form of the new methods
     if length(fnargs) == 3
-        new_jetcoeffs = subs(new_jetcoeffs, Dict(:__tT => fnargs[3],
-            :__params => fnargs[2], :(__x) => fnargs[1], :(__fn) => fn ))
-        new_allocjetcoeffs = subs(new_allocjetcoeffs,
-            Dict(:__tT => fnargs[3], :__params => fnargs[2],
-                :(__x) => fnargs[1], :(__fn) => fn ))
+        new_jetcoeffs = subs(
+            new_jetcoeffs,
+            Dict(
+                :__tT => fnargs[3],
+                :__params => fnargs[2],
+                :(__x) => fnargs[1],
+                :(__fn) => fn,
+            ),
+        )
+        new_allocjetcoeffs = subs(
+            new_allocjetcoeffs,
+            Dict(
+                :__tT => fnargs[3],
+                :__params => fnargs[2],
+                :(__x) => fnargs[1],
+                :(__fn) => fn,
+            ),
+        )
 
     elseif length(fnargs) == 4
-        new_jetcoeffs = subs(new_jetcoeffs, Dict(:__tT => fnargs[4],
-            :__params => fnargs[3], :(__x) => fnargs[2], :(__dx) => fnargs[1],
-            :(__fn) => fn ))
-        new_allocjetcoeffs = subs(new_allocjetcoeffs,
-            Dict(:__tT => fnargs[4], :__params => fnargs[3],
-                :(__x) => fnargs[2], :(__dx) => fnargs[1], :(__fn) => fn ))
+        new_jetcoeffs = subs(
+            new_jetcoeffs,
+            Dict(
+                :__tT => fnargs[4],
+                :__params => fnargs[3],
+                :(__x) => fnargs[2],
+                :(__dx) => fnargs[1],
+                :(__fn) => fn,
+            ),
+        )
+        new_allocjetcoeffs = subs(
+            new_allocjetcoeffs,
+            Dict(
+                :__tT => fnargs[4],
+                :__params => fnargs[3],
+                :(__x) => fnargs[2],
+                :(__dx) => fnargs[1],
+                :(__fn) => fn,
+            ),
+        )
 
-    # else
-    #     # A priori this is not needed
-    #     throw(ArgumentError("Wrong number of arguments in `fnargs`"))
+        # else
+        #     # A priori this is not needed
+        #     throw(ArgumentError("Wrong number of arguments in `fnargs`"))
     end
 
     return new_jetcoeffs, new_allocjetcoeffs
@@ -227,7 +318,7 @@ function _extract_parts(ex::Expr)
     # Capture name, args and body
     # @capture( shortdef(ex), ffn_(ffnargs__) = fnbody_ ) ||
     #     throw(ArgumentError("It must be a function call:\n $ex"))
-    dd = Dict{Symbol, Any}()
+    dd = Dict{Symbol,Any}()
     _capture_fn_args_body!(ex, dd)
     ffn, ffnargs, fnbody = dd[:fname], dd[:fnargs], dd[:fnbody]
 
@@ -259,10 +350,10 @@ function _extract_parts(ex::Expr)
         if fnbody.args[1].args[end] == :nothing
             pop!(fnbody.args[1].args)
         else
-            fnbody.args[1].args[end] = :( identity($(fnbody.args[1].args[end])) )
+            fnbody.args[1].args[end] = :(identity($(fnbody.args[1].args[end])))
         end
     elseif isa(fnbody.args[1].args[end], Number)
-        fnbody.args[1].args[end] = :( $(fnbody.args[1].args[end])+zero($(fnargs[1])) )
+        fnbody.args[1].args[end] = :($(fnbody.args[1].args[end]) + zero($(fnargs[1])))
     end
 
     return fn, fnargs, fnbody
@@ -278,7 +369,7 @@ returning them as the values of the dictionary `dd`, which is updated
 in place.
 
 """
-function _capture_fn_args_body!(ex::Expr, dd::Dict{Symbol, Any} = Dict())
+function _capture_fn_args_body!(ex::Expr, dd::Dict{Symbol,Any} = Dict())
     exh = ExH(ex)
     if exh.head == :(=) || exh.head == :function
         _capture_fn_args_body!.(ex.args, Ref(dd))
@@ -316,8 +407,11 @@ function _newhead(fn, fnargs)
         newdeclfunc = copy(_HEAD_ALLOC_TAYLOR1_VECTOR)
 
     else
-        throw(ArgumentError(
-        "Wrong number of arguments in the definition of the function $fn"))
+        throw(
+            ArgumentError(
+                "Wrong number of arguments in the definition of the function $fn",
+            ),
+        )
     end
 
     # Delete the irrelevant `nothing`
@@ -353,8 +447,8 @@ function _preamble_body(fnbody, fnargs)
 
     # Parse `newfnbody` and create `prepreamble` and `prealloc`, updating `bkkeep`.
     # These objects use the mutating functions from TaylorSeries.
-    preamble = Expr(:block,)
-    prealloc = Expr(:block,)
+    preamble = Expr(:block)
+    prealloc = Expr(:block)
     _parse_newfnbody!(newfnbody, preamble, prealloc, bkkeep, false)
     # Get rid of the initial `:block`
     preamble = preamble.args[1]
@@ -370,7 +464,7 @@ function _preamble_body(fnbody, fnargs)
     preamble = subs(preamble, bkkeep.d_indx)
 
     # Retain only `local` declarations from `preamble` in `new_preamble`
-    new_preamble = Expr(:block,)
+    new_preamble = Expr(:block)
     for (i, arg) in enumerate(preamble.args)
         (arg.head == :local) && push!(new_preamble.args, arg)
     end
@@ -380,7 +474,9 @@ function _preamble_body(fnbody, fnargs)
     newfnbody = subs(newfnbody, bkkeep.d_indx)
 
     # Define retvar; for scalar eqs is the last entry included in v_newvars
-    bkkeep.retvar = length(fnargs) == 3 ? subs(bkkeep.v_newvars[end-bkkeep.numaux], bkkeep.d_indx) : fnargs[1]
+    bkkeep.retvar =
+        length(fnargs) == 3 ? subs(bkkeep.v_newvars[end-bkkeep.numaux], bkkeep.d_indx) :
+        fnargs[1]
 
     return defspreamble, defsprealloc, newfnbody, bkkeep
 end
@@ -402,7 +498,7 @@ function _rename_indexedvars(fnbody)
     indexed_vars = findex(:(_X[_i...]), fnbody)
     st = Dict(ivar => genname() for ivar in indexed_vars)
     new_fnbody = subs(fnbody, st)
-    return new_fnbody, Dict{Symbol, Expr}(v => k for (k, v) in st)
+    return new_fnbody, Dict{Symbol,Expr}(v => k for (k, v) in st)
 end
 
 
@@ -417,11 +513,11 @@ the bookkeeping structure bkkeep.
 """
 function _newfnbody!(fnbody, fnargs, bkkeep::BookKeeping)
     # `fnbody` is assumed to be a `:block`-Expr
-    newfnbody = Expr(:block,)
+    newfnbody = Expr(:block)
 
     # Local definition for possible args for `@threads` call
-    local v_threads_args = (Expr(:., :Threads, QuoteNode(Symbol("@threads"))),
-        Symbol("@threads"))
+    local v_threads_args =
+        (Expr(:., :Threads, QuoteNode(Symbol("@threads"))), Symbol("@threads"))
 
     # Magic happens HERE!!
     # Each line of fnbody (fnbody.args) is parsed separately
@@ -445,11 +541,11 @@ function _newfnbody!(fnbody, fnargs, bkkeep::BookKeeping)
             # Treat `for` loops, `Threads.@threads for` and `if` blocks separately
             if ex_head == :block
                 newblock = _newfnbody!(ex, fnargs, bkkeep)
-                push!(newfnbody.args, newblock )
+                push!(newfnbody.args, newblock)
 
             elseif ex_head == :for
                 push!(newfnbody.args, Expr(:for, ex.args[1]))
-                loopbody = _newfnbody!( ex.args[2], fnargs, bkkeep )
+                loopbody = _newfnbody!(ex.args[2], fnargs, bkkeep)
                 push!(newfnbody.args[end].args, loopbody)
 
             elseif ex_head == :macrocall
@@ -465,7 +561,7 @@ function _newfnbody!(fnbody, fnargs, bkkeep::BookKeeping)
                     # with `ex.args[3]` as a `for` loop
                     push!(newfnbody.args[end].args, Expr(:for, ex.args[3].args[1]))
 
-                    atthreadsbody = _newfnbody!( ex.args[3].args[2], fnargs, bkkeep )
+                    atthreadsbody = _newfnbody!(ex.args[3].args[2], fnargs, bkkeep)
                     push!(newfnbody.args[end].args[end].args, atthreadsbody)
 
                 else
@@ -481,7 +577,8 @@ function _newfnbody!(fnbody, fnargs, bkkeep::BookKeeping)
 
                 for exx in ex.args[2:end]
                     if exx.head == :elseif
-                        exxx = Expr(:block, Expr(:if, exx.args[1].args[2], exx.args[2:end]...))
+                        exxx =
+                            Expr(:block, Expr(:if, exx.args[1].args[2], exx.args[2:end]...))
                     else
                         exxx = exx
                     end
@@ -498,7 +595,7 @@ function _newfnbody!(fnbody, fnargs, bkkeep::BookKeeping)
                 # TODO: Include cases where the definition uses `similar`
                 # Case of explicit declaration of Array or Vector
                 if !isempty(findex(:(_Array{_TT...}), ex)) ||
-                        !isempty(findex(:(Vector{_TT...}), ex))
+                   !isempty(findex(:(Vector{_TT...}), ex))
                     inbookkeeping(ex_lhs, bkkeep) || push!(bkkeep.v_arraydecl, ex_lhs)
                     push!(newfnbody.args, ex)
                     continue
@@ -511,8 +608,10 @@ function _newfnbody!(fnbody, fnargs, bkkeep::BookKeeping)
                         # Construct new expressions
                         if ex_rhs == fnargs[3]  # params
                             for i in eachindex(ex_lhs.args)
-                                ex_indx = Expr(:local, Expr(:(=), ex_lhs.args[i],
-                                    Expr(:ref, ex_rhs, i)))
+                                ex_indx = Expr(
+                                    :local,
+                                    Expr(:(=), ex_lhs.args[i], Expr(:ref, ex_rhs, i)),
+                                )
                                 push!(newfnbody.args, ex_indx)
                             end
 
@@ -551,7 +650,7 @@ function _newfnbody!(fnbody, fnargs, bkkeep::BookKeeping)
                     #     !in(vars_nex[1], bkkeep.v_newvars) &&
                     (isindx_lhs || vars_nex[1] != ex_lhs) &&
                         !inbookkeeping(vars_nex[1], bkkeep) &&
-                            push!(bkkeep.v_newvars, vars_nex[1])
+                        push!(bkkeep.v_newvars, vars_nex[1])
                 end
 
             elseif (ex_head == :local) || (ex_head == :continue) || (ex_head == :break)
@@ -594,13 +693,19 @@ the args of `ex`, updating the bookkeeping struct `bkkeep`, in particular
 the fieldnames `v_newvars` and `d_assign`.
 
 """
-function _parse_newfnbody!(ex::Expr, preex::Expr, prealloc::Expr, bkkeep::BookKeeping,
-        inloop::Bool)
+function _parse_newfnbody!(
+    ex::Expr,
+    preex::Expr,
+    prealloc::Expr,
+    bkkeep::BookKeeping,
+    inloop::Bool,
+)
     # Numeric assignements to be deleted
     indx_rm = Int[]
 
     # Definition for possible args for `@threads` call
-    local v_threads_args = (Expr(:., :Threads, QuoteNode(Symbol("@threads"))), Symbol("@threads"))
+    local v_threads_args =
+        (Expr(:., :Threads, QuoteNode(Symbol("@threads"))), Symbol("@threads"))
 
     # Magic happens HERE
     # Each line of `ex` (i.e., `ex.args`) is parsed separately
@@ -621,8 +726,13 @@ function _parse_newfnbody!(ex::Expr, preex::Expr, prealloc::Expr, bkkeep::BookKe
             push!(prealloc.args[end].args, aa.args[2])
             push!(prealloc.args[end].args, Expr(:for, aa.args[3].args[1]))
 
-            _parse_newfnbody!(aa.args[3], preex.args[end].args[end], prealloc.args[end].args[end],
-                bkkeep, true)
+            _parse_newfnbody!(
+                aa.args[3],
+                preex.args[end].args[end],
+                prealloc.args[end].args[end],
+                bkkeep,
+                true,
+            )
 
         elseif (aa.head == :block)
             push!(preex.args, Expr(:block))
@@ -638,8 +748,13 @@ function _parse_newfnbody!(ex::Expr, preex::Expr, prealloc::Expr, bkkeep::BookKe
             for exx in aa.args[2:end]
                 push!(preex.args[end].args, Expr(:block))
                 push!(prealloc.args[end].args, Expr(:block))
-                _parse_newfnbody!(exx, preex.args[end].args[end],
-                    prealloc.args[end].args[end], bkkeep, inloop)
+                _parse_newfnbody!(
+                    exx,
+                    preex.args[end].args[end],
+                    prealloc.args[end].args[end],
+                    bkkeep,
+                    inloop,
+                )
             end
 
         elseif (aa.head == :(=))
@@ -673,12 +788,14 @@ function _parse_newfnbody!(ex::Expr, preex::Expr, prealloc::Expr, bkkeep::BookKe
                 push!(bkkeep.d_assign, aa_lhs => aa_rhs)
                 push!(indx_rm, i)
                 if aa_lhs ∈ bkkeep.v_newvars
-                    iis = findall(x->x==aa_lhs, bkkeep.v_newvars)
+                    iis = findall(x -> x == aa_lhs, bkkeep.v_newvars)
                     deleteat!(bkkeep.v_newvars, iis)
                 end
 
             else # needed?
-                error("Either $aa or $typeof(aa_rhs[2]) are not an `Expr`, `Symbol` or `Number`")
+                error(
+                    "Either $aa or $typeof(aa_rhs[2]) are not an `Expr`, `Symbol` or `Number`",
+                )
             end
 
         elseif aa.head == :local
@@ -712,17 +829,25 @@ base assignment. The bookkeeping struct is updated (`v_newvars`) within `_replac
 `d_indx` is used to bring back the indexed variables.
 
 """
-function _replace_expr!(ex::Expr, preex::Expr, prealloc::Expr, i::Int,
-        aalhs, aarhs, bkkeep::BookKeeping)
+function _replace_expr!(
+    ex::Expr,
+    preex::Expr,
+    prealloc::Expr,
+    i::Int,
+    aalhs,
+    aarhs,
+    bkkeep::BookKeeping,
+)
     # Replace calls
-    fnexpr, def_fnexpr, auxfnexpr, def_alloc, aux_alloc = _replacecalls!(bkkeep, aarhs, aalhs)
+    fnexpr, def_fnexpr, auxfnexpr, def_alloc, aux_alloc =
+        _replacecalls!(bkkeep, aarhs, aalhs)
 
     # Bring back indexed variables
-    fnexpr     = subs(fnexpr, bkkeep.d_indx)
+    fnexpr = subs(fnexpr, bkkeep.d_indx)
     def_fnexpr = subs(def_fnexpr, bkkeep.d_indx)
-    auxfnexpr  = subs(auxfnexpr, bkkeep.d_indx)
-    def_alloc  = subs(def_alloc, bkkeep.d_indx)
-    aux_alloc  = subs(aux_alloc, bkkeep.d_indx)
+    auxfnexpr = subs(auxfnexpr, bkkeep.d_indx)
+    def_alloc = subs(def_alloc, bkkeep.d_indx)
+    aux_alloc = subs(aux_alloc, bkkeep.d_indx)
 
     # Update `ex`, `preex` and `prealloc`
     if (fnexpr != def_fnexpr)
@@ -777,8 +902,10 @@ function _replacecalls!(bkkeep::BookKeeping, fnold::Expr, newvar::Symbol)
 
     # If call is not in the mutating functions dictionaries, copy original one
     # to def_fnexpr and def_alloc, except if it is an Array/Vector definition
-    if !( in(dcall, keys(TaylorSeries._dict_unary_calls)) ||
-          in(dcall, keys(TaylorSeries._dict_binary_calls)) )
+    if !(
+        in(dcall, keys(TaylorSeries._dict_unary_calls)) ||
+        in(dcall, keys(TaylorSeries._dict_binary_calls))
+    )
 
         fnexpr = :($newvar = $fnold)
         if isa(dcall, Expr) && (dcall.args[1] == :Array || dcall.args[1] == :Vector)
@@ -806,15 +933,18 @@ function _replacecalls!(bkkeep::BookKeeping, fnold::Expr, newvar::Symbol)
         fnexpr, def_fnexpr, aux_fnexpr = TaylorSeries._dict_unary_calls[dcall]
         fnexpr = subs(fnexpr, Dict(:_res => newvar, :_arg1 => newarg1, :_k => :ord))
 
-        def_alloc = :( _res = Taylor1($(def_fnexpr.args[2]), order) )
-        def_alloc = subs(def_alloc,
-            Dict(:_res => newvar, :_arg1 => :(constant_term($(newarg1))), :_k => :ord))
+        def_alloc = :(_res = Taylor1($(def_fnexpr.args[2]), order))
+        def_alloc = subs(
+            def_alloc,
+            Dict(:_res => newvar, :_arg1 => :(constant_term($(newarg1))), :_k => :ord),
+        )
 
-        def_fnexpr = Expr(:block,
-            :(TaylorSeries.zero!(_res)),
-            :(_res[0] = $(def_fnexpr.args[2])) )
-        def_fnexpr = subs(def_fnexpr,
-            Dict(:_res => newvar, :_arg1 => :(constant_term($(newarg1))), :_k => :ord))
+        def_fnexpr =
+            Expr(:block, :(TaylorSeries.zero!(_res)), :(_res[0] = $(def_fnexpr.args[2])))
+        def_fnexpr = subs(
+            def_fnexpr,
+            Dict(:_res => newvar, :_arg1 => :(constant_term($(newarg1))), :_k => :ord),
+        )
         # def_fnexpr = Expr(:block,
         #     :(_res[0] = $(def_fnexpr.args[2])),
         #     :(_res[1:order] .= zero(_res[0])) )
@@ -825,15 +955,29 @@ function _replacecalls!(bkkeep::BookKeeping, fnold::Expr, newvar::Symbol)
         if aux_fnexpr.head != :nothing
             newaux = genname()
 
-            aux_alloc = :( _res = Taylor1($(aux_fnexpr.args[2]), order) )
-            aux_alloc = subs(aux_alloc,
-                Dict(:_res => newaux, :_arg1 => :(constant_term($(newarg1))), :_aux => newaux))
+            aux_alloc = :(_res = Taylor1($(aux_fnexpr.args[2]), order))
+            aux_alloc = subs(
+                aux_alloc,
+                Dict(
+                    :_res => newaux,
+                    :_arg1 => :(constant_term($(newarg1))),
+                    :_aux => newaux,
+                ),
+            )
 
-            aux_fnexpr = Expr(:block,
+            aux_fnexpr = Expr(
+                :block,
                 :(TaylorSeries.zero!(_res)),
-                :(_res.coeffs[1] = $(aux_fnexpr.args[2])) )
-            aux_fnexpr = subs(aux_fnexpr,
-                Dict(:_res => newaux, :_arg1 => :(constant_term($(newarg1))), :_aux => newaux))
+                :(_res.coeffs[1] = $(aux_fnexpr.args[2])),
+            )
+            aux_fnexpr = subs(
+                aux_fnexpr,
+                Dict(
+                    :_res => newaux,
+                    :_arg1 => :(constant_term($(newarg1))),
+                    :_aux => newaux,
+                ),
+            )
 
             fnexpr = subs(fnexpr, Dict(:_aux => newaux))
             if newvar ∈ bkkeep.v_arraydecl
@@ -849,19 +993,36 @@ function _replacecalls!(bkkeep::BookKeeping, fnold::Expr, newvar::Symbol)
 
         # Replacements
         fnexpr, def_fnexpr, aux_fnexpr = TaylorSeries._dict_binary_calls[dcall]
-        fnexpr = subs(fnexpr,
-            Dict(:_res => newvar, :_arg1 => newarg1, :_arg2 => newarg2, :_k => :ord))
+        fnexpr = subs(
+            fnexpr,
+            Dict(:_res => newvar, :_arg1 => newarg1, :_arg2 => newarg2, :_k => :ord),
+        )
 
-        def_alloc = :(_res = Taylor1($(def_fnexpr.args[2]), order) )
-        def_alloc = subs(def_alloc, Dict(:_res => newvar, :_arg1 => :(constant_term($(newarg1))),
-            :_arg2 => :(constant_term($(newarg2))), :_k => :ord) )
+        def_alloc = :(_res = Taylor1($(def_fnexpr.args[2]), order))
+        def_alloc = subs(
+            def_alloc,
+            Dict(
+                :_res => newvar,
+                :_arg1 => :(constant_term($(newarg1))),
+                :_arg2 => :(constant_term($(newarg2))),
+                :_k => :ord,
+            ),
+        )
 
-        def_fnexpr = Expr(:block,
+        def_fnexpr = Expr(
+            :block,
             :(TaylorSeries.zero!(_res)),
-            :(_res.coeffs[1] = $(def_fnexpr.args[2])) )
-        def_fnexpr = subs(def_fnexpr,
-            Dict(:_res => newvar, :_arg1 => :(constant_term($(newarg1))),
-                :_arg2 => :(constant_term($(newarg2))), :_k => :ord))
+            :(_res.coeffs[1] = $(def_fnexpr.args[2])),
+        )
+        def_fnexpr = subs(
+            def_fnexpr,
+            Dict(
+                :_res => newvar,
+                :_arg1 => :(constant_term($(newarg1))),
+                :_arg2 => :(constant_term($(newarg2))),
+                :_k => :ord,
+            ),
+        )
         # def_fnexpr = Expr(:block,
         #     :(_res[0] = $(def_fnexpr.args[2])),
         #     :(_res[1:order] .= zero(_res[0])) )
@@ -873,15 +1034,29 @@ function _replacecalls!(bkkeep::BookKeeping, fnold::Expr, newvar::Symbol)
         if aux_fnexpr.head != :nothing
             newaux = genname()
 
-            aux_alloc = :( _res = Taylor1($(aux_fnexpr.args[2]), order) )
-            aux_alloc = subs(aux_alloc,
-                Dict(:_res => newaux, :_arg1 => :(constant_term($(newarg1))), :_aux => newaux))
+            aux_alloc = :(_res = Taylor1($(aux_fnexpr.args[2]), order))
+            aux_alloc = subs(
+                aux_alloc,
+                Dict(
+                    :_res => newaux,
+                    :_arg1 => :(constant_term($(newarg1))),
+                    :_aux => newaux,
+                ),
+            )
 
-            aux_fnexpr = Expr(:block,
+            aux_fnexpr = Expr(
+                :block,
                 :(TaylorSeries.zero!(_res)),
-                :(_res.coeffs[1] = $(aux_fnexpr.args[2])) )
-            aux_fnexpr = subs(aux_fnexpr,
-                Dict(:_res => newaux, :_arg1 => :(constant_term($(newarg1))), :_aux => newaux))
+                :(_res.coeffs[1] = $(aux_fnexpr.args[2])),
+            )
+            aux_fnexpr = subs(
+                aux_fnexpr,
+                Dict(
+                    :_res => newaux,
+                    :_arg1 => :(constant_term($(newarg1))),
+                    :_aux => newaux,
+                ),
+            )
 
             fnexpr = subs(fnexpr, Dict(:_aux => newaux))
             if newvar ∈ bkkeep.v_arraydecl
@@ -912,15 +1087,21 @@ may modify `bkkeep.d_indx` if new variables are introduced.
 `bkkeep.v_preamb` is for bookkeeping the introduced variables.
 
 """
-function _defs_allocs!(preamble::Expr, fnargs, bkkeep::BookKeeping,
-    inloop::Bool, ex_aux::Expr = Expr(:block,))
+function _defs_allocs!(
+    preamble::Expr,
+    fnargs,
+    bkkeep::BookKeeping,
+    inloop::Bool,
+    ex_aux::Expr = Expr(:block),
+)
 
     # Initializations
     defspreamble = Expr[]
     defs_alloc = Expr[]   # declaration of arrays
 
     # Local definition for possible args for `@threads` call
-    local v_threads_args = (Expr(:., :Threads, QuoteNode(Symbol("@threads"))), Symbol("@threads"))
+    local v_threads_args =
+        (Expr(:., :Threads, QuoteNode(Symbol("@threads"))), Symbol("@threads"))
 
     for ex in preamble.args
         isa(ex, Expr) || throw(ArgumentError("$ex is not an `Expr`; $(typeof(ex))"))
@@ -983,17 +1164,22 @@ function _defs_allocs!(preamble::Expr, fnargs, bkkeep::BookKeeping,
                 while isa(var1, Expr)
                     var1 = var1.args[1]
                 end
-                (in(var1, fnargs) || in(var1, bkkeep.v_arraydecl) ||
-                    in(alhs, bkkeep.v_preamb)) && continue
+                (
+                    in(var1, fnargs) ||
+                    in(var1, bkkeep.v_arraydecl) ||
+                    in(alhs, bkkeep.v_preamb)
+                ) && continue
 
                 # indices of var1
                 d_subs = Dict(veexx.args[1] => veexx.args[2] for veexx in ex_aux.args)
                 indx1 = alhs.args[2:end]
-                ex_tuple = :( [$(indx1...)] )
+                ex_tuple = :([$(indx1...)])
                 ex_tuple = subs(ex_tuple, d_subs)
-                ex_tuple = :( size( $(Expr(:tuple, ex_tuple.args...)) ))
-                exx = subs(copy(_DECL_ARRAY),
-                    Dict( :__var1 => :($var1), :__var2 => :($ex_tuple)) )
+                ex_tuple = :(size($(Expr(:tuple, ex_tuple.args...))))
+                exx = subs(
+                    copy(_DECL_ARRAY),
+                    Dict(:__var1 => :($var1), :__var2 => :($ex_tuple)),
+                )
 
                 # Bookkeeping
                 push!(defspreamble, exx.args...)
@@ -1008,19 +1194,22 @@ function _defs_allocs!(preamble::Expr, fnargs, bkkeep::BookKeeping,
 
                 # NOTE: Uses the size of the var with more indices
                 # to define the declaration of the new array.
-                ii_indx = argmax( [length(find_indices(aa)[1]) for aa in vars_indexed] )
+                ii_indx = argmax([length(find_indices(aa)[1]) for aa in vars_indexed])
                 var1 = vars_indexed[ii_indx].args[1]
                 indx1 = vars_indexed[ii_indx].args[2:end]
 
                 exx_indx = ones(Int, length(indx1))
-                exx = subs(copy(_DECL_ARRAY),
-                    Dict(:__var1 => :($alhs), :__var2 => :(size($var1))) )
+                exx = subs(
+                    copy(_DECL_ARRAY),
+                    Dict(:__var1 => :($alhs), :__var2 => :(size($var1))),
+                )
 
                 # Bookkeeping
-                inbookkeeping(alhs, bkkeep) && alhs ∈ bkkeep.v_newvars &&
-                        deleteat!(bkkeep.v_newvars, findall(x->x==alhs, bkkeep.v_newvars))
+                inbookkeeping(alhs, bkkeep) &&
+                    alhs ∈ bkkeep.v_newvars &&
+                    deleteat!(bkkeep.v_newvars, findall(x -> x == alhs, bkkeep.v_newvars))
 
-                push!(bkkeep.d_indx, alhs => :($alhs[$(indx1...)]) )
+                push!(bkkeep.d_indx, alhs => :($alhs[$(indx1...)]))
                 push!(bkkeep.d_decl, alhs => :($alhs[$(exx_indx...)]))
                 push!(bkkeep.v_arraydecl, alhs)
                 push!(bkkeep.v_preamb, alhs)
@@ -1041,11 +1230,11 @@ function _defs_allocs!(preamble::Expr, fnargs, bkkeep::BookKeeping,
                 continue
             end
 
-        # # CHECK: Is the following needed?
-        # else
-        #     # If this is reached, other `ex.head` was encountered (e.g., `.=`);
-        #     # we include this in the `defs_tmparrays`
-        #     inloop || (push!(defs_tmparrays, subs(ex, bkkeep.d_decl)); continue)
+            # # CHECK: Is the following needed?
+            # else
+            #     # If this is reached, other `ex.head` was encountered (e.g., `.=`);
+            #     # we include this in the `defs_tmparrays`
+            #     inloop || (push!(defs_tmparrays, subs(ex, bkkeep.d_decl)); continue)
         end
 
         exx = subs(ex, bkkeep.d_indx)
@@ -1069,18 +1258,30 @@ function _recursionloop(fnargs, bkkeep::BookKeeping)
     ll = length(fnargs)
 
     if ll == 3
-        rec_fnbody = sanitize( :( TaylorIntegration.solcoeff!($(fnargs[1]), $(bkkeep.retvar), ordnext) ) )
+        rec_fnbody = sanitize(
+            :(TaylorIntegration.solcoeff!($(fnargs[1]), $(bkkeep.retvar), ordnext)),
+        )
 
     elseif ll == 4
         bkkeep.retvar = fnargs[1]
-        rec_fnbody = sanitize(:(
-            for __idx in eachindex($(fnargs[2]))
-                TaylorIntegration.solcoeff!($(fnargs[2])[__idx], $(bkkeep.retvar)[__idx], ordnext)
-            end))
+        rec_fnbody = sanitize(
+            :(
+                for __idx in eachindex($(fnargs[2]))
+                    TaylorIntegration.solcoeff!(
+                        $(fnargs[2])[__idx],
+                        $(bkkeep.retvar)[__idx],
+                        ordnext,
+                    )
+                end
+            ),
+        )
 
     else
-        throw(ArgumentError(
-        "Wrong number of arguments in the definition of the function $fn"))
+        throw(
+            ArgumentError(
+                "Wrong number of arguments in the definition of the function $fn",
+            ),
+        )
     end
 
     return rec_fnbody
@@ -1155,31 +1356,38 @@ function _returned_expr(bkkeep::BookKeeping)
     if isempty(bkkeep.v_newvars)
         retv0 = :(Taylor1{_S}[])
     else
-        retv0 = :([$(bkkeep.v_newvars...),])
+        retv0 = :([$(bkkeep.v_newvars...)])
     end
     if isempty(bkkeep.v_array1)
-        retv1 = :([Array{Taylor1{_S},1}(undef, 0),])
+        retv1 = :([Array{Taylor1{_S},1}(undef, 0)])
     else
-        retv1 = :([$(bkkeep.v_array1...),])
+        retv1 = :([$(bkkeep.v_array1...)])
     end
     if isempty(bkkeep.v_array2)
-        retv2 = :([Array{Taylor1{_S},2}(undef, 0, 0),])
+        retv2 = :([Array{Taylor1{_S},2}(undef, 0, 0)])
     else
-        retv2 = :([$(bkkeep.v_array2...),])
+        retv2 = :([$(bkkeep.v_array2...)])
     end
     if isempty(bkkeep.v_array3)
-        retv3 = :([Array{Taylor1{_S},3}(undef, 0, 0, 0),])
+        retv3 = :([Array{Taylor1{_S},3}(undef, 0, 0, 0)])
     else
-        retv3 = :([$(bkkeep.v_array3...),])
+        retv3 = :([$(bkkeep.v_array3...)])
     end
     if isempty(bkkeep.v_array4)
-        retv4 = :([Array{Taylor1{_S},4}(undef, 0, 0, 0, 0),])
+        retv4 = :([Array{Taylor1{_S},4}(undef, 0, 0, 0, 0)])
     else
-        retv4 = :([$(bkkeep.v_array4...),])
+        retv4 = :([$(bkkeep.v_array4...)])
     end
 
-    return :(return TaylorIntegration.RetAlloc{Taylor1{_S}}(
-        $(retv0), $(retv1), $(retv2), $(retv3), $(retv4)))
+    return :(
+        return TaylorIntegration.RetAlloc{Taylor1{_S}}(
+            $(retv0),
+            $(retv1),
+            $(retv2),
+            $(retv3),
+            $(retv4),
+        )
+    )
 end
 
 
@@ -1198,7 +1406,7 @@ See the [documentation](@ref taylorize) for more details and limitations.
     results carefully.
 
 """
-macro taylorize( ex )
+macro taylorize(ex)
     nex1, nex2 = _make_parsed_jetcoeffs(ex)
     esc(quote
         $(ex)   # evals to calling scope the passed function

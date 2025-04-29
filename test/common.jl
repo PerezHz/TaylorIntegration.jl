@@ -9,28 +9,38 @@ import Logging: Warn
 
     local TI = TaylorIntegration
     max_iters_reached() = "Maximum number of integration steps reached; exiting.\n"
-    larger_maxiters_needed() = "Interrupted. Larger maxiters is needed. If you "*
-        "are using an integrator for non-stiff ODEs or an automatic switching "*
-        "algorithm (the default), you may want to consider using a method for "*
-        "stiff equations. See the solver pages for more details (e.g. "*
+    larger_maxiters_needed() =
+        "Interrupted. Larger maxiters is needed. If you " *
+        "are using an integrator for non-stiff ODEs or an automatic switching " *
+        "algorithm (the default), you may want to consider using a method for " *
+        "stiff equations. See the solver pages for more details (e.g. " *
         "https://docs.sciml.ai/DiffEqDocs/stable/solvers/ode_solve/#Stiff-Problems)."
 
-    f(u,p,t) = u
-    g(u,p,t) = cos(t)
+    f(u, p, t) = u
+    g(u, p, t) = cos(t)
     f!(du, u, p, t) = (du .= u)
 
     @testset "Test integration of ODE with numbers in common interface" begin
         u0 = 0.5
         tspan = (0.0, 1.0)
         prob = ODEProblem(f, u0, tspan)
-        sol = (@test_logs min_level=Logging.Warn solve(prob, TaylorMethod(50), abstol=1e-20))
+        sol = (@test_logs min_level = Logging.Warn solve(
+            prob,
+            TaylorMethod(50),
+            abstol = 1e-20,
+        ))
         @test OrdinaryDiffEq.alg_order(TaylorMethod(50)) == 50
-        @test OrdinaryDiffEq.alg_order(sol.alg) == OrdinaryDiffEq.alg_order(TaylorMethod(50))
-        @test abs(sol.u[end] - u0*exp(1)) < 1e-12
+        @test OrdinaryDiffEq.alg_order(sol.alg) ==
+              OrdinaryDiffEq.alg_order(TaylorMethod(50))
+        @test abs(sol.u[end] - u0 * exp(1)) < 1e-12
         u0 = 0.0
         tspan = (0.0, 11pi)
         prob = ODEProblem(g, u0, tspan)
-        sol = (@test_logs min_level=Logging.Warn solve(prob, TaylorMethod(50), abstol=1e-20))
+        sol = (@test_logs min_level = Logging.Warn solve(
+            prob,
+            TaylorMethod(50),
+            abstol = 1e-20,
+        ))
         @test abs(sol.u[end] - sin(sol.t[end])) < 1e-12
     end
 
@@ -38,32 +48,52 @@ import Logging: Warn
         u0 = rand(4, 2)
         tspan = (0.0, 1.0)
         prob = ODEProblem(f!, u0, tspan)
-        sol = solve(prob, TaylorMethod(50), abstol=1e-20)
-        @test norm(sol.u[end] - u0.*exp(1)) < 1e-12
+        sol = solve(prob, TaylorMethod(50), abstol = 1e-20)
+        @test norm(sol.u[end] - u0 .* exp(1)) < 1e-12
         @taylorize f_oop(u, p, t) = u
         prob_oop = ODEProblem(f_oop, u0, tspan)
-        sol_oop = solve(prob_oop, TaylorMethod(50), abstol=1e-20)
-        @test norm(sol_oop.u[end] - u0.*exp(1)) < 1e-12
+        sol_oop = solve(prob_oop, TaylorMethod(50), abstol = 1e-20)
+        @test norm(sol_oop.u[end] - u0 .* exp(1)) < 1e-12
         @test sol.t == sol_oop.t
         @test sol.u == sol_oop.u
     end
 
-    local tspan = (0.0,5.0)
-    local saveat_inputs = ([], 0:1:(tspan[2]+5), 0:1:tspan[2], 3:1:tspan[2], collect(0:1:tspan[2]))
+    local tspan = (0.0, 5.0)
+    local saveat_inputs =
+        ([], 0:1:(tspan[2]+5), 0:1:tspan[2], 3:1:tspan[2], collect(0:1:tspan[2]))
     @testset "Test saveat behavior with numbers in common interface" begin
         u0 = 1.0
         prob = ODEProblem(f, u0, tspan)
-        sol = (@test_logs min_level=Logging.Warn solve(prob, TaylorMethod(20), abstol=1e-20))
+        sol = (@test_logs min_level = Logging.Warn solve(
+            prob,
+            TaylorMethod(20),
+            abstol = 1e-20,
+        ))
         s = saveat_inputs[1]
-        sol_taylor = (@test_logs min_level=Logging.Warn solve(prob, TaylorMethod(20), abstol=1e-20, saveat = s))
+        sol_taylor = (@test_logs min_level = Logging.Warn solve(
+            prob,
+            TaylorMethod(20),
+            abstol = 1e-20,
+            saveat = s,
+        ))
         @test all(sol.t .== sol_taylor.t)
         @test all(sol_taylor.u .== sol.u)
         @test length(sol_taylor.t) == length(sol_taylor.u)
         s = saveat_inputs[2]
-        sol_taylor = (@test_logs min_level=Logging.Warn solve(prob, TaylorMethod(20), abstol=1e-20, saveat = s))
+        sol_taylor = (@test_logs min_level = Logging.Warn solve(
+            prob,
+            TaylorMethod(20),
+            abstol = 1e-20,
+            saveat = s,
+        ))
         @test sol_taylor.t == saveat_inputs[3]
         for s ∈ saveat_inputs[3:end]
-            sol_taylor = (@test_logs min_level=Logging.Warn solve(prob, TaylorMethod(20), abstol=1e-20, saveat = s))
+            sol_taylor = (@test_logs min_level = Logging.Warn solve(
+                prob,
+                TaylorMethod(20),
+                abstol = 1e-20,
+                saveat = s,
+            ))
             @test all(s .== sol_taylor.t)
             @test length(sol_taylor.t) == length(sol_taylor.u)
         end
@@ -72,17 +102,36 @@ import Logging: Warn
     @testset "Test saveat behavior with abstract arrays in common interface" begin
         u0 = rand(2)
         prob = ODEProblem(f!, u0, tspan)
-        sol = (@test_logs min_level=Logging.Warn solve(prob, TaylorMethod(20), abstol=1e-20))
+        sol = (@test_logs min_level = Logging.Warn solve(
+            prob,
+            TaylorMethod(20),
+            abstol = 1e-20,
+        ))
         s = saveat_inputs[1]
-        sol_taylor = (@test_logs min_level=Logging.Warn solve(prob, TaylorMethod(20), abstol=1e-20, saveat = s))
+        sol_taylor = (@test_logs min_level = Logging.Warn solve(
+            prob,
+            TaylorMethod(20),
+            abstol = 1e-20,
+            saveat = s,
+        ))
         @test all(sol.t .== sol_taylor.t)
         @test all(sol_taylor.u .== sol.u)
         @test length(sol_taylor.t) == length(sol_taylor.u)
         s = saveat_inputs[2]
-        sol_taylor = (@test_logs min_level=Logging.Warn solve(prob, TaylorMethod(20), abstol=1e-20, saveat = s))
+        sol_taylor = (@test_logs min_level = Logging.Warn solve(
+            prob,
+            TaylorMethod(20),
+            abstol = 1e-20,
+            saveat = s,
+        ))
         @test sol_taylor.t == saveat_inputs[3]
         for s ∈ saveat_inputs[3:end]
-            sol_taylor = (@test_logs min_level=Logging.Warn solve(prob, TaylorMethod(20), abstol=1e-20, saveat = s))
+            sol_taylor = (@test_logs min_level = Logging.Warn solve(
+                prob,
+                TaylorMethod(20),
+                abstol = 1e-20,
+                saveat = s,
+            ))
             @test all(s .== sol_taylor.t)
             @test length(sol_taylor.t) == length(sol_taylor.u)
         end
@@ -90,7 +139,7 @@ import Logging: Warn
 
     function harmosc!(dx, x, p, t)
         dx[1] = x[2]
-        dx[2] = - x[1]
+        dx[2] = -x[1]
         return nothing
     end
     @testset "Test consistency with taylorinteg" begin
@@ -99,42 +148,70 @@ import Logging: Warn
         order = 25 # Taylor expansion order wrt time
         u0 = [1.0; 0.0]
         prob = ODEProblem(harmosc!, u0, tspan)
-        sol = (@test_logs min_level=Logging.Warn solve(prob, TaylorMethod(order), abstol=abstol))
-        solti = (@test_logs min_level=Logging.Warn taylorinteg(
-            harmosc!, u0, tspan[1], tspan[2], order, abstol))
+        sol = (@test_logs min_level = Logging.Warn solve(
+            prob,
+            TaylorMethod(order),
+            abstol = abstol,
+        ))
+        solti = (@test_logs min_level = Logging.Warn taylorinteg(
+            harmosc!,
+            u0,
+            tspan[1],
+            tspan[2],
+            order,
+            abstol,
+        ))
         @test solti.t == sol.t
-        @test solti.x[end,:] == sol.u[end]
+        @test solti.x[end, :] == sol.u[end]
         @test sol.t == solti.t
-        @test solti.x[end,:] == sol.u[end]
+        @test solti.x[end, :] == sol.u[end]
         @test DiffEqBase.interp_summary(sol.interp) == "Taylor series polynomial evaluation"
         ### backwards integration
         tspanb = (0.0, -10pi)
         probb = ODEProblem(harmosc!, u0, tspanb)
-        solb = (@test_logs min_level=Logging.Warn solve(probb, TaylorMethod(order), abstol=abstol))
-        soltib = (@test_logs min_level=Logging.Warn taylorinteg(
-            harmosc!, u0, tspanb[1], tspanb[2], order, abstol))
+        solb = (@test_logs min_level = Logging.Warn solve(
+            probb,
+            TaylorMethod(order),
+            abstol = abstol,
+        ))
+        soltib = (@test_logs min_level = Logging.Warn taylorinteg(
+            harmosc!,
+            u0,
+            tspanb[1],
+            tspanb[2],
+            order,
+            abstol,
+        ))
         @test soltib.t == solb.t
-        @test soltib.x[end,:] == solb.u[end]
+        @test soltib.x[end, :] == solb.u[end]
         @test solb.t == soltib.t
-        @test soltib.x[end,:] == solb.u[end]
-        @test DiffEqBase.interp_summary(solb.interp) == "Taylor series polynomial evaluation"
+        @test soltib.x[end, :] == solb.u[end]
+        @test DiffEqBase.interp_summary(solb.interp) ==
+              "Taylor series polynomial evaluation"
         ### with dense output
-        sol2 = (@test_logs min_level=Logging.Warn taylorinteg(
-            harmosc!, u0, tspan[1], tspan[2], order, abstol, dense=true))
+        sol2 = (@test_logs min_level = Logging.Warn taylorinteg(
+            harmosc!,
+            u0,
+            tspan[1],
+            tspan[2],
+            order,
+            abstol,
+            dense = true,
+        ))
         tv2, xv2, psol2 = sol2.t, sol2.x, sol2.p
         Θ = rand()
-        dt_test = (tv2[end]-tv2[end-1])
-        t_test = tv2[end-1] + Θ*dt_test
-        @test norm(sol(t_test) .- psol2[end,:]( Θ*dt_test ), Inf) < 1e-14
+        dt_test = (tv2[end] - tv2[end-1])
+        t_test = tv2[end-1] + Θ * dt_test
+        @test norm(sol(t_test) .- psol2[end, :](Θ * dt_test), Inf) < 1e-14
         Θ = rand()
         Θm1 = Θ - 1
-        dt_test = (tv2[end-1]-tv2[end-2])
-        t_test = tv2[end-2] + Θ*dt_test
-        @test norm( sol(t_test, idxs=1:1:2) .- psol2[end,:]( Θm1*dt_test ) ) < 1e-14
+        dt_test = (tv2[end-1] - tv2[end-2])
+        t_test = tv2[end-2] + Θ * dt_test
+        @test norm(sol(t_test, idxs = 1:1:2) .- psol2[end, :](Θm1 * dt_test)) < 1e-14
         # Kepler problem
         @taylorize function kepler1!(dq, q, p, t)
             local μ = -1.0
-            r_p2 = ((q[1]^2)+(q[2]^2))
+            r_p2 = ((q[1]^2) + (q[2]^2))
             r_p3d2 = r_p2^1.5
             dq[1] = q[3]
             dq[2] = q[4]
@@ -143,52 +220,110 @@ import Logging: Warn
             dq[4] = q[2] * newtonianCoeff
             return nothing
         end
-        p = set_variables("ξ", numvars=4, order=2)
+        p = set_variables("ξ", numvars = 4, order = 2)
         q0 = [0.2, 0.0, 0.0, 3.0]
         q0TN = q0 + p
         tspan = (0.0, 10pi)
-        (@test_logs (Warn, max_iters_reached()) taylorinteg(kepler1!, q0, tspan[1], tspan[2], order, abstol,
-            dense=true, maxsteps=1))
-        solp = taylorinteg(kepler1!, q0, tspan[1], tspan[2], order, abstol,
-            dense=true, maxsteps=2000)
+        (@test_logs (Warn, max_iters_reached()) taylorinteg(
+            kepler1!,
+            q0,
+            tspan[1],
+            tspan[2],
+            order,
+            abstol,
+            dense = true,
+            maxsteps = 1,
+        ))
+        solp = taylorinteg(
+            kepler1!,
+            q0,
+            tspan[1],
+            tspan[2],
+            order,
+            abstol,
+            dense = true,
+            maxsteps = 2000,
+        )
         tvp, xvp, psolp = solp.t, solp.x, solp.p
         prob = ODEProblem(kepler1!, q0, tspan)
         @test isinplace(prob) == true
-        sol1 = solve(prob, TaylorMethod(order), abstol=abstol, maxiters=2000, parse_eqs=false)
-        (@test_logs (Warn, larger_maxiters_needed()) solve(prob, TaylorMethod(order), abstol=abstol, maxiters=1))
-        sol2 = solve(prob, TaylorMethod(order), abstol=abstol, maxiters=2000)
+        sol1 = solve(
+            prob,
+            TaylorMethod(order),
+            abstol = abstol,
+            maxiters = 2000,
+            parse_eqs = false,
+        )
+        (@test_logs (Warn, larger_maxiters_needed()) solve(
+            prob,
+            TaylorMethod(order),
+            abstol = abstol,
+            maxiters = 1,
+        ))
+        sol2 = solve(prob, TaylorMethod(order), abstol = abstol, maxiters = 2000)
         @test sol1.alg.parse_eqs == false
         @test sol2.alg.parse_eqs == true
         @test tvp == sol2.t
         @test sol1.u == sol2.u
         @test transpose(Array(sol2)) == xvp
-        @test norm( solp(tspan[1]) - sol1(tspan[1]), Inf ) < 1e-16
-        @test norm( solp(0.1) - sol1(0.1), Inf ) < 1e-13
-        @test norm( solp(tspan[2]/2) - sol1(tspan[2]/2), Inf ) < 1e-13
-        @test norm( solp(solp.t[end-2] + 0.01) - sol1(sol1.t[end-2] + 0.01), Inf ) < 1e-13
+        @test norm(solp(tspan[1]) - sol1(tspan[1]), Inf) < 1e-16
+        @test norm(solp(0.1) - sol1(0.1), Inf) < 1e-13
+        @test norm(solp(tspan[2] / 2) - sol1(tspan[2] / 2), Inf) < 1e-13
+        @test norm(solp(solp.t[end-2] + 0.01) - sol1(sol1.t[end-2] + 0.01), Inf) < 1e-13
         @test solp(tspan[2]) == sol1(tspan[2])
 
-        (@test_logs (Warn, max_iters_reached()) taylorinteg(kepler1!, q0TN, tspan[1], tspan[2], order, abstol,
-            dense = true, maxsteps=1))
-        solTN = taylorinteg(kepler1!, q0TN, tspan[1], tspan[2], order, abstol,
-            dense = true, maxsteps=2000)
+        (@test_logs (Warn, max_iters_reached()) taylorinteg(
+            kepler1!,
+            q0TN,
+            tspan[1],
+            tspan[2],
+            order,
+            abstol,
+            dense = true,
+            maxsteps = 1,
+        ))
+        solTN = taylorinteg(
+            kepler1!,
+            q0TN,
+            tspan[1],
+            tspan[2],
+            order,
+            abstol,
+            dense = true,
+            maxsteps = 2000,
+        )
         tTN, xTN, psolTN = solTN.t, solTN.x, solTN.p
 
         probTN = ODEProblem(kepler1!, q0TN, tspan)
-        (@test_logs (Warn,larger_maxiters_needed()) solve(probTN, TaylorMethod(order), abstol=abstol, parse_eqs=true, dense=true, maxiters=1))
-        sol2TN = solve(probTN, TaylorMethod(order), abstol=abstol, parse_eqs=true, dense=true, maxiters=2000)
+        (@test_logs (Warn, larger_maxiters_needed()) solve(
+            probTN,
+            TaylorMethod(order),
+            abstol = abstol,
+            parse_eqs = true,
+            dense = true,
+            maxiters = 1,
+        ))
+        sol2TN = solve(
+            probTN,
+            TaylorMethod(order),
+            abstol = abstol,
+            parse_eqs = true,
+            dense = true,
+            maxiters = 2000,
+        )
         @test sol2TN.alg.parse_eqs == true
-        @test DiffEqBase.interp_summary(sol2TN.interp) == "Taylor series polynomial evaluation"
+        @test DiffEqBase.interp_summary(sol2TN.interp) ==
+              "Taylor series polynomial evaluation"
         @test size(xTN) == size(Array(sol2TN)')
         @test xTN == Array(sol2TN)'
         @test tTN == sol2TN.t
-        @test norm( solTN(tspan[1]) - sol2TN(tspan[1]), Inf ) < 1e-14
-        @test psolTN[end,:]( tTN[end] - tTN[end-1] ) == sol2TN(sol2TN.t[end])
+        @test norm(solTN(tspan[1]) - sol2TN(tspan[1]), Inf) < 1e-14
+        @test psolTN[end, :](tTN[end] - tTN[end-1]) == sol2TN(sol2TN.t[end])
         @test solTN(solTN.t[end]) == sol2TN(sol2TN.t[end])
-        @test psolTN[2,:]( 0.005 - tTN[2] ) == sol2TN(0.005)
-        @test norm( solTN(0.1) - sol2TN(0.1), Inf ) < 1e-13
-        @test norm( solTN(tspan[2]/2)() - sol2TN(tspan[2]/2)(), Inf ) < 1e-15
-        @test norm( solTN(tspan[2]/2) - sol2TN(tspan[2]/2), Inf ) < 1e-10
+        @test psolTN[2, :](0.005 - tTN[2]) == sol2TN(0.005)
+        @test norm(solTN(0.1) - sol2TN(0.1), Inf) < 1e-13
+        @test norm(solTN(tspan[2] / 2)() - sol2TN(tspan[2] / 2)(), Inf) < 1e-15
+        @test norm(solTN(tspan[2] / 2) - sol2TN(tspan[2] / 2), Inf) < 1e-10
         @test solTN(tspan[2]) == sol2TN(tspan[2])
     end
 
@@ -201,10 +336,16 @@ import Logging: Warn
         u0 = [1.0; 0.0]
         prob = ODEProblem(harmosc!, u0, tspan)
         t_cb = 1.0pi
-        condition(u,t,integrator) = t == t_cb
+        condition(u, t, integrator) = t == t_cb
         affect!(integrator) = integrator.u[1] += 0.1
-        cb = DiscreteCallback(condition,affect!)
-        sol = (@test_logs min_level=Logging.Warn solve(prob, TaylorMethod(order), abstol=abstol, tstops=[t_cb], callback=cb))
+        cb = DiscreteCallback(condition, affect!)
+        sol = (@test_logs min_level = Logging.Warn solve(
+            prob,
+            TaylorMethod(order),
+            abstol = abstol,
+            tstops = [t_cb],
+            callback = cb,
+        ))
         @test sol.t[4] == t_cb
         @test sol.t[4] == sol.t[5]
         @test sol.u[4][1] + 0.1 == sol.u[5][1]
@@ -213,25 +354,30 @@ import Logging: Warn
     @testset "Test continuous callback in common interface" begin
         # continuous callback: example taken from DifferentialEquations.jl docs:
         # https://diffeq.sciml.ai/stable/features/callback_functions/#Example-1:-Bouncing-Ball
-        @taylorize function f(du,u,p,t)
+        @taylorize function f(du, u, p, t)
             local g_acc = p
             du[1] = u[2]
             du[2] = -g_acc + zero(u[2])
         end
-        function condition(u,t,integrator)
+        function condition(u, t, integrator)
             u[1]
         end
         function affect!(integrator)
             integrator.u[2] = -integrator.u[2]
             return nothing
         end
-        cb = ContinuousCallback(condition,affect!)
-        u0 = [50.0,0.0]
-        tspan = (0.0,15.0)
+        cb = ContinuousCallback(condition, affect!)
+        u0 = [50.0, 0.0]
+        tspan = (0.0, 15.0)
         p = 9.8
-        prob = ODEProblem(f,u0,tspan,p)
-        sol = (@test_logs min_level=Logging.Warn solve(prob, TaylorMethod(25), abstol=1e-16, callback=cb))
-        tb = sqrt(2*50/9.8) # bounce time
+        prob = ODEProblem(f, u0, tspan, p)
+        sol = (@test_logs min_level = Logging.Warn solve(
+            prob,
+            TaylorMethod(25),
+            abstol = 1e-16,
+            callback = cb,
+        ))
+        tb = sqrt(2 * 50 / 9.8) # bounce time
         @test abs(tb - sol.t[9]) < 1e-14
         @test sol.t[9] == sol.t[10]
         @test sol.u[9][1] == sol.u[10][1]
@@ -245,7 +391,7 @@ import Logging: Warn
     @testset "Test vector continuous callback in common interface" begin
         # vector continuous callback: example taken from DifferentialEquations.jl docs:
         # https://diffeq.sciml.ai/dev/features/callback_functions/#VectorContinuousCallback-Example
-        @taylorize function ff(du,u,p,t)
+        @taylorize function ff(du, u, p, t)
             local g_acc = p
             du[1] = u[2]
             du[2] = -g_acc + zero(u[2])
@@ -253,7 +399,7 @@ import Logging: Warn
             du[4] = zero(u[4])
         end
 
-        function condition(out,u,t,integrator) # Event when event_f(u,t) == 0
+        function condition(out, u, t, integrator) # Event when event_f(u,t) == 0
             out[1] = u[1]
             out[2] = (u[3] - 10.0)u[3]
         end
@@ -273,8 +419,13 @@ import Logging: Warn
         p = 9.8
         prob = ODEProblem(ff, u0, tspan, p)
         # Avoid log-checks for Julia versions before v1.6
-        sol = (@test_logs min_level=Logging.Warn solve(prob, TaylorMethod(25), abstol=1e-16, callback=cb))
-        tb = sqrt(2*50/9.8) # bounce time
+        sol = (@test_logs min_level = Logging.Warn solve(
+            prob,
+            TaylorMethod(25),
+            abstol = 1e-16,
+            callback = cb,
+        ))
+        tb = sqrt(2 * 50 / 9.8) # bounce time
         @test abs(tb - sol.t[8]) < 1e-14
         @test sol.t[8] == sol.t[9]
         @test sol.u[9][1] == sol.u[8][1]
@@ -292,18 +443,29 @@ import Logging: Warn
         b1 = 3.0
         order = 25 # Taylor expansion order wrt time
         abstol = 1.0e-20
-        @taylorize xdot1(x, p, t) = b1-x^2
+        @taylorize xdot1(x, p, t) = b1 - x^2
         @test (@isdefined xdot1)
         x0 = 1.0
         tspan = (0.0, 1000.0)
         prob = ODEProblem(xdot1, x0, tspan)
-        sol1 = (@test_logs min_level=Logging.Warn solve(
-            prob, TaylorMethod(order), abstol=abstol, parse_eqs=false))
+        sol1 = (@test_logs min_level = Logging.Warn solve(
+            prob,
+            TaylorMethod(order),
+            abstol = abstol,
+            parse_eqs = false,
+        ))
         @test sol1.alg.parse_eqs == false
-        sol2 = (@test_logs min_level=Logging.Warn solve(
-            prob, TaylorMethod(order), abstol=abstol))
-        sol3 = (@test_logs min_level=Logging.Warn solve(
-            prob, TaylorMethod(order), abstol=abstol, parse_eqs=false))
+        sol2 = (@test_logs min_level = Logging.Warn solve(
+            prob,
+            TaylorMethod(order),
+            abstol = abstol,
+        ))
+        sol3 = (@test_logs min_level = Logging.Warn solve(
+            prob,
+            TaylorMethod(order),
+            abstol = abstol,
+            parse_eqs = false,
+        ))
         @test sol2.alg.parse_eqs
         @test !sol3.alg.parse_eqs
         @test sol1.t == sol2.t
@@ -314,31 +476,45 @@ import Logging: Warn
         @taylorize function integ_vec(dx, x, p, t)
             local λ = p[1]
             dx[1] = cos(t)
-            dx[2] = -λ*sin(t)
+            dx[2] = -λ * sin(t)
             return dx
         end
         @test (@isdefined integ_vec)
         x0 = [0.0, 1.0]
         tspan = (0.0, 11pi)
         prob = ODEProblem(integ_vec, x0, tspan, [1.0])
-        sol1 = (@test_logs min_level=Logging.Warn solve(
-            prob, TaylorMethod(order), abstol=abstol, parse_eqs=false))
-        sol2 = (@test_logs min_level=Logging.Warn solve(
-            prob, TaylorMethod(order), abstol=abstol)) # parse_eqs=true
+        sol1 = (@test_logs min_level = Logging.Warn solve(
+            prob,
+            TaylorMethod(order),
+            abstol = abstol,
+            parse_eqs = false,
+        ))
+        sol2 = (@test_logs min_level = Logging.Warn solve(
+            prob,
+            TaylorMethod(order),
+            abstol = abstol,
+        )) # parse_eqs=true
         @test sol2.alg.parse_eqs == true
         @test length(sol1.t) == length(sol2.t)
         @test sol1.t == sol2.t
         @test sol1.u == sol2.u
-        sol1ti = (@test_logs min_level=Logging.Warn taylorinteg(
-            integ_vec, x0, tspan[1], tspan[2], order, abstol, [1.0]))
+        sol1ti = (@test_logs min_level = Logging.Warn taylorinteg(
+            integ_vec,
+            x0,
+            tspan[1],
+            tspan[2],
+            order,
+            abstol,
+            [1.0],
+        ))
         @test sol1.t == sol1ti.t
-        @test sol1[1,:] == sol1ti.x[:,1]
-        @test sol1[2,:] == sol1ti.x[:,2]
+        @test sol1[1, :] == sol1ti.x[:, 1]
+        @test sol1[2, :] == sol1ti.x[:, 2]
         @test norm(sol1.u[end][1] - sin(sol1.t[end]), Inf) < 1.0e-14
         @test norm(sol1.u[end][2] - cos(sol1.t[end]), Inf) < 1.0e-14
 
-        V(x, y) = - (1-μ)/sqrt((x-μ)^2+y^2) - μ/sqrt((x+1-μ)^2+y^2)
-        H_pcr3bp(x, y, px, py) = (px^2+py^2)/2 - (x*py-y*px) + V(x, y)
+        V(x, y) = -(1 - μ) / sqrt((x - μ)^2 + y^2) - μ / sqrt((x + 1 - μ)^2 + y^2)
+        H_pcr3bp(x, y, px, py) = (px^2 + py^2) / 2 - (x * py - y * px) + V(x, y)
         H_pcr3bp(x) = H_pcr3bp(x...)
         J0 = -1.58 # Jacobi constant
         q0 = [-0.8, 0.0, 0.0, -0.6276410653920694] # initial condition
@@ -348,82 +524,89 @@ import Logging: Warn
         @taylorize function pcr3bp!(dq, q, param, t)
             local μ = param[1]
             local onemμ = 1 - μ
-            x1 = q[1]-μ
+            x1 = q[1] - μ
             x1sq = x1^2
             y = q[2]
             ysq = y^2
-            r1_1p5 = (x1sq+ysq)^1.5
-            x2 = q[1]+onemμ
+            r1_1p5 = (x1sq + ysq)^1.5
+            x2 = q[1] + onemμ
             x2sq = x2^2
-            r2_1p5 = (x2sq+ysq)^1.5
+            r2_1p5 = (x2sq + ysq)^1.5
             dq[1] = q[3] + q[2]
             dq[2] = q[4] - q[1]
-            dq[3] = (-((onemμ*x1)/r1_1p5) - ((μ*x2)/r2_1p5)) + q[4]
-            dq[4] = (-((onemμ*y )/r1_1p5) - ((μ*y )/r2_1p5)) - q[3]
+            dq[3] = (-((onemμ * x1) / r1_1p5) - ((μ * x2) / r2_1p5)) + q[4]
+            dq[4] = (-((onemμ * y) / r1_1p5) - ((μ * y) / r2_1p5)) - q[3]
             return nothing
         end
         prob = ODEProblem(pcr3bp!, q0, tspan, p)
-        sol1 = (@test_logs min_level=Logging.Warn solve(
-            prob, TaylorMethod(order), abstol=abstol))
+        sol1 = (@test_logs min_level = Logging.Warn solve(
+            prob,
+            TaylorMethod(order),
+            abstol = abstol,
+        ))
         @test sol1.alg.parse_eqs == true
-        sol2 = (@test_logs min_level=Logging.Warn solve(
-            prob, TaylorMethod(order), abstol=abstol, parse_eqs=false))
+        sol2 = (@test_logs min_level = Logging.Warn solve(
+            prob,
+            TaylorMethod(order),
+            abstol = abstol,
+            parse_eqs = false,
+        ))
         @test sol2.alg.parse_eqs == false
-        @test norm( H_pcr3bp(sol1.u[end]) - J0 ) < 1e-10
-        @test norm( H_pcr3bp(sol2.u[end]) - J0 ) < 1e-10
+        @test norm(H_pcr3bp(sol1.u[end]) - J0) < 1e-10
+        @test norm(H_pcr3bp(sol2.u[end]) - J0) < 1e-10
         @test sol1.u == sol2.u
         @test sol1.t == sol2.t
 
         # Same as harmosc1dchain!, but adding a `@threads for`
         @taylorize function harmosc1dchain!(dq, q, params, t)
-            local N = Int(length(q)/2)
+            local N = Int(length(q) / 2)
             local _eltype_q_ = eltype(q)
             local μ = params
             X = Array{_eltype_q_}(undef, N, N)
             accX = Array{_eltype_q_}(undef, N) #acceleration
-            for j in 1:N
+            for j = 1:N
                 accX[j] = zero(q[1])
                 dq[j] = q[N+j]
             end
             #compute accelerations
-            for j in 1:N
-                for i in 1:N
+            for j = 1:N
+                for i = 1:N
                     if i == j
                     else
-                        X[i,j] = q[i]-q[j]
-                        temp_001 = accX[j] + (μ[i]*X[i,j])
+                        X[i, j] = q[i] - q[j]
+                        temp_001 = accX[j] + (μ[i] * X[i, j])
                         accX[j] = temp_001
                     end #if i != j
                 end #for, i
             end #for, j
-            for i in 1:N
+            for i = 1:N
                 dq[N+i] = accX[i]
             end
             nothing
         end
 
         @taylorize function harmosc1dchain_threads!(dq, q, params, t)
-            local N = Int(length(q)/2)
+            local N = Int(length(q) / 2)
             local _eltype_q_ = eltype(q)
             local μ = params
             X = Array{_eltype_q_}(undef, N, N)
             accX = Array{_eltype_q_}(undef, N) #acceleration
-            for j in 1:N
+            for j = 1:N
                 accX[j] = zero(q[1])
                 dq[j] = q[N+j]
             end
             #compute accelerations
-            Threads.@threads for j in 1:N
-                for i in 1:N
+            Threads.@threads for j = 1:N
+                for i = 1:N
                     if i == j
                     else
-                        X[i,j] = q[i]-q[j]
-                        temp_001 = accX[j] + (μ[i]*X[i,j])
+                        X[i, j] = q[i] - q[j]
+                        temp_001 = accX[j] + (μ[i] * X[i, j])
                         accX[j] = temp_001
                     end #if i != j
                 end #for, i
             end #for, j
-            for i in 1:N
+            for i = 1:N
                 dq[N+i] = accX[i]
             end
             nothing
@@ -436,13 +619,24 @@ import Logging: Warn
         @show Threads.nthreads()
 
         probHO = ODEProblem(harmosc1dchain!, x0, (0.0, 10000.0), μ)
-        solHO = (@test_logs min_level=Logging.Warn solve(
-            probHO, TaylorMethod(order), abstol=abstol, parse_eqs=false))
+        solHO = (@test_logs min_level = Logging.Warn solve(
+            probHO,
+            TaylorMethod(order),
+            abstol = abstol,
+            parse_eqs = false,
+        ))
         probHOT = ODEProblem(harmosc1dchain_threads!, x0, (0.0, 10000.0), μ)
-        solHOT = (@test_logs min_level=Logging.Warn solve(
-            probHOT, TaylorMethod(order), abstol=abstol))
-        solHOnT = (@test_logs min_level=Logging.Warn solve(
-            probHOT, TaylorMethod(order), abstol=abstol, parse_eqs=false))
+        solHOT = (@test_logs min_level = Logging.Warn solve(
+            probHOT,
+            TaylorMethod(order),
+            abstol = abstol,
+        ))
+        solHOnT = (@test_logs min_level = Logging.Warn solve(
+            probHOT,
+            TaylorMethod(order),
+            abstol = abstol,
+            parse_eqs = false,
+        ))
 
         @test solHOT.u == solHOnT.u
         @test solHOT.t == solHOnT.t
@@ -455,26 +649,30 @@ import Logging: Warn
         u0 = rand(4)#rand(4, 2)
         tspan = (0.0, 1.0)
         prob1 = ODEProblem(f!, u0, tspan)
-        sol = (@test_logs min_level=Logging.Warn solve(prob1, TaylorMethod(50), abstol=1e-20))
+        sol = (@test_logs min_level = Logging.Warn solve(
+            prob1,
+            TaylorMethod(50),
+            abstol = 1e-20,
+        ))
 
         # `order` is not specified
-        @test_throws ErrorException solve(prob, TaylorMethod(), abstol=1e-20)
+        @test_throws ErrorException solve(prob, TaylorMethod(), abstol = 1e-20)
     end
 
     ### DynamicalODEProblem tests (see #108, #109)
     @testset "Test integration of DynamicalODEPoblem" begin
-        function iip_q̇(dq,p,q,params,t)
+        function iip_q̇(dq, p, q, params, t)
             dq[1] = p[1]
             dq[2] = p[2]
         end
 
-        function iip_ṗ(dp,p,q,params,t)
+        function iip_ṗ(dp, p, q, params, t)
             dp[1] = -q[1] * (1 + 2q[2])
             dp[2] = -q[2] - (q[1]^2 - q[2]^2)
         end
 
-        iip_q0 = [0.1, 0.]
-        iip_p0 = [0., 0.5]
+        iip_q0 = [0.1, 0.0]
+        iip_p0 = [0.0, 0.5]
 
 
         function oop_q̇(p, q, params, t)
@@ -487,24 +685,35 @@ import Logging: Warn
             @SVector [dp1, dp2]
         end
 
-        oop_q0 = @SVector [0.1, 0.]
-        oop_p0 = @SVector [0., 0.5]
+        oop_q0 = @SVector [0.1, 0.0]
+        oop_p0 = @SVector [0.0, 0.5]
 
-        T(p) = 1//2 * (p[1]^2 + p[2]^2)
-        V(q) = 1//2 * (q[1]^2 + q[2]^2 + 2q[1]^2 * q[2]- 2//3 * q[2]^3)
-        H(p,q, params) = T(p) + V(q)
+        T(p) = 1 // 2 * (p[1]^2 + p[2]^2)
+        V(q) = 1 // 2 * (q[1]^2 + q[2]^2 + 2q[1]^2 * q[2] - 2 // 3 * q[2]^3)
+        H(p, q, params) = T(p) + V(q)
 
         E = H(iip_p0, iip_q0, nothing)
 
-        energy_err(sol) = maximum(i->H([sol[1,i], sol[2,i]], [sol[3,i], sol[4,i]], nothing)-E, 1:length(sol.u))
+        energy_err(sol) = maximum(
+            i -> H([sol[1, i], sol[2, i]], [sol[3, i], sol[4, i]], nothing) - E,
+            1:length(sol.u),
+        )
 
-        iip_prob = DynamicalODEProblem(iip_ṗ, iip_q̇, iip_p0, iip_q0, (0., 100.))
-        oop_prob = DynamicalODEProblem(oop_ṗ, oop_q̇, oop_p0, oop_q0, (0., 100.))
+        iip_prob = DynamicalODEProblem(iip_ṗ, iip_q̇, iip_p0, iip_q0, (0.0, 100.0))
+        oop_prob = DynamicalODEProblem(oop_ṗ, oop_q̇, oop_p0, oop_q0, (0.0, 100.0))
 
-        sol1 = (@test_logs min_level=Logging.Warn solve(iip_prob, TaylorMethod(50), abstol=1e-20))
+        sol1 = (@test_logs min_level = Logging.Warn solve(
+            iip_prob,
+            TaylorMethod(50),
+            abstol = 1e-20,
+        ))
         @test energy_err(sol1) < 1e-10
 
-        sol2 = (@test_logs min_level=Logging.Warn solve(oop_prob, TaylorMethod(50), abstol=1e-20))
+        sol2 = (@test_logs min_level = Logging.Warn solve(
+            oop_prob,
+            TaylorMethod(50),
+            abstol = 1e-20,
+        ))
         @test energy_err(sol2) < 1e-10
 
         @test sol1.t == sol2.t
