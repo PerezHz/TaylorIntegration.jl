@@ -47,9 +47,10 @@ end
     res::Taylor1{Taylor1{T}},
     a::Taylor1{Taylor1{T}},
     k::Int,
-) where {T<:TaylorSeries.NumberNotSeries}
+) where {T<:TaylorSeries.NumberNotSeriesN}
     @inbounds for l in eachindex(a[k-1])
-        res[k][l] = a[k-1][l] / k
+        # res[k][l] = a[k-1][l] / k
+        TS.div!(res[k], a[k-1], k, l)
     end
     return nothing
 end
