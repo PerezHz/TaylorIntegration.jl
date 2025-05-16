@@ -17,7 +17,7 @@ Depending of `eltype(x)`, i.e., `U<:Number`, it may be necessary to overload
 function stepsize(x::Taylor1{U}, epsilon::T) where {T<:Real,U<:Number}
     R = promote_type(typeof(norm(constant_term(x), Inf)), T)
     ord = x.order
-    h = convert(R, Inf)
+    h = typemax(R)
     z = zero(R)
     for k in (ord - 1, ord)
         @inbounds aux = norm(x[k], Inf)
@@ -30,7 +30,7 @@ end
 
 function stepsize(q::AbstractArray{Taylor1{U},N}, epsilon::T) where {T<:Real,U<:Number,N}
     R = promote_type(typeof(norm(constant_term(q[1]), Inf)), T)
-    h = convert(R, Inf)
+    h = typemax(R)
     for i in eachindex(q)
         @inbounds hi = stepsize(q[i], epsilon)
         h = min(h, hi)

@@ -2031,6 +2031,80 @@ import Logging: Warn
 
     local tf = 2π * 10.0
     @testset "Jet transport with @taylorize macro" begin
+        # Falling ball
+        @taylorize function falling_ball!(dx, x, p, t)
+            dx[1] = x[2]
+            dx[2] = -one(x[1])
+            nothing
+        end
+
+        varorder = 4 #the order of the variational expansion
+        p = set_variables("ξ", numvars = 2, order = varorder) #TaylorN steup
+        q0 = [10.0, 0.0] #the initial conditions
+        q0TN = q0 + p #parametrization of a small neighbourhood around the initial conditions
+
+        #note that as called below, taylorinteg uses the parsed jetcoeffs! method by default
+        solp = (@test_logs min_level = Logging.Warn taylorinteg(
+            falling_ball!,
+            q0,
+            0.0,
+            5.0,
+            4,
+            _abstol,
+            maxsteps = 10,
+        ))
+        xvp = solp.x
+
+        # "warmup" for jet transport integration
+        solTN = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+            falling_ball!,
+            q0TN,
+            0.0,
+            5.0,
+            4,
+            _abstol,
+            maxsteps = 1,
+            parse_eqs = false,
+        ))
+        @test size(solTN.x) == (2, 2)
+        #jet transport integration with parsed jetcoeffs!
+        solTNp = (@test_logs min_level = Logging.Warn taylorinteg(
+            falling_ball!,
+            q0TN,
+            0.0,
+            5.0,
+            4,
+            _abstol,
+            maxsteps = 10,
+        ))
+        #jet transport integration with non-parsed jetcoeffs!
+        solTN = (@test_logs min_level = Logging.Warn taylorinteg(
+            falling_ball!,
+            q0TN,
+            0.0,
+            5.0,
+            4,
+            _abstol,
+            maxsteps = 10,
+            parse_eqs = false,
+        ))
+        @test solTN.x == solTNp.x
+        @test norm(solTNp.x[:, :]() - xvp, Inf) < 1e-15
+
+        dq = 0.0001rand(2)
+        q1 = q0 + dq
+        y = (@test_logs min_level = Logging.Warn taylorinteg(
+            falling_ball!,
+            q1,
+            solTNp.t,
+            4,
+            _abstol,
+            maxsteps = 10,
+        ))
+        y_jt = solTNp.x[:, :](dq)
+        @test norm(y.x - y_jt, Inf) < 1e-11
+
+        # pendulum!
         @taylorize function pendulum!(dx, x, p, t)
             dx[1] = x[2]
             dx[2] = -sin(x[1])

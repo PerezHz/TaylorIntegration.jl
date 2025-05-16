@@ -103,7 +103,7 @@ function taylorinteg!(
     @unpack tv, xv, psol, t, x, rv, parse_eqs = cache
 
     # Initial conditions
-    update!(cache, t0, x0)
+    update_cache!(cache, t0, x0)
     nsteps = 1
     @inbounds tv[1] = t0
     @inbounds xv[1] = x0
@@ -117,7 +117,7 @@ function taylorinteg!(
         x0 = evaluate(x, δt) # new initial condition
         set_psol!(dense, psol, nsteps, x) # Store the Taylor polynomial solution
         t0 += δt
-        update!(cache, t0, x0)
+        update_cache!(cache, t0, x0)
         nsteps += 1
         @inbounds tv[nsteps] = t0
         @inbounds xv[nsteps] = x0
@@ -168,7 +168,7 @@ function taylorinteg!(
 
     # Initial conditions
     x0 = deepcopy(q0)
-    update!(cache, t0, x0)
+    update_cache!(cache, t0, x0)
     @inbounds tv[1] = t0
     @inbounds xv[:, 1] .= q0
     sign_tstep = copysign(1, tmax - t0)
@@ -182,7 +182,7 @@ function taylorinteg!(
         evaluate!(x, δt, x0) # new initial condition
         set_psol!(dense, psol, nsteps, x) # Store the Taylor polynomial solution
         t0 += δt
-        update!(cache, t0, x0)
+        update_cache!(cache, t0, x0)
         nsteps += 1
         @inbounds tv[nsteps] = t0
         @inbounds xv[:, nsteps] .= deepcopy.(x0)
@@ -322,7 +322,7 @@ function taylorinteg!(
 
     # Initial conditions
     @inbounds t0, t1, tmax = trange[1], trange[2], trange[end]
-    update!(cache, t0, x0)
+    update_cache!(cache, t0, x0)
     sign_tstep = copysign(1, tmax - t0)
     @inbounds xv[1] = x0
 
@@ -347,7 +347,7 @@ function taylorinteg!(
             break
         end
         t0 = tnext
-        update!(cache, t0, x0)
+        update_cache!(cache, t0, x0)
         nsteps += 1
         if nsteps > maxsteps
             @warn("""
@@ -395,7 +395,7 @@ function taylorinteg!(
     @inbounds t0, t1, tmax = trange[1], trange[2], trange[end]
     sign_tstep = copysign(1, tmax - t0)
     @inbounds x0 .= deepcopy(q0)
-    update!(cache, t0, x0)
+    update_cache!(cache, t0, x0)
     @inbounds xv[:, 1] .= q0
 
     # Integration
@@ -419,7 +419,7 @@ function taylorinteg!(
             break
         end
         t0 = tnext
-        update!(cache, t0, x0)
+        update_cache!(cache, t0, x0)
         nsteps += 1
         if nsteps > maxsteps
             @warn("""
