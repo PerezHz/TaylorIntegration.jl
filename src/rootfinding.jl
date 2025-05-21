@@ -295,7 +295,7 @@ function taylorinteg!(
 
     # Initial conditions
     x0 = deepcopy(q0)
-    update!(cache, t0, x0)
+    update_cache!(cache, t0, x0)
     @inbounds tv[1] = t0
     @inbounds xv[:, 1] .= deepcopy(q0)
     sign_tstep = copysign(1, tmax - t0)
@@ -348,7 +348,7 @@ function taylorinteg!(
         )
         g_tupl_old = deepcopy(g_tupl)
         t0 += δt
-        update!(cache, t0, x0)
+        update_cache!(cache, t0, x0)
         nsteps += 1
         @inbounds tv[nsteps] = t0
         @inbounds xv[:, nsteps] .= deepcopy(x0)
@@ -421,7 +421,7 @@ function taylorinteg!(
     @inbounds t0, t1, tmax = trange[1], trange[2], trange[end]
     sign_tstep = copysign(1, tmax - t0)
     @inbounds x0 .= deepcopy(q0)
-    update!(cache, t0, x0)
+    update_cache!(cache, t0, x0)
     @inbounds xv[:, 1] .= deepcopy(q0)
 
     # Some auxiliary arrays for root-finding/event detection/Poincaré surface of section evaluation
@@ -484,7 +484,7 @@ function taylorinteg!(
         )
         g_tupl_old = deepcopy(g_tupl)
         t0 = tnext
-        update!(cache, t0, x0)
+        update_cache!(cache, t0, x0)
         nsteps += 1
         if nsteps > maxsteps
             @warn("""
