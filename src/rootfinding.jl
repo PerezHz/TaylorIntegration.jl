@@ -251,6 +251,7 @@ function taylorinteg(
     eventorder::Int = 0,
     newtoniter::Int = 10,
     nrabstol::T = eps(T),
+    reltol::T = zero(T),
 ) where {T<:Real,U<:Number}
 
     @assert order ≥ eventorder "`eventorder` must be less than or equal to `order`"
@@ -272,6 +273,7 @@ function taylorinteg(
         eventorder,
         newtoniter,
         nrabstol,
+        reltol,
     )
 end
 
@@ -289,6 +291,7 @@ function taylorinteg!(
     eventorder::Int = 0,
     newtoniter::Int = 10,
     nrabstol::T = eps(T),
+    reltol::T = zero(T),
 ) where {T<:Real,U<:Number,D}
 
     @unpack tv, xv, psol, xaux, t, x, dx, rv, parse_eqs = cache
@@ -320,7 +323,7 @@ function taylorinteg!(
     nevents = 1 #number of detected events
     while sign_tstep * t0 < sign_tstep * tmax
         δt_old = δt
-        δt = taylorstep!(Val(parse_eqs), f!, t, x, dx, xaux, abstol, params, rv) # δt is positive!
+        δt = taylorstep!(Val(parse_eqs), f!, t, x, dx, xaux, abstol, params, rv, reltol) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep * (tmax - t0))
         evaluate!(x, δt, x0) # new initial condition
@@ -376,6 +379,7 @@ function taylorinteg(
     eventorder::Int = 0,
     newtoniter::Int = 10,
     nrabstol::T = eps(T),
+    reltol::T = zero(T),
 ) where {T<:Real,U<:Number}
 
     @assert order ≥ eventorder "`eventorder` must be less than or equal to `order`"
@@ -398,6 +402,7 @@ function taylorinteg(
         eventorder,
         newtoniter,
         nrabstol,
+        reltol,
     )
 end
 
@@ -413,6 +418,7 @@ function taylorinteg!(
     eventorder::Int = 0,
     newtoniter::Int = 10,
     nrabstol::T = eps(T),
+    reltol::T = zero(T),
 ) where {T<:Real,U<:Number}
 
     @unpack tv, xv, xaux, x0, x1, t, x, dx, rv, parse_eqs = cache
@@ -445,7 +451,7 @@ function taylorinteg!(
     nevents = 1 #number of detected events
     while sign_tstep * t0 < sign_tstep * tmax
         δt_old = δt
-        δt = taylorstep!(Val(parse_eqs), f!, t, x, dx, xaux, abstol, params, rv) # δt is positive!
+        δt = taylorstep!(Val(parse_eqs), f!, t, x, dx, xaux, abstol, params, rv, reltol) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep * (tmax - t0))
         evaluate!(x, δt, x0) # new initial condition
