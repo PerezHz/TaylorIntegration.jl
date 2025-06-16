@@ -21,7 +21,7 @@ function stepsize(x::Taylor1{U}, absepsilon::T, relepsilon::T=zero(T)) where {T<
     for k in (ord - 1, ord)
         @inbounds aux = norm(x[k], Inf)
         TS._isthinzero(aux) && continue
-
+        #eq. 3-3 Jorba and Zou (2005)
         if absepsilon ≥ relepsilon * norm(x[0], Inf)
             aux1 = _stepsize(aux, absepsilon, k)
         else    
