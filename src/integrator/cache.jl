@@ -423,7 +423,7 @@ function update!(cache::ScalarCache, t0::T, x0::U) where {T,U}
     return nothing
 end
 
-function update!(cache::AbstractVectorCache, t0::T, x0::Vector{U}) where {T,U}
+function update!(cache::AbstractVectorCache, t0::T, x0::AbstractVector{U}) where {T,U}
     @unpack t, x = cache
     @inbounds for i in eachindex(x0)
         x[i][0] = x0[i]
