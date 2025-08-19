@@ -163,8 +163,8 @@ function findroot!(
         evaluate!(x_dx, dt_nr, view(x_dx_val, :))
 
         tvS[nevents] = t0 + dt_nr
-        xvS[:, nevents] .= view(x_dx_val, 1:dof)
-        gvS[nevents] = g_dg_val[1]
+        xvS[:, nevents] .= deepcopy.(view(x_dx_val, 1:dof))
+        gvS[nevents] = deepcopy(g_dg_val[1])
 
         nevents += 1
     end
@@ -302,13 +302,13 @@ function taylorinteg!(
 
     # Some auxiliary arrays for root-finding/event detection/Poincaré surface of section evaluation
     g_tupl = g(dx, x, params, t)
-    g_tupl_old = g(dx, x, params, t)
+    g_tupl_old = deepcopy(g_tupl)
     δt = zero(x[1])
     δt_old = zero(x[1])
 
     x_dx = vcat(x, dx)
     g_dg = vcat(g_tupl[2], g_tupl_old[2])
-    x_dx_val = Array{U}(undef, length(x_dx))
+    x_dx_val = evaluate(x_dx)
     g_dg_val = vcat(evaluate(g_tupl[2]), evaluate(g_tupl_old[2]))
 
     tvS = Array{U}(undef, maxsteps + 1)
@@ -426,13 +426,13 @@ function taylorinteg!(
 
     # Some auxiliary arrays for root-finding/event detection/Poincaré surface of section evaluation
     g_tupl = g(dx, x, params, t)
-    g_tupl_old = g(dx, x, params, t)
+    g_tupl_old = deepcopy(g_tupl)
     δt = zero(U)
     δt_old = zero(U)
 
     x_dx = vcat(x, dx)
     g_dg = vcat(g_tupl[2], g_tupl_old[2])
-    x_dx_val = Array{U}(undef, length(x_dx))
+    x_dx_val = evaluate(x_dx)
     g_dg_val = vcat(evaluate(g_tupl[2]), evaluate(g_tupl_old[2]))
 
     tvS = Array{U}(undef, maxsteps + 1)

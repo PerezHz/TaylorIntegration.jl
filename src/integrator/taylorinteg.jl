@@ -410,12 +410,12 @@ function taylorinteg!(
         # Evaluate solution at times within convergence radius
         while sign_tstep * t1 < sign_tstep * tnext
             evaluate!(x, t1 - t0, x1)
-            @inbounds xv[:, iter] .= x1
+            @inbounds xv[:, iter] .= deepcopy.(x1)
             iter += 1
             @inbounds t1 = trange[iter]
         end
         if δt == tmax - t0
-            @inbounds xv[:, iter] .= x0
+            @inbounds xv[:, iter] .= deepcopy.(x0)
             break
         end
         t0 = tnext
