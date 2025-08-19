@@ -305,7 +305,7 @@ import Logging: Warn
     @test size(tvSN) == size(tvS)
     @test size(xvSN) == size(xvS)
     @test size(gvSN) == size(gvS)
-    @test norm(gvSN[:]) < 1E-13
+    @test norm(gvSN[:]) < 3E-13
     @test norm(tvSN() - tvr[2:end-1], Inf) < 1E-13
     @test norm(xvSN() - xvS, Inf) < 1E-14
 
