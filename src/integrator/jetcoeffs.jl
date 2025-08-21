@@ -2,7 +2,7 @@
 
 # jetcoeffs!
 @doc doc"""
-    jetcoeffs!(eqsdiff::Function, t, x, params)
+    jetcoeffs!(eqsdiff, t, x, params)
 
 Returns an updated `x` using the recursion relation of the
 derivatives obtained from the differential equations
@@ -21,7 +21,7 @@ computes recursively the high-order derivates back into `x`.
 
 """
 function jetcoeffs!(
-    eqsdiff::Function,
+    eqsdiff,
     t::Taylor1{T},
     x::Taylor1{U},
     params,
@@ -43,7 +43,7 @@ function jetcoeffs!(
 end
 
 @doc doc"""
-    jetcoeffs!(eqsdiff!::Function, t, x, dx, xaux, params)
+    jetcoeffs!(eqsdiff!, t, x, dx, xaux, params)
 
 Mutates `x` in-place using the recursion relation of the
 derivatives obtained from the differential equations
@@ -64,7 +64,7 @@ computes recursively the high-order derivates back into `x`.
 
 """
 function jetcoeffs!(
-    eqsdiff!::Function,
+    eqsdiff!,
     t::Taylor1{T},
     x::AbstractArray{Taylor1{U},N},
     dx::AbstractArray{Taylor1{U},N},
