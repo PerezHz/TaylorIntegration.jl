@@ -115,7 +115,7 @@ function taylorinteg!(
     while sign_tstep * t0 < sign_tstep * tmax
         δt = taylorstep!(Val(parse_eqs), f, t, x, abstol, params, rv, reltol) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
-        if !iszero(δt)
+        if iszero(δt)
             @warn("""The step-size is zero; aborting integration.""")
             break
         end
@@ -186,7 +186,7 @@ function taylorinteg!(
     while sign_tstep * t0 < sign_tstep * tmax
         δt = taylorstep!(Val(parse_eqs), f!, t, x, dx, xaux, abstol, params, rv, reltol) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
-        if !iszero(δt)
+        if iszero(δt)
             @warn("""The step-size is zero; aborting integration.""")
             break
         end
@@ -346,7 +346,7 @@ function taylorinteg!(
     while sign_tstep * t0 < sign_tstep * tmax
         δt = taylorstep!(Val(parse_eqs), f, t, x, abstol, params, rv, reltol)# δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
-        if !iszero(δt)
+        if iszero(δt)
             @warn("""The step-size is zero; aborting integration.""")
             break
         end
@@ -423,8 +423,8 @@ function taylorinteg!(
     nsteps = 1
     while sign_tstep * t0 < sign_tstep * tmax
         δt = taylorstep!(Val(parse_eqs), f!, t, x, dx, xaux, abstol, params, rv, reltol) # δt is positive!
-        if !iszero(δt)
-            @warn("""The step-size is zero; aborting integration.\n""")
+        if iszero(δt)
+            @warn("""The step-size is zero; aborting integration.""")
             break
         end
         # Below, δt has the proper sign according to the direction of the integration

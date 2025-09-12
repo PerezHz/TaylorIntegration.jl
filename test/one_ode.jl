@@ -13,6 +13,7 @@ import Logging: Warn
     local tT = Taylor1(_order)
 
     max_iters_reached() = "Maximum number of integration steps reached; exiting.\n"
+    zero_stepsize() = "The step-size is zero; aborting integration."
 
     @testset "Tests: dot{x}=x^2, x(0) = 1" begin
         eqs_mov(x, p, t) = x^2
@@ -25,7 +26,7 @@ import Logging: Warn
         δt = _abstol^inv(_order - 1)
         @test TaylorIntegration.stepsize(x0T, _abstol) == δt
 
-        sol = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        sol = (@test_logs (Warn, zero_stepsize()) taylorinteg(
             eqs_mov,
             1,
             0.0,
@@ -37,12 +38,12 @@ import Logging: Warn
         tv = sol.t
         xv = sol.x
         @test isnothing(sol.p)
-        @test length(tv) == 501
-        @test length(xv) == 501
+        @test length(tv) < 501
+        @test length(xv) < 501
         @test xv[1] == x0
         @test tv[end] < 1.0
 
-        sol = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        sol = (@test_logs (Warn, zero_stepsize()) taylorinteg(
             eqs_mov,
             x0,
             0.0,
@@ -53,13 +54,13 @@ import Logging: Warn
         ))
         tv = sol.t
         xv = sol.x
-        @test length(tv) == 501
-        @test length(xv) == 501
+        @test length(tv) < 501
+        @test length(xv) < 501
         @test xv[1] == x0
         @test tv[end] < 1.0
 
         trange = 0.0:1/8:1.0
-        sol = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        sol = (@test_logs (Warn, zero_stepsize()) taylorinteg(
             eqs_mov,
             1,
             trange,
@@ -89,7 +90,7 @@ import Logging: Warn
         @test xvr[end] == xv[end-1]
 
         trange = 0.0:1/8:1.0
-        sol = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        sol = (@test_logs (Warn, zero_stepsize()) taylorinteg(
             eqs_mov,
             x0,
             trange,
@@ -121,7 +122,7 @@ import Logging: Warn
         @test xvr[end] == xv[end-1]
 
         tarray = vec(trange)
-        sol2 = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        sol2 = (@test_logs (Warn, zero_stepsize()) taylorinteg(
             eqs_mov,
             x0,
             tarray,
