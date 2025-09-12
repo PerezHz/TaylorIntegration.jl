@@ -9,9 +9,11 @@ import Logging: Warn
 @testset "Testing `lyapunov.jl`" begin
 
     max_iters_reached() = "Maximum number of integration steps reached; exiting.\n"
+    step_zero() = "The step-size is zero; aborting integration."
 
     local _order = 28
     local _abstol = 1.0E-20
+    local _reltol = 1.0E-15
 
     #Lorenz system parameters
     local σ = 16.0
@@ -211,6 +213,48 @@ import Logging: Warn
         t_, x_ = sol_.t, sol_.x
         @test t_ == tv
         @test x_ == xv
+
+        #RELTOL
+        #Test lyap_taylorinteg with autodiff-computed Jacobian, maxsteps=2000
+        solr = (@test_logs min_level = Logging.Warn lyap_taylorinteg(
+            lorenz!,
+            q0,
+            t0,
+            tmax,
+            _order,
+            _abstol;
+            maxsteps = 2000,
+            reltol = _reltol,
+        ))
+        tvr, xvr, λvr = solr.t, solr.x, solr.λ
+        @test xvr[1, :] == q0
+        @test tvr[1] == t0
+        @test size(xvr) == size(λvr)
+        @test isapprox(sum(λvr[1, :]), lorenztr) == false
+        @test isapprox(sum(λvr[end, :]), lorenztr)
+        mytol = 1e-4
+        @test isapprox(λvr[end, 1], 1.47167, rtol = mytol, atol = mytol)
+        @test isapprox(λvr[end, 2], -0.00830, rtol = mytol, atol = mytol)
+        @test isapprox(λvr[end, 3], -22.46336, rtol = mytol, atol = mytol)
+        # Check integration consistency (orbit should not depend on variational eqs)
+        sol_r = taylorinteg(lorenz!, q0, t0, tmax, _order, _abstol; maxsteps = 2000, reltol = _reltol)
+        t_r, x_r = sol_r.t, sol_r.x
+        @test t_r == tvr
+        @test x_r == xvr
+
+        @show(length(t_))
+        @show(length(t_r))
+        @show(length(tv))
+        @show(length(tvr))
+        @show(length(λv))
+        @show(length(λvr))
+        @show(λv[end,end])
+        @show(λvr[end,end])
+        @show(λv[end,3])
+
+        @test isapprox(λv[end, :], λvr[end, :], rtol = mytol, atol = mytol)
+
+
         # test backward integration
         solb = (@test_logs (Warn, max_iters_reached()) lyap_taylorinteg(
             lorenz!,
@@ -224,6 +268,22 @@ import Logging: Warn
         tvb, xvb, λvb = solb.t, solb.x, solb.λ
         @test isapprox(sum(λvb[1, :]), lorenztr) == false
         @test isapprox(sum(λvb[end, :]), lorenztr)
+
+
+        solb = (@test_logs (Warn, max_iters_reached()) lyap_taylorinteg(
+            lorenz!,
+            q0,
+            t0,
+            -tmax,
+            _order,
+            _abstol;
+            maxsteps = 2000,
+        ))
+        tvb, xvb, λvb = solb.t, solb.x, solb.λ
+        @test isapprox(sum(λvb[1, :]), lorenztr) == false
+        @test isapprox(sum(λvb[end, :]), lorenztr)
+
+
 
         #Test lyap_taylorinteg with user-defined Jacobian, maxsteps=2000
         sol2 = (@test_logs min_level = Logging.Warn lyap_taylorinteg(
