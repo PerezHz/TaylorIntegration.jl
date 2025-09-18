@@ -242,16 +242,6 @@ import Logging: Warn
         @test t_r == tvr
         @test x_r == xvr
 
-        @show(length(t_))
-        @show(length(t_r))
-        @show(length(tv))
-        @show(length(tvr))
-        @show(length(λv))
-        @show(length(λvr))
-        @show(λv[end,end])
-        @show(λvr[end,end])
-        @show(λv[end,3])
-
         @test isapprox(λv[end, :], λvr[end, :], rtol = mytol, atol = mytol)
 
 

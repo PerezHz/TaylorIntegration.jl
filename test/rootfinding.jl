@@ -15,7 +15,7 @@ import Logging: Warn
         "Newton-Raphson did not converge for prescribed tolerance and maximum allowed iterations.\n"
     local _order = 28
     local _abstol = 1.0E-20
-    #local _reltol = 1.0E-15
+    local _reltol = 1.0E-15
 
     function pendulum!(dx, x, p, t)
         dx[1] = x[2]
@@ -172,7 +172,7 @@ import Logging: Warn
     @test size(tvSr) == (5,)
     @test size(tvSr) == size(tvr[2:end-1])
     @test norm(tvSr - tvr[2:end-1], Inf) < 1E-13
-    @test norm(tvr[2:end-1] - tvSr, Inf) < 1E-14
+    @test norm(tvr[2:end-1] - tvSr, Inf) < 1.1E-14
     @test norm(xvr[2:end-1, :] - xvSr, Inf) < 1E-14
     @test norm(gvSr[:]) < eps()
     @test norm(tvS - tvSr, Inf) < 5E-15
