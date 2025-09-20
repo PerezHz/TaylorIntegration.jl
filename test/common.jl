@@ -1,13 +1,15 @@
 using TaylorIntegration, Test
 using OrdinaryDiffEq
+using OrdinaryDiffEq.OrdinaryDiffEqCore
 using LinearAlgebra: norm
 using StaticArrays
 using Logging
 import Logging: Warn
+using DiffEqBase
 
 @testset "Testing `common.jl`" begin
-
     local TI = TaylorIntegration
+    local ODEqCore = OrdinaryDiffEq.OrdinaryDiffEqCore
     max_iters_reached() = "Maximum number of integration steps reached; exiting.\n"
     larger_maxiters_needed() =
         "Interrupted. Larger maxiters is needed. If you " *
@@ -29,9 +31,9 @@ import Logging: Warn
             TaylorMethod(50),
             abstol = 1e-20,
         ))
-        @test OrdinaryDiffEq.alg_order(TaylorMethod(50)) == 50
-        @test OrdinaryDiffEq.alg_order(sol.alg) ==
-              OrdinaryDiffEq.alg_order(TaylorMethod(50))
+        @test ODEqCore.alg_order(TaylorMethod(50)) == 50
+        @test ODEqCore.alg_order(sol.alg) ==
+              ODEqCore.alg_order(TaylorMethod(50))
         @test abs(sol.u[end] - u0 * exp(1)) < 1e-12
         u0 = 0.0
         tspan = (0.0, 11pi)
