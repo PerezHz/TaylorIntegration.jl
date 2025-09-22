@@ -4,7 +4,7 @@ module TaylorIntegrationDiffEqExt
 
 using TaylorIntegration
 
-if isdefined(Base, :get_extension)
+# if isdefined(Base, :get_extension)
     using OrdinaryDiffEq:
         @unpack,
         @cache,
@@ -16,20 +16,20 @@ if isdefined(Base, :get_extension)
         DynamicalODEProblem
     using OrdinaryDiffEq.OrdinaryDiffEqCore
     import OrdinaryDiffEq
-else
-    @info("Old version")
-    using ..OrdinaryDiffEq:
-        @unpack,
-        @cache,
-        ODEFunction,
-        DynamicalODEFunction,
-        check_keywords,
-        warn_compat,
-        ODEProblem,
-        DynamicalODEProblem
-    using ..OrdinaryDiffEq.OrdinaryDiffEqCore
-    import ..OrdinaryDiffEq
-end
+# else
+#     @info("Old version")
+#     using ..OrdinaryDiffEq:
+#         @unpack,
+#         @cache,
+#         ODEFunction,
+#         DynamicalODEFunction,
+#         check_keywords,
+#         warn_compat,
+#         ODEProblem,
+#         DynamicalODEProblem
+#     using ..OrdinaryDiffEq.OrdinaryDiffEqCore
+#     import ..OrdinaryDiffEq
+# end
 
 using StaticArrays: SVector, SizedArray
 using RecursiveArrayTools: ArrayPartition, copyat_or_push!
@@ -393,74 +393,39 @@ function DiffEqBase.interp_summary(
     dense ? "Taylor series polynomial evaluation" : "1st order linear"
 end
 
-if VERSION < v"1.9"
-    # used when idxs gives back multiple values
-    function ODEqCore._ode_interpolant!(
-        out,
-        Θ,
-        dt,
-        y₀,
-        y₁,
-        k,
-        cache::TaylorMethodCache,
-        idxs,
-        T::Type{Val{TI}},
-    ) where {TI}
-        Θm1 = Θ - 1
-        @inbounds for i in eachindex(out)
-            out[i] = cache.uT[i](Θm1 * dt)
-        end
-        out
+# used when idxs gives back multiple values
+function ODEqCore._ode_interpolant!(
+    out,
+    Θ,
+    dt,
+    y₀,
+    y₁,
+    k,
+    cache::TaylorMethodCache,
+    idxs,
+    T::Type{Val{TI}},
+    differential_vars,
+) where {TI}
+    Θm1 = Θ - 1
+    @inbounds for i in eachindex(out)
+        out[i] = cache.uT[i](Θm1 * dt)
     end
-    # used when idxs gives back a single value
-    function ODEqCore._ode_interpolant(
-        Θ,
-        dt,
-        y₀,
-        y₁,
-        k,
-        cache::TaylorMethodCache,
-        idxs,
-        T::Type{Val{TI}},
-    ) where {TI}
-        Θm1 = Θ - 1
-        return cache.uT[idxs](Θm1 * dt)
-    end
-else
-    # used when idxs gives back multiple values
-    function ODEqCore._ode_interpolant!(
-        out,
-        Θ,
-        dt,
-        y₀,
-        y₁,
-        k,
-        cache::TaylorMethodCache,
-        idxs,
-        T::Type{Val{TI}},
-        differential_vars,
-    ) where {TI}
-        Θm1 = Θ - 1
-        @inbounds for i in eachindex(out)
-            out[i] = cache.uT[i](Θm1 * dt)
-        end
-        out
-    end
-    # used when idxs gives back a single value
-    function ODEqCore._ode_interpolant(
-        Θ,
-        dt,
-        y₀,
-        y₁,
-        k,
-        cache::TaylorMethodCache,
-        idxs,
-        T::Type{Val{TI}},
-        differential_vars,
-    ) where {TI}
-        Θm1 = Θ - 1
-        return cache.uT[idxs](Θm1 * dt)
-    end
+    out
+end
+# used when idxs gives back a single value
+function ODEqCore._ode_interpolant(
+    Θ,
+    dt,
+    y₀,
+    y₁,
+    k,
+    cache::TaylorMethodCache,
+    idxs,
+    T::Type{Val{TI}},
+    differential_vars,
+) where {TI}
+    Θm1 = Θ - 1
+    return cache.uT[idxs](Θm1 * dt)
 end
 
 @inline TaylorIntegration.__jetcoeffs!(
