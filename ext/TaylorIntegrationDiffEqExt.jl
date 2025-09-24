@@ -4,32 +4,17 @@ module TaylorIntegrationDiffEqExt
 
 using TaylorIntegration
 
-# if isdefined(Base, :get_extension)
-    using OrdinaryDiffEq:
-        @unpack,
-        @cache,
-        ODEFunction,
-        DynamicalODEFunction,
-        check_keywords,
-        warn_compat,
-        ODEProblem,
-        DynamicalODEProblem
-    using OrdinaryDiffEq.OrdinaryDiffEqCore
-    import OrdinaryDiffEq
-# else
-#     @info("Old version")
-#     using ..OrdinaryDiffEq:
-#         @unpack,
-#         @cache,
-#         ODEFunction,
-#         DynamicalODEFunction,
-#         check_keywords,
-#         warn_compat,
-#         ODEProblem,
-#         DynamicalODEProblem
-#     using ..OrdinaryDiffEq.OrdinaryDiffEqCore
-#     import ..OrdinaryDiffEq
-# end
+using OrdinaryDiffEq:
+    @unpack,
+    @cache,
+    ODEFunction,
+    DynamicalODEFunction,
+    check_keywords,
+    warn_compat,
+    ODEProblem,
+    DynamicalODEProblem
+using OrdinaryDiffEq.OrdinaryDiffEqCore
+import OrdinaryDiffEq
 
 using StaticArrays: SVector, SizedArray
 using RecursiveArrayTools: ArrayPartition, copyat_or_push!
