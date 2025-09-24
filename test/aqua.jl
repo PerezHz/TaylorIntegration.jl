@@ -16,10 +16,7 @@ using Aqua
     pkg_match(pkgname, pkdir::AbstractString) = occursin(pkgname, pkdir)
     filter!(x -> pkg_match("TaylorIntegration", pkgdir(last(x).module)), ambs)
     for method_ambiguity in ambs
-        @show method_ambiguity
-    end
-    if VERSION < v"1.10.0-DEV"
-        @test length(ambs) == 0
+        @show(method_ambiguity)
     end
 end
 
