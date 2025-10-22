@@ -4,35 +4,17 @@ module TaylorIntegrationDiffEqExt
 
 using TaylorIntegration
 
-if isdefined(Base, :get_extension)
-    using OrdinaryDiffEq:
-        @unpack,
-        @cache,
-        OrdinaryDiffEqAdaptiveAlgorithm,
-        OrdinaryDiffEqConstantCache,
-        OrdinaryDiffEqMutableCache,
-        ODEFunction,
-        DynamicalODEFunction,
-        check_keywords,
-        warn_compat,
-        ODEProblem,
-        DynamicalODEProblem
-    import OrdinaryDiffEq
-else
-    using ..OrdinaryDiffEq:
-        @unpack,
-        @cache,
-        OrdinaryDiffEqAdaptiveAlgorithm,
-        OrdinaryDiffEqConstantCache,
-        OrdinaryDiffEqMutableCache,
-        ODEFunction,
-        DynamicalODEFunction,
-        check_keywords,
-        warn_compat,
-        ODEProblem,
-        DynamicalODEProblem
-    import ..OrdinaryDiffEq
-end
+using OrdinaryDiffEq:
+    @unpack,
+    @cache,
+    ODEFunction,
+    DynamicalODEFunction,
+    check_keywords,
+    warn_compat,
+    ODEProblem,
+    DynamicalODEProblem
+using OrdinaryDiffEq.OrdinaryDiffEqCore
+import OrdinaryDiffEq
 
 using StaticArrays: SVector, SizedArray
 using RecursiveArrayTools: ArrayPartition, copyat_or_push!
@@ -40,6 +22,8 @@ using RecursiveArrayTools: ArrayPartition, copyat_or_push!
 import DiffEqBase
 
 # TODO: check which keywords work fine
+const ODEqCore = OrdinaryDiffEq.OrdinaryDiffEqCore
+
 const warnkeywords = (
     :save_idxs,
     :d_discontinuities,
@@ -74,7 +58,7 @@ global warnlist = Set(warnkeywords)
 
 
 
-abstract type TaylorAlgorithm <: OrdinaryDiffEqAdaptiveAlgorithm end
+abstract type TaylorAlgorithm <: ODEqCore.OrdinaryDiffEqAdaptiveAlgorithm end
 struct TaylorMethodParams <: TaylorAlgorithm
     order::Int
     parse_eqs::Bool
@@ -85,7 +69,7 @@ import TaylorIntegration: TaylorMethod, update_jetcoeffs_cache!
 
 TaylorMethod(order; parse_eqs = true) = TaylorMethodParams(order, parse_eqs) # set `parse_eqs` to `true` by default
 
-OrdinaryDiffEq.alg_order(alg::TaylorMethodParams) = alg.order
+ODEqCore.alg_order(alg::TaylorMethodParams) = alg.order
 
 TaylorMethod() = error("Maximum order must be specified for the Taylor method")
 
@@ -93,7 +77,7 @@ TaylorMethod() = error("Maximum order must be specified for the Taylor method")
 DiffEqBase.ODE_DEFAULT_NORM(x::AbstractArray{<:AbstractSeries}, y) = norm(x, Inf)
 
 ### cache stuff
-struct TaylorMethodCache{uType,rateType,tTType,uTType} <: OrdinaryDiffEqMutableCache
+struct TaylorMethodCache{uType,rateType,tTType,uTType} <: ODEqCore.OrdinaryDiffEqMutableCache
     u::uType
     uprev::uType
     tmp::uType
@@ -107,13 +91,13 @@ struct TaylorMethodCache{uType,rateType,tTType,uTType} <: OrdinaryDiffEqMutableC
     rv::RetAlloc
 end
 
-struct TaylorMethodConstantCache{uTType} <: OrdinaryDiffEqConstantCache
+struct TaylorMethodConstantCache{uTType} <: ODEqCore.OrdinaryDiffEqConstantCache
     uT::uTType
     parse_eqs::Ref{Bool}
     rv::RetAlloc{uTType}
 end
 
-function OrdinaryDiffEq.alg_cache(
+function ODEqCore.alg_cache(
     alg::TaylorMethodParams,
     u,
     rate_prototype,
@@ -154,7 +138,7 @@ end
 
 # This method is used for DynamicalODEFunction's (`parse_eqs=false`): tmpT1 and arrT1
 # must have the proper type to build `TaylorMethodCache`
-function OrdinaryDiffEq.alg_cache(
+function ODEqCore.alg_cache(
     alg::TaylorMethodParams,
     u::ArrayPartition,
     rate_prototype,
@@ -193,7 +177,7 @@ function OrdinaryDiffEq.alg_cache(
     )
 end
 
-function OrdinaryDiffEq.alg_cache(
+function ODEqCore.alg_cache(
     alg::TaylorMethodParams,
     u,
     rate_prototype,
@@ -218,7 +202,7 @@ function OrdinaryDiffEq.alg_cache(
     return TaylorMethodConstantCache(Taylor1(u, alg.order), Ref(parse_eqs), rv)
 end
 
-function OrdinaryDiffEq.initialize!(integrator, c::TaylorMethodConstantCache)
+function ODEqCore.initialize!(integrator, c::TaylorMethodConstantCache)
     @unpack u, t, f, p = integrator
     tT = Taylor1(typeof(t), integrator.alg.order)
     tT[0] = t
@@ -235,7 +219,7 @@ function OrdinaryDiffEq.initialize!(integrator, c::TaylorMethodConstantCache)
     integrator.k[2] = integrator.fsallast
 end
 
-function OrdinaryDiffEq.perform_step!(integrator, cache::TaylorMethodConstantCache)
+function ODEqCore.perform_step!(integrator, cache::TaylorMethodConstantCache)
     @unpack u, t, dt, f, p = integrator
     tT = Taylor1(typeof(t), integrator.alg.order)
     tT[0] = t + dt
@@ -250,7 +234,7 @@ function OrdinaryDiffEq.perform_step!(integrator, cache::TaylorMethodConstantCac
     integrator.u = u
 end
 
-function OrdinaryDiffEq.initialize!(integrator, cache::TaylorMethodCache)
+function ODEqCore.initialize!(integrator, cache::TaylorMethodCache)
     @unpack u, t, f, p = integrator
     @unpack k, fsalfirst, tT, uT, duT, uauxT, parse_eqs, rv = cache
     TaylorIntegration.__jetcoeffs!(Val(parse_eqs.x), f, tT, uT, duT, uauxT, p, rv)
@@ -265,7 +249,7 @@ function OrdinaryDiffEq.initialize!(integrator, cache::TaylorMethodCache)
     integrator.stats.nf += 1
 end
 
-function OrdinaryDiffEq.perform_step!(integrator, cache::TaylorMethodCache)
+function ODEqCore.perform_step!(integrator, cache::TaylorMethodCache)
     @unpack t, dt, u, f, p = integrator
     @unpack k, tT, uT, duT, uauxT, parse_eqs, rv = cache
     evaluate!(uT, dt, u)
@@ -279,11 +263,11 @@ function OrdinaryDiffEq.perform_step!(integrator, cache::TaylorMethodCache)
     integrator.stats.nf += 1
 end
 
-OrdinaryDiffEq.get_fsalfirstlast(cache::TaylorMethodCache, u) = (cache.fsalfirst, cache.k)
+ODEqCore.get_fsalfirstlast(cache::TaylorMethodCache, u) = (cache.fsalfirst, cache.k)
 
-OrdinaryDiffEq.stepsize_controller!(integrator, alg::TaylorMethodParams) =
+ODEqCore.stepsize_controller!(integrator, alg::TaylorMethodParams) =
     TaylorIntegration.stepsize(integrator.cache.uT, integrator.opts.abstol)
-OrdinaryDiffEq.step_accept_controller!(integrator, alg::TaylorMethodParams, q) = q
+ODEqCore.step_accept_controller!(integrator, alg::TaylorMethodParams, q) = q
 
 function DiffEqBase.solve(
     prob::DiffEqBase.AbstractODEProblem{uType,tupType,isinplace},
@@ -357,7 +341,7 @@ end
 # This function was modified from OrdinaryDiffEq.jl; MIT-licensed
 # _ode_addsteps! overload for ::TaylorMethodCache to handle continuous
 # and vector callbacks with TaylorIntegration.jl via the common interface
-function OrdinaryDiffEq._ode_addsteps!(
+function ODEqCore._ode_addsteps!(
     k,
     t,
     uprev,
@@ -372,7 +356,7 @@ function OrdinaryDiffEq._ode_addsteps!(
 )
     ### TODO: check, and if necessary, reset timestep after callback (!)
     if length(k) < 2 || always_calc_begin
-        if typeof(cache) <: OrdinaryDiffEqMutableCache
+        if typeof(cache) <: ODEqCore.OrdinaryDiffEqMutableCache
             rtmp = similar(u, eltype(eltype(k)))
             f(rtmp, uprev, p, t)
             copyat_or_push!(k, 1, rtmp)
@@ -394,74 +378,39 @@ function DiffEqBase.interp_summary(
     dense ? "Taylor series polynomial evaluation" : "1st order linear"
 end
 
-if VERSION < v"1.9"
-    # used when idxs gives back multiple values
-    function OrdinaryDiffEq._ode_interpolant!(
-        out,
-        Θ,
-        dt,
-        y₀,
-        y₁,
-        k,
-        cache::TaylorMethodCache,
-        idxs,
-        T::Type{Val{TI}},
-    ) where {TI}
-        Θm1 = Θ - 1
-        @inbounds for i in eachindex(out)
-            out[i] = cache.uT[i](Θm1 * dt)
-        end
-        out
+# used when idxs gives back multiple values
+function ODEqCore._ode_interpolant!(
+    out,
+    Θ,
+    dt,
+    y₀,
+    y₁,
+    k,
+    cache::TaylorMethodCache,
+    idxs,
+    T::Type{Val{TI}},
+    differential_vars,
+) where {TI}
+    Θm1 = Θ - 1
+    @inbounds for i in eachindex(out)
+        out[i] = cache.uT[i](Θm1 * dt)
     end
-    # used when idxs gives back a single value
-    function OrdinaryDiffEq._ode_interpolant(
-        Θ,
-        dt,
-        y₀,
-        y₁,
-        k,
-        cache::TaylorMethodCache,
-        idxs,
-        T::Type{Val{TI}},
-    ) where {TI}
-        Θm1 = Θ - 1
-        return cache.uT[idxs](Θm1 * dt)
-    end
-else
-    # used when idxs gives back multiple values
-    function OrdinaryDiffEq._ode_interpolant!(
-        out,
-        Θ,
-        dt,
-        y₀,
-        y₁,
-        k,
-        cache::TaylorMethodCache,
-        idxs,
-        T::Type{Val{TI}},
-        differential_vars,
-    ) where {TI}
-        Θm1 = Θ - 1
-        @inbounds for i in eachindex(out)
-            out[i] = cache.uT[i](Θm1 * dt)
-        end
-        out
-    end
-    # used when idxs gives back a single value
-    function OrdinaryDiffEq._ode_interpolant(
-        Θ,
-        dt,
-        y₀,
-        y₁,
-        k,
-        cache::TaylorMethodCache,
-        idxs,
-        T::Type{Val{TI}},
-        differential_vars,
-    ) where {TI}
-        Θm1 = Θ - 1
-        return cache.uT[idxs](Θm1 * dt)
-    end
+    out
+end
+# used when idxs gives back a single value
+function ODEqCore._ode_interpolant(
+    Θ,
+    dt,
+    y₀,
+    y₁,
+    k,
+    cache::TaylorMethodCache,
+    idxs,
+    T::Type{Val{TI}},
+    differential_vars,
+) where {TI}
+    Θm1 = Θ - 1
+    return cache.uT[idxs](Θm1 * dt)
 end
 
 @inline TaylorIntegration.__jetcoeffs!(

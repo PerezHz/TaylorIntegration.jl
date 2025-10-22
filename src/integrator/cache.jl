@@ -293,8 +293,8 @@ function init_cache(
         Array{U}(undef, dof, nn),
         init_psol(Val(false), maxsteps, dof, x),
         Array{Taylor1{U}}(undef, dof),
-        similar(q0),
-        similar(q0),
+        zero.(q0),
+        zero.(q0),
         t,
         x,
         dx,
@@ -414,16 +414,16 @@ function init_cache_lyap(
     return cache
 end
 
-# update!
+# update_cache!
 
-function update!(cache::ScalarCache, t0::T, x0::U) where {T,U}
+function update_cache!(cache::ScalarCache, t0::T, x0::U) where {T,U}
     @unpack t, x = cache
     @inbounds x[0] = x0
     @inbounds t[0] = t0
     return nothing
 end
 
-function update!(cache::AbstractVectorCache, t0::T, x0::AbstractVector{U}) where {T,U}
+function update_cache!(cache::AbstractVectorCache, t0::T, x0::Vector{U}) where {T,U}
     @unpack t, x = cache
     @inbounds for i in eachindex(x0)
         x[i][0] = x0[i]

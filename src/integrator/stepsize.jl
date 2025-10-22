@@ -17,11 +17,10 @@ Depending of `eltype(x)`, i.e., `U<:Number`, it may be necessary to overload
 function stepsize(x::Taylor1{U}, epsilon::T) where {T<:Real,U<:Number}
     R = promote_type(typeof(norm(constant_term(x), Inf)), T)
     ord = x.order
-    h = convert(R, Inf)
-    z = zero(R)
+    h = typemax(R)
     for k in (ord - 1, ord)
         @inbounds aux = norm(x[k], Inf)
-        aux == z && continue
+        TS._isthinzero(aux) && continue
         aux1 = _stepsize(aux, epsilon, k)
         h = min(h, aux1)
     end
@@ -30,7 +29,7 @@ end
 
 function stepsize(q::AbstractArray{Taylor1{U},N}, epsilon::T) where {T<:Real,U<:Number,N}
     R = promote_type(typeof(norm(constant_term(q[1]), Inf)), T)
-    h = convert(R, Inf)
+    h = typemax(R)
     for i in eachindex(q)
         @inbounds hi = stepsize(q[i], epsilon)
         h = min(h, hi)
@@ -69,14 +68,13 @@ Corresponds to the "second stepsize control" in Jorba and Zou
 """
 function _second_stepsize(x::Taylor1{U}, epsilon::T) where {T<:Real,U<:Number}
     R = promote_type(typeof(norm(constant_term(x), Inf)), T)
-    x == zero(x) && return convert(R, Inf)
+    iszero(x) && return convert(R, Inf)
     ord = x.order
-    z = zero(R)
     u = one(R)
-    h = z
+    h = zero(R)
     for k = 1:ord-2
         @inbounds aux = norm(x[k], Inf)
-        aux == z && continue
+        TS._isthinzero(aux) && continue
         aux1 = _stepsize(aux, u, k)
         h = max(h, aux1)
     end

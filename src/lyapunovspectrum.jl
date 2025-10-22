@@ -369,7 +369,7 @@ function lyap_taylorinteg!(
     sign_tstep = copysign(1, tmax - t0)
     x0[1:dof] .= q0
     @views x0[dof+1:end] .= jt[:]
-    update!(cache, t0, x0)
+    update_cache!(cache, t0, x0)
     t00 = t0
     tspan = zero(T)
     @inbounds tv[1] = t0
@@ -418,7 +418,7 @@ function lyap_taylorinteg!(
         for ind in eachindex(QH)
             @inbounds x0[dof+ind] = QH[ind]
         end
-        update!(cache, t0, x0)
+        update_cache!(cache, t0, x0)
         if nsteps > maxsteps
             @warn("""
             Maximum number of integration steps reached; exiting.
@@ -516,7 +516,7 @@ function lyap_taylorinteg!(
     sign_tstep = copysign(1, tmax - t0)
     x0[1:dof] .= q0
     @views x0[dof+1:end] .= jt[:]
-    update!(cache, t0, x0)
+    update_cache!(cache, t0, x0)
     t00 = t0
     tspan = zero(T)
     @inbounds for ind in eachindex(q0)
@@ -591,7 +591,7 @@ function lyap_taylorinteg!(
         for ind in eachindex(QH)
             @inbounds x0[dof+ind] = QH[ind]
         end
-        update!(cache, t0, x0)
+        update_cache!(cache, t0, x0)
         if nsteps > maxsteps
             @warn("""
             Maximum number of integration steps reached; exiting.
