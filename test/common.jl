@@ -35,6 +35,15 @@ using DiffEqBase
         @test ODEqCore.alg_order(sol.alg) ==
               ODEqCore.alg_order(TaylorMethod(50))
         @test abs(sol.u[end] - u0 * exp(1)) < 1e-12
+        sol = (@test_logs min_level = Logging.Warn solve(
+            prob,
+            TaylorMethod(50),
+            abstol = 1e-20,
+            reltol = 1e-18,
+         ))
+        @test ODEqCore.alg_order(sol.alg) ==
+            ODEqCore.alg_order(TaylorMethod(50))
+        @test abs(sol.u[end] - u0 * exp(1)) < 1e-12
         u0 = 0.0
         tspan = (0.0, 11pi)
         prob = ODEProblem(g, u0, tspan)
@@ -58,13 +67,22 @@ using DiffEqBase
         @test norm(sol_oop.u[end] - u0 .* exp(1)) < 1e-12
         @test sol.t == sol_oop.t
         @test sol.u == sol_oop.u
+
+        sol = solve(prob, TaylorMethod(50), abstol = 1e-20, reltol = 1e-18)
+        @test norm(sol.u[end] - u0 .* exp(1)) < 1e-12
+        @taylorize f_oop(u, p, t) = u
+        prob_oop = ODEProblem(f_oop, u0, tspan)
+        sol_oop = solve(prob_oop, TaylorMethod(50), abstol = 1e-20, reltol = 1e-18)
+        @test norm(sol_oop.u[end] - u0 .* exp(1)) < 1e-12
+        @test sol.t == sol_oop.t
+        @test sol.u == sol_oop.u
     end
 
     local tspan = (0.0, 5.0)
     local saveat_inputs =
         ([], 0:1:(tspan[2]+5), 0:1:tspan[2], 3:1:tspan[2], collect(0:1:tspan[2]))
     @testset "Test saveat behavior with numbers in common interface" begin
-        u0 = 1.0
+        u0 = 1.0 #---
         prob = ODEProblem(f, u0, tspan)
         sol = (@test_logs min_level = Logging.Warn solve(
             prob,
@@ -81,7 +99,7 @@ using DiffEqBase
         @test all(sol.t .== sol_taylor.t)
         @test all(sol_taylor.u .== sol.u)
         @test length(sol_taylor.t) == length(sol_taylor.u)
-        s = saveat_inputs[2]
+        s = saveat_inputs[2] 
         sol_taylor = (@test_logs min_level = Logging.Warn solve(
             prob,
             TaylorMethod(20),
@@ -94,6 +112,26 @@ using DiffEqBase
                 prob,
                 TaylorMethod(20),
                 abstol = 1e-20,
+                saveat = s,
+            ))
+            @test all(s .== sol_taylor.t)
+            @test length(sol_taylor.t) == length(sol_taylor.u)
+        end
+
+        sol_taylor = (@test_logs min_level = Logging.Warn solve(
+            prob,
+            TaylorMethod(20),
+            abstol = 1e-20,
+            reltol = 1e-18,
+            saveat = s,
+        ))
+        @test sol_taylor.t == saveat_inputs[3]
+        for s ∈ saveat_inputs[3:end]
+            sol_taylor = (@test_logs min_level = Logging.Warn solve(
+                prob,
+                TaylorMethod(20),
+                abstol = 1e-20,
+                reltol = 1e-18,
                 saveat = s,
             ))
             @test all(s .== sol_taylor.t)
@@ -137,6 +175,44 @@ using DiffEqBase
             @test all(s .== sol_taylor.t)
             @test length(sol_taylor.t) == length(sol_taylor.u)
         end
+
+        sol = (@test_logs min_level = Logging.Warn solve(
+            prob,
+            TaylorMethod(20),
+            abstol = 1e-20,
+            reltol = 1e-18,
+        ))
+        s = saveat_inputs[1]
+        sol_taylor = (@test_logs min_level = Logging.Warn solve(
+            prob,
+            TaylorMethod(20),
+            abstol = 1e-20,
+            reltol = 1e-18,
+            saveat = s,
+        ))
+        @test all(sol.t .== sol_taylor.t) #checar
+        @test all(sol_taylor.u .== sol.u) #checar
+        @test length(sol_taylor.t) == length(sol_taylor.u)
+        s = saveat_inputs[2]
+        sol_taylor = (@test_logs min_level = Logging.Warn solve(
+            prob,
+            TaylorMethod(20),
+            abstol = 1e-20,
+            reltol = 1e-18,
+            saveat = s,
+        ))
+        @test sol_taylor.t == saveat_inputs[3]
+        for s ∈ saveat_inputs[3:end]
+            sol_taylor = (@test_logs min_level = Logging.Warn solve(
+                prob,
+                TaylorMethod(20),
+                abstol = 1e-20,
+                reltol = 1e-18,
+                saveat = s,
+            ))
+            @test all(s .== sol_taylor.t)
+            @test length(sol_taylor.t) == length(sol_taylor.u)
+        end
     end
 
     function harmosc!(dx, x, p, t)
@@ -168,6 +244,25 @@ using DiffEqBase
         @test sol.t == solti.t
         @test solti.x[end, :] == sol.u[end]
         @test DiffEqBase.interp_summary(sol.interp) == "Taylor series polynomial evaluation"
+
+        solr = (@test_logs min_level = Logging.Warn solve(
+            prob,
+            TaylorMethod(order),
+            abstol = abstol,
+            reltol = 1e-18,
+        ))
+        soltir = (@test_logs min_level = Logging.Warn taylorinteg(
+            harmosc!,
+            u0,
+            tspan[1],
+            tspan[2],
+            order,
+            abstol,
+            reltol = 1e-18,
+        ))
+        @test soltir.t == solr.t
+        @test soltir.x[end, :] == solr.u[end] 
+         
         ### backwards integration
         tspanb = (0.0, -10pi)
         probb = ODEProblem(harmosc!, u0, tspanb)
@@ -256,6 +351,14 @@ using DiffEqBase
             maxiters = 2000,
             parse_eqs = false,
         )
+        sol1r = solve(
+            prob,
+            TaylorMethod(order),
+            abstol = abstol,
+            reltol = 1e-18,
+            maxiters = 2000,
+            parse_eqs = false,
+        )
         (@test_logs (Warn, larger_maxiters_needed()) solve(
             prob,
             TaylorMethod(order),
@@ -263,10 +366,12 @@ using DiffEqBase
             maxiters = 1,
         ))
         sol2 = solve(prob, TaylorMethod(order), abstol = abstol, maxiters = 2000)
+        sol2r = solve(prob, TaylorMethod(order), abstol = abstol, reltol = 1e-18, maxiters = 2000)
         @test sol1.alg.parse_eqs == false
         @test sol2.alg.parse_eqs == true
         @test tvp == sol2.t
         @test sol1.u == sol2.u
+        @test sol1r.u == sol2r.u
         @test transpose(Array(sol2)) == xvp
         @test norm(solp(tspan[1]) - sol1(tspan[1]), Inf) < 1e-16
         @test norm(solp(0.1) - sol1(0.1), Inf) < 1e-13

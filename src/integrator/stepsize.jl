@@ -14,24 +14,30 @@ also the cases `Taylor1{TaylorN{U}}` and `Vector{Taylor1{TaylorN{U}}}`.
 Depending of `eltype(x)`, i.e., `U<:Number`, it may be necessary to overload
 `stepsize`, specializing it on the type `U`, to avoid type instabilities.
 """
-function stepsize(x::Taylor1{U}, epsilon::T) where {T<:Real,U<:Number}
+function stepsize(x::Taylor1{U}, absepsilon::T, relepsilon::T=zero(T)) where {T<:Real,U<:Number}
     R = promote_type(typeof(norm(constant_term(x), Inf)), T)
     ord = x.order
     h = typemax(R)
     for k in (ord - 1, ord)
         @inbounds aux = norm(x[k], Inf)
         TS._isthinzero(aux) && continue
-        aux1 = _stepsize(aux, epsilon, k)
+        #eq. 3-3 Jorba and Zou (2005)
+        if absepsilon ≥ relepsilon * norm(x[0], Inf)
+            aux1 = _stepsize(aux, absepsilon, k)
+        else    
+            #aux= aux/norm(x[0], Inf)
+            aux1 = _stepsize(aux, relepsilon * norm(x[0], Inf), k)
+        end
         h = min(h, aux1)
     end
     return h::R
 end
 
-function stepsize(q::AbstractArray{Taylor1{U},N}, epsilon::T) where {T<:Real,U<:Number,N}
+function stepsize(q::AbstractArray{Taylor1{U},N}, absepsilon::T, relepsilon::T=zero(T)) where {T<:Real,U<:Number,N}
     R = promote_type(typeof(norm(constant_term(q[1]), Inf)), T)
     h = typemax(R)
     for i in eachindex(q)
-        @inbounds hi = stepsize(q[i], epsilon)
+        @inbounds hi = stepsize(q[i], absepsilon, relepsilon)
         h = min(h, hi)
     end
 
@@ -41,7 +47,7 @@ function stepsize(q::AbstractArray{Taylor1{U},N}, epsilon::T) where {T<:Real,U<:
     if isinf(h)
         h = zero(R)
         for i in eachindex(q)
-            @inbounds hi = _second_stepsize(q[i], epsilon)
+            @inbounds hi = _second_stepsize(q[i], absepsilon)
             h = max(h, hi)
         end
     end

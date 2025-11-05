@@ -11,8 +11,10 @@ import Logging: Warn
     local _order = 28
     local _abstol = 1.0E-20
     local tT = Taylor1(_order)
+    local _reltol = 1.0E-15
 
     max_iters_reached() = "Maximum number of integration steps reached; exiting.\n"
+    zero_stepsize() = "The step-size is zero; aborting integration."
 
     @testset "Tests: dot{x}=x.^2, x(0) = [3, 1]" begin
         function eqs_mov!(Dx, x, p, t)
@@ -35,7 +37,7 @@ import Logging: Warn
         @test TaylorIntegration.stepsize(q0T, _abstol) == δt
 
         sol = @test_logs(
-            (Warn, max_iters_reached()),
+            (Warn, zero_stepsize()),
             @inferred(
                 TaylorSolution{Float64,Float64,2},
                 taylorinteg(eqs_mov!, q0, 0.0, 0.5, _order, _abstol, nothing)
@@ -44,13 +46,32 @@ import Logging: Warn
         @test_throws ErrorException sol(0.25)
         tv = sol.t
         xv = sol.x
-        @test length(tv) == 501
+        @test length(tv) < 501
         @test isa(xv, SubArray)
         @test xv[1, :] == q0
         @test tv[end] < 1 / 3
 
+
+        #with reltol 
+        sol = @test_logs(
+            (Warn, zero_stepsize()),
+            @inferred(
+                TaylorSolution{Float64,Float64,2},
+                taylorinteg(eqs_mov!, q0, 0.0, 0.5, _order, _abstol, nothing, reltol=_reltol)
+            )
+        )
+        @test_throws ErrorException sol(0.25)
+        tv = sol.t
+        xv = sol.x
+        @test length(tv) < 501
+        @test isa(xv, SubArray)
+        @test xv[1, :] == q0
+        @test tv[end] < 1 / 3
+
+
+
         trange = 0.0:1/8:1.0
-        sol = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        sol = (@test_logs (Warn, zero_stepsize()) taylorinteg(
             eqs_mov!,
             q0,
             trange,
@@ -68,7 +89,7 @@ import Logging: Warn
         @test abs(xv[2, 1] - 4.8) ≤ eps(4.8)
 
         tarray = vec(trange)
-        sol2 = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        sol2 = (@test_logs (Warn, zero_stepsize()) taylorinteg(
             eqs_mov!,
             q0,
             tarray,

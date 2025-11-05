@@ -11,8 +11,10 @@ import Logging: Warn
     local _order = 28
     local _abstol = 1.0E-20
     local tT = Taylor1(_order)
+    local _reltol = 1.0E-15
 
     max_iters_reached() = "Maximum number of integration steps reached; exiting.\n"
+    zero_stepsize() = "The step-size is zero; aborting integration."
 
     @testset "Tests: dot{x}=x^2, x(0) = 1" begin
         eqs_mov(x, p, t) = x^2
@@ -25,7 +27,7 @@ import Logging: Warn
         δt = _abstol^inv(_order - 1)
         @test TaylorIntegration.stepsize(x0T, _abstol) == δt
 
-        sol = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        sol = (@test_logs (Warn, zero_stepsize()) taylorinteg(
             eqs_mov,
             1,
             0.0,
@@ -33,16 +35,41 @@ import Logging: Warn
             _order,
             _abstol,
         ))
+
+       
+
         @test sol isa TaylorSolution{Float64,Float64,1}
         tv = sol.t
         xv = sol.x
         @test isnothing(sol.p)
-        @test length(tv) == 501
-        @test length(xv) == 501
+        @test length(tv) < 501
+        @test length(xv) < 501
         @test xv[1] == x0
         @test tv[end] < 1.0
 
-        sol = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        #with reltol
+        sol = (@test_logs (Warn, zero_stepsize()) taylorinteg(
+            eqs_mov,
+            1,
+            0.0,
+             1.0,
+             _order,
+             _abstol,
+             reltol=_reltol,
+         ))
+        
+        @test sol isa TaylorSolution{Float64,Float64,1}
+        tv = sol.t
+        xv = sol.x
+        @test isnothing(sol.p)
+        @test length(tv) < 501
+        @test length(xv) < 501
+        @test xv[1] == x0
+        #@show(tv[end])
+        @test tv[end] < 1.0
+
+
+        sol = (@test_logs (Warn, zero_stepsize()) taylorinteg(
             eqs_mov,
             x0,
             0.0,
@@ -53,13 +80,13 @@ import Logging: Warn
         ))
         tv = sol.t
         xv = sol.x
-        @test length(tv) == 501
-        @test length(xv) == 501
+        @test length(tv) < 501
+        @test length(xv) < 501
         @test xv[1] == x0
         @test tv[end] < 1.0
 
         trange = 0.0:1/8:1.0
-        sol = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        sol = (@test_logs (Warn, zero_stepsize()) taylorinteg(
             eqs_mov,
             1,
             trange,
@@ -89,7 +116,7 @@ import Logging: Warn
         @test xvr[end] == xv[end-1]
 
         trange = 0.0:1/8:1.0
-        sol = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        sol = (@test_logs (Warn, zero_stepsize()) taylorinteg(
             eqs_mov,
             x0,
             trange,
@@ -121,7 +148,7 @@ import Logging: Warn
         @test xvr[end] == xv[end-1]
 
         tarray = vec(trange)
-        sol2 = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        sol2 = (@test_logs (Warn, zero_stepsize()) taylorinteg(
             eqs_mov,
             x0,
             tarray,
@@ -160,6 +187,9 @@ import Logging: Warn
         @test psol[1] == sol(tv[1] + Taylor1(_order))
         @test psol[2] == sol(tv[2] + Taylor1(_order))
     end
+
+
+
 
     @testset "Tests: dot{x}=x^2, x(0) = 3; nsteps <= maxsteps" begin
         eqs_mov(x, p, t) = x .^ 2 #the ODE (i.e., the equations of motion)

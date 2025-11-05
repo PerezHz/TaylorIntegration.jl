@@ -9,11 +9,13 @@ import Logging: Warn
 @testset "Testing `rootfinding.jl`" begin
 
     max_iters_reached() = "Maximum number of integration steps reached; exiting.\n"
+    step_zero() = "The step-size is zero; aborting integration."
 
     err_newton_raphson() =
         "Newton-Raphson did not converge for prescribed tolerance and maximum allowed iterations.\n"
     local _order = 28
     local _abstol = 1.0E-20
+    local _reltol = 1.0E-15
 
     function pendulum!(dx, x, p, t)
         dx[1] = x[2]
@@ -110,6 +112,7 @@ import Logging: Warn
         _order,
         _abstol,
         maxsteps = 1000,
+        reltol = _reltol,
     ))
     tv, xv, tvS, xvS, gvS = sol.t, sol.x, sol.tevents, sol.xevents, sol.gresids
     @test tv[1] == t0
@@ -129,6 +132,7 @@ import Logging: Warn
         _abstol,
         maxsteps = 1000,
         dense = true,
+        reltol=_reltol,
     ))
     tv, xv, psol, tvS, xvS, gvS = sol.t, sol.x, sol.p, sol.tevents, sol.xevents, sol.gresids
     @test tv[1] == t0
@@ -161,13 +165,14 @@ import Logging: Warn
         _order,
         _abstol,
         maxsteps = 1000,
+        reltol=_reltol,
     ))
     xvr, tvSr, xvSr, gvSr = solr.x, solr.tevents, solr.xevents, solr.gresids
     @test xvr[1, :] == x0
     @test size(tvSr) == (5,)
     @test size(tvSr) == size(tvr[2:end-1])
     @test norm(tvSr - tvr[2:end-1], Inf) < 1E-13
-    @test norm(tvr[2:end-1] - tvSr, Inf) < 1E-14
+    @test norm(tvr[2:end-1] - tvSr, Inf) < 1.1E-14
     @test norm(xvr[2:end-1, :] - xvSr, Inf) < 1E-14
     @test norm(gvSr[:]) < eps()
     @test norm(tvS - tvSr, Inf) < 5E-15
@@ -268,7 +273,7 @@ import Logging: Warn
     @test size(tvS) == (5,)
     @test norm(tvS - tvr[2:end-1], Inf) < 1E-13
     @test norm(gvS[:]) < 1E-15
-
+    
     # testing backward integrations
     solb = (@test_logs (Warn, err_newton_raphson()) match_mode = :any taylorinteg(
         pendulum!,

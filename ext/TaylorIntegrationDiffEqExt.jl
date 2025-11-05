@@ -33,7 +33,6 @@ const warnkeywords = (
     :initialize_save,
     :adaptive,
     :dt,
-    :reltol,
     :dtmax,
     :dtmin,
     :force_dtmin,
@@ -266,7 +265,7 @@ end
 ODEqCore.get_fsalfirstlast(cache::TaylorMethodCache, u) = (cache.fsalfirst, cache.k)
 
 ODEqCore.stepsize_controller!(integrator, alg::TaylorMethodParams) =
-    TaylorIntegration.stepsize(integrator.cache.uT, integrator.opts.abstol)
+    TaylorIntegration.stepsize(integrator.cache.uT, integrator.opts.abstol, integrator.opts.reltol)
 ODEqCore.step_accept_controller!(integrator, alg::TaylorMethodParams, q) = q
 
 function DiffEqBase.solve(
@@ -286,6 +285,10 @@ function DiffEqBase.solve(
 
     f = prob.f
     parse_eqs = haskey(kwargs, :parse_eqs) ? kwargs[:parse_eqs] : true # `true` is the default
+    # Change default val of reltol to zdro, if not explicitly specified
+    if !haskey(kwargs, :reltol)
+        kwargs = (kwargs..., :reltol => zero(kwargs[:abstol]))
+    end
     if !isinplace && typeof(prob.u0) <: AbstractArray
         ### TODO: allow `parse_eqs=true` for DynamicalODEFunction
         if prob.f isa DynamicalODEFunction
@@ -322,7 +325,7 @@ function DiffEqBase.solve(
     integrator = DiffEqBase.__init(_prob, _alg, args...; kwargs...)
     integrator.dt =
         integrator.tdir *
-        TaylorIntegration.stepsize(integrator.cache.uT, integrator.opts.abstol) # override handle_dt! setting of initial dt
+        TaylorIntegration.stepsize(integrator.cache.uT, integrator.opts.abstol, integrator.opts.reltol) # override handle_dt! setting of initial dt
     DiffEqBase.solve!(integrator)
     integrator.sol
 end
