@@ -16,10 +16,12 @@ StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 TaylorSeries = "6aa5eb33-94cf-58f4-a9d0-e4b2c4fc25ea"
 
 [weakdeps]
+IntervalArithmetic = "d1acc4aa-44c8-5952-acd4-ba5d80a2a253"
 OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
 
 [extensions]
 TaylorIntegrationDiffEqExt = "OrdinaryDiffEq"
+TaylorIntegrationIAExt = "IntervalArithmetic"
 
 [compat]
 Aqua = "0.8"
@@ -28,6 +30,7 @@ DiffEqBase = "6"
 Elliptic = "0.5, 1.0"
 Espresso = "0.6.1"
 InteractiveUtils = "<0.0.1, 1"
+IntervalArithmetic = "0.23, 1"
 LinearAlgebra = "<0.0.1, 1"
 Logging = "<0.0.1, 1"
 Markdown = "<0.0.1, 1"
@@ -59,4 +62,4 @@ TaylorSeries = "6aa5eb33-94cf-58f4-a9d0-e4b2c4fc25ea"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Aqua", "DiffEqBase", "Elliptic", "InteractiveUtils", "LinearAlgebra", "Logging", "OrdinaryDiffEq", "Pkg", "RecursiveArrayTools", "StaticArrays", "TaylorSeries", "Test"]
+test = ["Aqua", "DiffEqBase", "Elliptic", "InteractiveUtils", "IntervalArithmetic", "LinearAlgebra", "Logging", "OrdinaryDiffEq", "Pkg", "RecursiveArrayTools", "StaticArrays", "TaylorSeries", "Test"]
