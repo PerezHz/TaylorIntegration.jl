@@ -178,10 +178,17 @@ function init_expansions(t0::T, q0::Vector{U}, order::Int) where {T,U}
     t = t0 + Taylor1(T, order)
     x = Array{Taylor1{U}}(undef, dof)
     dx = Array{Taylor1{U}}(undef, dof)
-    x .= Taylor1.(q0, order)
-    dx .= Taylor1.(zero.(q0), order)
+    init_expansions!(x, dx, q0, order)
     return t, x, dx
 end
+
+function init_expansions!(x::Vector{Taylor1{U}}, dx::Vector{Taylor1{U}},
+        q0::Vector{U}, order::Int) where {U}
+    x .= Taylor1.(q0, order)
+    dx .= Taylor1.(zero.(q0), order)
+    return x, dx
+end
+
 
 # init_cache
 
