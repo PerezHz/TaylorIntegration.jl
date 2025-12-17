@@ -184,8 +184,10 @@ end
 
 function init_expansions!(x::Vector{Taylor1{U}}, dx::Vector{Taylor1{U}},
         q0::Vector{U}, order::Int) where {U}
-    x .= Taylor1.(q0, order)
-    dx .= Taylor1.(zero.(q0), order)
+    for ind in eachindex(x)
+        x[ind] = Taylor1(q0[ind], order)
+        dx[ind] = Taylor1(zero(q0[ind]), order)
+    end
     return x, dx
 end
 
