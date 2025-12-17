@@ -5,7 +5,6 @@ module TaylorIntegrationDiffEqExt
 using TaylorIntegration
 
 using OrdinaryDiffEq:
-    @unpack,
     @cache,
     ODEFunction,
     DynamicalODEFunction,
@@ -202,7 +201,7 @@ function ODEqCore.alg_cache(
 end
 
 function ODEqCore.initialize!(integrator, c::TaylorMethodConstantCache)
-    @unpack u, t, f, p = integrator
+    (; u, t, f, p) = integrator
     tT = Taylor1(typeof(t), integrator.alg.order)
     tT[0] = t
     c.uT .= Taylor1(u, tT.order)
@@ -219,7 +218,7 @@ function ODEqCore.initialize!(integrator, c::TaylorMethodConstantCache)
 end
 
 function ODEqCore.perform_step!(integrator, cache::TaylorMethodConstantCache)
-    @unpack u, t, dt, f, p = integrator
+    (; u, t, dt, f, p) = integrator
     tT = Taylor1(typeof(t), integrator.alg.order)
     tT[0] = t + dt
     u = evaluate(cache.uT, dt)
@@ -234,8 +233,8 @@ function ODEqCore.perform_step!(integrator, cache::TaylorMethodConstantCache)
 end
 
 function ODEqCore.initialize!(integrator, cache::TaylorMethodCache)
-    @unpack u, t, f, p = integrator
-    @unpack k, fsalfirst, tT, uT, duT, uauxT, parse_eqs, rv = cache
+    (; u, t, dt, f, p) = integrator
+    (; k, fsalfirst, tT, uT, duT, uauxT, parse_eqs, rv) = cache
     TaylorIntegration.__jetcoeffs!(Val(parse_eqs.x), f, tT, uT, duT, uauxT, p, rv)
     # FSAL for interpolation
     integrator.fsalfirst = fsalfirst
@@ -249,8 +248,8 @@ function ODEqCore.initialize!(integrator, cache::TaylorMethodCache)
 end
 
 function ODEqCore.perform_step!(integrator, cache::TaylorMethodCache)
-    @unpack t, dt, u, f, p = integrator
-    @unpack k, tT, uT, duT, uauxT, parse_eqs, rv = cache
+    (; t, dt, u, f, p) = integrator
+    (; k, tT, uT, duT, uauxT, parse_eqs, rv) = cache
     evaluate!(uT, dt, u)
     tT[0] = t + dt
     for i in eachindex(u)
@@ -332,7 +331,7 @@ end
 
 # used in continuous callbacks and related methods to update Taylor expansions cache
 function update_jetcoeffs_cache!(u, f, p, cache::TaylorMethodCache)
-    @unpack tT, uT, duT, uauxT, parse_eqs, rv = cache
+    (; tT, uT, duT, uauxT, parse_eqs, rv) = cache
     @inbounds for i in eachindex(u)
         @inbounds uT[i][0] = u[i]
         @inbounds TaylorSeries.zero!(duT[i], 0)

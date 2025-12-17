@@ -102,7 +102,7 @@ function taylorinteg!(
     reltol::T = zero(T),
 ) where {T<:Real,U<:Number,D}
 
-    @unpack tv, xv, psol, t, x, rv, parse_eqs = cache
+    (; tv, xv, psol, t, x, rv, parse_eqs) = cache
 
     # Initial conditions
     update_cache!(cache, t0, x0)
@@ -172,7 +172,7 @@ function taylorinteg!(
     reltol::T = zero(T),
 ) where {T<:Real,U<:Number,D}
 
-    @unpack tv, xv, psol, xaux, t, x, dx, rv, parse_eqs = cache
+    (; tv, xv, psol, xaux, t, x, dx, rv, parse_eqs) = cache
 
     # Initial conditions
     x0 = deepcopy(q0)
@@ -332,7 +332,7 @@ function taylorinteg!(
     reltol::T = zero(T),
 ) where {T<:Real,U<:Number}
 
-    @unpack xv, t, x, rv, parse_eqs = cache
+    (; xv, t, x, rv, parse_eqs) = cache
 
     # Initial conditions
     @inbounds t0, t1, tmax = trange[1], trange[2], trange[end]
@@ -409,7 +409,7 @@ function taylorinteg!(
     reltol::T = zero(T),
 ) where {T<:Real,U<:Number}
 
-    @unpack xv, xaux, x0, x1, t, x, dx, rv, parse_eqs = cache
+    (; xv, xaux, x0, x1, t, x, dx, rv, parse_eqs) = cache
 
     # Initial conditions
     @inbounds t0, t1, tmax = trange[1], trange[2], trange[end]

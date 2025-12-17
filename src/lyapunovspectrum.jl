@@ -345,26 +345,8 @@ function lyap_taylorinteg!(
     reltol::T = zero(T),
 ) where {T<:Real,U<:Number}
 
-    @unpack tv,
-    xv,
-    xaux,
-    x0,
-    λ,
-    λtsum,
-    δx,
-    dδx,
-    jac,
-    varsaux,
-    QH,
-    RH,
-    aⱼ,
-    qᵢ,
-    vⱼ,
-    t,
-    x,
-    dx,
-    jt,
-    dvars = cache
+    (; tv, xv, xaux, x0, λ, λtsum, δx, dδx, jac, varsaux,
+        QH, RH, aⱼ, qᵢ, vⱼ, t, x, dx, jt, dvars) = cache
 
     # Allocation
     dof = length(q0)
@@ -495,26 +477,8 @@ function lyap_taylorinteg!(
     reltol::T = zero(T),
 ) where {T<:Real,U<:Number}
 
-    @unpack xv,
-    xaux,
-    x0,
-    q1,
-    λ,
-    λtsum,
-    δx,
-    dδx,
-    jac,
-    varsaux,
-    QH,
-    RH,
-    aⱼ,
-    qᵢ,
-    vⱼ,
-    t,
-    x,
-    dx,
-    jt,
-    dvars = cache
+    (; xv, xaux, x0, q1, λ, λtsum, δx, dδx, jac, varsaux,
+        QH, RH, aⱼ, qᵢ, vⱼ, t, x, dx, jt, dvars) = cache
 
     # Auxiliary variables
     dof = length(q0)

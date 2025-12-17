@@ -426,14 +426,14 @@ end
 # update_cache!
 
 function update_cache!(cache::ScalarCache, t0::T, x0::U) where {T,U}
-    @unpack t, x = cache
+    (; t, x) = cache
     @inbounds x[0] = x0
     @inbounds t[0] = t0
     return nothing
 end
 
 function update_cache!(cache::AbstractVectorCache, t0::T, x0::Vector{U}) where {T,U}
-    @unpack t, x = cache
+    (; t, x) = cache
     @inbounds for i in eachindex(x0)
         x[i][0] = x0[i]
     end
