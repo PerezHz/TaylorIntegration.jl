@@ -11,6 +11,7 @@ testfiles = (
     "common.jl",
     "rootfinding.jl",
     "taylorize.jl",
+    "interval.jl",
     "aqua.jl",
 )
 

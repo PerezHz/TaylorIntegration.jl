@@ -44,8 +44,6 @@ function taylorstep!(
     # Compute the Taylor coefficients
     __jetcoeffs!(Val(V), f, t, x, params, rv)
 
-    
-
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(x, abstol, reltol)
     if isinf(δt)
@@ -70,7 +68,6 @@ function taylorstep!(
 
     # Compute the Taylor coefficients
     __jetcoeffs!(Val(V), f!, t, x, dx, xaux, params, rv)
-
 
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(x, abstol, reltol)
