@@ -5,7 +5,6 @@ module TaylorIntegrationDiffEqExt
 using TaylorIntegration
 
 using OrdinaryDiffEq:
-    @cache,
     ODEFunction,
     DynamicalODEFunction,
     check_keywords,
@@ -13,6 +12,7 @@ using OrdinaryDiffEq:
     ODEProblem,
     DynamicalODEProblem
 using OrdinaryDiffEq.OrdinaryDiffEqCore
+using OrdinaryDiffEq.OrdinaryDiffEqCore: @cache
 import OrdinaryDiffEq
 
 using StaticArrays: SVector, SizedArray
