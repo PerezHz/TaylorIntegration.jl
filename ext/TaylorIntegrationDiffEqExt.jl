@@ -111,6 +111,7 @@ function ODEqCore.alg_cache(
     p,
     calck,
     ::Val{true},
+    ::ODEqCore.DEVerbosity
 )
     order = alg.order
     tT = Taylor1(typeof(t), order)
@@ -152,6 +153,7 @@ function ODEqCore.alg_cache(
     p,
     calck,
     ::Val{true},
+    ::ODEqCore.DEVerbosity
 )
     order = alg.order
     tT = Taylor1(typeof(t), order)
@@ -191,6 +193,7 @@ function ODEqCore.alg_cache(
     p,
     calck,
     ::Val{false},
+    ::ODEqCore.DEVerbosity
 )
     order = alg.order
     tT = Taylor1(typeof(t), order)
