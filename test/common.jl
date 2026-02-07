@@ -12,6 +12,7 @@ using DiffEqBase
     local ODEqCore = OrdinaryDiffEq.OrdinaryDiffEqCore
     max_iters_reached() = "Maximum number of integration steps reached; exiting.\n"
     larger_maxiters_needed() =
+        "Verbosity toggle: max_iters \n " *
         "Interrupted. Larger maxiters is needed. If you " *
         "are using an integrator for non-stiff ODEs or an automatic switching " *
         "algorithm (the default), you may want to consider using a method for " *

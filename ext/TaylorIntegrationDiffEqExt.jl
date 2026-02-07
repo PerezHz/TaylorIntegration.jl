@@ -5,7 +5,6 @@ module TaylorIntegrationDiffEqExt
 using TaylorIntegration
 
 using OrdinaryDiffEq:
-    @cache,
     ODEFunction,
     DynamicalODEFunction,
     check_keywords,
@@ -13,6 +12,7 @@ using OrdinaryDiffEq:
     ODEProblem,
     DynamicalODEProblem
 using OrdinaryDiffEq.OrdinaryDiffEqCore
+using OrdinaryDiffEq.OrdinaryDiffEqCore: @cache
 import OrdinaryDiffEq
 
 using StaticArrays: SVector, SizedArray
@@ -111,6 +111,7 @@ function ODEqCore.alg_cache(
     p,
     calck,
     ::Val{true},
+    ::ODEqCore.DEVerbosity
 )
     order = alg.order
     tT = Taylor1(typeof(t), order)
@@ -152,6 +153,7 @@ function ODEqCore.alg_cache(
     p,
     calck,
     ::Val{true},
+    ::ODEqCore.DEVerbosity
 )
     order = alg.order
     tT = Taylor1(typeof(t), order)
@@ -191,6 +193,7 @@ function ODEqCore.alg_cache(
     p,
     calck,
     ::Val{false},
+    ::ODEqCore.DEVerbosity
 )
     order = alg.order
     tT = Taylor1(typeof(t), order)
