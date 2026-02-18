@@ -26,7 +26,7 @@ function jetcoeffs!(
     x::Taylor1{U},
     params,
 ) where {T<:Real,U<:Number}
-    order = x.order
+    order = get_order(x)
     for ord = 0:order-1
         ordnext = ord + 1
 
@@ -71,7 +71,7 @@ function jetcoeffs!(
     xaux::AbstractArray{Taylor1{U},N},
     params,
 ) where {T<:Real,U<:Number,N}
-    order = x[1].order
+    order = get_order(x[1])
     for ord = 0:order-1
         ordnext = ord + 1
 

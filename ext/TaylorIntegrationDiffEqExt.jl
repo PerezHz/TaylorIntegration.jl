@@ -207,7 +207,7 @@ function ODEqCore.initialize!(integrator, c::TaylorMethodConstantCache)
     (; u, t, f, p) = integrator
     tT = Taylor1(typeof(t), integrator.alg.order)
     tT[0] = t
-    c.uT .= Taylor1(u, tT.order)
+    c.uT .= Taylor1(u, get_order(tT))
     TaylorIntegration.__jetcoeffs!(Val(c.parse_eqs.x), f, tT, c.uT, p, c.rv)
     # FSAL stuff
     integrator.kshortsize = 2
