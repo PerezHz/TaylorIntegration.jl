@@ -129,7 +129,7 @@ const _HEAD_PARSEDFN_SCALAR = sanitize(
             __params,
             __ralloc::TaylorIntegration.RetAlloc{Taylor1{_S}},
         ) where {_T<:Real,_S<:Number}
-            order = __tT.order
+            order = get_order(__tT)
             nothing
         end
     ),
@@ -145,7 +145,7 @@ const _HEAD_PARSEDFN_VECTOR = sanitize(
             __params,
             __ralloc::TaylorIntegration.RetAlloc{Taylor1{_S}},
         ) where {_T<:Real,_S<:Number,_N}
-            order = __tT.order
+            order = get_order(__tT)
             nothing
         end
     ),
@@ -159,7 +159,7 @@ const _HEAD_ALLOC_TAYLOR1_SCALAR = sanitize(
             __x::Taylor1{_S},
             __params,
         ) where {_T<:Real,_S<:Number}
-            order = __tT.order
+            order = get_order(__tT)
             nothing
         end
     ),
@@ -174,7 +174,7 @@ const _HEAD_ALLOC_TAYLOR1_VECTOR = sanitize(
             __dx::AbstractArray{Taylor1{_S},_N},
             __params,
         ) where {_T<:Real,_S<:Number,_N}
-            order = __tT.order
+            order = get_order(__tT)
             nothing
         end
     ),

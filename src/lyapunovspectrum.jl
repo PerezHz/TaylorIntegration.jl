@@ -165,7 +165,7 @@ function lyap_jetcoeffs!(
     jac::Matrix{Taylor1{S}},
     varsaux::Array{Taylor1{S},3},
 ) where {T<:Real,S<:Number}
-    order = t.order
+    order = get_order(t)
     # `dofrange` behaves like 1:dof, where `dof = size(jac, 1)`. Used to initialize `b` and `li`
     dofrange = axes(jac, 1)
     # The `view` below allows us to obtain CartesianIndices from `varsaux` when calling `eachindex(b)`

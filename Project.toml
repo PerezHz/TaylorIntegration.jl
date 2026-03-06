@@ -1,7 +1,7 @@
 name = "TaylorIntegration"
 uuid = "92b13dbe-c966-51a2-8445-caca9f8a7d42"
+version = "0.18.3"
 repo = "https://github.com/PerezHz/TaylorIntegration.jl.git"
-version = "0.18.2"
 
 [deps]
 DiffEqBase = "2b5f629d-d688-5b77-993f-72d75c75574e"
@@ -26,7 +26,7 @@ TaylorIntegrationIAExt = "IntervalArithmetic"
 [compat]
 Aqua = "0.8"
 BenchmarkTools = "1.3"
-DiffEqBase = "6"
+DiffEqBase = "6.210"
 Elliptic = "0.5, 1.0"
 Espresso = "0.6.1"
 InteractiveUtils = "<0.0.1, 1"
@@ -41,7 +41,7 @@ PkgBenchmark = "0.2"
 RecursiveArrayTools = "2, 3"
 Reexport = "1"
 StaticArrays = "0.12.5, 1"
-TaylorSeries = "0.20"
+TaylorSeries = "0.21"
 Test = "<0.0.1, 1"
 julia = "1.10"
 
@@ -62,6 +62,4 @@ TaylorSeries = "6aa5eb33-94cf-58f4-a9d0-e4b2c4fc25ea"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Aqua", "DiffEqBase", "Elliptic", "InteractiveUtils", "IntervalArithmetic",
-    "LinearAlgebra", "Logging", "OrdinaryDiffEq", "Pkg", "RecursiveArrayTools",
-    "StaticArrays", "TaylorSeries", "Test"]
+test = ["Aqua", "DiffEqBase", "Elliptic", "InteractiveUtils", "IntervalArithmetic", "LinearAlgebra", "Logging", "OrdinaryDiffEq", "Pkg", "RecursiveArrayTools", "StaticArrays", "TaylorSeries", "Test"]

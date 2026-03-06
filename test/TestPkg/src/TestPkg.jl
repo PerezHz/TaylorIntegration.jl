@@ -76,7 +76,7 @@ function TaylorIntegration.jetcoeffs!(
     dq::AbstractVector{Taylor1{_S}},
     params,
 ) where {_T<:Real,_S<:Number}
-    order = t.order
+    order = get_order(t)
     local N = Int(length(q) / 2)
     local _eltype_q_ = eltype(q)
     local μ = params
@@ -178,7 +178,7 @@ nex3, narr3 = TaylorIntegration._make_parsed_jetcoeffs(ex3)
 
 greet(f, parse_eqs) = begin
     t = Taylor1(order)
-    x = Taylor1.(x0, t.order)
+    x = Taylor1.(x0, get_order(t))
     dx = similar(x)
 
     @show @which TaylorIntegration.__jetcoeffs!(Val(parse_eqs), f, t, x, dx, similar(x), μ)
