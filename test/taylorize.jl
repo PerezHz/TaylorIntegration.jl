@@ -2764,10 +2764,10 @@ import Logging: Warn
         x0 = 10randn(2N)
         t = Taylor1(_order)
         μ = 1e-7rand(N)
-        x = Taylor1.(x0, t.order)
+        x = Taylor1.(x0, get_order(t))
         dx = similar(x)
         t_ = deepcopy(t)
-        x_ = Taylor1.(x0, t.order)
+        x_ = Taylor1.(x0, get_order(t))
         dx_ = similar(x_)
 
         @show Threads.nthreads()
