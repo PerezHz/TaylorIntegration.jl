@@ -16,10 +16,10 @@ TaylorSeries = "6aa5eb33-94cf-58f4-a9d0-e4b2c4fc25ea"
 
 [weakdeps]
 IntervalArithmetic = "d1acc4aa-44c8-5952-acd4-ba5d80a2a253"
-OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
+OrdinaryDiffEqCore = "bbf590c4-e513-4bbe-9b18-05decba2e5d8"
 
 [extensions]
-TaylorIntegrationDiffEqExt = "OrdinaryDiffEq"
+TaylorIntegrationDiffEqExt = "OrdinaryDiffEqCore"
 TaylorIntegrationIAExt = "IntervalArithmetic"
 
 [compat]
@@ -32,11 +32,11 @@ IntervalArithmetic = "0.23, 1"
 LinearAlgebra = "<0.0.1, 1"
 Logging = "<0.0.1, 1"
 Markdown = "<0.0.1, 1"
-OrdinaryDiffEq = "6"
+OrdinaryDiffEqCore = "3, 4"
 Parameters = "0.12"
 Pkg = "<0.0.1, 1"
 PkgBenchmark = "0.2"
-RecursiveArrayTools = "2, 3"
+RecursiveArrayTools = "2, 3, 4"
 Reexport = "1"
 StaticArrays = "0.12.5, 1"
 TaylorSeries = "0.21"
@@ -50,7 +50,7 @@ Elliptic = "b305315f-e792-5b7a-8f41-49f472929428"
 InteractiveUtils = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
-OrdinaryDiffEq = "1dea7af3-3e70-54e6-95c3-0bf5283fa5ed"
+OrdinaryDiffEqCore = "bbf590c4-e513-4bbe-9b18-05decba2e5d8"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 PkgBenchmark = "32113eaa-f34f-5b0d-bd6c-c81e245fc73d"
 RecursiveArrayTools = "731186ca-8d62-57ce-b412-fbd966d074cd"
@@ -59,4 +59,4 @@ TaylorSeries = "6aa5eb33-94cf-58f4-a9d0-e4b2c4fc25ea"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Aqua", "Elliptic", "InteractiveUtils", "IntervalArithmetic", "LinearAlgebra", "Logging", "OrdinaryDiffEq", "Pkg", "RecursiveArrayTools", "StaticArrays", "TaylorSeries", "Test"]
+test = ["Aqua", "Elliptic", "InteractiveUtils", "IntervalArithmetic", "LinearAlgebra", "Logging", "OrdinaryDiffEqCore", "Pkg", "RecursiveArrayTools", "StaticArrays", "TaylorSeries", "Test"]

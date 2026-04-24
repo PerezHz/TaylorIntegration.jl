@@ -4,22 +4,22 @@ module TaylorIntegrationDiffEqExt
 
 using TaylorIntegration
 
-using OrdinaryDiffEq:
+using OrdinaryDiffEqCore:
     ODEFunction,
     DynamicalODEFunction,
     check_keywords,
     warn_compat,
     ODEProblem,
-    DynamicalODEProblem
-using OrdinaryDiffEq.OrdinaryDiffEqCore
-using OrdinaryDiffEq.OrdinaryDiffEqCore: @cache, DiffEqBase
-import OrdinaryDiffEq
+    DynamicalODEProblem,
+    @cache,
+    DiffEqBase
+import OrdinaryDiffEqCore
 
 using StaticArrays: SVector, SizedArray
 using RecursiveArrayTools: ArrayPartition, copyat_or_push!
 
 # TODO: check which keywords work fine
-const ODEqCore = OrdinaryDiffEq.OrdinaryDiffEqCore
+const ODEqCore = OrdinaryDiffEqCore
 
 const warnkeywords = (
     :save_idxs,

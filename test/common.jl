@@ -1,7 +1,6 @@
 using TaylorIntegration, Test
-using OrdinaryDiffEq
-using OrdinaryDiffEq.OrdinaryDiffEqCore
-using OrdinaryDiffEq.OrdinaryDiffEqCore: DiffEqBase
+using OrdinaryDiffEqCore
+using OrdinaryDiffEqCore: DiffEqBase
 using LinearAlgebra: norm
 using StaticArrays
 using Logging
@@ -9,7 +8,7 @@ import Logging: Warn
 
 @testset "Testing `common.jl`" begin
     local TI = TaylorIntegration
-    local ODEqCore = OrdinaryDiffEq.OrdinaryDiffEqCore
+    local ODEqCore = OrdinaryDiffEqCore
     max_iters_reached() = "Maximum number of integration steps reached; exiting.\n"
     larger_maxiters_needed() =
         "Verbosity toggle: max_iters \n " *
@@ -512,11 +511,21 @@ import Logging: Warn
             out[2] = (u[3] - 10.0)u[3]
         end
 
-        function affect!(integrator, idx)
+        function apply_event!(integrator, idx)
             if idx == 1
                 integrator.u[2] = -0.9integrator.u[2]
             elseif idx == 2
                 integrator.u[4] = -0.9integrator.u[4]
+            end
+        end
+
+        function affect!(integrator, idx)
+            if idx isa Integer
+                apply_event!(integrator, idx)
+            else
+                for i in eachindex(idx)
+                    iszero(idx[i]) || apply_event!(integrator, i)
+                end
             end
         end
 
