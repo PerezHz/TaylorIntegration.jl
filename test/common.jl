@@ -1,11 +1,11 @@
 using TaylorIntegration, Test
 using OrdinaryDiffEq
 using OrdinaryDiffEq.OrdinaryDiffEqCore
+using OrdinaryDiffEq.OrdinaryDiffEqCore: DiffEqBase
 using LinearAlgebra: norm
 using StaticArrays
 using Logging
 import Logging: Warn
-using DiffEqBase
 
 @testset "Testing `common.jl`" begin
     local TI = TaylorIntegration
@@ -71,8 +71,8 @@ using DiffEqBase
 
         sol = solve(prob, TaylorMethod(50), abstol = 1e-20, reltol = 1e-18)
         @test norm(sol.u[end] - u0 .* exp(1)) < 1e-12
-        @taylorize f_oop(u, p, t) = u
-        prob_oop = ODEProblem(f_oop, u0, tspan)
+        @taylorize f_oop2(u, p, t) = u
+        prob_oop = ODEProblem(f_oop2, u0, tspan)
         sol_oop = solve(prob_oop, TaylorMethod(50), abstol = 1e-20, reltol = 1e-18)
         @test norm(sol_oop.u[end] - u0 .* exp(1)) < 1e-12
         @test sol.t == sol_oop.t

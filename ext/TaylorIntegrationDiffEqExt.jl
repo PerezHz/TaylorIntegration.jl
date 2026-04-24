@@ -12,13 +12,11 @@ using OrdinaryDiffEq:
     ODEProblem,
     DynamicalODEProblem
 using OrdinaryDiffEq.OrdinaryDiffEqCore
-using OrdinaryDiffEq.OrdinaryDiffEqCore: @cache
+using OrdinaryDiffEq.OrdinaryDiffEqCore: @cache, DiffEqBase
 import OrdinaryDiffEq
 
 using StaticArrays: SVector, SizedArray
 using RecursiveArrayTools: ArrayPartition, copyat_or_push!
-
-import DiffEqBase
 
 # TODO: check which keywords work fine
 const ODEqCore = OrdinaryDiffEq.OrdinaryDiffEqCore
