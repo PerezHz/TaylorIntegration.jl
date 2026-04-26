@@ -4,6 +4,7 @@ module TaylorIntegrationDiffEqExt
 
 using TaylorIntegration
 
+import DiffEqBase
 using OrdinaryDiffEqCore:
     ODEFunction,
     DynamicalODEFunction,
@@ -11,8 +12,7 @@ using OrdinaryDiffEqCore:
     warn_compat,
     ODEProblem,
     DynamicalODEProblem,
-    @cache,
-    DiffEqBase
+    @cache
 import OrdinaryDiffEqCore
 
 using StaticArrays: SVector, SizedArray

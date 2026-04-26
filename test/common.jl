@@ -1,6 +1,5 @@
 using TaylorIntegration, Test
 using OrdinaryDiffEqCore
-using OrdinaryDiffEqCore: DiffEqBase
 using LinearAlgebra: norm
 using StaticArrays
 using Logging
@@ -243,7 +242,7 @@ import Logging: Warn
         @test solti.x[end, :] == sol.u[end]
         @test sol.t == solti.t
         @test solti.x[end, :] == sol.u[end]
-        @test DiffEqBase.interp_summary(sol.interp) == "Taylor series polynomial evaluation"
+        @test ODEqCore.DiffEqBase.interp_summary(sol.interp) == "Taylor series polynomial evaluation"
 
         solr = (@test_logs min_level = Logging.Warn solve(
             prob,
@@ -283,7 +282,7 @@ import Logging: Warn
         @test soltib.x[end, :] == solb.u[end]
         @test solb.t == soltib.t
         @test soltib.x[end, :] == solb.u[end]
-        @test DiffEqBase.interp_summary(solb.interp) ==
+        @test ODEqCore.DiffEqBase.interp_summary(solb.interp) ==
               "Taylor series polynomial evaluation"
         ### with dense output
         sol2 = (@test_logs min_level = Logging.Warn taylorinteg(
@@ -419,7 +418,7 @@ import Logging: Warn
             maxiters = 2000,
         )
         @test sol2TN.alg.parse_eqs == true
-        @test DiffEqBase.interp_summary(sol2TN.interp) ==
+        @test ODEqCore.DiffEqBase.interp_summary(sol2TN.interp) ==
               "Taylor series polynomial evaluation"
         @test size(xTN) == size(Array(sol2TN)')
         @test xTN == Array(sol2TN)'
