@@ -203,7 +203,7 @@ For comparison, we now plot the orbit corresponding to the
 solution obtained with the `Vern9()` integration; note that
 the scales are identical.
 ```@example common
-plot(solV, vars=(1, 2), linewidth=1, fmt = :png)
+plot(solV, idxs=(1, 2), linewidth=1, fmt = :png)
 scatter!([μ, -1+μ], [0,0], leg=false) # positions of the primaries
 xlims!(-1+μ-0.2, 1+μ+0.2)
 ylims!(-0.8, 0.8)
