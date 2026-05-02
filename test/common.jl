@@ -510,20 +510,17 @@ import Logging: Warn
             out[2] = (u[3] - 10.0)u[3]
         end
 
-        function apply_event!(integrator, idx)
-            if idx == 1
-                integrator.u[2] = -0.9integrator.u[2]
-            elseif idx == 2
-                integrator.u[4] = -0.9integrator.u[4]
-            end
-        end
-
         function affect!(integrator, idx)
-            if idx isa Integer
-                apply_event!(integrator, idx)
+            # idx is a Vector{Int8} in OrdinaryDiffEq v7 (element is ±1 if triggered, 0 otherwise)
+            # idx is a scalar Int in OrdinaryDiffEq v6
+            if idx isa AbstractVector
+                idx[1] != 0 && (integrator.u[2] = -0.9integrator.u[2])
+                idx[2] != 0 && (integrator.u[4] = -0.9integrator.u[4])
             else
-                for i in eachindex(idx)
-                    iszero(idx[i]) || apply_event!(integrator, i)
+                if idx == 1
+                    integrator.u[2] = -0.9integrator.u[2]
+                elseif idx == 2
+                    integrator.u[4] = -0.9integrator.u[4]
                 end
             end
         end

@@ -4,12 +4,10 @@ module TaylorIntegrationDiffEqExt
 
 using TaylorIntegration
 
+using DiffEqBase: DynamicalODEFunction
 import DiffEqBase
 using OrdinaryDiffEqCore:
     ODEFunction,
-    DynamicalODEFunction,
-    check_keywords,
-    warn_compat,
     ODEProblem,
     DynamicalODEProblem,
     @cache
@@ -20,38 +18,6 @@ using RecursiveArrayTools: ArrayPartition, copyat_or_push!
 
 # TODO: check which keywords work fine
 const ODEqCore = OrdinaryDiffEqCore
-
-const warnkeywords = (
-    :save_idxs,
-    :d_discontinuities,
-    :unstable_check,
-    :save_everystep,
-    :save_end,
-    :initialize_save,
-    :adaptive,
-    :dt,
-    :dtmax,
-    :dtmin,
-    :force_dtmin,
-    :internalnorm,
-    :gamma,
-    :beta1,
-    :beta2,
-    :qmax,
-    :qmin,
-    :qsteady_min,
-    :qsteady_max,
-    :qoldinit,
-    :failfactor,
-    :isoutofdomain,
-    :unstable_check,
-    :calck,
-    :progress,
-    :timeseries_steps,
-)
-
-global warnlist = Set(warnkeywords)
-
 
 
 abstract type TaylorAlgorithm <: ODEqCore.OrdinaryDiffEqAdaptiveAlgorithm end
@@ -277,11 +243,6 @@ function DiffEqBase.solve(
 ) where {uType,tupType,isinplace}
 
     # SciMLBase.unwrapped_f(prob.f)
-
-    if verbose
-        warned = !isempty(kwargs) && check_keywords(alg, kwargs, warnlist)
-        warned && warn_compat()
-    end
 
     f = prob.f
     parse_eqs = haskey(kwargs, :parse_eqs) ? kwargs[:parse_eqs] : true # `true` is the default
