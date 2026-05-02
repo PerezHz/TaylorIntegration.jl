@@ -1,6 +1,6 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
-using TaylorIntegration, OrdinaryDiffEq
+using TaylorIntegration, OrdinaryDiffEqCore
 using Test
 using LinearAlgebra: norm
 using InteractiveUtils: methodswith

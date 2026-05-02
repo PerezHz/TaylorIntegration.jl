@@ -3,24 +3,21 @@
 module TaylorIntegrationDiffEqExt
 
 using TaylorIntegration
-using SciMLBase: SciMLBase
 
-using OrdinaryDiffEq:
+using DiffEqBase: DynamicalODEFunction
+import DiffEqBase
+using OrdinaryDiffEqCore:
     ODEFunction,
     ODEProblem,
-    DynamicalODEProblem
-using OrdinaryDiffEq.OrdinaryDiffEqCore
-using OrdinaryDiffEq.OrdinaryDiffEqCore: @cache
-import OrdinaryDiffEq
-using SciMLBase: DynamicalODEFunction
+    DynamicalODEProblem,
+    @cache
+import OrdinaryDiffEqCore
 
 using StaticArrays: SVector, SizedArray
 using RecursiveArrayTools: ArrayPartition, copyat_or_push!
 
-import DiffEqBase
-
 # TODO: check which keywords work fine
-const ODEqCore = OrdinaryDiffEq.OrdinaryDiffEqCore
+const ODEqCore = OrdinaryDiffEqCore
 
 
 abstract type TaylorAlgorithm <: ODEqCore.OrdinaryDiffEqAdaptiveAlgorithm end
@@ -174,7 +171,8 @@ function ODEqCore.initialize!(integrator, c::TaylorMethodConstantCache)
     (; u, t, f, p) = integrator
     tT = Taylor1(typeof(t), integrator.alg.order)
     tT[0] = t
-    c.uT .= Taylor1(u, get_order(tT))
+    TaylorSeries.zero!(c.uT)
+    c.uT[0] = u
     TaylorIntegration.__jetcoeffs!(Val(c.parse_eqs.x), f, tT, c.uT, p, c.rv)
     # FSAL stuff
     integrator.kshortsize = 2

@@ -1,15 +1,13 @@
 using TaylorIntegration, Test
-using OrdinaryDiffEq
-using OrdinaryDiffEq.OrdinaryDiffEqCore
+using OrdinaryDiffEqCore
 using LinearAlgebra: norm
 using StaticArrays
 using Logging
 import Logging: Warn
-using DiffEqBase
 
 @testset "Testing `common.jl`" begin
     local TI = TaylorIntegration
-    local ODEqCore = OrdinaryDiffEq.OrdinaryDiffEqCore
+    local ODEqCore = OrdinaryDiffEqCore
     max_iters_reached() = "Maximum number of integration steps reached; exiting.\n"
     larger_maxiters_needed() =
         "Verbosity toggle: max_iters \n " *
@@ -71,8 +69,8 @@ using DiffEqBase
 
         sol = solve(prob, TaylorMethod(50), abstol = 1e-20, reltol = 1e-18)
         @test norm(sol.u[end] - u0 .* exp(1)) < 1e-12
-        @taylorize f_oop(u, p, t) = u
-        prob_oop = ODEProblem(f_oop, u0, tspan)
+        @taylorize f_oop2(u, p, t) = u
+        prob_oop = ODEProblem(f_oop2, u0, tspan)
         sol_oop = solve(prob_oop, TaylorMethod(50), abstol = 1e-20, reltol = 1e-18)
         @test norm(sol_oop.u[end] - u0 .* exp(1)) < 1e-12
         @test sol.t == sol_oop.t
@@ -244,7 +242,7 @@ using DiffEqBase
         @test solti.x[end, :] == sol.u[end]
         @test sol.t == solti.t
         @test solti.x[end, :] == sol.u[end]
-        @test DiffEqBase.interp_summary(sol.interp) == "Taylor series polynomial evaluation"
+        @test ODEqCore.DiffEqBase.interp_summary(sol.interp) == "Taylor series polynomial evaluation"
 
         solr = (@test_logs min_level = Logging.Warn solve(
             prob,
@@ -284,7 +282,7 @@ using DiffEqBase
         @test soltib.x[end, :] == solb.u[end]
         @test solb.t == soltib.t
         @test soltib.x[end, :] == solb.u[end]
-        @test DiffEqBase.interp_summary(solb.interp) ==
+        @test ODEqCore.DiffEqBase.interp_summary(solb.interp) ==
               "Taylor series polynomial evaluation"
         ### with dense output
         sol2 = (@test_logs min_level = Logging.Warn taylorinteg(
@@ -420,7 +418,7 @@ using DiffEqBase
             maxiters = 2000,
         )
         @test sol2TN.alg.parse_eqs == true
-        @test DiffEqBase.interp_summary(sol2TN.interp) ==
+        @test ODEqCore.DiffEqBase.interp_summary(sol2TN.interp) ==
               "Taylor series polynomial evaluation"
         @test size(xTN) == size(Array(sol2TN)')
         @test xTN == Array(sol2TN)'

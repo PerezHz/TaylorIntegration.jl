@@ -189,7 +189,7 @@ solV = solve(prob, Vern9(), abstol=1e-15, reltol=1e-15); #solve `prob` with the 
 We plot in the ``x-y`` synodic plane the solution obtained
 with `TaylorIntegration`:
 ```@example common
-plot(solT, vars=(1, 2), linewidth=1, fmt = :png)
+plot(getindex.(solT.u, 1), getindex.(solT.u, 2), linewidth=1, fmt = :png)
 scatter!([μ, -1+μ], [0,0], leg=false) # positions of the primaries
 xlims!(-1+μ-0.2, 1+μ+0.2)
 ylims!(-0.8, 0.8)
@@ -203,7 +203,7 @@ For comparison, we now plot the orbit corresponding to the
 solution obtained with the `Vern9()` integration; note that
 the scales are identical.
 ```@example common
-plot(solV, vars=(1, 2), linewidth=1, fmt = :png)
+plot(getindex.(solV.u, 1), getindex.(solV.u, 2), linewidth=1, fmt = :png)
 scatter!([μ, -1+μ], [0,0], leg=false) # positions of the primaries
 xlims!(-1+μ-0.2, 1+μ+0.2)
 ylims!(-0.8, 0.8)

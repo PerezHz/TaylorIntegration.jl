@@ -31,7 +31,5 @@ Public = false
 
 ```@index
 Pages = ["api.md"]
-Module = ["TaylorIntegration"]
 Order = [:function]
-Public = true
 ```
