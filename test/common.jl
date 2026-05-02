@@ -513,10 +513,17 @@ using DiffEqBase
         end
 
         function affect!(integrator, idx)
-            if idx == 1
-                integrator.u[2] = -0.9integrator.u[2]
-            elseif idx == 2
-                integrator.u[4] = -0.9integrator.u[4]
+            # idx is a Vector{Int8} in OrdinaryDiffEq v7 (element is ±1 if triggered, 0 otherwise)
+            # idx is a scalar Int in OrdinaryDiffEq v6
+            if idx isa AbstractVector
+                idx[1] != 0 && (integrator.u[2] = -0.9integrator.u[2])
+                idx[2] != 0 && (integrator.u[4] = -0.9integrator.u[4])
+            else
+                if idx == 1
+                    integrator.u[2] = -0.9integrator.u[2]
+                elseif idx == 2
+                    integrator.u[4] = -0.9integrator.u[4]
+                end
             end
         end
 
