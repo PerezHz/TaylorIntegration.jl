@@ -81,12 +81,14 @@ function taylorinteg(
     parse_eqs::Bool = true,
     dense::Bool = true,
     reltol::T = zero(T),
+    minstep::T = zero(T),
+    maxstep::T = T(Inf)
 ) where {T<:Real,U<:Number}
 
     # Allocation
     cache = init_cache(Val(dense), t0, x0, maxsteps, order, f, params; parse_eqs)
 
-    return taylorinteg!(Val(dense), f, x0, t0, tmax, abstol, cache, params; maxsteps,reltol)
+    return taylorinteg!(Val(dense), f, x0, t0, tmax, abstol, cache, params; maxsteps, reltol, minstep, maxstep)
 end
 
 function taylorinteg!(
@@ -100,6 +102,8 @@ function taylorinteg!(
     params;
     maxsteps::Int = 500,
     reltol::T = zero(T),
+    minstep::T = zero(T),
+    maxstep::T = T(Inf)
 ) where {T<:Real,U<:Number,D}
 
     (; tv, xv, psol, t, x, rv, parse_eqs) = cache
@@ -113,7 +117,7 @@ function taylorinteg!(
 
     # Integration
     while sign_tstep * t0 < sign_tstep * tmax
-        δt = taylorstep!(Val(parse_eqs), f, t, x, abstol, params, rv, reltol) # δt is positive!
+        δt = taylorstep!(Val(parse_eqs), f, t, x, abstol, params, rv, reltol, minstep, maxstep) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         if iszero(δt)
             @warn("""The step-size is zero; aborting integration.""")
@@ -151,12 +155,14 @@ function taylorinteg(
     parse_eqs::Bool = true,
     dense::Bool = true,
     reltol::T = zero(T),
+    minstep::T = zero(T),
+    maxstep::T = T(Inf)
 ) where {T<:Real,U<:Number}
 
     # Allocation
     cache = init_cache(Val(dense), t0, q0, maxsteps, order, f!, params; parse_eqs)
 
-    return taylorinteg!(Val(dense), f!, q0, t0, tmax, abstol, cache, params; maxsteps, reltol)
+    return taylorinteg!(Val(dense), f!, q0, t0, tmax, abstol, cache, params; maxsteps, reltol, minstep, maxstep)
 end
 
 function taylorinteg!(
@@ -170,6 +176,8 @@ function taylorinteg!(
     params;
     maxsteps::Int = 500,
     reltol::T = zero(T),
+    minstep::T = zero(T),
+    maxstep::T = T(Inf)
 ) where {T<:Real,U<:Number,D}
 
     (; tv, xv, psol, xaux, t, x, dx, rv, parse_eqs) = cache
@@ -184,7 +192,7 @@ function taylorinteg!(
     # Integration
     nsteps = 1
     while sign_tstep * t0 < sign_tstep * tmax
-        δt = taylorstep!(Val(parse_eqs), f!, t, x, dx, xaux, abstol, params, rv, reltol) # δt is positive!
+        δt = taylorstep!(Val(parse_eqs), f!, t, x, dx, xaux, abstol, params, rv, reltol, minstep, maxstep) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         if iszero(δt)
             @warn("""The step-size is zero; aborting integration.""")
@@ -310,6 +318,8 @@ function taylorinteg(
     maxsteps::Int = 500,
     parse_eqs::Bool = true,
     reltol::T = zero(T),
+    minstep::T = zero(T),
+    maxstep::T = T(Inf)
 ) where {T<:Real,U<:Number}
 
     # Check if trange is increasingly or decreasingly sorted
@@ -318,7 +328,7 @@ function taylorinteg(
     # Allocation
     cache = init_cache(Val(false), trange, x0, maxsteps, order, f, params; parse_eqs)
 
-    return taylorinteg!(f, x0, trange, abstol, cache, params; maxsteps, reltol)
+    return taylorinteg!(f, x0, trange, abstol, cache, params; maxsteps, reltol, minstep, maxstep)
 end
 
 function taylorinteg!(
@@ -330,6 +340,8 @@ function taylorinteg!(
     params;
     maxsteps::Int = 500,
     reltol::T = zero(T),
+    minstep::T = zero(T),
+    maxstep::T = T(Inf)
 ) where {T<:Real,U<:Number}
 
     (; xv, t, x, rv, parse_eqs) = cache
@@ -344,7 +356,7 @@ function taylorinteg!(
     iter = 2
     nsteps = 1
     while sign_tstep * t0 < sign_tstep * tmax
-        δt = taylorstep!(Val(parse_eqs), f, t, x, abstol, params, rv, reltol)# δt is positive!
+        δt = taylorstep!(Val(parse_eqs), f, t, x, abstol, params, rv, reltol, minstep, maxstep)# δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         if iszero(δt)
             @warn("""The step-size is zero; aborting integration.""")
@@ -387,6 +399,8 @@ function taylorinteg(
     maxsteps::Int = 500,
     parse_eqs::Bool = true,
     reltol::T = zero(T),
+    minstep::T = zero(T),
+    maxstep::T = T(Inf)
 ) where {T<:Real,U<:Number}
 
     # Check if trange is increasingly or decreasingly sorted
@@ -395,7 +409,7 @@ function taylorinteg(
     # Allocation
     cache = init_cache(Val(false), trange, q0, maxsteps, order, f!, params; parse_eqs)
 
-    return taylorinteg!(f!, q0, trange, abstol, cache, params; maxsteps, reltol)
+    return taylorinteg!(f!, q0, trange, abstol, cache, params; maxsteps, reltol, minstep, maxstep)
 end
 
 function taylorinteg!(
@@ -407,6 +421,8 @@ function taylorinteg!(
     params;
     maxsteps::Int = 500,
     reltol::T = zero(T),
+    minstep::T = zero(T),
+    maxstep::T = T(Inf)
 ) where {T<:Real,U<:Number}
 
     (; xv, xaux, x0, x1, t, x, dx, rv, parse_eqs) = cache
@@ -422,7 +438,7 @@ function taylorinteg!(
     iter = 2
     nsteps = 1
     while sign_tstep * t0 < sign_tstep * tmax
-        δt = taylorstep!(Val(parse_eqs), f!, t, x, dx, xaux, abstol, params, rv, reltol) # δt is positive!
+        δt = taylorstep!(Val(parse_eqs), f!, t, x, dx, xaux, abstol, params, rv, reltol, minstep, maxstep) # δt is positive!
         if iszero(δt)
             @warn("""The step-size is zero; aborting integration.""")
             break
@@ -473,10 +489,12 @@ for R in (:Number, :Integer)
             maxsteps::Int = 500,
             parse_eqs::Bool = true,
             reltol::V = zero(V),
+            minstep::V = zero(V),
+            maxstep::V = V(Inf)
         ) where {S<:$R,T<:Real,U<:Real,V<:Real}
 
             # In order to handle mixed input types, we promote types before integrating:
-            t0, tmax, abstol, rreltol, _ = promote(tt0, ttmax, aabstol, reltol, one(Float64))
+            t0, tmax, abstol, rreltol, rminstep, rmaxstep, _ = promote(tt0, ttmax, aabstol, reltol, minstep, maxstep, one(Float64))
             x0, _ = promote(xx0, t0)
 
             return taylorinteg(
@@ -491,6 +509,8 @@ for R in (:Number, :Integer)
                 maxsteps = maxsteps,
                 parse_eqs = parse_eqs,
                 reltol = rreltol,
+                minstep = rminstep,
+                maxstep = rmaxstep
             )
         end
 
@@ -506,10 +526,12 @@ for R in (:Number, :Integer)
             maxsteps::Int = 500,
             parse_eqs::Bool = true,
             reltol::V = zero(V),
+            minstep::V = zero(V),
+            maxstep::V = V(Inf)
         ) where {S<:$R,T<:Real,U<:Real,V<:Real}
 
             #promote to common type before integrating:
-            t0, tmax, abstol, rreltol, _ = promote(tt0, ttmax, aabstol, reltol, one(Float64))
+            t0, tmax, abstol, rreltol, rminstep, rmaxstep, _ = promote(tt0, ttmax, aabstol, reltol, minstep, maxstep, one(Float64))
             elq0, _ = promote(q0[1], t0)
             #convert the elements of q0 to the common, promoted type:
             q0_ = convert(Array{typeof(elq0)}, q0)
@@ -526,6 +548,8 @@ for R in (:Number, :Integer)
                 maxsteps = maxsteps,
                 parse_eqs = parse_eqs,
                 reltol = rreltol,
+                minstep = rminstep,
+                maxstep = rmaxstep
             )
         end
 
@@ -539,9 +563,11 @@ for R in (:Number, :Integer)
             maxsteps::Int = 500,
             parse_eqs::Bool = true,
             reltol::U = zero(U),
+            minstep::U = zero(U),
+            maxstep::U = U(Inf)
         ) where {S<:$R,T<:Real,U<:Real}
 
-            t0, abstol, rreltol, _ = promote(trange[1], aabstol, reltol, one(Float64))
+            t0, abstol, rreltol, rminstep, rmaxstep, _ = promote(trange[1], aabstol, reltol, minstep, maxstep, one(Float64))
             x0, _ = promote(xx0, t0)
 
             return taylorinteg(
@@ -554,6 +580,8 @@ for R in (:Number, :Integer)
                 maxsteps = maxsteps,
                 parse_eqs = parse_eqs,
                 reltol = rreltol,
+                minstep = rminstep,
+                maxstep = rmaxstep
             )
         end
 
@@ -567,9 +595,11 @@ for R in (:Number, :Integer)
             maxsteps::Int = 500,
             parse_eqs::Bool = true,
             reltol::U = zero(U),
+            minstep::U = zero(U),
+            maxstep::U = U(Inf)
         ) where {S<:$R,T<:Real,U<:Real}
 
-            t0, abstol, rreltol, _ = promote(trange[1], aabstol, reltol, one(Float64))
+            t0, abstol, rreltol, rminstep, rmaxstep, _ = promote(trange[1], aabstol, reltol, minstep, maxstep, one(Float64))
             elq0, _ = promote(q0[1], t0)
             q0_ = convert(Array{typeof(elq0)}, q0)
 
@@ -583,6 +613,8 @@ for R in (:Number, :Integer)
                 maxsteps = maxsteps,
                 parse_eqs = parse_eqs,
                 reltol = rreltol,
+                minstep = rminstep,
+                maxstep = rmaxstep
             )
         end
 

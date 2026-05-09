@@ -252,6 +252,8 @@ function taylorinteg(
     newtoniter::Int = 10,
     nrabstol::T = eps(T),
     reltol::T = zero(T),
+    minstep::T = zero(T),
+    maxstep::T = T(Inf)
 ) where {T<:Real,U<:Number}
 
     @assert order ≥ eventorder "`eventorder` must be less than or equal to `order`"
@@ -274,6 +276,8 @@ function taylorinteg(
         newtoniter,
         nrabstol,
         reltol,
+        minstep,
+        maxstep
     )
 end
 
@@ -292,6 +296,8 @@ function taylorinteg!(
     newtoniter::Int = 10,
     nrabstol::T = eps(T),
     reltol::T = zero(T),
+    minstep::T = zero(T),
+    maxstep::T = T(Inf)
 ) where {T<:Real,U<:Number,D}
 
     (; tv, xv, psol, xaux, t, x, dx, rv, parse_eqs) = cache
@@ -323,7 +329,7 @@ function taylorinteg!(
     nevents = 1 #number of detected events
     while sign_tstep * t0 < sign_tstep * tmax
         δt_old = δt
-        δt = taylorstep!(Val(parse_eqs), f!, t, x, dx, xaux, abstol, params, rv, reltol) # δt is positive!
+        δt = taylorstep!(Val(parse_eqs), f!, t, x, dx, xaux, abstol, params, rv, reltol, minstep, maxstep) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep * (tmax - t0))
         evaluate!(x, δt, x0) # new initial condition
@@ -380,6 +386,8 @@ function taylorinteg(
     newtoniter::Int = 10,
     nrabstol::T = eps(T),
     reltol::T = zero(T),
+    minstep::T = zero(T),
+    maxstep::T = T(Inf)
 ) where {T<:Real,U<:Number}
 
     @assert order ≥ eventorder "`eventorder` must be less than or equal to `order`"
@@ -403,6 +411,8 @@ function taylorinteg(
         newtoniter,
         nrabstol,
         reltol,
+        minstep,
+        maxstep
     )
 end
 
@@ -419,6 +429,8 @@ function taylorinteg!(
     newtoniter::Int = 10,
     nrabstol::T = eps(T),
     reltol::T = zero(T),
+    minstep::T = zero(T),
+    maxstep::T = T(Inf)
 ) where {T<:Real,U<:Number}
 
     (; tv, xv, xaux, x0, x1, t, x, dx, rv, parse_eqs) = cache
@@ -451,7 +463,7 @@ function taylorinteg!(
     nevents = 1 #number of detected events
     while sign_tstep * t0 < sign_tstep * tmax
         δt_old = δt
-        δt = taylorstep!(Val(parse_eqs), f!, t, x, dx, xaux, abstol, params, rv, reltol) # δt is positive!
+        δt = taylorstep!(Val(parse_eqs), f!, t, x, dx, xaux, abstol, params, rv, reltol, minstep, maxstep) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep * (tmax - t0))
         evaluate!(x, δt, x0) # new initial condition
