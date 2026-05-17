@@ -22,8 +22,8 @@ DOI (Zenodo):
 
 ## Authors
 
-- [Jorge A. Pérez](https://github.com/PerezHz),
-Instituto de Ciencias Físicas, Universidad Nacional Autónoma de México (UNAM)
+- [Jorge A. Pérez Hernández](https://github.com/PerezHz),
+Minor Planet Center, Center for Astrophysics | Harvard & Smithsonian
 - [Luis Benet](http://www.cicc.unam.mx/~benet/),
 Instituto de Ciencias Físicas, Universidad Nacional Autónoma de México (UNAM)
 
