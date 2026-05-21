@@ -180,6 +180,36 @@ const _HEAD_ALLOC_TAYLOR1_VECTOR = sanitize(
     ),
 );
 
+const _HEAD_FN_SCALAR = sanitize(
+    :(
+        function __fn(
+            __x::Taylor1{_S},
+            __params,
+            __tT::Taylor1{_T},
+            __ralloc::TaylorIntegration.RetAlloc{Taylor1{_S}},
+        ) where {_T, _S<:Number}
+            order = get_order(__tT)
+            nothing
+        end
+    ),
+);
+
+const _HEAD_FN_VECTOR = sanitize(
+    :(
+        function __fn(
+            __dx::AbstractArray{Taylor1{_S},_N},
+            __x::AbstractArray{Taylor1{_S},_N},
+            __params,
+            __tT::Taylor1{_T},
+            __ralloc::TaylorIntegration.RetAlloc{Taylor1{_S}},
+        ) where {_T, _S<:Number, _N}
+            order = get_order(__tT)
+            nothing
+        end
+    ),
+);
+
+
 # Constants for the initial declaration and initialization of arrays
 const _DECL_ARRAY = sanitize(
     Expr(
@@ -211,7 +241,7 @@ function _make_parsed_jetcoeffs(ex::Expr)
     fn, fnargs, fnbody = _extract_parts(ex)
 
     # Set up the Expr for the new functions
-    new_jetcoeffs, new_allocjetcoeffs = _newhead(fn, fnargs)
+    new_jetcoeffs, new_allocjetcoeffs, new_fnfunc = _newhead(fn, fnargs)
 
     # Transform the graph representation of the body of the functions:
     # defspreamble: initializations used for the zeroth order (preamble)
@@ -225,17 +255,21 @@ function _make_parsed_jetcoeffs(ex::Expr)
     # rec_fnbody: recursion loop for the body-function (recursion loop for all orders)
     rec_fnbody = _recursionloop(fnargs, bkkeep)
 
-    # Expr for the for-loop block for the recursion (of the `x` variable)
+    # Expr for the for-loop block (on `ord`)
     forloopblock = Expr(:for, :(ord = 0:order-1), Expr(:block, :(ordnext = ord + 1)))
+    forloopblockfn = Expr(:for, :(ord = 0:order-1), Expr(:block, :(ordnext = ord + 1)))
 
     # Add rec_fnbody to `forloopblock`
     push!(forloopblock.args[2].args, fnbody.args[1].args..., rec_fnbody)
+    push!(forloopblockfn.args[2].args, fnbody.args[1].args...)
 
-    # Add preamble and recursion body to `new_jetcoeffs`
+    # Add preamble and recursion body to `new_jetcoeffs` and `new_fnfunc`
     push!(new_jetcoeffs.args[2].args, defspreamble...)
+    push!(new_fnfunc.args[2].args, defspreamble...)
 
-    # Push preamble and forloopblock to `new_jetcoeffs` and return line
+    # Push preamble and forloopblock to `new_jetcoeffs` and `new_fnfunc` and return line
     push!(new_jetcoeffs.args[2].args, forloopblock, Meta.parse("return nothing"))
+    push!(new_fnfunc.args[2].args, forloopblockfn, Meta.parse("return nothing"))
 
     # Split v_arraydecl according to the number of indices
     _split_arraydecl!(bkkeep)
@@ -272,6 +306,15 @@ function _make_parsed_jetcoeffs(ex::Expr)
                 :(__fn) => fn,
             ),
         )
+        new_fnfunc = subs(
+            new_fnfunc,
+            Dict(
+                :(__x) => fnargs[1],
+                :__params => fnargs[2],
+                :__tT => fnargs[3],
+                :(__fn) => fn,
+            ),
+        )
 
     elseif length(fnargs) == 4
         new_jetcoeffs = subs(
@@ -294,13 +337,23 @@ function _make_parsed_jetcoeffs(ex::Expr)
                 :(__fn) => fn,
             ),
         )
+        new_fnfunc = subs(
+            new_fnfunc,
+            Dict(
+                :(__dx) => fnargs[1],
+                :(__x) => fnargs[2],
+                :__params => fnargs[3],
+                :__tT => fnargs[4],
+                :(__fn) => fn,
+            ),
+        )
 
         # else
         #     # A priori this is not needed
         #     throw(ArgumentError("Wrong number of arguments in `fnargs`"))
     end
 
-    return new_jetcoeffs, new_allocjetcoeffs
+    return new_jetcoeffs, new_allocjetcoeffs, new_fnfunc
 end
 
 
@@ -391,7 +444,8 @@ end
 """
 `_newhead(fn, fnargs)`
 
-Creates the head of the new method of `jetcoeffs!` and `_allocate_jetcoeffs`.
+Creates the head of the new method of `jetcoeffs!` and `_allocate_jetcoeffs`,
+as well as a new *in-place* method of `fn`.
 `fn` is the name of the passed function and `fnargs` is a vector with its arguments
 defning the function (which are either three or four).
 
@@ -401,10 +455,12 @@ function _newhead(fn, fnargs)
     if length(fnargs) == 3
         newfunction = copy(_HEAD_PARSEDFN_SCALAR)
         newdeclfunc = copy(_HEAD_ALLOC_TAYLOR1_SCALAR)
+        newfnfunc = copy(_HEAD_FN_SCALAR)
 
     elseif length(fnargs) == 4
         newfunction = copy(_HEAD_PARSEDFN_VECTOR)
         newdeclfunc = copy(_HEAD_ALLOC_TAYLOR1_VECTOR)
+        newfnfunc = copy(_HEAD_FN_VECTOR)
 
     else
         throw(
@@ -417,8 +473,9 @@ function _newhead(fn, fnargs)
     # Delete the irrelevant `nothing`
     pop!(newfunction.args[2].args)
     pop!(newdeclfunc.args[2].args)
+    pop!(newfnfunc.args[2].args)
 
-    return newfunction, newdeclfunc
+    return newfunction, newdeclfunc, newfnfunc
 end
 
 
@@ -1407,10 +1464,11 @@ See the [documentation](@ref taylorize) for more details and limitations.
 
 """
 macro taylorize(ex)
-    nex1, nex2 = _make_parsed_jetcoeffs(ex)
+    nex1, nex2, nex3 = _make_parsed_jetcoeffs(ex)
     esc(quote
         $(ex)   # evals to calling scope the passed function
         $(nex1) # evals the new method of `jetcoeffs!`
         $(nex2) # evals the new method of `_allocate_jetcoeffs`
+        $(nex3) # evals the new method of the function defined by `ex`
     end)
 end
