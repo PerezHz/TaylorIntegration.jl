@@ -27,7 +27,7 @@ import Logging: Warn
         δt = _abstol^inv(_order - 1)
         @test TaylorIntegration.stepsize(x0T, _abstol) == δt
 
-        sol = (@test_logs (Warn, zero_stepsize()) taylorinteg(
+        sol = (@test_no_logs (Warn, zero_stepsize()) taylorinteg(
             eqs_mov,
             1,
             0.0,
@@ -48,7 +48,7 @@ import Logging: Warn
         @test tv[end] < 1.0
 
         #with reltol
-        sol = (@test_logs (Warn, zero_stepsize()) taylorinteg(
+        sol = (@test_no_logs (Warn, zero_stepsize()) taylorinteg(
             eqs_mov,
             1,
             0.0,
@@ -69,7 +69,7 @@ import Logging: Warn
         @test tv[end] < 1.0
 
 
-        sol = (@test_logs (Warn, zero_stepsize()) taylorinteg(
+        sol = (@test_no_logs (Warn, zero_stepsize()) taylorinteg(
             eqs_mov,
             x0,
             0.0,
@@ -86,7 +86,7 @@ import Logging: Warn
         @test tv[end] < 1.0
 
         trange = 0.0:1/8:1.0
-        sol = (@test_logs (Warn, zero_stepsize()) taylorinteg(
+        sol = (@test_no_logs (Warn, zero_stepsize()) taylorinteg(
             eqs_mov,
             1,
             trange,
@@ -100,7 +100,7 @@ import Logging: Warn
         @test xv[1] == x0
         @test isnan(xv[end])
         @test abs(xv[5] - 2.0) ≤ eps(2.0)
-        solr = (@test_logs min_level = Logging.Warn taylorinteg(
+        solr = (@test_no_logs min_level = Logging.Warn taylorinteg(
             eqs_mov,
             x0,
             trange[1],
@@ -116,7 +116,7 @@ import Logging: Warn
         @test xvr[end] == xv[end-1]
 
         trange = 0.0:1/8:1.0
-        sol = (@test_logs (Warn, zero_stepsize()) taylorinteg(
+        sol = (@test_no_logs (Warn, zero_stepsize()) taylorinteg(
             eqs_mov,
             x0,
             trange,
@@ -131,7 +131,7 @@ import Logging: Warn
         @test xv[1] == x0
         @test isnan(xv[end])
         @test abs(xv[5] - 2.0) ≤ eps(2.0)
-        solr = (@test_logs min_level = Logging.Warn taylorinteg(
+        solr = (@test_no_logs min_level = Logging.Warn taylorinteg(
             eqs_mov,
             x0,
             trange[1],
@@ -148,7 +148,7 @@ import Logging: Warn
         @test xvr[end] == xv[end-1]
 
         tarray = vec(trange)
-        sol2 = (@test_logs (Warn, zero_stepsize()) taylorinteg(
+        sol2 = (@test_no_logs (Warn, zero_stepsize()) taylorinteg(
             eqs_mov,
             x0,
             tarray,
@@ -166,7 +166,7 @@ import Logging: Warn
         @test abs(xv2[5] - 2.0) ≤ eps(2.0)
 
         # Output includes Taylor polynomial solution
-        sol = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+        sol = (@test_no_logs (Warn, max_iters_reached()) taylorinteg(
             eqs_mov,
             x0,
             0,
@@ -204,7 +204,7 @@ import Logging: Warn
         δt = (_abstol / x0T.coeffs[end-1])^inv(_order - 1)
         @test TaylorIntegration.stepsize(x0T, _abstol) == δt
 
-        sol = (@test_logs min_level = Logging.Warn taylorinteg(
+        sol = (@test_no_logs min_level = Logging.Warn taylorinteg(
             eqs_mov,
             x0,
             0,
@@ -224,7 +224,7 @@ import Logging: Warn
         @test abs(xv[end] - exactsol(tv[end], xv[1])) < 5e-14
 
         tmax = 0.33
-        sol = (@test_logs min_level = Logging.Warn taylorinteg(
+        sol = (@test_no_logs min_level = Logging.Warn taylorinteg(
             eqs_mov,
             x0,
             t0,
@@ -252,7 +252,7 @@ import Logging: Warn
             order = 25
             x0 = 0.0 #initial conditions such that x(t)=sin(t)
 
-            sol = (@test_logs min_level = Logging.Warn taylorinteg(
+            sol = (@test_no_logs min_level = Logging.Warn taylorinteg(
                 f,
                 x0,
                 t0,
@@ -269,7 +269,7 @@ import Logging: Warn
             @test abs(sin(tmax) - xv[end]) < 1e-14
 
             # Backward integration
-            solb = (@test_logs min_level = Logging.Warn taylorinteg(
+            solb = (@test_no_logs min_level = Logging.Warn taylorinteg(
                 f,
                 sin(tmax),
                 tmax,
@@ -289,7 +289,7 @@ import Logging: Warn
             tmax = 15 * (2pi)
             Δt = (tmax - t0) / 1024
             tspan = t0:Δt:tmax
-            sol = (@test_logs min_level = Logging.Warn taylorinteg(
+            sol = (@test_no_logs min_level = Logging.Warn taylorinteg(
                 f,
                 x0,
                 tspan,
@@ -301,7 +301,7 @@ import Logging: Warn
             @test abs(sin(tmax) - xv[end]) < 1e-14
 
             # Backward integration
-            solback = (@test_logs min_level = Logging.Warn taylorinteg(
+            solback = (@test_no_logs min_level = Logging.Warn taylorinteg(
                 f,
                 xv[end],
                 reverse(tspan),

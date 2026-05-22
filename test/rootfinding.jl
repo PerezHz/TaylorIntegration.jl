@@ -35,7 +35,7 @@ import Logging: Warn
     x01 = x0 + [ξ, ξ]
 
     #warm-up lap and preliminary tests
-    sol = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+    sol = (@test_no_logs (Warn, max_iters_reached()) taylorinteg(
         pendulum!,
         g,
         x0,
@@ -54,7 +54,7 @@ import Logging: Warn
     @test size(xvS) == (0, 2)
     @test size(gvS) == (0,)
 
-    solN = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+    solN = (@test_no_logs (Warn, max_iters_reached()) taylorinteg(
         pendulum!,
         g,
         x0N,
@@ -78,7 +78,7 @@ import Logging: Warn
     @test size(xvSN) == (0, 2)
     @test size(gvSN) == (0,)
 
-    sol1 = (@test_logs (Warn, max_iters_reached()) taylorinteg(
+    sol1 = (@test_no_logs (Warn, max_iters_reached()) taylorinteg(
         pendulum!,
         g,
         x01,
@@ -103,7 +103,7 @@ import Logging: Warn
     @test size(gvS1) == (0,)
 
     #testing 0-th order root-finding
-    sol = (@test_logs min_level = Logging.Warn taylorinteg(
+    sol = (@test_no_logs min_level = Logging.Warn taylorinteg(
         pendulum!,
         g,
         x0,
@@ -122,7 +122,7 @@ import Logging: Warn
     @test norm(gvS, Inf) < eps()
 
     #testing 0-th order root-finding with dense output
-    sol = (@test_logs min_level = Logging.Warn taylorinteg(
+    sol = (@test_no_logs min_level = Logging.Warn taylorinteg(
         pendulum!,
         g,
         x0,
@@ -157,7 +157,7 @@ import Logging: Warn
         maxsteps = 1000,
         eventorder = _order + 1,
     )
-    solr = (@test_logs min_level = Logging.Warn taylorinteg(
+    solr = (@test_no_logs min_level = Logging.Warn taylorinteg(
         pendulum!,
         g,
         x0,
@@ -178,7 +178,7 @@ import Logging: Warn
     @test norm(tvS - tvSr, Inf) < 5E-15
 
     #testing 0-th order root-finding + TaylorN jet transport
-    solN = (@test_logs min_level = Logging.Warn taylorinteg(
+    solN = (@test_no_logs min_level = Logging.Warn taylorinteg(
         pendulum!,
         g,
         x0N,
@@ -197,7 +197,7 @@ import Logging: Warn
     @test norm(xvSN() - xvS, Inf) < 1E-14
 
     #testing 0-th order root-finding + TaylorN jet transport + dense output
-    solN = (@test_logs min_level = Logging.Warn taylorinteg(
+    solN = (@test_no_logs min_level = Logging.Warn taylorinteg(
         pendulum!,
         g,
         x0N,
@@ -222,7 +222,7 @@ import Logging: Warn
     end
 
     #testing 0-th root-finding + Taylor1 jet transport
-    sol1 = (@test_logs min_level = Logging.Warn taylorinteg(
+    sol1 = (@test_no_logs min_level = Logging.Warn taylorinteg(
         pendulum!,
         g,
         x01,
@@ -254,7 +254,7 @@ import Logging: Warn
         newtoniter = 2,
     )
 
-    sol = (@test_logs (Warn, err_newton_raphson()) match_mode = :any taylorinteg(
+    sol = (@test_no_logs (Warn, err_newton_raphson()) match_mode = :any taylorinteg(
         pendulum!,
         g,
         x0,
@@ -275,7 +275,7 @@ import Logging: Warn
     @test norm(gvS[:]) < 1E-15
     
     # testing backward integrations
-    solb = (@test_logs (Warn, err_newton_raphson()) match_mode = :any taylorinteg(
+    solb = (@test_no_logs (Warn, err_newton_raphson()) match_mode = :any taylorinteg(
         pendulum!,
         g,
         xv[end, :],
@@ -295,7 +295,7 @@ import Logging: Warn
     @test norm(xvSb[2:end, :] .- xvS[end:-1:1, :], Inf) < 1E-13
 
     #testing higher order root-finding + TaylorN jet transport
-    solN = (@test_logs min_level = Logging.Warn taylorinteg(
+    solN = (@test_no_logs min_level = Logging.Warn taylorinteg(
         pendulum!,
         g,
         x0N,
@@ -315,7 +315,7 @@ import Logging: Warn
     @test norm(xvSN() - xvS, Inf) < 1E-14
 
     #testing higher root-finding + Taylor1 jet transport
-    sol1 = (@test_logs min_level = Logging.Warn taylorinteg(
+    sol1 = (@test_no_logs min_level = Logging.Warn taylorinteg(
         pendulum!,
         g,
         x01,
@@ -337,7 +337,7 @@ import Logging: Warn
     # Tests if trange is properly sorted
     Δt = (3Tend - t0) / 1000
     tspan = t0:Δt:(3Tend-0.125)
-    sol1r = (@test_logs min_level = Logging.Warn taylorinteg(
+    sol1r = (@test_no_logs min_level = Logging.Warn taylorinteg(
         pendulum!,
         g,
         x01,
@@ -348,7 +348,7 @@ import Logging: Warn
         eventorder = 2,
     ))
     xv1r, tvS1r, xvS1r, gvS1r = sol1r.x, sol1r.tevents, sol1r.xevents, sol1r.gresids
-    sol1rb = (@test_logs min_level = Logging.Warn taylorinteg(
+    sol1rb = (@test_no_logs min_level = Logging.Warn taylorinteg(
         pendulum!,
         g,
         xv1r[end, :],

@@ -17,7 +17,7 @@ import Logging: Warn
         eqs_mov(x, p, t) = x^2
         t0 = 0.0
         x0 = interval(1.0)
-        sol = (@test_logs (Warn, zero_stepsize()) taylorinteg(
+        sol = (@test_no_logs (Warn, zero_stepsize()) taylorinteg(
             eqs_mov,
             x0,
             0.0,
@@ -49,7 +49,7 @@ import Logging: Warn
         order = 25
         x0 = [interval(t0), interval(0.0)] #initial conditions such that x(t)=sin(t)
 
-        sol = (@test_logs min_level = Logging.Warn taylorinteg(
+        sol = (@test_no_logs min_level = Logging.Warn taylorinteg(
             f!,
             x0,
             t0,
@@ -68,7 +68,7 @@ import Logging: Warn
         @test abs(sin(tmax) - xv[end, 2]) < 5e-14
 
         # Backward integration
-        solb = (@test_logs min_level = Logging.Warn taylorinteg(
+        solb = (@test_no_logs min_level = Logging.Warn taylorinteg(
             f!,
             [interval(tmax), sin(interval(tmax))],
             tmax,

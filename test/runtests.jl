@@ -1,5 +1,17 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
+using Logging
+
+macro test_no_logs(args...)
+    isempty(args) && error("@test_no_logs requires an expression to evaluate")
+    expr = args[end]
+    return quote
+        Logging.with_logger(Logging.NullLogger()) do
+            $(esc(expr))
+        end
+    end
+end
+
 testfiles = (
     "solution.jl",
     "one_ode.jl",
