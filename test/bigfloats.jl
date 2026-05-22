@@ -22,7 +22,7 @@ import Logging: Warn
         # T is the pendulum's librational period == 4Elliptic.K(sin(q0[1]/2)^2)
         # we will evaluate the elliptic integral K using TaylorIntegration.jl:
         G(x, p, t) = 1 / sqrt(1 - ((sin(big"1.3" / 2))^2) * (sin(t)^2)) # K elliptic integral kernel
-        solk = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        solk = (@test_logs min_level = Logging.Warn taylorinteg(
             G,
             0.0,
             0.0,
@@ -40,7 +40,7 @@ import Logging: Warn
 
         t0 = 0.0 #the initial time
 
-        sol = (@test_no_logs (Warn, max_iters_reached()) taylorinteg(
+        sol = (@test_logs (Warn, max_iters_reached()) taylorinteg(
             pendulum!,
             q0,
             t0,
@@ -58,7 +58,7 @@ import Logging: Warn
         @test length(xv[:, 2]) == 2
 
         #note that T is a BigFloat
-        sol = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        sol = (@test_logs min_level = Logging.Warn taylorinteg(
             pendulum!,
             q0,
             t0,

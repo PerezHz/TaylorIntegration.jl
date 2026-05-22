@@ -153,7 +153,7 @@ import Logging: Warn
         xi = set_variables("δ", order = 1, numvars = length(q0))
 
         #Test lyap_taylorinteg with autodiff-computed Jacobian, maxsteps=5
-        sol = (@test_no_logs (Warn, max_iters_reached()) lyap_taylorinteg(
+        sol = (@test_logs (Warn, max_iters_reached()) lyap_taylorinteg(
             lorenz!,
             q0,
             t0,
@@ -169,7 +169,7 @@ import Logging: Warn
         @test size(λv) == (6, 3)
 
         #Test lyap_taylorinteg with user-defined Jacobian, maxsteps=5
-        sol2 = (@test_no_logs (Warn, max_iters_reached()) lyap_taylorinteg(
+        sol2 = (@test_logs (Warn, max_iters_reached()) lyap_taylorinteg(
             lorenz!,
             q0,
             t0,
@@ -189,7 +189,7 @@ import Logging: Warn
         @test λv == λv2
 
         #Test lyap_taylorinteg with autodiff-computed Jacobian, maxsteps=2000
-        sol = (@test_no_logs min_level = Logging.Warn lyap_taylorinteg(
+        sol = (@test_logs min_level = Logging.Warn lyap_taylorinteg(
             lorenz!,
             q0,
             t0,
@@ -216,7 +216,7 @@ import Logging: Warn
 
         #RELTOL
         #Test lyap_taylorinteg with autodiff-computed Jacobian, maxsteps=2000
-        solr = (@test_no_logs min_level = Logging.Warn lyap_taylorinteg(
+        solr = (@test_logs min_level = Logging.Warn lyap_taylorinteg(
             lorenz!,
             q0,
             t0,
@@ -246,7 +246,7 @@ import Logging: Warn
 
 
         # test backward integration
-        solb = (@test_no_logs (Warn, max_iters_reached()) lyap_taylorinteg(
+        solb = (@test_logs (Warn, max_iters_reached()) lyap_taylorinteg(
             lorenz!,
             q0,
             t0,
@@ -260,7 +260,7 @@ import Logging: Warn
         @test isapprox(sum(λvb[end, :]), lorenztr)
 
 
-        solb = (@test_no_logs (Warn, max_iters_reached()) lyap_taylorinteg(
+        solb = (@test_logs (Warn, max_iters_reached()) lyap_taylorinteg(
             lorenz!,
             q0,
             t0,
@@ -276,7 +276,7 @@ import Logging: Warn
 
 
         #Test lyap_taylorinteg with user-defined Jacobian, maxsteps=2000
-        sol2 = (@test_no_logs min_level = Logging.Warn lyap_taylorinteg(
+        sol2 = (@test_logs min_level = Logging.Warn lyap_taylorinteg(
             lorenz!,
             q0,
             t0,
@@ -304,7 +304,7 @@ import Logging: Warn
         @test t_ == tv2
         @test x_ == xv2
         # test backward integration
-        sol2b = (@test_no_logs (Warn, max_iters_reached()) lyap_taylorinteg(
+        sol2b = (@test_logs (Warn, max_iters_reached()) lyap_taylorinteg(
             lorenz!,
             q0,
             t0,
@@ -334,7 +334,7 @@ import Logging: Warn
         @test lorenztr == -(1 + σ + β)
 
         trange = t0:1.0:tmax
-        solw = (@test_no_logs (Warn, max_iters_reached()) lyap_taylorinteg(
+        solw = (@test_logs (Warn, max_iters_reached()) lyap_taylorinteg(
             lorenz!,
             q0,
             trange,
@@ -350,7 +350,7 @@ import Logging: Warn
         @test size(λw) == size(xw)
         @test all(isnan.(xw[2:end, :]))
         @test all(isnan.(λw[2:end, :]))
-        solw2 = (@test_no_logs (Warn, max_iters_reached()) lyap_taylorinteg(
+        solw2 = (@test_logs (Warn, max_iters_reached()) lyap_taylorinteg(
             lorenz!,
             q0,
             vec(trange),
@@ -366,7 +366,7 @@ import Logging: Warn
         @test all(isnan.(λw2[2:end, :]))
         @test size(xw2) == (length(trange), 3)
         @test size(λw2) == size(xw2)
-        solw_ = (@test_no_logs (Warn, max_iters_reached()) lyap_taylorinteg(
+        solw_ = (@test_logs (Warn, max_iters_reached()) lyap_taylorinteg(
             lorenz!,
             q0,
             trange,
@@ -384,7 +384,7 @@ import Logging: Warn
         @test size(λw_) == size(xw_)
         @test λw_[1, :] == zeros(3)
         @test all(isnan.(λw_[2:end, :]))
-        solw2_ = (@test_no_logs (Warn, max_iters_reached()) lyap_taylorinteg(
+        solw2_ = (@test_logs (Warn, max_iters_reached()) lyap_taylorinteg(
             lorenz!,
             q0,
             vec(trange),
@@ -403,7 +403,7 @@ import Logging: Warn
         @test size(xw2_) == (length(trange), 3)
         @test size(λw2_) == size(xw2_)
 
-        solw = (@test_no_logs min_level = Logging.Warn lyap_taylorinteg(
+        solw = (@test_logs min_level = Logging.Warn lyap_taylorinteg(
             lorenz!,
             q0,
             trange,
@@ -418,7 +418,7 @@ import Logging: Warn
         @test size(λw) == (length(trange), length(q0))
         @test isapprox(sum(λw[1, :]), lorenztr) == false
         @test isapprox(sum(λw[end, :]), lorenztr)
-        solz = (@test_no_logs min_level = Logging.Warn lyap_taylorinteg(
+        solz = (@test_logs min_level = Logging.Warn lyap_taylorinteg(
             lorenz!,
             q0,
             trange[1],
@@ -435,7 +435,7 @@ import Logging: Warn
         @test isapprox(λw[end, 1], 1.47167, rtol = mytol, atol = mytol)
         @test isapprox(λw[end, 2], -0.00831, rtol = mytol, atol = mytol)
         @test isapprox(λw[end, 3], -22.46336, rtol = mytol, atol = mytol)
-        solw_ = (@test_no_logs min_level = Logging.Warn lyap_taylorinteg(
+        solw_ = (@test_logs min_level = Logging.Warn lyap_taylorinteg(
             lorenz!,
             q0,
             trange,
@@ -448,7 +448,7 @@ import Logging: Warn
         xw_, λw_ = solw_.x, solw_.λ
         @test xw == xw_
         @test λw == λw_
-        solz_ = (@test_no_logs min_level = Logging.Warn lyap_taylorinteg(
+        solz_ = (@test_logs min_level = Logging.Warn lyap_taylorinteg(
             lorenz!,
             q0,
             trange[1],
@@ -464,7 +464,7 @@ import Logging: Warn
         @test xw_[end, :] == xz_[end, :]
         @test tz_[end] == trange[end]
 
-        solw2 = (@test_no_logs min_level = Logging.Warn lyap_taylorinteg(
+        solw2 = (@test_logs min_level = Logging.Warn lyap_taylorinteg(
             lorenz!,
             q0,
             vec(trange),
@@ -480,7 +480,7 @@ import Logging: Warn
         @test size(xw) == (length(trange), length(q0))
         @test isapprox(sum(λw2[1, :]), lorenztr) == false
         @test isapprox(sum(λw2[end, :]), lorenztr)
-        solz2 = (@test_no_logs min_level = Logging.Warn lyap_taylorinteg(
+        solz2 = (@test_logs min_level = Logging.Warn lyap_taylorinteg(
             lorenz!,
             q0,
             trange[1],
@@ -497,7 +497,7 @@ import Logging: Warn
         @test isapprox(λw2[end, 1], 1.47167, rtol = mytol, atol = mytol)
         @test isapprox(λw2[end, 2], -0.00831, rtol = mytol, atol = mytol)
         @test isapprox(λw2[end, 3], -22.46336, rtol = mytol, atol = mytol)
-        solw2_ = (@test_no_logs min_level = Logging.Warn lyap_taylorinteg(
+        solw2_ = (@test_logs min_level = Logging.Warn lyap_taylorinteg(
             lorenz!,
             q0,
             vec(trange),
@@ -510,7 +510,7 @@ import Logging: Warn
         xw2_, λw2_ = solw2_.x, solw2.λ
         @test xw2 == xw2_
         @test λw2 == λw2_
-        solz2_ = (@test_no_logs min_level = Logging.Warn lyap_taylorinteg(
+        solz2_ = (@test_logs min_level = Logging.Warn lyap_taylorinteg(
             lorenz!,
             q0,
             trange[1],

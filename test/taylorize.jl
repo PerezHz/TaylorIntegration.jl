@@ -46,7 +46,7 @@ import Logging: Warn
         )
         tv1 = sol1.t
         xv1 = sol1.x
-        sol1p = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        sol1p = (@test_logs min_level = Logging.Warn taylorinteg(
             xdot1,
             x0,
             t0,
@@ -80,7 +80,7 @@ import Logging: Warn
         )
         tv2 = sol2.t
         xv2 = sol2.x
-        sol2p = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        sol2p = (@test_logs min_level = Logging.Warn taylorinteg(
             xdot2,
             x0,
             t0,
@@ -115,7 +115,7 @@ import Logging: Warn
         )
         tv3 = sol3.t
         xv3 = sol3.x
-        sol3p = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        sol3p = (@test_logs min_level = Logging.Warn taylorinteg(
             xdot3,
             x0,
             t0,
@@ -150,7 +150,7 @@ import Logging: Warn
             parse_eqs = false,
         )
         xv4 = sol4.x
-        sol4p = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        sol4p = (@test_logs min_level = Logging.Warn taylorinteg(
             xdot2,
             x0,
             t0:0.5:tf,
@@ -171,33 +171,33 @@ import Logging: Warn
         # TODO: Use metaprogramming here
         tT = t0 + Taylor1(_order)
         xT = x0 + zero(tT)
-        rv = (@test_no_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
             Val(xdot1),
             tT,
             xT,
             nothing,
         ))
-        @test_no_logs min_level = Logging.Warn TI.jetcoeffs!(Val(xdot1), tT, xT, nothing, rv)
+        @test_logs min_level = Logging.Warn TI.jetcoeffs!(Val(xdot1), tT, xT, nothing, rv)
         @test xT ≈ exact_sol(tT, b1, x0)
 
         xT = x0 + zero(tT)
-        rv = (@test_no_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
             Val(xdot2),
             tT,
             xT,
             nothing,
         ))
-        @test_no_logs min_level = Logging.Warn TI.jetcoeffs!(Val(xdot2), tT, xT, nothing, rv)
+        @test_logs min_level = Logging.Warn TI.jetcoeffs!(Val(xdot2), tT, xT, nothing, rv)
         @test xT ≈ exact_sol(tT, 3.0, x0)
 
         xT = x0 + zero(tT)
-        rv = (@test_no_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
             Val(xdot2),
             tT,
             xT,
             b1,
         ))
-        @test_no_logs min_level = Logging.Warn TI.jetcoeffs!(Val(xdot2), tT, xT, b1, rv)
+        @test_logs min_level = Logging.Warn TI.jetcoeffs!(Val(xdot2), tT, xT, b1, rv)
         @test xT ≈ exact_sol(tT, b1, x0)
 
         # The macro returns a (parsed) jetcoeffs! function which yields a `MethodError`
@@ -212,7 +212,7 @@ import Logging: Warn
 
         @test (@isdefined xdot2_err)
         @test !isempty(methodswith(Val{xdot2_err}, TI.jetcoeffs!))
-        sol2e = (@test_no_logs (Warn, unable_to_parse(xdot2_err)) taylorinteg(
+        sol2e = (@test_logs (Warn, unable_to_parse(xdot2_err)) taylorinteg(
             xdot2_err,
             x0,
             t0,
@@ -228,7 +228,7 @@ import Logging: Warn
         @test iszero(norm(tv2 - tv2e, Inf))
         @test iszero(norm(xv2 - xv2e, Inf))
         xT = x0 + zero(tT)
-        rv = (@test_no_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
             Val(xdot2_err),
             tT,
             xT,
@@ -237,7 +237,7 @@ import Logging: Warn
         @test_throws MethodError TI.jetcoeffs!(Val(xdot2_err), tT, xT, nothing, rv)
 
         # Output includes Taylor polynomial solution
-        sol3 = (@test_no_logs (Warn, max_iters_reached()) taylorinteg(
+        sol3 = (@test_logs (Warn, max_iters_reached()) taylorinteg(
             xdot3,
             x0,
             t0,
@@ -275,7 +275,7 @@ import Logging: Warn
             parse_eqs = false,
         )
         tv1, xv1 = sol1.t, sol1.x
-        sol1p = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        sol1p = (@test_logs min_level = Logging.Warn taylorinteg(
             xdot1_parsed,
             10.0,
             1.0,
@@ -309,7 +309,7 @@ import Logging: Warn
             parse_eqs = false,
         )
         tv2, xv2 = sol2.t, sol2.x
-        sol2p = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        sol2p = (@test_logs min_level = Logging.Warn taylorinteg(
             xdot2,
             10.0,
             1,
@@ -341,7 +341,7 @@ import Logging: Warn
             parse_eqs = false,
         )
         tv3, xv3 = sol3.t, sol3.x
-        sol3p = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        sol3p = (@test_logs min_level = Logging.Warn taylorinteg(
             xdot3,
             10,
             1.0,
@@ -371,13 +371,13 @@ import Logging: Warn
         # Check that the parsed `jetcoeffs` produces the correct series in `x` and no errors
         tT = 1.0 + Taylor1(_order)
         xT = 10.0 + zero(tT)
-        rv = (@test_no_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
             Val(xdot1_parsed),
             tT,
             xT,
             nothing,
         ))
-        @test_no_logs min_level = Logging.Warn TI.jetcoeffs!(
+        @test_logs min_level = Logging.Warn TI.jetcoeffs!(
             Val(xdot1_parsed),
             tT,
             xT,
@@ -387,23 +387,23 @@ import Logging: Warn
         @test xT ≈ exact_sol(tT, -10, 10)
 
         xT = 10.0 + zero(tT)
-        rv = (@test_no_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
             Val(xdot2),
             tT,
             xT,
             nothing,
         ))
-        @test_no_logs min_level = Logging.Warn TI.jetcoeffs!(Val(xdot2), tT, xT, nothing, rv)
+        @test_logs min_level = Logging.Warn TI.jetcoeffs!(Val(xdot2), tT, xT, nothing, rv)
         @test xT ≈ exact_sol(tT, -10, 10)
 
         xT = 10.0 + zero(tT)
-        rv = (@test_no_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
             Val(xdot3),
             tT,
             xT,
             -10,
         ))
-        @test_no_logs min_level = Logging.Warn TI.jetcoeffs!(Val(xdot3), tT, xT, -10, rv)
+        @test_logs min_level = Logging.Warn TI.jetcoeffs!(Val(xdot3), tT, xT, -10, rv)
         @test xT ≈ exact_sol(tT, -10, 10)
     end
 
@@ -431,7 +431,7 @@ import Logging: Warn
         )
         tv2, xv2 = sol2.t, sol2.x
 
-        sol2p = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        sol2p = (@test_logs min_level = Logging.Warn taylorinteg(
             pendulum!,
             q0,
             t0,
@@ -459,14 +459,14 @@ import Logging: Warn
         tT = t0 + Taylor1(_order)
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
-        rv = (@test_no_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
             Val(pendulum!),
             tT,
             qT,
             dqT,
             nothing,
         ))
-        @test_no_logs min_level = Logging.Warn TI.jetcoeffs!(
+        @test_logs min_level = Logging.Warn TI.jetcoeffs!(
             Val(pendulum!),
             tT,
             qT,
@@ -496,7 +496,7 @@ import Logging: Warn
             dense = false,
         )
         tv1, xv1 = sol1.t, sol1.x
-        sol1p = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        sol1p = (@test_logs min_level = Logging.Warn taylorinteg(
             eqscmplx,
             cx0,
             t0,
@@ -528,7 +528,7 @@ import Logging: Warn
             dense = false,
         )
         tv2, xv2 = sol2.t, sol2.x
-        sol2p = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        sol2p = (@test_logs min_level = Logging.Warn taylorinteg(
             eqscmplx2,
             cx0,
             t0,
@@ -560,7 +560,7 @@ import Logging: Warn
             dense = false,
         )
         tv3, xv3 = sol3.t, sol3.x
-        sol3p = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        sol3p = (@test_logs min_level = Logging.Warn taylorinteg(
             eqscmplx3,
             cx0,
             t0,
@@ -608,7 +608,7 @@ import Logging: Warn
         zsol =
             taylorinteg(eqs3!, zz0, ts, _order, _abstol, parse_eqs = false, maxsteps = 10)
         tz, xz = zsol.t, zsol.x
-        zsolp = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        zsolp = (@test_logs min_level = Logging.Warn taylorinteg(
             eqs3!,
             zz0,
             ts,
@@ -624,14 +624,14 @@ import Logging: Warn
         tT = t0 + Taylor1(_order)
         zT = zz0 .+ zero(tT)
         dzT = similar(zT)
-        rv = (@test_no_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
             Val(eqs3!),
             tT,
             zT,
             dzT,
             nothing,
         ))
-        @test_no_logs min_level = Logging.Warn TI.jetcoeffs!(
+        @test_logs min_level = Logging.Warn TI.jetcoeffs!(
             Val(eqs3!),
             tT,
             zT,
@@ -671,7 +671,7 @@ import Logging: Warn
             dense = false,
         )
         tv11, xv11 = sol11.t, sol11.x
-        sol12 = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        sol12 = (@test_logs min_level = Logging.Warn taylorinteg(
             integ_cos1,
             0.0,
             0.0,
@@ -696,7 +696,7 @@ import Logging: Warn
             dense = false,
         )
         tv21, xv21 = sol21.t, sol21.x
-        sol22 = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        sol22 = (@test_logs min_level = Logging.Warn taylorinteg(
             integ_cos2,
             0.0,
             0.0,
@@ -738,7 +738,7 @@ import Logging: Warn
             dense = false,
         )
         tv11, xv11 = sol11.t, sol11.x
-        sol12 = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        sol12 = (@test_logs min_level = Logging.Warn taylorinteg(
             integ_vec,
             x0,
             0.0,
@@ -818,7 +818,7 @@ import Logging: Warn
             dense = false,
         )
         tv1, xv1 = sol1.t, sol1.x
-        sol1p = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        sol1p = (@test_logs min_level = Logging.Warn taylorinteg(
             harm_osc!,
             q0,
             t0,
@@ -843,14 +843,14 @@ import Logging: Warn
         tT = t0 + Taylor1(_order)
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
-        rv = (@test_no_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
             Val(harm_osc!),
             tT,
             qT,
             dqT,
             [1.0],
         ))
-        @test_no_logs min_level = Logging.Warn TI.jetcoeffs!(
+        @test_logs min_level = Logging.Warn TI.jetcoeffs!(
             Val(harm_osc!),
             tT,
             qT,
@@ -873,7 +873,7 @@ import Logging: Warn
         end
 
         @test !isempty(methodswith(Val{harm_osc_error!}, TI.jetcoeffs!))
-        sol2e = (@test_no_logs (Warn, unable_to_parse(harm_osc_error!)) taylorinteg(
+        sol2e = (@test_logs (Warn, unable_to_parse(harm_osc_error!)) taylorinteg(
             harm_osc_error!,
             q0,
             t0,
@@ -893,7 +893,7 @@ import Logging: Warn
         tT = t0 + Taylor1(_order)
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
-        rv = (@test_no_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
             Val(harm_osc_error!),
             tT,
             qT,
@@ -930,7 +930,7 @@ import Logging: Warn
             dense = false,
         )
         tv1, xv1 = sol1.t, sol1.x
-        sol1p = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        sol1p = (@test_logs min_level = Logging.Warn taylorinteg(
             multpendula1!,
             q0,
             t0,
@@ -970,7 +970,7 @@ import Logging: Warn
             dense = false,
         )
         tv2, xv2 = sol2.t, sol2.x
-        sol2p = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        sol2p = (@test_logs min_level = Logging.Warn taylorinteg(
             multpendula2!,
             q0,
             t0,
@@ -1010,7 +1010,7 @@ import Logging: Warn
             dense = false,
         )
         tv3, xv3 = sol3.t, sol3.x
-        sol3p = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        sol3p = (@test_logs min_level = Logging.Warn taylorinteg(
             multpendula3!,
             q0,
             t0,
@@ -1034,14 +1034,14 @@ import Logging: Warn
         tT = 0.0 + Taylor1(_order)
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
-        rv = (@test_no_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
             Val(multpendula1!),
             tT,
             qT,
             dqT,
             (NN, nnrange),
         ))
-        @test_no_logs min_level = Logging.Warn TI.jetcoeffs!(
+        @test_logs min_level = Logging.Warn TI.jetcoeffs!(
             Val(multpendula1!),
             tT,
             qT,
@@ -1051,14 +1051,14 @@ import Logging: Warn
         )
 
         qT = q0 .+ zero(tT)
-        rv = (@test_no_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
             Val(multpendula2!),
             tT,
             qT,
             dqT,
             nothing,
         ))
-        @test_no_logs min_level = Logging.Warn TI.jetcoeffs!(
+        @test_logs min_level = Logging.Warn TI.jetcoeffs!(
             Val(multpendula2!),
             tT,
             qT,
@@ -1068,14 +1068,14 @@ import Logging: Warn
         )
 
         qT = q0 .+ zero(tT)
-        rv = (@test_no_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
             Val(multpendula3!),
             tT,
             qT,
             dqT,
             [NN, nnrange],
         ))
-        @test_no_logs min_level = Logging.Warn TI.jetcoeffs!(
+        @test_logs min_level = Logging.Warn TI.jetcoeffs!(
             Val(multpendula3!),
             tT,
             qT,
@@ -1136,7 +1136,7 @@ import Logging: Warn
             dense = false,
         )
         tv1, xv1 = sol1.t, sol1.x
-        sol1p = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        sol1p = (@test_logs min_level = Logging.Warn taylorinteg(
             kepler1!,
             q0,
             t0,
@@ -1162,7 +1162,7 @@ import Logging: Warn
             dense = false,
         )
         tv6p, xv6p = sol6p.t, sol6p.x
-        sol7p = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        sol7p = (@test_logs min_level = Logging.Warn taylorinteg(
             kepler2!,
             q0,
             t0,
@@ -1226,7 +1226,7 @@ import Logging: Warn
             dense = false,
         )
         tv3, xv3 = sol3.t, sol3.x
-        sol3p = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        sol3p = (@test_logs min_level = Logging.Warn taylorinteg(
             kepler3!,
             q0,
             t0,
@@ -1250,7 +1250,7 @@ import Logging: Warn
             dense = false,
         )
         tv4, xv4 = sol4.t, sol4.x
-        sol4p = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        sol4p = (@test_logs min_level = Logging.Warn taylorinteg(
             kepler4!,
             q0,
             t0,
@@ -1279,14 +1279,14 @@ import Logging: Warn
         tT = 0.0 + Taylor1(_order)
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
-        rv = (@test_no_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
             Val(kepler1!),
             tT,
             qT,
             dqT,
             -1.0,
         ))
-        @test_no_logs min_level = Logging.Warn TI.jetcoeffs!(
+        @test_logs min_level = Logging.Warn TI.jetcoeffs!(
             Val(kepler1!),
             tT,
             qT,
@@ -1297,14 +1297,14 @@ import Logging: Warn
 
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
-        rv = (@test_no_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
             Val(kepler2!),
             tT,
             qT,
             dqT,
             pars,
         ))
-        @test_no_logs min_level = Logging.Warn TI.jetcoeffs!(
+        @test_logs min_level = Logging.Warn TI.jetcoeffs!(
             Val(kepler2!),
             tT,
             qT,
@@ -1315,14 +1315,14 @@ import Logging: Warn
 
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
-        rv = (@test_no_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
             Val(kepler3!),
             tT,
             qT,
             dqT,
             nothing,
         ))
-        @test_no_logs min_level = Logging.Warn TI.jetcoeffs!(
+        @test_logs min_level = Logging.Warn TI.jetcoeffs!(
             Val(kepler3!),
             tT,
             qT,
@@ -1333,14 +1333,14 @@ import Logging: Warn
 
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
-        rv = (@test_no_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
             Val(kepler4!),
             tT,
             qT,
             dqT,
             nothing,
         ))
-        @test_no_logs min_level = Logging.Warn TI.jetcoeffs!(
+        @test_logs min_level = Logging.Warn TI.jetcoeffs!(
             Val(kepler4!),
             tT,
             qT,
@@ -1398,7 +1398,7 @@ import Logging: Warn
             dense = false,
         )
         tv1, xv1 = sol1.t, sol1.x
-        sol1p = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        sol1p = (@test_logs min_level = Logging.Warn taylorinteg(
             kepler1!,
             q0,
             t0,
@@ -1423,7 +1423,7 @@ import Logging: Warn
             dense = false,
         )
         tv2, xv2 = sol2.t, sol2.x
-        sol2p = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        sol2p = (@test_logs min_level = Logging.Warn taylorinteg(
             kepler2!,
             q0,
             t0,
@@ -1491,7 +1491,7 @@ import Logging: Warn
             dense = false,
         )
         tv3, xv3 = sol3.t, sol3.x
-        sol3p = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        sol3p = (@test_logs min_level = Logging.Warn taylorinteg(
             kepler3!,
             q0,
             t0,
@@ -1516,7 +1516,7 @@ import Logging: Warn
             dense = false,
         )
         tv4, xv4 = sol4.t, sol4.x
-        sol4p = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        sol4p = (@test_logs min_level = Logging.Warn taylorinteg(
             kepler4!,
             q0,
             t0,
@@ -1545,14 +1545,14 @@ import Logging: Warn
         tT = 0.0 + Taylor1(_order)
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
-        rv = (@test_no_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
             Val(kepler1!),
             tT,
             qT,
             dqT,
             nothing,
         ))
-        @test_no_logs min_level = Logging.Warn TI.jetcoeffs!(
+        @test_logs min_level = Logging.Warn TI.jetcoeffs!(
             Val(kepler1!),
             tT,
             qT,
@@ -1562,14 +1562,14 @@ import Logging: Warn
         )
 
         qT = q0 .+ zero(tT)
-        rv = (@test_no_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
             Val(kepler2!),
             tT,
             qT,
             dqT,
             -1.0,
         ))
-        @test_no_logs min_level = Logging.Warn TI.jetcoeffs!(
+        @test_logs min_level = Logging.Warn TI.jetcoeffs!(
             Val(kepler2!),
             tT,
             qT,
@@ -1579,14 +1579,14 @@ import Logging: Warn
         )
 
         qT = q0 .+ zero(tT)
-        rv = (@test_no_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
             Val(kepler3!),
             tT,
             qT,
             dqT,
             -1.0,
         ))
-        @test_no_logs min_level = Logging.Warn TI.jetcoeffs!(
+        @test_logs min_level = Logging.Warn TI.jetcoeffs!(
             Val(kepler3!),
             tT,
             qT,
@@ -1596,14 +1596,14 @@ import Logging: Warn
         )
 
         qT = q0 .+ zero(tT)
-        rv = (@test_no_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
             Val(kepler4!),
             tT,
             qT,
             dqT,
             nothing,
         ))
-        @test_no_logs min_level = Logging.Warn TI.jetcoeffs!(
+        @test_logs min_level = Logging.Warn TI.jetcoeffs!(
             Val(kepler4!),
             tT,
             qT,
@@ -1661,7 +1661,7 @@ import Logging: Warn
         )
         tv1, xv1, lv1 = sol1.t, sol1.x, sol1.λ
 
-        solp = (@test_no_logs min_level = Logging.Warn lyap_taylorinteg(
+        solp = (@test_logs min_level = Logging.Warn lyap_taylorinteg(
             lorenz1!,
             q0,
             t0,
@@ -1691,7 +1691,7 @@ import Logging: Warn
         )
         tv2, xv2, lv2 = sol2.t, sol2.x, sol2.λ
 
-        sol2p = (@test_no_logs min_level = Logging.Warn lyap_taylorinteg(
+        sol2p = (@test_logs min_level = Logging.Warn lyap_taylorinteg(
             lorenz1!,
             q0,
             t0,
@@ -1758,7 +1758,7 @@ import Logging: Warn
         )
         tv3, xv3, lv3 = sol3.t, sol3.x, sol3.λ
 
-        sol3p = (@test_no_logs min_level = Logging.Warn lyap_taylorinteg(
+        sol3p = (@test_logs min_level = Logging.Warn lyap_taylorinteg(
             lorenz2!,
             q0,
             t0,
@@ -1786,7 +1786,7 @@ import Logging: Warn
         )
         tv4, xv4, lv4 = sol4.t, sol4.x, sol4.λ
 
-        sol4p = (@test_no_logs min_level = Logging.Warn lyap_taylorinteg(
+        sol4p = (@test_logs min_level = Logging.Warn lyap_taylorinteg(
             lorenz2!,
             q0,
             t0,
@@ -1825,7 +1825,7 @@ import Logging: Warn
         )
         lv5, xv5 = sol5.x, sol5.λ
 
-        sol5p = (@test_no_logs min_level = Logging.Warn lyap_taylorinteg(
+        sol5p = (@test_logs min_level = Logging.Warn lyap_taylorinteg(
             lorenz2!,
             q0,
             t0:0.125:tf,
@@ -1851,7 +1851,7 @@ import Logging: Warn
         )
         lv6, xv6 = sol6.x, sol6.λ
 
-        sol6p = (@test_no_logs min_level = Logging.Warn lyap_taylorinteg(
+        sol6p = (@test_logs min_level = Logging.Warn lyap_taylorinteg(
             lorenz2!,
             q0,
             t0:0.125:tf,
@@ -1870,14 +1870,14 @@ import Logging: Warn
         tT = 0.0 + Taylor1(_order)
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
-        rv = (@test_no_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
             Val(lorenz1!),
             tT,
             qT,
             dqT,
             params,
         ))
-        @test_no_logs min_level = Logging.Warn TI.jetcoeffs!(
+        @test_logs min_level = Logging.Warn TI.jetcoeffs!(
             Val(lorenz1!),
             tT,
             qT,
@@ -1888,14 +1888,14 @@ import Logging: Warn
 
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
-        rv = (@test_no_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
+        rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
             Val(lorenz2!),
             tT,
             qT,
             dqT,
             nothing,
         ))
-        @test_no_logs min_level = Logging.Warn TI.jetcoeffs!(
+        @test_logs min_level = Logging.Warn TI.jetcoeffs!(
             Val(lorenz2!),
             tT,
             qT,
@@ -1960,7 +1960,7 @@ import Logging: Warn
         tT = t0 + Taylor1(_order)
         qT = [1.0, 0.0] .+ zero(tT)
         parse_eqs, rv =
-            (@test_no_logs (Warn, unable_to_parse(harm_osc!)) TI._determine_parsing!(
+            (@test_logs (Warn, unable_to_parse(harm_osc!)) TI._determine_parsing!(
                 true,
                 harm_osc!,
                 tT,
@@ -1992,7 +1992,7 @@ import Logging: Warn
         tT = t0 + Taylor1(_order)
         qT = [0.2, 0.0, 0.0, 3.0] .+ zero(tT)
         parse_eqs, rv =
-            (@test_no_logs (Warn, unable_to_parse(kepler1!)) TI._determine_parsing!(
+            (@test_logs (Warn, unable_to_parse(kepler1!)) TI._determine_parsing!(
                 true,
                 kepler1!,
                 tT,
@@ -2044,7 +2044,7 @@ import Logging: Warn
         q0TN = q0 + p #parametrization of a small neighbourhood around the initial conditions
 
         #note that as called below, taylorinteg uses the parsed jetcoeffs! method by default
-        solp = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        solp = (@test_logs min_level = Logging.Warn taylorinteg(
             falling_ball!,
             q0,
             0.0,
@@ -2056,7 +2056,7 @@ import Logging: Warn
         xvp = solp.x
 
         # "warmup" for jet transport integration
-        solTN = (@test_no_logs (Warn, max_iters_reached()) taylorinteg(
+        solTN = (@test_logs (Warn, max_iters_reached()) taylorinteg(
             falling_ball!,
             q0TN,
             0.0,
@@ -2068,7 +2068,7 @@ import Logging: Warn
         ))
         @test size(solTN.x) == (2, 2)
         #jet transport integration with parsed jetcoeffs!
-        solTNp = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        solTNp = (@test_logs min_level = Logging.Warn taylorinteg(
             falling_ball!,
             q0TN,
             0.0,
@@ -2078,7 +2078,7 @@ import Logging: Warn
             maxsteps = 10,
         ))
         #jet transport integration with non-parsed jetcoeffs!
-        solTN = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        solTN = (@test_logs min_level = Logging.Warn taylorinteg(
             falling_ball!,
             q0TN,
             0.0,
@@ -2093,7 +2093,7 @@ import Logging: Warn
 
         dq = 0.0001rand(2)
         q1 = q0 + dq
-        y = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        y = (@test_logs min_level = Logging.Warn taylorinteg(
             falling_ball!,
             q1,
             solTNp.t,
@@ -2122,7 +2122,7 @@ import Logging: Warn
         #the time range
         tr = t0:integstep:T
         #note that as called below, taylorinteg uses the parsed jetcoeffs! method by default
-        solp = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        solp = (@test_logs min_level = Logging.Warn taylorinteg(
             pendulum!,
             q0,
             tr,
@@ -2134,7 +2134,7 @@ import Logging: Warn
         xvp = solp.x
 
         # "warmup" for jet transport integration
-        solTN = (@test_no_logs (Warn, max_iters_reached()) @inferred taylorinteg(
+        solTN = (@test_logs (Warn, max_iters_reached()) @inferred taylorinteg(
             pendulum!,
             q0TN,
             tr,
@@ -2145,7 +2145,7 @@ import Logging: Warn
         ))
         @test size(solTN.x) == (5, 2)
         #jet transport integration with parsed jetcoeffs!
-        solTNp = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        solTNp = (@test_logs min_level = Logging.Warn taylorinteg(
             pendulum!,
             q0TN,
             tr,
@@ -2154,7 +2154,7 @@ import Logging: Warn
             maxsteps = 100,
         ))
         #jet transport integration with non-parsed jetcoeffs!
-        solTN = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        solTN = (@test_logs min_level = Logging.Warn taylorinteg(
             pendulum!,
             q0TN,
             tr,
@@ -2168,7 +2168,7 @@ import Logging: Warn
 
         dq = 0.0001rand(2)
         q1 = q0 + dq
-        y = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        y = (@test_logs min_level = Logging.Warn taylorinteg(
             pendulum!,
             q1,
             tr,
@@ -2183,7 +2183,7 @@ import Logging: Warn
         t = Taylor1([0.0, 1.0], 10)
         x0T1 = q0 + [0t, t]
         q1 = q0 + [0.0, dq]
-        sol = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        sol = (@test_logs min_level = Logging.Warn taylorinteg(
             pendulum!,
             q1,
             t0,
@@ -2193,7 +2193,7 @@ import Logging: Warn
             dense = false,
         ))
         tv, xv = sol.t, sol.x
-        solT1 = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        solT1 = (@test_logs min_level = Logging.Warn taylorinteg(
             pendulum!,
             x0T1,
             t0,
@@ -2204,7 +2204,7 @@ import Logging: Warn
             dense = false,
         ))
         tvT1, xvT1 = solT1.t, solT1.x
-        solT1p = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        solT1p = (@test_logs min_level = Logging.Warn taylorinteg(
             pendulum!,
             x0T1,
             t0,
@@ -2236,7 +2236,7 @@ import Logging: Warn
         q0 = [0.2, 0.0, 0.0, 3.0]
         q0TN = q0 + p # JT initial condition
 
-        sol = (@test_no_logs (Warn, max_iters_reached()) taylorinteg(
+        sol = (@test_logs (Warn, max_iters_reached()) taylorinteg(
             kepler1!,
             q0TN,
             t0,
@@ -2248,7 +2248,7 @@ import Logging: Warn
             dense = false,
         ))
         tv, xv, psol = sol.t, sol.x, sol.p
-        solp = (@test_no_logs (Warn, max_iters_reached()) taylorinteg(
+        solp = (@test_logs (Warn, max_iters_reached()) taylorinteg(
             kepler1!,
             q0TN,
             t0,
@@ -2263,7 +2263,7 @@ import Logging: Warn
         @test xv == xvp
         @test psol == psolp
 
-        sol = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        sol = (@test_logs min_level = Logging.Warn taylorinteg(
             kepler1!,
             q0TN,
             t0,
@@ -2273,7 +2273,7 @@ import Logging: Warn
             maxsteps = 3000,
             parse_eqs = false,
         ))
-        solp = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        solp = (@test_logs min_level = Logging.Warn taylorinteg(
             kepler1!,
             q0TN,
             t0,
@@ -2429,7 +2429,7 @@ import Logging: Warn
         Tend = 7.019250311844546
 
         #warm-up lap and preliminary tests
-        @test_no_logs (Warn, max_iters_reached()) taylorinteg(
+        @test_logs (Warn, max_iters_reached()) taylorinteg(
             pendulum!,
             g,
             x0,
@@ -2454,7 +2454,7 @@ import Logging: Warn
         )
 
         #testing 0-th order root-finding
-        sol = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        sol = (@test_logs min_level = Logging.Warn taylorinteg(
             pendulum!,
             g,
             x0,
@@ -2474,7 +2474,7 @@ import Logging: Warn
 
         #testing 0-th order root-finding with time ranges/vectors
         tvr = [t0, Tend / 2, Tend, 3Tend / 2, 2Tend, 5Tend / 2, 3Tend]
-        @test_no_logs (Warn, max_iters_reached()) taylorinteg(
+        @test_logs (Warn, max_iters_reached()) taylorinteg(
             pendulum!,
             g,
             x0,
@@ -2493,7 +2493,7 @@ import Logging: Warn
             maxsteps = 1,
             eventorder = _order + 1,
         )
-        solr = (@test_no_logs min_level = Logging.Warn taylorinteg(
+        solr = (@test_logs min_level = Logging.Warn taylorinteg(
             pendulum!,
             g,
             x0,
@@ -2655,7 +2655,7 @@ import Logging: Warn
         t3 = deepcopy(t1)
 
         # No error is thrown
-        parse_eqs, rv = (@test_no_logs min_level = Warn TI._determine_parsing!(
+        parse_eqs, rv = (@test_logs min_level = Warn TI._determine_parsing!(
             true,
             f1!,
             t1,
@@ -2666,7 +2666,7 @@ import Logging: Warn
         @test parse_eqs
         @test typeof(rv.v0) == Vector{Taylor1{Float64}}
         @test typeof(rv.v1) == Vector{Vector{Taylor1{Float64}}}
-        parse_eqs, rv = (@test_no_logs min_level = Warn TI._determine_parsing!(
+        parse_eqs, rv = (@test_logs min_level = Warn TI._determine_parsing!(
             true,
             f1_parsed!,
             t1p,
@@ -2677,7 +2677,7 @@ import Logging: Warn
         @test parse_eqs
         @test typeof(rv.v0) == Vector{Taylor1{Float64}}
         @test typeof(rv.v1) == Vector{Vector{Taylor1{Float64}}}
-        parse_eqs, rv = (@test_no_logs min_level = Warn TI._determine_parsing!(
+        parse_eqs, rv = (@test_logs min_level = Warn TI._determine_parsing!(
             true,
             f2!,
             t2,
@@ -2688,7 +2688,7 @@ import Logging: Warn
         @test parse_eqs
         @test typeof(rv.v0) == Vector{Taylor1{Float64}}
         @test typeof(rv.v1) == Vector{Vector{Taylor1{Float64}}}
-        parse_eqs, rv = (@test_no_logs min_level = Warn TI._determine_parsing!(
+        parse_eqs, rv = (@test_logs min_level = Warn TI._determine_parsing!(
             true,
             f3!,
             t3,
@@ -2772,7 +2772,7 @@ import Logging: Warn
 
         @show Threads.nthreads()
 
-        parse_eqs, rv = (@test_no_logs min_level = Warn TI._determine_parsing!(
+        parse_eqs, rv = (@test_logs min_level = Warn TI._determine_parsing!(
             true,
             harmosc1dchain!,
             t,
@@ -2781,7 +2781,7 @@ import Logging: Warn
             μ,
         ))
         @test parse_eqs
-        parse_eqs, rv = (@test_no_logs min_level = Warn TI._determine_parsing!(
+        parse_eqs, rv = (@test_logs min_level = Warn TI._determine_parsing!(
             true,
             harmosc1dchain_threads!,
             t,
@@ -2794,7 +2794,7 @@ import Logging: Warn
         @test x == x_
         @test dx == dx_
 
-        sol = (@test_no_logs min_level = Warn taylorinteg(
+        sol = (@test_logs min_level = Warn taylorinteg(
             harmosc1dchain!,
             x0,
             t0,
@@ -2804,7 +2804,7 @@ import Logging: Warn
             μ,
         ))
         tv, xv = sol.t, sol.x
-        sol_ = (@test_no_logs min_level = Warn taylorinteg(
+        sol_ = (@test_logs min_level = Warn taylorinteg(
             harmosc1dchain_threads!,
             x0,
             t0,
