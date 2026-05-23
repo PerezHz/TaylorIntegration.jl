@@ -232,7 +232,8 @@ end
 ODEqCore.get_fsalfirstlast(cache::TaylorMethodCache, u) = (cache.fsalfirst, cache.k)
 
 ODEqCore.stepsize_controller!(integrator, alg::TaylorMethodParams) =
-    TaylorIntegration.stepsize(integrator.cache.uT, integrator.opts.abstol, integrator.opts.reltol)
+    TaylorIntegration.stepsize(integrator.cache.uT, integrator.opts.abstol,
+        integrator.opts.reltol, abs(integrator.opts.dtmin), abs(integrator.opts.dtmax))
 ODEqCore.step_accept_controller!(integrator, alg::TaylorMethodParams, q) = q
 
 function DiffEqBase.solve(
@@ -247,10 +248,6 @@ function DiffEqBase.solve(
 
     f = prob.f
     parse_eqs = haskey(kwargs, :parse_eqs) ? kwargs[:parse_eqs] : true # `true` is the default
-    # Change default val of reltol to zdro, if not explicitly specified
-    if !haskey(kwargs, :reltol)
-        kwargs = (kwargs..., :reltol => zero(kwargs[:abstol]))
-    end
     if !isinplace && typeof(prob.u0) <: AbstractArray
         ### TODO: allow `parse_eqs=true` for DynamicalODEFunction
         if prob.f isa DynamicalODEFunction
@@ -283,11 +280,28 @@ function DiffEqBase.solve(
         _prob = prob
     end
 
-    # DiffEqBase.solve(prob, _alg, args...; kwargs...)
-    integrator = DiffEqBase.__init(_prob, _alg, args...; kwargs...)
+    # Change default val of reltol (to zero), dtmin (to zero(T)) and
+    # dtmax (to T(Inf)), if not explicitly specified
+    kwargspairs = Pair{Symbol, Number}[]
+    if !haskey(kwargs, :reltol)
+        # kwargs = (kwargs..., :reltol => zero(kwargs[:abstol]))
+        push!(kwargspairs, :reltol => zero(kwargs[:abstol]))
+    end
+    integrator = DiffEqBase.__init(_prob, _alg, args...)
+    TType = TS.numtype(integrator.t)
+    if !haskey(kwargs, :dtmin)
+        # kwargs = (kwargs..., :dtmin => zero(TType))
+        push!(kwargspairs, :dtmin => zero(TType))
+    end
+    if !haskey(kwargs, :dtmax)
+        # kwargs = (kwargs..., :dtmax => TType(Inf))
+        push!(kwargspairs, :dtmax => integrator.tdir * TType(Inf))
+    end
+    integrator = DiffEqBase.__init(_prob, _alg, args...; kwargs..., kwargspairs...)
     integrator.dt =
         integrator.tdir *
-        TaylorIntegration.stepsize(integrator.cache.uT, integrator.opts.abstol, integrator.opts.reltol) # override handle_dt! setting of initial dt
+        TaylorIntegration.stepsize(integrator.cache.uT, integrator.opts.abstol, integrator.opts.reltol,
+            abs(integrator.opts.dtmin), abs(integrator.opts.dtmax)) # override handle_dt! setting of initial dt
     DiffEqBase.solve!(integrator)
     integrator.sol
 end
