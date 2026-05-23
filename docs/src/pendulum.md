@@ -54,7 +54,7 @@ We define the `TaylorN` variables necessary to perform the jet transport;
 ```@example pendulum
 const varorder = 8
 using TaylorIntegration
-ξ = set_variables("ξ", numvars=2, order=varorder)
+ξ = variables!("ξ", numvars=2, order=varorder)
 ```
 Note that `TaylorSeries.jl` is `@reexport`-ed internally by `TaylorIntegration.jl`.
 

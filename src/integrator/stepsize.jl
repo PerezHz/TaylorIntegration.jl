@@ -18,7 +18,7 @@ function stepsize(x::Taylor1{U}, absepsilon::T,
         relepsilon::T=zero(T)) where {T<:Real,U<:Number}
     x0 = constant_term(x)
     R = promote_type(typeof(norm(x0, Inf)), T)
-    ord = get_order(x)
+    ord = order(x)
     h = typemax(R)
     for k in (ord - 1, ord)
         @inbounds aux = norm(x[k], Inf)
@@ -77,7 +77,7 @@ Corresponds to the "second stepsize control" in Jorba and Zou
 function _second_stepsize(x::Taylor1{U}, epsilon::T) where {T<:Real,U<:Number}
     R = promote_type(typeof(norm(constant_term(x), Inf)), T)
     TS._isthinzero(x) && return typemax(R)#convert(R, Inf)
-    ord = get_order(x)
+    ord = order(x)
     u = one(R)
     h = zero(R)
     for k = 1:ord-2

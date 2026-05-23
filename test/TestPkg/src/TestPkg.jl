@@ -6,7 +6,7 @@ using TaylorIntegration
 # using BenchmarkTools
 using InteractiveUtils
 
-order = 25
+torder = 25
 N = 200
 x0 = 10randn(2N)
 μ = 1e-7rand(N)
@@ -76,39 +76,39 @@ function TaylorIntegration.jetcoeffs!(
     dq::AbstractVector{Taylor1{_S}},
     params,
 ) where {_T<:Real,_S<:Number}
-    order = get_order(t)
+    torder = order(t)
     local N = Int(length(q) / 2)
     local _eltype_q_ = eltype(q)
     local μ = params
     X = Array{_eltype_q_}(undef, N, N)
     accX = Array{_eltype_q_}(undef, N)
     for j = 1:N
-        accX[j] = Taylor1(zero(constant_term(q[1])), order)
-        dq[j] = Taylor1(identity(constant_term(q[N+j])), order)
+        accX[j] = Taylor1(zero(constant_term(q[1])), torder)
+        dq[j] = Taylor1(identity(constant_term(q[N+j])), torder)
     end
     tmp337 = Array{Taylor1{_S}}(undef, size(X))
-    tmp337 .= Taylor1(zero(_S), order)
+    tmp337 .= Taylor1(zero(_S), torder)
     temp_001 = Array{Taylor1{_S}}(undef, size(tmp337))
-    temp_001 .= Taylor1(zero(_S), order)
+    temp_001 .= Taylor1(zero(_S), torder)
     for j = 1:N
         for i = 1:N
             if i == j
             else
-                X[i, j] = Taylor1(constant_term(q[i]) - constant_term(q[j]), order)
-                tmp337[i, j] = Taylor1(constant_term(μ[i]) * constant_term(X[i, j]), order)
+                X[i, j] = Taylor1(constant_term(q[i]) - constant_term(q[j]), torder)
+                tmp337[i, j] = Taylor1(constant_term(μ[i]) * constant_term(X[i, j]), torder)
                 temp_001[i, j] =
-                    Taylor1(constant_term(accX[j]) + constant_term(tmp337[i, j]), order)
-                accX[j] = Taylor1(identity(constant_term(temp_001[i, j])), order)
+                    Taylor1(constant_term(accX[j]) + constant_term(tmp337[i, j]), torder)
+                accX[j] = Taylor1(identity(constant_term(temp_001[i, j])), torder)
             end
         end
     end
     for i = 1:N
-        dq[N+i] = Taylor1(identity(constant_term(accX[i])), order)
+        dq[N+i] = Taylor1(identity(constant_term(accX[i])), torder)
     end
     for __idx in eachindex(q)
         (q[__idx]).coeffs[2] = (dq[__idx]).coeffs[1]
     end
-    for ord = 1:order-1
+    for ord = 1:torder-1
         ordnext = ord + 1
         for j = 1:N
             TaylorSeries.zero!(accX[j], q[1], ord)
@@ -177,8 +177,8 @@ nex2, narr2 = TaylorIntegration._make_parsed_jetcoeffs(ex2)
 nex3, narr3 = TaylorIntegration._make_parsed_jetcoeffs(ex3)
 
 greet(f, parse_eqs) = begin
-    t = Taylor1(order)
-    x = Taylor1.(x0, get_order(t))
+    t = Taylor1(torder)
+    x = Taylor1.(x0, order(t))
     dx = similar(x)
 
     @show @which TaylorIntegration.__jetcoeffs!(Val(parse_eqs), f, t, x, dx, similar(x), μ)

@@ -14,7 +14,7 @@ function TI.stepsize(x::Taylor1{Interval{U}}, absepsilon::T,
         relepsilon::T=zero(T)) where {T<:Real,U<:Number}
     x0 = constant_term(x)
     R = promote_type(IA.numtype(x0), T)#promote_type(typeof(norm(x0, Inf)), T)
-    ord = get_order(x)
+    ord = order(x)
     h = typemax(R)
     for k in (ord - 1, ord)
         @inbounds aux = sup(norm(x[k], Inf))

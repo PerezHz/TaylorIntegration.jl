@@ -165,7 +165,7 @@ function lyap_jetcoeffs!(
     jac::Matrix{Taylor1{S}},
     varsaux::Array{Taylor1{S},3},
 ) where {T<:Real,S<:Number}
-    order = get_order(t)
+    torder = order(t)
     # `dofrange` behaves like 1:dof, where `dof = size(jac, 1)`. Used to initialize `b` and `li`
     dofrange = axes(jac, 1)
     # The `view` below allows us to obtain CartesianIndices from `varsaux` when calling `eachindex(b)`
@@ -181,19 +181,19 @@ function lyap_jetcoeffs!(
     for i in eachindex(b)
         varsaux[i] = Taylor1(
             constant_term(jac[i[1], i[3]]) * constant_term(x[li[i[3], i[2]]]),
-            order,
+            torder,
         )
         lin_indx = li[i[1], i[2]] # map from cartesian to linear index
         dx[lin_indx] =
-            Taylor1(constant_term(dx[lin_indx]) + constant_term(varsaux[i]), order)
+            Taylor1(constant_term(dx[lin_indx]) + constant_term(varsaux[i]), torder)
     end
     # Recursion relations, 0-th order
     for __idx in eachindex(x)
         (x[__idx]).coeffs[2] = (dx[__idx]).coeffs[1]
     end
 
-    # Compute Taylor coefficients of variational equations `dx = jac * x` up to order `order`
-    for ord = 1:order-1
+    # Compute Taylor coefficients of variational equations `dx = jac * x` up to order `torder`
+    for ord = 1:torder-1
         ordnext = ord + 1
         # Compute `ord`-th Taylor coefficients of matrix product `jac * x` and save into `dx`
         for i in eachindex(b)
@@ -201,7 +201,7 @@ function lyap_jetcoeffs!(
             lin_indx = li[i[1], i[2]] # map from cartesian to linear index
             TaylorSeries.add!(dx[lin_indx], dx[lin_indx], varsaux[i], ord)
         end
-        # Recursion relations, `ord`-th order
+        # Recursion relations, `ord`-th torder
         for __idx in eachindex(x)
             (x[__idx]).coeffs[ordnext+1] = (dx[__idx]).coeffs[ordnext] / ordnext
         end
@@ -278,7 +278,7 @@ end
 
 Similar to [`taylorinteg`](@ref) for the calculation of the Lyapunov
 spectrum. Note that the number of `TaylorN` variables should be set
-previously by the user (e.g., by means of `TaylorSeries.set_variables`) and
+previously by the user (e.g., by means of `TaylorSeries.variables!`) and
 should be equal to the length of the vector of initial conditions `q0`.
 Otherwise, whenever `length(q0) != TaylorSeries.get_numvars()`, then
 `lyap_taylorinteg` throws an `AssertionError`. Optionally, the user may provide

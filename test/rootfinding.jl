@@ -29,7 +29,7 @@ import Logging: Warn
     x0 = [1.3, 0.0]
     Tend = 7.019250311844546
 
-    p = set_variables("ξ", numvars = length(x0), order = 2)
+    p = variables!("ξ", numvars = length(x0), order = 2)
     x0N = x0 + p
     ξ = Taylor1(2)
     x01 = x0 + [ξ, ξ]

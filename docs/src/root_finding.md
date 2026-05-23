@@ -162,7 +162,7 @@ increments of the phase space variables, `xTN`; we fix the maximum order
 of the polynomial expansion in these variables to be `4`. Then,
 `x0TN` is the neighborhood in the 4-dimensional phase space around ``x0``.
 ```@example poincare
-xTN = set_variables("δx δy δpx δpy", numvars=length(x0), order=4)
+xTN = variables!("δx δy δpx δpy", numvars=length(x0), order=4)
 x0TN = x0 .+ xTN
 nothing # hide
 ```
