@@ -38,7 +38,9 @@ function taylorstep!(
     abstol::T,
     params,
     rv::RetAlloc{Taylor1{U}},
-    reltol::T=zero(T),
+    reltol::T = zero(T),
+    minstepsize::T = zero(T),
+    maxstepsize::T = T(Inf)
 ) where {T<:Real,U<:Number,V}
 
     # Compute the Taylor coefficients
@@ -49,6 +51,7 @@ function taylorstep!(
     if isinf(δt)
         δt = _second_stepsize(x, abstol)
     end
+    δt = clamp(δt, minstepsize, maxstepsize)
 
     return δt
 end
@@ -63,7 +66,9 @@ function taylorstep!(
     abstol::T,
     params,
     rv::RetAlloc{Taylor1{U}},
-    reltol::T=zero(T),
+    reltol::T = zero(T),
+    minstepsize::T = zero(T),
+    maxstepsize::T = T(Inf)
 ) where {T<:Real,U<:Number,V}
 
     # Compute the Taylor coefficients
@@ -71,6 +76,7 @@ function taylorstep!(
 
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(x, abstol, reltol)
+    δt = clamp(δt, minstepsize, maxstepsize)
 
     return δt
 end

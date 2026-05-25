@@ -15,7 +15,7 @@ Depending of `eltype(x)`, i.e., `U<:Number`, it may be necessary to overload
 `stepsize`, specializing it on the type `U`, to avoid type instabilities.
 """
 function stepsize(x::Taylor1{U}, absepsilon::T,
-        relepsilon::T=zero(T)) where {T<:Real,U<:Number}
+                  relepsilon::T = zero(T)) where {T<:Real,U<:Number}
     x0 = constant_term(x)
     R = promote_type(typeof(norm(x0, Inf)), T)
     ord = get_order(x)
@@ -35,7 +35,7 @@ function stepsize(x::Taylor1{U}, absepsilon::T,
 end
 
 function stepsize(q::AbstractArray{Taylor1{U},N}, absepsilon::T,
-        relepsilon::T=zero(T)) where {T<:Real,U<:Number,N}
+                  relepsilon::T = zero(T),) where {T<:Real,U<:Number,N}
     R = promote_type(typeof(norm(constant_term(q[1]), Inf)), T)
     h = typemax(R)
     for i in eachindex(q)

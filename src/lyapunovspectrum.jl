@@ -240,6 +240,8 @@ function lyap_taylorstep!(
     rv::RetAlloc{Taylor1{U}},
     (jacobianfunc!) = nothing,
     reltol::T = zero(T),
+    minstepsize::T = zero(T),
+    maxstepsize::T = T(Inf)
 ) where {T<:Real,U<:Number,V}
 
     # Dimensions of phase-space: dof
@@ -266,6 +268,7 @@ function lyap_taylorstep!(
 
     # Compute the step-size of the integration using `abstol`
     δt = stepsize(view(x, 1:dof), abstol, reltol)
+    δt = clamp(δt, minstepsize, maxstepsize)
 
     return δt
 end
@@ -299,6 +302,8 @@ function lyap_taylorinteg(
     maxsteps::Int = 500,
     parse_eqs::Bool = true,
     reltol::T = zero(T),
+    minstepsize::T = zero(T),
+    maxstepsize::T = T(Inf)
 ) where {T<:Real,U<:Number}
 
     dof = length(q0)
@@ -327,6 +332,8 @@ function lyap_taylorinteg(
         maxsteps,
         cache.parse_eqs,
         reltol,
+        minstepsize,
+        maxstepsize
     )
 end
 
@@ -343,6 +350,8 @@ function lyap_taylorinteg!(
     parse_eqs::Bool = true,
     maxsteps::Int = 500,
     reltol::T = zero(T),
+    minstepsize::T = zero(T),
+    maxstepsize::T = T(Inf)
 ) where {T<:Real,U<:Number}
 
     (; tv, xv, xaux, x0, λ, λtsum, δx, dδx, jac, varsaux,
@@ -385,6 +394,8 @@ function lyap_taylorinteg!(
             rv,
             jacobianfunc!,
             reltol,
+            minstepsize,
+            maxstepsize
         ) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep * (tmax - t0))
@@ -429,6 +440,8 @@ function lyap_taylorinteg(
     maxsteps::Int = 500,
     parse_eqs::Bool = true,
     reltol::T = zero(T),
+    minstepsize::T = zero(T),
+    maxstepsize::T = T(Inf)
 ) where {T<:Real,U<:Number}
 
     dof = length(q0)
@@ -459,6 +472,8 @@ function lyap_taylorinteg(
         cache.parse_eqs,
         maxsteps,
         reltol,
+        minstepsize,
+        maxstepsize
     )
 
 end
@@ -475,6 +490,8 @@ function lyap_taylorinteg!(
     parse_eqs::Bool = true,
     maxsteps::Int = 500,
     reltol::T = zero(T),
+    minstepsize::T = zero(T),
+    maxstepsize::T = T(Inf)
 ) where {T<:Real,U<:Number}
 
     (; xv, xaux, x0, q1, λ, λtsum, δx, dδx, jac, varsaux,
@@ -518,6 +535,8 @@ function lyap_taylorinteg!(
             rv,
             jacobianfunc!,
             reltol,
+            minstepsize,
+            maxstepsize
         ) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep * (tmax - t0))

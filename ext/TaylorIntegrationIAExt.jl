@@ -11,7 +11,7 @@ const IA = IntervalArithmetic
 
 # stepsize
 function TI.stepsize(x::Taylor1{Interval{U}}, absepsilon::T,
-        relepsilon::T=zero(T)) where {T<:Real,U<:Number}
+                     relepsilon::T=zero(T)) where {T<:Real,U<:Number}
     x0 = constant_term(x)
     R = promote_type(IA.numtype(x0), T)#promote_type(typeof(norm(x0, Inf)), T)
     ord = get_order(x)
@@ -31,7 +31,7 @@ function TI.stepsize(x::Taylor1{Interval{U}}, absepsilon::T,
 end
 
 function TI.stepsize(q::AbstractArray{Taylor1{Interval{U}},N}, epsilon::T,
-        relepsilon::T=zero(T)) where {T<:Real,U<:IA.NumTypes,N}
+                     relepsilon::T=zero(T)) where {T<:Real,U<:IA.NumTypes,N}
     R = promote_type(IA.numtype(constant_term(q[1])), T)#promote_type(typeof(norm(x0, Inf)), T)
     h = typemax(R)
     for i in eachindex(q)
