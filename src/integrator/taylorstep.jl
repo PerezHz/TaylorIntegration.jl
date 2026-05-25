@@ -47,10 +47,11 @@ function taylorstep!(
     __jetcoeffs!(Val(V), f, t, x, params, rv)
 
     # Compute the step-size of the integration using `abstol`
-    δt = stepsize(x, abstol, reltol, minstepsize, maxstepsize)
+    δt = stepsize(x, abstol, reltol)
     if isinf(δt)
         δt = _second_stepsize(x, abstol)
     end
+    δt = clamp(δt, minstepsize, maxstepsize)
 
     return δt
 end
@@ -74,7 +75,8 @@ function taylorstep!(
     __jetcoeffs!(Val(V), f!, t, x, dx, xaux, params, rv)
 
     # Compute the step-size of the integration using `abstol`
-    δt = stepsize(x, abstol, reltol, minstepsize, maxstepsize)
+    δt = stepsize(x, abstol, reltol)
+    δt = clamp(δt, minstepsize, maxstepsize)
 
     return δt
 end

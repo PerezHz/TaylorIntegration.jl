@@ -267,7 +267,8 @@ function lyap_taylorstep!(
     lyap_jetcoeffs!(t, view(x, dof+1:nx), view(dx, dof+1:nx), jac, varsaux)
 
     # Compute the step-size of the integration using `abstol`
-    δt = stepsize(view(x, 1:dof), abstol, reltol, minstepsize, maxstepsize)
+    δt = stepsize(view(x, 1:dof), abstol, reltol)
+    δt = clamp(δt, minstepsize, maxstepsize)
 
     return δt
 end

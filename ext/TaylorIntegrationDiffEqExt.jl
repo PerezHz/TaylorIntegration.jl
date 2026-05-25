@@ -232,8 +232,8 @@ end
 ODEqCore.get_fsalfirstlast(cache::TaylorMethodCache, u) = (cache.fsalfirst, cache.k)
 
 ODEqCore.stepsize_controller!(integrator, alg::TaylorMethodParams) =
-    TaylorIntegration.stepsize(integrator.cache.uT, integrator.opts.abstol,
-        integrator.opts.reltol, abs(integrator.opts.dtmin), abs(integrator.opts.dtmax))
+    clamp(TaylorIntegration.stepsize(integrator.cache.uT, integrator.opts.abstol,
+        integrator.opts.reltol), abs(integrator.opts.dtmin), abs(integrator.opts.dtmax))
 ODEqCore.step_accept_controller!(integrator, alg::TaylorMethodParams, q) = q
 
 function DiffEqBase.solve(
@@ -298,10 +298,11 @@ function DiffEqBase.solve(
         push!(kwargspairs, :dtmax => integrator.tdir * TType(Inf))
     end
     integrator = DiffEqBase.__init(_prob, _alg, args...; kwargs..., kwargspairs...)
+    # Override handle_dt! setting of initial dt
     integrator.dt =
         integrator.tdir *
-        TaylorIntegration.stepsize(integrator.cache.uT, integrator.opts.abstol, integrator.opts.reltol,
-            abs(integrator.opts.dtmin), abs(integrator.opts.dtmax)) # override handle_dt! setting of initial dt
+        clamp(TaylorIntegration.stepsize(integrator.cache.uT, integrator.opts.abstol,
+            integrator.opts.reltol), abs(integrator.opts.dtmin), abs(integrator.opts.dtmax))
     DiffEqBase.solve!(integrator)
     integrator.sol
 end
