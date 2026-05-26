@@ -63,7 +63,7 @@ as a function of time.
 # Calculate trace of Lorenz system Jacobian via TaylorSeries.jacobian:
 import LinearAlgebra: tr
 using TaylorIntegration
-xi = set_variables("δ", order=1, numvars=length(x0))
+xi = variables!("δ", order=1, numvars=length(x0))
 x0TN = x0 .+ xi
 dx0TN = similar(x0TN)
 lorenz!(dx0TN, x0TN, params, t0)

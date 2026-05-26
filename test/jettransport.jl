@@ -17,7 +17,7 @@ import Logging: Warn
     g(x, p, t) = 0.3x
 
     @testset "Test TaylorN jet transport (t0, tmax): 1-dim case" begin
-        p = set_variables("ξ", numvars = 1, order = 5)
+        p = variables!("ξ", numvars = 1, order = 5)
         x0 = 3.0 #"nominal" initial condition
         x0TN = x0 + p[1] #jet transport initial condition
         t0 = 0.0
@@ -384,7 +384,7 @@ import Logging: Warn
     end
 
     @testset "Test TaylorN jet transport (trange): 1-dim case" begin
-        p = set_variables("ξ", numvars = 1, order = 5)
+        p = variables!("ξ", numvars = 1, order = 5)
         x0 = 3.0 #"nominal" initial condition
         x0TN = x0 + p[1] #jet transport initial condition
         tv = 0.0:0.05:0.33
@@ -641,7 +641,7 @@ import Logging: Warn
         end
 
         @testset "Test TaylorN jet transport (t0,tmax): harmonic oscillator" begin
-            p = set_variables("ξ", numvars = 2, order = 5)
+            p = variables!("ξ", numvars = 2, order = 5)
             x0 = [-1.0, 0.45]
             x0TN = x0 + p
             solTN = (@test_logs (Warn, max_iters_reached()) taylorinteg(
@@ -704,7 +704,7 @@ import Logging: Warn
 
     @testset "Test TaylorN jet transport (trange): simple pendulum" begin
         varorder = 2 #the order of the variational expansion
-        p = set_variables("ξ", numvars = 2, order = varorder) #TaylorN steup
+        p = variables!("ξ", numvars = 2, order = varorder) #TaylorN steup
         q0 = [1.3, 0.0] #the initial conditions
         q0TN = q0 + p #parametrization of a small neighbourhood around the initial conditions
         # T is the librational period == 4Elliptic.K(sin(q0[1]/2)^2)

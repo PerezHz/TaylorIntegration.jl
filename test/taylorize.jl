@@ -1646,7 +1646,7 @@ import Logging: Warn
         end
 
         q0 = [19.0, 20.0, 50.0] #the initial condition
-        xi = set_variables("δ", order = 1, numvars = length(q0))
+        xi = variables!("δ", order = 1, numvars = length(q0))
 
         sol1 = lyap_taylorinteg(
             lorenz1!,
@@ -2039,7 +2039,7 @@ import Logging: Warn
         end
 
         varorder = 4 #the order of the variational expansion
-        p = set_variables("ξ", numvars = 2, order = varorder) #TaylorN steup
+        p = variables!("ξ", numvars = 2, order = varorder) #TaylorN steup
         q0 = [10.0, 0.0] #the initial conditions
         q0TN = q0 + p #parametrization of a small neighbourhood around the initial conditions
 
@@ -2112,7 +2112,7 @@ import Logging: Warn
         end
 
         varorder = 2 #the order of the variational expansion
-        p = set_variables("ξ", numvars = 2, order = varorder) #TaylorN steup
+        p = variables!("ξ", numvars = 2, order = varorder) #TaylorN steup
         q0 = [1.3, 0.0] #the initial conditions
         q0TN = q0 + p #parametrization of a small neighbourhood around the initial conditions
         # T is the librational period == 4Elliptic.K(sin(q0[1]/2)^2)
@@ -2232,7 +2232,7 @@ import Logging: Warn
         end
 
         varorder = 2 #the order of the variational expansion
-        p = set_variables("ξ", numvars = 4, order = varorder) #TaylorN setup
+        p = variables!("ξ", numvars = 4, order = varorder) #TaylorN setup
         q0 = [0.2, 0.0, 0.0, 3.0]
         q0TN = q0 + p # JT initial condition
 
@@ -2764,10 +2764,10 @@ import Logging: Warn
         x0 = 10randn(2N)
         t = Taylor1(_order)
         μ = 1e-7rand(N)
-        x = Taylor1.(x0, get_order(t))
+        x = Taylor1.(x0, order(t))
         dx = similar(x)
         t_ = deepcopy(t)
-        x_ = Taylor1.(x0, get_order(t))
+        x_ = Taylor1.(x0, order(t))
         dx_ = similar(x_)
 
         @show Threads.nthreads()

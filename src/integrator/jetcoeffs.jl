@@ -26,8 +26,8 @@ function jetcoeffs!(
     x::Taylor1{U},
     params,
 ) where {T<:Real,U<:Number}
-    order = get_order(x)
-    for ord = 0:order-1
+    xorder = order(x)
+    for ord = 0:xorder-1
         ordnext = ord + 1
 
         # Set `xaux` auxiliary Taylor1 variables to order `ord`
@@ -71,8 +71,8 @@ function jetcoeffs!(
     xaux::AbstractArray{Taylor1{U},N},
     params,
 ) where {T<:Real,U<:Number,N}
-    order = get_order(x[1])
-    for ord = 0:order-1
+    xorder = order(x[1])
+    for ord = 0:xorder-1
         ordnext = ord + 1
 
         # Set `xaux`, auxiliary vector of Taylor1 to order `ord`

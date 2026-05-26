@@ -22,7 +22,7 @@ const maxsteps2 = 50_000_000
 const tf3 = 100_000.0
 const maxsteps3 = 500_000_000
 q0 = [19.0, 20.0, 50.0]
-set_variables("δ", order = 1, numvars = 3)
+variables!("δ", order = 1, numvars = 3)
 
 
 SUITE["Lorenzlyap"] = BenchmarkGroup()

@@ -316,7 +316,7 @@ import Logging: Warn
             dq[4] = q[2] * newtonianCoeff
             return nothing
         end
-        p = set_variables("ξ", numvars = 4, order = 2)
+        p = variables!("ξ", numvars = 4, order = 2)
         q0 = [0.2, 0.0, 0.0, 3.0]
         q0TN = q0 + p
         tspan = (0.0, 10pi)

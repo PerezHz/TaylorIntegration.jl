@@ -20,7 +20,7 @@ import Logging: Warn
     tv = 0.1:0.1:1.1
     xv = rand(2, length(tv))
     sol = TaylorIntegration.build_solution(tv, xv, Taylor1.(xv, 2), 9)
-    t1 = 0.35 + Taylor1(get_variables()[1], 2)
+    t1 = 0.35 + Taylor1(variables()[1], 2)
     ind, δt = TaylorIntegration.timeindex(sol, t1)
     @test ind == 3
     @test δt == t1 - sol.t[ind]
