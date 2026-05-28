@@ -4,12 +4,17 @@ module TaylorIntegration
 
 using Reexport
 @reexport using TaylorSeries
+using AutoHashEquals
+using JLD2
 using LinearAlgebra
 using Markdown
 using InteractiveUtils #: methodswith
 using Parameters
 
 export TaylorSolution, taylorinteg, lyap_taylorinteg, @taylorize, taylorinteg!
+
+import Base: convert, flipsign, iszero, join, reverse, zero
+import JLD2: writeas
 
 include("parse_eqs.jl")
 include("integrator/cache.jl")

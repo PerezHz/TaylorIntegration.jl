@@ -1,8 +1,10 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
 using TaylorIntegration
+using TaylorSeries
 using Test
 using Logging
+using JLD2
 import Logging: Warn
 
 @testset "Testing `solution.jl`" begin
@@ -30,4 +32,37 @@ import Logging: Warn
     sol = TaylorIntegration.build_solution(tv, xv, psolv, length(tv) - 2)
     @test sol(sol.t[1]) == sol.x[1, :]
     @test norm(sol(sol.t[end]) - sol.x[end, :], Inf) < 1e-14
+
+    soldense = TaylorSolution(collect(sol.t), collect(sol.p))
+    soldense_copy = TaylorSolution(copy(soldense.t), copy(soldense.x), copy(soldense.p))
+    @test maximum(abs.(soldense.x .- sol.x)) < 2e-16
+    @test soldense_copy == soldense
+    @test hash(soldense_copy) == hash(soldense)
+    @test TaylorSeries.order(soldense) == TaylorSeries.order(first(sol.p))
+    @test iszero(zero(typeof(soldense)))
+    @test convert(BigFloat, soldense).t == BigFloat.(soldense.t)
+    @test convert(BigFloat, soldense).p[1] isa Taylor1{BigFloat}
+
+    solrev = reverse(soldense)
+    @test solrev.t == reverse(soldense.t)
+    @test norm(solrev(solrev.t[end]) - soldense(soldense.t[1]), Inf) < 1e-14
+
+    solflip = flipsign(soldense)
+    @test solflip.t == -soldense.t
+    @test solflip.p == soldense.p(-Taylor1(TaylorSeries.order(soldense)))
+
+    jld2_path = tempname() * ".jld2"
+    jldsave(jld2_path; soldense)
+    solfile = JLD2.load(jld2_path, "soldense")
+    rm(jld2_path)
+    @test solfile == soldense
+
+    dq = TaylorSeries.variables!("dq", order = 2, numvars = 2)
+    pN = soldense.p .* Taylor1(one(dq[1]), TaylorSeries.order(soldense))
+    solN = TaylorSolution(soldense.t, pN)
+    jld2_path = tempname() * ".jld2"
+    jldsave(jld2_path; solN)
+    solNfile = JLD2.load(jld2_path, "solN")
+    rm(jld2_path)
+    @test solNfile == solN
 end
