@@ -302,7 +302,7 @@ function zero(
     P<:Union{Nothing,AbstractArray{Taylor1{U},N}}}
     xdims = (1, ntuple(_ -> 0, Val(N - 1))...)
     t = zeros(T, 1)
-    x = Array{U,N}(undef, xdims)
+    x = fill(zero(U), xdims)
     p = P <: Nothing ? nothing : Array{Taylor1{U},N}(undef, (0, xdims[2:end]...)...)
     return TaylorSolution(t, x, p)
 end
