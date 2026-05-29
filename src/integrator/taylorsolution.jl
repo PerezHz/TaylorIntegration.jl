@@ -91,8 +91,8 @@ TaylorSolution(t, x) = TaylorSolution(t, x, nothing)
 
 function _solution_values(t::AbstractVector{T}, p::AbstractArray{Taylor1{U},1}) where {T,U}
     @assert length(t) == length(p) + 1
+    isempty(p) && throw(ArgumentError("Cannot infer solution values from an empty polynomial array `p`; construct with `TaylorSolution(t, x, p)` instead."))
     x = Vector{U}(undef, length(t))
-    isempty(p) && return x
     x[1] = p[1](zero(T))
     for i in eachindex(p)
         x[i+1] = p[i](t[i+1] - t[i])
