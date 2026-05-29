@@ -43,6 +43,14 @@ import Logging: Warn
     @test convert(BigFloat, soldense).t == BigFloat.(soldense.t)
     @test convert(BigFloat, soldense).p[1] isa Taylor1{BigFloat}
 
+    empty_p = Taylor1{Float64}[]
+    @test_throws ArgumentError TaylorSolution([0.0], empty_p)
+    @test TaylorSolution([0.0], [1.0], empty_p).x == [1.0]
+
+    empty_matrix_p = Matrix{Taylor1{Float64}}(undef, 0, 2)
+    @test_throws ArgumentError TaylorSolution([0.0], empty_matrix_p)
+    @test TaylorSolution([0.0], [1.0 2.0], empty_matrix_p).x == [1.0 2.0]
+
     solrev = reverse(soldense)
     @test solrev.t == reverse(soldense.t)
     @test norm(solrev(solrev.t[end]) - soldense(soldense.t[1]), Inf) < 1e-14
