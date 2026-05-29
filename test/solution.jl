@@ -19,6 +19,8 @@ import Logging: Warn
         TaylorIntegration.build_solution(tv, Vector(xv[1, :]), Vector(psol[1, :]), nsteps)
     @test sol1 isa TaylorSolution{Float64,Float64,1}
     @test string(sol1) == "tspan: (1.0, 2.0), x: 1 Float64 variable"
+    sol_big = TaylorSolution(BigFloat[0], BigFloat[1])
+    @test zero(typeof(sol_big)).x == BigFloat[0]
     tv = 0.1:0.1:1.1
     xv = rand(2, length(tv))
     sol = TaylorIntegration.build_solution(tv, xv, Taylor1.(xv, 2), 9)
