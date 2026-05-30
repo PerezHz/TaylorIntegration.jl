@@ -304,7 +304,7 @@ function zero(
     ::Type{TaylorSolution{T,U,N,VT,AX,P,Nothing,Nothing,Nothing}},
 ) where {T<:Real,U<:Number,N,VT<:AbstractVector{T},AX<:AbstractArray{U,N},
     P<:Union{Nothing,AbstractArray{Taylor1{U},N}}}
-    xdims = (1, ntuple(_ -> 0, Val(N - 1))...)
+    xdims = (1, ntuple(Returns(0), Val(N - 1))...)
     t = zeros(T, 1)
     x = fill(zero(U), xdims)
     p = P <: Nothing ? nothing : Array{Taylor1{U},N}(undef, (0, xdims[2:end]...)...)
