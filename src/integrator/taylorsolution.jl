@@ -333,8 +333,8 @@ end
 
 function flipsign(sol::TaylorSolution)
     p = _dense_polynomials(sol)
-    t = flipsign.(sol.t, -one(eltype(sol.t)))
-    t[1] = sol.t[1]
+    t0 = first(sol.t)
+    t = 2t0 .- sol.t
     return TaylorSolution(t, p(-Taylor1(TaylorSeries.order(sol))))
 end
 

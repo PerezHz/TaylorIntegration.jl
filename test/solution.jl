@@ -58,8 +58,12 @@ import Logging: Warn
     @test norm(solrev(solrev.t[end]) - soldense(soldense.t[1]), Inf) < 1e-14
 
     solflip = flipsign(soldense)
-    @test solflip.t == -soldense.t
+    @test solflip.t == 2 * first(soldense.t) .- soldense.t
     @test solflip.p == soldense.p(-Taylor1(TaylorSeries.order(soldense)))
+    soldense_shifted = TaylorSolution(collect(soldense.t) .- 3, collect(soldense.p))
+    solflip_shifted = flipsign(soldense_shifted)
+    @test solflip_shifted.t == 2 * first(soldense_shifted.t) .- soldense_shifted.t
+    @test issorted(solflip_shifted.t) || issorted(solflip_shifted.t, rev = true)
 
     jld2_path = tempname() * ".jld2"
     jldsave(jld2_path; soldense)
