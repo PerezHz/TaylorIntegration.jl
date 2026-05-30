@@ -53,6 +53,19 @@ import Logging: Warn
     @test_throws ArgumentError TaylorSolution([0.0], empty_matrix_p)
     @test TaylorSolution([0.0], [1.0 2.0], empty_matrix_p).x == [1.0 2.0]
 
+    p_mismatched_endpoints = [
+        Taylor1([1.0, 10.0], 1),
+        Taylor1([2.0, 20.0], 1),
+    ]
+    @test TaylorSolution([0.0, 1.0, 2.0], p_mismatched_endpoints).x == [1.0, 2.0, 22.0]
+
+    p_matrix_mismatched_endpoints = [
+        Taylor1([1.0, 10.0], 1) Taylor1([4.0, 40.0], 1)
+        Taylor1([2.0, 20.0], 1) Taylor1([5.0, 50.0], 1)
+    ]
+    @test TaylorSolution([0.0, 1.0, 2.0], p_matrix_mismatched_endpoints).x ==
+          [1.0 4.0; 2.0 5.0; 22.0 55.0]
+
     solrev = reverse(soldense)
     @test solrev.t == reverse(soldense.t)
     @test norm(solrev(solrev.t[end]) - soldense(soldense.t[1]), Inf) < 1e-14

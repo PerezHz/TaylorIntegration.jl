@@ -81,6 +81,9 @@ TaylorSolution(
     VΛ<:Union{Nothing,AbstractArray{U,N}},
 } = TaylorSolution{T,U,N,VT,AX,P,VTE,AXE,VΛ}(t, x, p, tevents, xevents, gresids, λ)
 
+# const DensePropagation1{T, U} = TaylorInterpolant{T, U, 1, Vector{T}, Vector{Taylor1{U}}}
+# const DensePropagation2{T, U} = TaylorInterpolant{T, U, 2, Vector{T}, Matrix{Taylor1{U}}}
+
 # 4-arg constructor (root-finding and Lyapunov fields are nothing)
 TaylorSolution(t, x, p, ::Nothing) =
     TaylorSolution(t, x, p, nothing, nothing, nothing, nothing)
@@ -99,10 +102,10 @@ function _solution_values(t::AbstractVector{T}, p::AbstractArray{Taylor1{U},1}) 
     @assert length(t) == length(p) + 1
     isempty(p) && throw(_empty_polynomial_array_error())
     x = Vector{U}(undef, length(t))
-    x[1] = p[1](zero(T))
-    for i in eachindex(p)
-        x[i+1] = p[i](t[i+1] - t[i])
+    for (i, idx) in enumerate(eachindex(p))
+        x[i] = constant_term(p[idx])
     end
+    x[end] = p[lastindex(p)](t[end] - t[end-1])
     return x
 end
 
@@ -113,10 +116,11 @@ function _solution_values(
     @assert length(t) == size(p, 1) + 1
     isempty(p) && throw(_empty_polynomial_array_error())
     x = Array{U,N}(undef, length(t), size(p)[2:end]...)
-    selectdim(x, 1, 1) .= selectdim(p, 1, 1)(zero(T))
-    for i in axes(p, 1)
-        selectdim(x, 1, i + 1) .= selectdim(p, 1, i)(t[i+1] - t[i])
+    for (i, idx) in enumerate(axes(p, 1))
+        selectdim(x, 1, i) .= constant_term.(selectdim(p, 1, idx))
     end
+    selectdim(x, 1, length(t)) .=
+        selectdim(p, 1, last(axes(p, 1)))(t[end] - t[end-1])
     return x
 end
 
