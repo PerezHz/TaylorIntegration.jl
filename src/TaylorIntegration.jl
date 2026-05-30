@@ -14,7 +14,7 @@ using Parameters
 export TaylorSolution, taylorinteg, lyap_taylorinteg, @taylorize, taylorinteg!
 
 import Base: convert, flipsign, iszero, join, reverse, zero
-import JLD2: writeas
+import JLD2: readas, writeas
 
 include("parse_eqs.jl")
 include("integrator/cache.jl")

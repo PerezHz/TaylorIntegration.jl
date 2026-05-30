@@ -356,16 +356,21 @@ end
 
 TaylorSeries.order(x::TaylorSolutionSerialization) = x.order
 
+readas(::Type{<:TaylorSolutionSerialization{T,N}}) where {T<:Real,N} =
+    TaylorSolution{T,T,N}
+
 function writeas(
-    ::Type{<:TaylorSolution{T,T,N,Vector{T},Array{T,N},Array{Taylor1{T},N},Nothing,Nothing,Nothing}},
-) where {T<:Real,N}
+    ::Type{<:TaylorSolution{T,T,N,VT,AX,P,Nothing,Nothing,Nothing}},
+) where {T<:Real,N,VT<:AbstractVector{T},AX<:AbstractArray{T,N},
+    P<:AbstractArray{Taylor1{T},N}}
     return TaylorSolutionSerialization{T,N}
 end
 
 function convert(
     ::Type{TaylorSolutionSerialization{T,N}},
-    sol::TaylorSolution{T,T,N,Vector{T},Array{T,N},Array{Taylor1{T},N},Nothing,Nothing,Nothing},
-) where {T<:Real,N}
+    sol::TaylorSolution{T,T,N,VT,AX,P,Nothing,Nothing,Nothing},
+) where {T<:Real,N,VT<:AbstractVector{T},AX<:AbstractArray{T,N},
+    P<:AbstractArray{Taylor1{T},N}}
     ord = TaylorSeries.order(sol)
     k = ord + 1
     dims = size(sol.p)
@@ -403,16 +408,21 @@ end
 
 TaylorSeries.order(x::TaylorSolutionNSerialization) = x.order
 
+readas(::Type{<:TaylorSolutionNSerialization{T,N}}) where {T<:Real,N} =
+    TaylorSolution{T,TaylorN{T},N}
+
 function writeas(
-    ::Type{<:TaylorSolution{T,TaylorN{T},N,Vector{T},Array{TaylorN{T},N},Array{Taylor1{TaylorN{T}},N},Nothing,Nothing,Nothing}},
-) where {T<:Real,N}
+    ::Type{<:TaylorSolution{T,TaylorN{T},N,VT,AX,P,Nothing,Nothing,Nothing}},
+) where {T<:Real,N,VT<:AbstractVector{T},AX<:AbstractArray{TaylorN{T},N},
+    P<:AbstractArray{Taylor1{TaylorN{T}},N}}
     return TaylorSolutionNSerialization{T,N}
 end
 
 function convert(
     ::Type{TaylorSolutionNSerialization{T,Ndim}},
-    sol::TaylorSolution{T,TaylorN{T},Ndim,Vector{T},Array{TaylorN{T},Ndim},Array{Taylor1{TaylorN{T}},Ndim},Nothing,Nothing,Nothing},
-) where {T<:Real,Ndim}
+    sol::TaylorSolution{T,TaylorN{T},Ndim,VT,AX,P,Nothing,Nothing,Nothing},
+) where {T<:Real,Ndim,VT<:AbstractVector{T},AX<:AbstractArray{TaylorN{T},Ndim},
+    P<:AbstractArray{Taylor1{TaylorN{T}},Ndim}}
     coeff = sol.p[1].coeffs[1]
     vars = TS.get_variable_names(TS.space(coeff))
     nvars = length(vars)

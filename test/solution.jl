@@ -71,6 +71,14 @@ import Logging: Warn
     rm(jld2_path)
     @test solfile == soldense
 
+    jld2_path = tempname() * ".jld2"
+    jldsave(jld2_path; sol)
+    solfile = JLD2.load(jld2_path, "sol")
+    rm(jld2_path)
+    @test solfile == soldense
+    @test solfile.t isa Vector
+    @test solfile.p isa Array
+
     dq = TaylorSeries.variables!("dq", order = 2, numvars = 2)
     pN = soldense.p .* Taylor1(one(dq[1]), TaylorSeries.order(soldense))
     solN = TaylorSolution(soldense.t, pN)
@@ -79,4 +87,18 @@ import Logging: Warn
     solNfile = JLD2.load(jld2_path, "solN")
     rm(jld2_path)
     @test solNfile == solN
+
+    solN_view = TaylorIntegration.build_solution(
+        collect(solN.t),
+        permutedims(solN.x),
+        permutedims(solN.p),
+        length(solN.t),
+    )
+    jld2_path = tempname() * ".jld2"
+    jldsave(jld2_path; solN_view)
+    solNfile = JLD2.load(jld2_path, "solN_view")
+    rm(jld2_path)
+    @test solNfile == solN
+    @test solNfile.t isa Vector
+    @test solNfile.p isa Array
 end
