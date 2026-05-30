@@ -21,6 +21,27 @@ import Logging: Warn
     @test string(sol1) == "tspan: (1.0, 2.0), x: 1 Float64 variable"
     sol_big = TaylorSolution(BigFloat[0], BigFloat[1])
     @test zero(typeof(sol_big)).x == BigFloat[0]
+
+    xt1 = Taylor1.([1.0, 2.0], 2)
+    sol_t1 = TaylorIntegration.build_solution(tv, xt1)
+    @test sol_t1.x == xt1
+    @test isnothing(sol_t1.p)
+    sol_t1_view = TaylorIntegration.build_solution(
+        [1.0, 2.0, 3.0],
+        Taylor1.([1.0, 2.0, 3.0], 2),
+        nothing,
+        2,
+    )
+    @test sol_t1_view.x == xt1
+    @test isnothing(sol_t1_view.p)
+    xt1_matrix = [
+        Taylor1(1.0, 2) Taylor1(2.0, 2)
+        Taylor1(3.0, 2) Taylor1(4.0, 2)
+    ]
+    sol_t1_matrix = TaylorIntegration.build_solution(tv, xt1_matrix)
+    @test sol_t1_matrix.x == transpose(xt1_matrix)
+    @test isnothing(sol_t1_matrix.p)
+
     tv = 0.1:0.1:1.1
     xv = rand(2, length(tv))
     sol = TaylorIntegration.build_solution(tv, xv, Taylor1.(xv, 2), 9)

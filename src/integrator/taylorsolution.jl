@@ -160,7 +160,7 @@ Helper function to build a [`TaylorSolution`](@ref) from a call to
 
 """
 build_solution(t::AbstractVector{T}, x::Vector{U}, ::Nothing, nsteps::Int) where {T,U} =
-    TaylorSolution(arraysol(t, nsteps), arraysol(x, nsteps))
+    TaylorSolution(arraysol(t, nsteps), arraysol(x, nsteps), nothing)
 build_solution(
     t::AbstractVector{T},
     x::Vector{U},
@@ -169,7 +169,7 @@ build_solution(
 ) where {T,U} =
     TaylorSolution(arraysol(t, nsteps), arraysol(x, nsteps), arraysol(p, nsteps - 1))
 build_solution(t::AbstractVector{T}, x::Matrix{U}, ::Nothing, nsteps::Int) where {T,U} =
-    TaylorSolution(arraysol(t, nsteps), arraysol(x, nsteps))
+    TaylorSolution(arraysol(t, nsteps), arraysol(x, nsteps), nothing)
 build_solution(
     t::AbstractVector{T},
     x::Matrix{U},
@@ -178,9 +178,9 @@ build_solution(
 ) where {T,U} =
     TaylorSolution(arraysol(t, nsteps), arraysol(x, nsteps), arraysol(p, nsteps - 1))
 
-build_solution(t::AbstractVector{T}, x::Vector{U}) where {T,U} = TaylorSolution(t, x)
+build_solution(t::AbstractVector{T}, x::Vector{U}) where {T,U} = TaylorSolution(t, x, nothing)
 build_solution(t::AbstractVector{T}, x::Matrix{U}) where {T,U} =
-    TaylorSolution(t, transpose(x))
+    TaylorSolution(t, transpose(x), nothing)
 
 ### Custom print
 
