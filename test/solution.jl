@@ -37,6 +37,7 @@ import Logging: Warn
 
     soldense = TaylorSolution(collect(sol.t), collect(sol.p))
     soldense_copy = TaylorSolution(copy(soldense.t), copy(soldense.x), copy(soldense.p))
+    @test soldense isa TaylorIntegration.DensePropagation2{Float64,Float64}
     @test maximum(abs.(soldense.x .- sol.x)) < 2e-16
     @test soldense_copy == soldense
     @test hash(soldense_copy) == hash(soldense)
@@ -58,6 +59,8 @@ import Logging: Warn
         Taylor1([2.0, 20.0], 1),
     ]
     @test TaylorSolution([0.0, 1.0, 2.0], p_mismatched_endpoints).x == [1.0, 2.0, 22.0]
+    @test TaylorSolution([0.0, 1.0, 2.0], p_mismatched_endpoints) isa
+          TaylorIntegration.DensePropagation1{Float64,Float64}
 
     p_matrix_mismatched_endpoints = [
         Taylor1([1.0, 10.0], 1) Taylor1([4.0, 40.0], 1)

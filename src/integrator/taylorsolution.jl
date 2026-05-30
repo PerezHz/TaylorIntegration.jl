@@ -81,8 +81,10 @@ TaylorSolution(
     VΛ<:Union{Nothing,AbstractArray{U,N}},
 } = TaylorSolution{T,U,N,VT,AX,P,VTE,AXE,VΛ}(t, x, p, tevents, xevents, gresids, λ)
 
-# const DensePropagation1{T, U} = TaylorInterpolant{T, U, 1, Vector{T}, Vector{Taylor1{U}}}
-# const DensePropagation2{T, U} = TaylorInterpolant{T, U, 2, Vector{T}, Matrix{Taylor1{U}}}
+const DensePropagation1{T,U} =
+    TaylorSolution{T,U,1,Vector{T},Vector{U},Vector{Taylor1{U}},Nothing,Nothing,Nothing}
+const DensePropagation2{T,U} =
+    TaylorSolution{T,U,2,Vector{T},Matrix{U},Matrix{Taylor1{U}},Nothing,Nothing,Nothing}
 
 # 4-arg constructor (root-finding and Lyapunov fields are nothing)
 TaylorSolution(t, x, p, ::Nothing) =
