@@ -61,6 +61,9 @@ import Logging: Warn
     @test TaylorSolution([0.0, 1.0, 2.0], p_mismatched_endpoints).x == [1.0, 2.0, 22.0]
     @test TaylorSolution([0.0, 1.0, 2.0], p_mismatched_endpoints) isa
           TaylorIntegration.DensePropagation1{Float64,Float64}
+    @test_throws ArgumentError TaylorSolution([0.0, 1.0], p_mismatched_endpoints)
+    @test TaylorSolution([0.0, 1.0], p_mismatched_endpoints, nothing).x ==
+          p_mismatched_endpoints
 
     p_matrix_mismatched_endpoints = [
         Taylor1([1.0, 10.0], 1) Taylor1([4.0, 40.0], 1)

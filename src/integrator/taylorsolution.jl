@@ -100,6 +100,12 @@ function _empty_polynomial_array_error()
     )
 end
 
+function _polynomial_array_size_error()
+    return ArgumentError(
+        "Cannot infer solution values unless `length(t) == size(p, 1) + 1`; construct Taylor-valued solution values with `TaylorSolution(t, x, nothing)` instead.",
+    )
+end
+
 function _solution_values(t::AbstractVector{T}, p::AbstractArray{Taylor1{U},1}) where {T,U}
     @assert length(t) == length(p) + 1
     isempty(p) && throw(_empty_polynomial_array_error())
@@ -126,11 +132,14 @@ function _solution_values(
     return x
 end
 
+_dense_solution(t::AbstractVector, p::AbstractArray{<:Taylor1}) =
+    TaylorSolution(t, _solution_values(t, p), p)
+
 function TaylorSolution(t::AbstractVector, p::AbstractArray{<:Taylor1})
     if length(t) == size(p, 1) + 1
-        return TaylorSolution(t, _solution_values(t, p), p)
+        return _dense_solution(t, p)
     else
-        return TaylorSolution(t, p, nothing)
+        throw(_polynomial_array_size_error())
     end
 end
 
@@ -323,7 +332,7 @@ function reverse(sol::TaylorSolution{T,U,1}) where {T<:Real,U<:Number}
     for i in 2:length(p)
         prev[i] = p[end-i+2]
     end
-    return TaylorSolution(reverse(sol.t), prev)
+    return _dense_solution(reverse(sol.t), prev)
 end
 
 function reverse(sol::TaylorSolution{T,U,N}) where {T<:Real,U<:Number,N}
@@ -334,14 +343,14 @@ function reverse(sol::TaylorSolution{T,U,N}) where {T<:Real,U<:Number,N}
     for i in 2:size(p, 1)
         selectdim(prev, 1, i) .= selectdim(p, 1, size(p, 1)-i+2)
     end
-    return TaylorSolution(reverse(sol.t), prev)
+    return _dense_solution(reverse(sol.t), prev)
 end
 
 function flipsign(sol::TaylorSolution)
     p = _dense_polynomials(sol)
     t0 = first(sol.t)
     t = 2t0 .- sol.t
-    return TaylorSolution(t, p(-Taylor1(TaylorSeries.order(sol))))
+    return _dense_solution(t, p(-Taylor1(TaylorSeries.order(sol))))
 end
 
 function join(bwd::TaylorSolution{T,U,N}, fwd::TaylorSolution{T,U,N}) where {T<:Real,U<:Number,N}
@@ -350,7 +359,7 @@ function join(bwd::TaylorSolution{T,U,N}, fwd::TaylorSolution{T,U,N}) where {T<:
     bwd_rev = reverse(bwd)
     t = vcat(bwd_rev.t, fwd.t[2:end])
     p = vcat(bwd_rev.p, fwd.p)
-    return TaylorSolution(t, p)
+    return _dense_solution(t, p)
 end
 
 struct TaylorSolutionSerialization{T,N}
