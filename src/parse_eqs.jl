@@ -187,8 +187,9 @@ const _HEAD_FN_SCALAR = sanitize(
             __params,
             __tT::Taylor1{_T},
             __ralloc::TaylorIntegration.RetAlloc{Taylor1{_S}},
+            ::Val{__fn},
         ) where {_T, _S<:Number}
-            order = get_order(__tT)
+            order = TS.order(__tT)
             nothing
         end
     ),
@@ -203,7 +204,7 @@ const _HEAD_FN_VECTOR = sanitize(
             __tT::Taylor1{_T},
             __ralloc::TaylorIntegration.RetAlloc{Taylor1{_S}},
         ) where {_T, _S<:Number, _N}
-            order = get_order(__tT)
+            order = TS.order(__tT)
             nothing
         end
     ),
@@ -269,13 +270,14 @@ function _make_parsed_jetcoeffs(ex::Expr)
 
     # Push preamble and forloopblock to `new_jetcoeffs` and `new_fnfunc` and return line
     push!(new_jetcoeffs.args[2].args, forloopblock, Meta.parse("return nothing"))
-    push!(new_fnfunc.args[2].args, forloopblockfn, Meta.parse("return nothing"))
+    push!(new_fnfunc.args[2].args, forloopblockfn, Meta.parse("return $(bkkeep.retvar)"))
 
     # Split v_arraydecl according to the number of indices
     _split_arraydecl!(bkkeep)
 
     # Add allocated variable definitions to `new_jetcoeffs`, to make it more human readable
     _allocated_defs!(new_jetcoeffs, bkkeep)
+    _allocated_defs!(new_fnfunc, bkkeep)
 
     # Define the expressions of the returned vectors in `new_allocjetcoeffs`
     push!(new_allocjetcoeffs.args[2].args, defsprealloc...)
@@ -1464,11 +1466,20 @@ See the [documentation](@ref taylorize) for more details and limitations.
 
 """
 macro taylorize(ex)
+    nex1, nex2, _ = _make_parsed_jetcoeffs(ex)
+    esc(quote
+        $(ex)   # evals to calling scope the passed function
+        $(nex1) # evals the new method of `jetcoeffs!`
+        $(nex2) # evals the new method of `_allocate_jetcoeffs`
+    end)
+end
+
+macro taylorize2(ex)
     nex1, nex2, nex3 = _make_parsed_jetcoeffs(ex)
     esc(quote
         $(ex)   # evals to calling scope the passed function
         $(nex1) # evals the new method of `jetcoeffs!`
         $(nex2) # evals the new method of `_allocate_jetcoeffs`
-        $(nex3) # evals the new method of the function defined by `ex`
+        $(nex3) # evals the new method of the function `ex` defined by `nex3`
     end)
 end
