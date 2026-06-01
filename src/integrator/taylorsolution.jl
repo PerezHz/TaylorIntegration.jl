@@ -91,13 +91,6 @@ TaylorSolution(t, x, p, ::Nothing) =
     TaylorSolution(t, x, p, nothing, nothing, nothing, nothing)
 # 3-arg constructor (root-finding and Lyapunov fields are nothing; helps not to write too many nothings)
 TaylorSolution(t, x, p) = TaylorSolution(t, x, p, nothing)
-function TaylorSolution(t::AbstractVector, p::AbstractArray{<:Taylor1}, ::Nothing)
-    if length(t) == size(p, 1) + 1
-        return TaylorSolution(t, p)
-    else
-        return TaylorSolution(t, p, nothing, nothing)
-    end
-end
 # 2-arg constructor (dense polynomial, root-finding and Lyapunov fields are nothing)
 TaylorSolution(t, x) = TaylorSolution(t, x, nothing)
 
