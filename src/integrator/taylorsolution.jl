@@ -277,7 +277,7 @@ function (sol::TaylorSolution{T,U,2})(
 ) where {T,U,TT<:TaylorSolutionCallingArgs{T,U}}
     # Get index of sol.x that interpolates at time t
     ind::Int, δt::TT = timeindex(sol, t)
-    isempty(sol.p) && return [x + zero(δt) for x in view(sol.x, ind, :)]::Vector{TT}
+    isempty(sol.p) && return (view(sol.x, ind, :) .+ zero(δt))::Vector{TT}
     # Evaluate sol.x[ind] at δt
     return view(sol.p, ind, :)(δt)::Vector{TT}
 end
