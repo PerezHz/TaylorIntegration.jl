@@ -201,12 +201,22 @@ function timeindex(sol::TaylorSolution, t::TT) where {TT}
 
     @assert tmin ≤ _t ≤ tmax "Evaluation time outside range of interpolation"
 
+    if length(sol.t) == 1
+        return firstindex(sol.t)::Int, (t - t0)::TT
+    end
+
     if _t == sol.t[end]        # Compute solution at final time from last step expansion
         ind = lastindex(sol.t) - 1
     elseif issorted(sol.t)       # Forward integration
         ind = searchsortedlast(sol.t, _t)
     elseif issorted(sol.t, rev = true) # Backward integration
         ind = searchsortedlast(sol.t, _t, rev = true)
+    else
+        throw(
+            ArgumentError(
+                "`sol.t` must be sorted in increasing or decreasing order for interpolation.",
+            ),
+        )
     end
     # Time since the start of the ind-th timestep
     δt = t - sol.t[ind]
@@ -239,6 +249,7 @@ See also [`timeindex`](@ref).
 function (sol::TaylorSolution{T,U,1})(::Val{false}, t::T) where {T,U}
     # Get index of sol.x that interpolates at time t
     ind::Int, δt::T = timeindex(sol, t)
+    isempty(sol.p) && return sol.x[ind]::U
     # Evaluate sol.x[ind] at δt
     return (sol.p[ind])(δt)::U
 end
@@ -248,6 +259,7 @@ function (sol::TaylorSolution{T,U,1})(
 ) where {T,U,TT<:TaylorSolutionCallingArgs{T,U}}
     # Get index of sol.x that interpolates at time t
     ind::Int, δt::TT = timeindex(sol, t)
+    isempty(sol.p) && return (sol.x[ind] + zero(δt))::TT
     # Evaluate sol.x[ind] at δt
     return (sol.p[ind])(δt)::TT
 end
@@ -255,6 +267,7 @@ end
 function (sol::TaylorSolution{T,U,2})(::Val{false}, t::T) where {T,U}
     # Get index of sol.x that interpolates at time t
     ind::Int, δt::T = timeindex(sol, t)
+    isempty(sol.p) && return Vector(view(sol.x, ind, :))::Vector{U}
     # Evaluate sol.x[ind] at δt
     return view(sol.p, ind, :)(δt)::Vector{U}
 end
@@ -264,6 +277,7 @@ function (sol::TaylorSolution{T,U,2})(
 ) where {T,U,TT<:TaylorSolutionCallingArgs{T,U}}
     # Get index of sol.x that interpolates at time t
     ind::Int, δt::TT = timeindex(sol, t)
+    isempty(sol.p) && return [x + zero(δt) for x in view(sol.x, ind, :)]::Vector{TT}
     # Evaluate sol.x[ind] at δt
     return view(sol.p, ind, :)(δt)::Vector{TT}
 end
