@@ -94,12 +94,6 @@ TaylorSolution(t, x, p) = TaylorSolution(t, x, p, nothing)
 # 2-arg constructor (dense polynomial, root-finding and Lyapunov fields are nothing)
 TaylorSolution(t, x) = TaylorSolution(t, x, nothing)
 
-function _empty_polynomial_array_error()
-    return ArgumentError(
-        "Cannot infer solution values from an empty polynomial array `p`; construct with `TaylorSolution(t, x, p)` instead.",
-    )
-end
-
 function _polynomial_array_size_error()
     return ArgumentError(
         "Cannot infer solution values unless `length(t) == size(p, 1) + 1`; construct Taylor-valued solution values with `TaylorSolution(t, x, nothing)` instead.",
@@ -108,7 +102,7 @@ end
 
 function _solution_values(t::AbstractVector{T}, p::AbstractArray{Taylor1{U},1}) where {T,U}
     @assert length(t) == length(p) + 1
-    isempty(p) && throw(_empty_polynomial_array_error())
+    isempty(p) && return fill(zero(U), length(t))
     x = Vector{U}(undef, length(t))
     for (i, idx) in enumerate(eachindex(p))
         x[i] = constant_term(p[idx])
@@ -122,8 +116,8 @@ function _solution_values(
     p::AbstractArray{Taylor1{U},N},
 ) where {T,U,N}
     @assert length(t) == size(p, 1) + 1
-    isempty(p) && throw(_empty_polynomial_array_error())
-    x = Array{U,N}(undef, length(t), size(p)[2:end]...)
+    x = fill(zero(U), length(t), size(p)[2:end]...)
+    isempty(p) && return x
     for (i, idx) in enumerate(axes(p, 1))
         selectdim(x, 1, i) .= constant_term.(selectdim(p, 1, idx))
     end

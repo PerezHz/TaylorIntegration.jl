@@ -11,7 +11,8 @@ using Markdown
 using InteractiveUtils #: methodswith
 using Parameters
 
-export TaylorSolution, taylorinteg, lyap_taylorinteg, @taylorize, taylorinteg!
+export TaylorSolution, DensePropagation1, DensePropagation2
+export taylorinteg, lyap_taylorinteg, @taylorize, taylorinteg!
 
 import Base: convert, flipsign, iszero, join, reverse, zero
 import JLD2: readas, writeas
