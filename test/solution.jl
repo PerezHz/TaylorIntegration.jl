@@ -85,6 +85,8 @@ import Logging: Warn
     @test_throws ArgumentError TaylorSolution([0.0, 1.0], p_mismatched_endpoints)
     @test TaylorSolution([0.0, 1.0], p_mismatched_endpoints, nothing).x ==
           p_mismatched_endpoints
+    @test TaylorSolution([0.0, 1.0, 2.0], p_mismatched_endpoints, nothing) ==
+          TaylorSolution([0.0, 1.0, 2.0], p_mismatched_endpoints)
 
     p_matrix_mismatched_endpoints = [
         Taylor1([1.0, 10.0], 1) Taylor1([4.0, 40.0], 1)
@@ -92,6 +94,8 @@ import Logging: Warn
     ]
     @test TaylorSolution([0.0, 1.0, 2.0], p_matrix_mismatched_endpoints).x ==
           [1.0 4.0; 2.0 5.0; 22.0 55.0]
+    @test TaylorSolution([0.0, 1.0, 2.0], p_matrix_mismatched_endpoints, nothing) ==
+          TaylorSolution([0.0, 1.0, 2.0], p_matrix_mismatched_endpoints)
 
     solrev = reverse(soldense)
     @test solrev.t == reverse(soldense.t)
