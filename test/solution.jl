@@ -68,11 +68,11 @@ import Logging: Warn
     @test convert(BigFloat, soldense).p[1] isa Taylor1{BigFloat}
 
     empty_p = Taylor1{Float64}[]
-    @test_throws ArgumentError TaylorSolution([0.0], empty_p)
+    @test (@inferred TaylorSolution([0.0], empty_p)).x == [0.0]
     @test TaylorSolution([0.0], [1.0], empty_p).x == [1.0]
 
     empty_matrix_p = Matrix{Taylor1{Float64}}(undef, 0, 2)
-    @test_throws ArgumentError TaylorSolution([0.0], empty_matrix_p)
+    @test (@inferred TaylorSolution([0.0], empty_matrix_p)).x == zeros(1, 2)
     @test TaylorSolution([0.0], [1.0 2.0], empty_matrix_p).x == [1.0 2.0]
 
     p_mismatched_endpoints = [
