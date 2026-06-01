@@ -49,6 +49,14 @@ import Logging: Warn
     ind, δt = TaylorIntegration.timeindex(sol, t1)
     @test ind == 3
     @test δt == t1 - sol.t[ind]
+    sol_bad_time = TaylorSolution(
+        [0.0, 1.0, 2.0],
+        [0.0, 1.0, 2.0],
+        Taylor1.([0.0, 1.0], 1),
+    )
+    sol_bad_time.t[2] = -1.0
+    @test_throws ArgumentError TaylorIntegration.timeindex(sol_bad_time, 0.5)
+
     tv = collect((0:0.25:2) * pi)
     xv = Matrix(hcat(sin.(tv), cos.(tv))')
     psolv = Matrix(hcat(sin.(tv .+ Taylor1(25)), cos.(tv .+ Taylor1(25)))')
@@ -69,11 +77,18 @@ import Logging: Warn
 
     empty_p = Taylor1{Float64}[]
     @test (@inferred TaylorSolution([0.0], empty_p)).x == [0.0]
-    @test TaylorSolution([0.0], [1.0], empty_p).x == [1.0]
+    sol_empty = TaylorSolution([0.0], [1.0], empty_p)
+    @test sol_empty.x == [1.0]
+    ind_empty, δt_empty = TaylorIntegration.timeindex(sol_empty, 0.0)
+    @test ind_empty == 1
+    @test δt_empty == 0.0
+    @test sol_empty(0.0) == 1.0
 
     empty_matrix_p = Matrix{Taylor1{Float64}}(undef, 0, 2)
     @test (@inferred TaylorSolution([0.0], empty_matrix_p)).x == zeros(1, 2)
-    @test TaylorSolution([0.0], [1.0 2.0], empty_matrix_p).x == [1.0 2.0]
+    sol_empty_matrix = TaylorSolution([0.0], [1.0 2.0], empty_matrix_p)
+    @test sol_empty_matrix.x == [1.0 2.0]
+    @test sol_empty_matrix(0.0) == [1.0, 2.0]
 
     p_mismatched_endpoints = [
         Taylor1([1.0, 10.0], 1),
