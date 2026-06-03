@@ -187,7 +187,6 @@ const _HEAD_FN_SCALAR = sanitize(
             __params,
             __tT::Taylor1{_T},
             __ralloc::TaylorIntegration.RetAlloc{Taylor1{_S}},
-            ::Val{__fn},
         ) where {_T, _S<:Number}
             order = TS.order(__tT)
             nothing
@@ -258,7 +257,7 @@ function _make_parsed_jetcoeffs(ex::Expr)
 
     # Expr for the for-loop block (on `ord`)
     forloopblock = Expr(:for, :(ord = 0:order-1), Expr(:block, :(ordnext = ord + 1)))
-    forloopblockfn = Expr(:for, :(ord = 0:order-1), Expr(:block, :(ordnext = ord + 1)))
+    forloopblockfn = Expr(:for, :(ord = 0:order), Expr(:block,))
 
     # Add rec_fnbody to `forloopblock`
     push!(forloopblock.args[2].args, fnbody.args[1].args..., rec_fnbody)
