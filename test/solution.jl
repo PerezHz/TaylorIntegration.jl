@@ -19,8 +19,12 @@ import Logging: Warn
         TaylorIntegration.build_solution(tv, Vector(xv[1, :]), Vector(psol[1, :]), nsteps)
     @test sol1 isa TaylorSolution{Float64,Float64,1}
     @test string(sol1) == "tspan: (1.0, 2.0), x: 1 Float64 variable"
+    @test firsttime(sol1) == first(sol1.t)
+    @test lasttime(sol1) == last(sol1.t)
     sol_big = TaylorSolution(BigFloat[0], BigFloat[1])
     @test zero(typeof(sol_big)).x == BigFloat[0]
+    @test firsttime(sol_big) == BigFloat(0)
+    @test lasttime(sol_big) == BigFloat(0)
 
     xt1 = Taylor1.([1.0, 2.0], 2)
     sol_t1 = TaylorIntegration.build_solution(tv, xt1)
@@ -74,6 +78,8 @@ import Logging: Warn
     @test iszero(zero(typeof(soldense)))
     @test convert(BigFloat, soldense).t == BigFloat.(soldense.t)
     @test convert(BigFloat, soldense).p[1] isa Taylor1{BigFloat}
+    @test firsttime(soldense) == first(soldense.t)
+    @test lasttime(soldense) == last(soldense.t)
 
     empty_p = Taylor1{Float64}[]
     @test (@inferred TaylorSolution([0.0], empty_p)).x == [0.0]
@@ -110,6 +116,8 @@ import Logging: Warn
 
     solrev = reverse(soldense)
     @test solrev.t == reverse(soldense.t)
+    @test firsttime(solrev) == lasttime(soldense)
+    @test lasttime(solrev) == firsttime(soldense)
     @test norm(solrev(solrev.t[end]) - soldense(soldense.t[1]), Inf) < 1e-14
 
     solflip = flipsign(soldense)

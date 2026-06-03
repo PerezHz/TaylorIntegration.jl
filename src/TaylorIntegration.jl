@@ -12,6 +12,7 @@ using InteractiveUtils #: methodswith
 using Parameters
 
 export TaylorSolution, DensePropagation1, DensePropagation2
+export firsttime, lasttime
 export taylorinteg, lyap_taylorinteg, @taylorize, taylorinteg!
 
 import Base: convert, flipsign, iszero, join, reverse, zero
