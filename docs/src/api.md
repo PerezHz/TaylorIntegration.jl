@@ -12,6 +12,8 @@ CurrentModule = TaylorIntegration
 taylorinteg
 lyap_taylorinteg
 @taylorize
+firsttime
+lasttime
 ```
 
 ## Exported types
