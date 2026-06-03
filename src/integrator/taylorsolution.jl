@@ -186,6 +186,20 @@ function Base.show(io::IO, sol::TaylorSolution)
     print(io, "tspan: ", tspan, ", x: ", nvars, " ", S, " variable" * plural)
 end
 
+"""
+    firsttime(sol::TaylorSolution)
+
+Return the first stored time of `sol`.
+"""
+firsttime(sol::TaylorSolution) = first(sol.t)
+
+"""
+    lasttime(sol::TaylorSolution)
+
+Return the last stored time of `sol`.
+"""
+lasttime(sol::TaylorSolution) = last(sol.t)
+
 # Function-like (callability or "functor") methods
 
 @doc doc"""

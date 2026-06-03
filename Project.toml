@@ -1,6 +1,6 @@
 name = "TaylorIntegration"
 uuid = "92b13dbe-c966-51a2-8445-caca9f8a7d42"
-version = "0.18.10"
+version = "0.18.11"
 repo = "https://github.com/PerezHz/TaylorIntegration.jl.git"
 
 [deps]
