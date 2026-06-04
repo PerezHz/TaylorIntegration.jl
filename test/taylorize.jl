@@ -53,8 +53,7 @@ import Logging: Warn
             tf,
             _order,
             _abstol,
-            maxsteps = 1000,
-            dense = false,
+            maxsteps = 1000
         ))
         tv1p = sol1p.t
         xv1p = sol1p.x
@@ -63,9 +62,41 @@ import Logging: Warn
         @test iszero(norm(tv1 - tv1p, Inf))
         @test iszero(norm(xv1 - xv1p, Inf))
 
+        # NOTE: For scalar problems, i.e. defined by f(u, p, t), `ODEProblem` needs to be
+        # defined *before* the new method for the function `f` is added
+        # (with `TaylorIntegration.@taylorize2`).
+        prob = ODEProblem(xdot1, x0, (t0, tf), nothing)
+        sol1ode = solve(prob, TaylorMethod(_order), abstol = _abstol, parse_eqs = true)
+
+        # Adds new method of `xdot1`
+        TaylorIntegration.@taylorize2 xdot1(x, p, t) = b1 - x^2
+        @test (@isdefined xdot1)
+        @test length(methods(xdot1)) == 2
+
+        sol1p = taylorinteg(
+            xdot1,
+            x0,
+            t0,
+            tf,
+            _order,
+            _abstol,
+            maxsteps = 1000
+        )
+
+        @test sol1ode.t == sol1p.t
+        @test sol1ode.u[end] == sol1p.x[end]
+
+        tt = Taylor1(_order)
+        rv = TaylorIntegration._allocate_jetcoeffs!(Val(xdot1), tt, sol1p.p[1], nothing)
+        dv = xdot1(sol1p.p[3], nothing, tt)
+        dvn = xdot1(sol1p.p[3], nothing, tt, rv) # New method
+        @test dv == dvn
+
+
         # Use `local` constants
-        @taylorize xdot2(x, p, t) = (local b2 = 3; b2 - x^2)
+        TaylorIntegration.@taylorize2 xdot2(x, p, t) = (local b2 = 3; b2 - x^2)
         @test (@isdefined xdot2)
+        @test length(methods(xdot2)) == 2
 
         sol2 = taylorinteg(
             xdot2,
@@ -75,7 +106,7 @@ import Logging: Warn
             _order,
             _abstol,
             maxsteps = 1000,
-            dense = false,
+            dense = true,
             parse_eqs = false,
         )
         tv2 = sol2.t
@@ -88,7 +119,7 @@ import Logging: Warn
             _order,
             _abstol,
             maxsteps = 1000,
-            dense = false,
+            dense = true,
         ))
         tv2p = sol2p.t
         xv2p = sol2p.x
@@ -97,9 +128,15 @@ import Logging: Warn
         @test iszero(norm(tv2 - tv2p, Inf))
         @test iszero(norm(xv2 - xv2p, Inf))
 
+        dv = xdot2(sol2p.p[3], nothing, tt) # Old method
+        rv = TaylorIntegration._allocate_jetcoeffs!(Val(xdot2), tt, sol2p.p[1], nothing)
+        dvn = xdot2(sol2p.p[3], nothing, tt, rv) # New method
+        @test dv == dvn
+
         # Passing a parameter
-        @taylorize xdot3(x, p, t) = p - x^2
+        TaylorIntegration.@taylorize2 xdot3(x, p, t) = p - x^2
         @test (@isdefined xdot3)
+        @test length(methods(xdot3)) == 2
 
         sol3 = taylorinteg(
             xdot3,
@@ -124,7 +161,7 @@ import Logging: Warn
             _abstol,
             b1,
             maxsteps = 1000,
-            dense = false,
+            dense = true,
         ))
         tv3p = sol3p.t
         xv3p = sol3p.x
@@ -132,6 +169,11 @@ import Logging: Warn
         @test length(tv3) == length(tv3p)
         @test iszero(norm(tv3 - tv3p, Inf))
         @test iszero(norm(xv3 - xv3p, Inf))
+
+        dv = xdot3(sol3p.p[3], b1, tt) # Old method
+        rv = TI._allocate_jetcoeffs!(Val(xdot3), tt, sol3p.p[1], b1)
+        dvn = xdot3(sol3p.p[3], b1, tt, rv) # New method
+        @test dv == dvn
 
         # Comparing integrations
         @test length(tv1p) == length(tv2p) == length(tv3p)
@@ -261,9 +303,10 @@ import Logging: Warn
     @testset "Scalar case: xdot(x, p, t) = -10" begin
         # Return an expression
         xdot1(x, p, t) = -10 + zero(t)         # `zero(t)` is needed; cf #20
-        @taylorize xdot1_parsed(x, p, t) = -10 # `zero(t)` can be avoided here !
+        TaylorIntegration.@taylorize2 xdot1_parsed(x, p, t) = -10 # `zero(t)` can be avoided here !
 
         @test (@isdefined xdot1_parsed)
+        @test length(methods(xdot1_parsed)) == 2
         sol1 = taylorinteg(
             xdot1,
             10,
@@ -282,7 +325,7 @@ import Logging: Warn
             20.0,
             _order,
             _abstol,
-            dense = false,
+            dense = true,
         ))
         tv1p, xv1p = sol1p.t, sol1p.x
 
@@ -290,13 +333,20 @@ import Logging: Warn
         @test iszero(norm(tv1 - tv1p, Inf))
         @test iszero(norm(xv1 - xv1p, Inf))
 
+        tt = Taylor1(_order)
+        dv = xdot1_parsed(sol1p.p[3], nothing, tt)
+        rv = TI._allocate_jetcoeffs!(Val(xdot1_parsed), tt, sol1p.p[1], nothing)
+        dvn = xdot1_parsed(sol1p.p[3], nothing, tt, rv)
+        @test dv == dvn
+
         # Use `local` expression
-        @taylorize function xdot2(x, p, t)
+        TaylorIntegration.@taylorize2 function xdot2(x, p, t)
             local ggrav = -10 + zero(t)  # zero(t) is needed for the `parse_eqs=false` case
             tmp = ggrav  # needed to avoid an error when parsing
         end
 
         @test (@isdefined xdot2)
+        @test length(methods(xdot2)) == 2
 
         sol2 = taylorinteg(
             xdot2,
@@ -316,13 +366,18 @@ import Logging: Warn
             20.0,
             _order,
             _abstol,
-            dense = false,
+            dense = true,
         ))
         tv2p, xv2p = sol2p.t, sol2p.x
 
         @test length(tv2) == length(tv2p)
         @test iszero(norm(tv2 - tv2p, Inf))
         @test iszero(norm(xv2 - xv2p, Inf))
+
+        dv = xdot2(sol2p.p[3], nothing, tt)
+        rv = TI._allocate_jetcoeffs!(Val(xdot2), tt, sol2p.p[1], nothing)
+        dvn = xdot2(sol2p.p[3], nothing, tt, rv)
+        @test dv == dvn
 
         # Passing a parameter
         @taylorize xdot3(x, p, t) = p + zero(t) # `zero(t)` can be avoided here
@@ -410,13 +465,15 @@ import Logging: Warn
 
     # Pendulum integration
     @testset "Integration of the pendulum and DiffEqs interface" begin
-        @taylorize function pendulum!(dx::Array{T,1}, x::Array{T,1}, p, t) where {T}
+        TaylorIntegration.@taylorize2 function pendulum!(dx::Array{T,1}, x::Array{T,1}, p, t) where {T}
             dx[1] = x[2]
             dx[2] = -sin(x[1])
             nothing
         end
 
         @test (@isdefined pendulum!)
+        @test length(methods(pendulum!)) == 2
+
         q0 = [pi - 0.001, 0.0]
         sol2 = taylorinteg(
             pendulum!,
@@ -439,13 +496,21 @@ import Logging: Warn
             _order,
             _abstol,
             maxsteps = 5000,
-            dense = false,
+            dense = true,
         ))
         tv2p, xv2p = sol2p.t, sol2p.x
 
         @test length(tv2) == length(tv2p)
         @test iszero(norm(tv2 - tv2p, Inf))
         @test iszero(norm(xv2 - xv2p, Inf))
+
+        tt = Taylor1(_order)
+        dq = zero.(sol2p.p[3,:])
+        rv = TI._allocate_jetcoeffs!(Val(pendulum!), tt, sol2p.p[3,:], dq, nothing)
+        pendulum!(dq, sol2p.p[3,:], nothing, tt)
+        dqn = zero.(sol2p.p[3,:])
+        pendulum!(dqn, sol2p.p[3,:], nothing, tt, rv)
+        @test dq == dqn
 
         prob = ODEProblem(pendulum!, q0, (t0, tf), nothing) # no parameters
         sol1 = solve(prob, TaylorMethod(_order), abstol = _abstol, parse_eqs = true)
@@ -480,9 +545,12 @@ import Logging: Warn
     # Complex dependent variables
     @testset "Complex dependent variable" begin
         cc = complex(0.0, 1.0)
-        @taylorize eqscmplx(x, p, t) = cc * x
+        TaylorIntegration.@taylorize2 eqscmplx(x, p, t) = cc * x
 
         @test (@isdefined eqscmplx)
+        @test length(methods(eqscmplx)) == 2
+
+        # Mie 10, 5pm; 17 (10:30 o por la tarde); 24 (10:30 o por la tarde)
         cx0 = complex(1.0, 0.0)
         sol1 = taylorinteg(
             eqscmplx,
@@ -504,13 +572,22 @@ import Logging: Warn
             _order,
             _abstol,
             maxsteps = 1500,
-            dense = false,
+            dense = true,
         ))
         tv1p, xv1p = sol1p.t, sol1p.x
 
         @test length(tv1) == length(tv1p)
         @test iszero(norm(tv1 - tv1p, Inf))
         @test iszero(norm(xv1 - xv1p, Inf))
+
+        tt = Taylor1(_order)
+        dq = zero.(sol1p.p[3])
+        rv = TI._allocate_jetcoeffs!(Val(eqscmplx), tt, sol1p.p[3], nothing)
+        dq = eqscmplx(sol1p.p[3], nothing, tt)
+        dqn = zero.(sol1p.p[3])
+        dqn = eqscmplx(sol1p.p[3], nothing, tt, rv)
+        @test dq == dqn
+
 
         # Using `local` for the constant value
         @taylorize eqscmplx2(x, p, t) = (local cc1 = Complex(0.0, 1.0); cc1 * x)
@@ -651,7 +728,7 @@ import Logging: Warn
             y = cos(t)
             return y
         end
-        @taylorize function integ_cos2(x, p, t)
+        TaylorIntegration.@taylorize2 function integ_cos2(x, p, t)
             local y = cos(t)  # allows to calculate directly `cos(t)` *once*
             yy = y            # needed to avoid an error
             return yy
@@ -659,6 +736,7 @@ import Logging: Warn
 
         @test (@isdefined integ_cos1)
         @test (@isdefined integ_cos2)
+        @test length(methods(integ_cos2)) == 2
 
         sol11 = taylorinteg(
             integ_cos1,
@@ -692,8 +770,7 @@ import Logging: Warn
             pi,
             _order,
             _abstol,
-            parse_eqs = false,
-            dense = false,
+            parse_eqs = false
         )
         tv21, xv21 = sol21.t, sol21.x
         sol22 = (@test_logs min_level = Logging.Warn taylorinteg(
@@ -702,8 +779,7 @@ import Logging: Warn
             0.0,
             pi,
             _order,
-            _abstol,
-            dense = false,
+            _abstol
         ))
         tv22, xv22 = sol22.t, sol22.x
         @test length(tv21) == length(tv22)
@@ -712,6 +788,14 @@ import Logging: Warn
 
         @test iszero(norm(tv12 - tv22, Inf))
         @test iszero(norm(xv12 - xv22, Inf))
+
+        tt = Taylor1(_order)
+        dq = zero.(sol22.p[3])
+        rv = TI._allocate_jetcoeffs!(Val(integ_cos2), tt, sol22.p[3], nothing)
+        dq = integ_cos2(sol22.p[3], nothing, tt)
+        dqn = zero.(sol22.p[3])
+        dqn = integ_cos2(sol22.p[3], nothing, tt, rv)
+        @test dq == dqn
 
         # Compare to exact solution
         @test norm(xv11[end] - sin(tv11[end]), Inf) < 1.0e-15
@@ -793,7 +877,7 @@ import Logging: Warn
 
     # Simple harmonic oscillator
     @testset "Simple harmonic oscillator" begin
-        @taylorize function harm_osc!(dx, x, p, t)
+        TaylorIntegration.@taylorize2 function harm_osc!(dx, x, p, t)
             local ω = p[1]
             local ω2 = ω^2
             dx[1] = x[2]
@@ -827,7 +911,7 @@ import Logging: Warn
             _abstol,
             p,
             maxsteps = 1000,
-            dense = false,
+            dense = true,
         ))
         tv1p, xv1p = sol1p.t, sol1p.x
 
@@ -861,9 +945,15 @@ import Logging: Warn
         @test qT[1] ≈ cos(tT)
         @test qT[2] ≈ -sin(tT)
 
+        @test length(methods(harm_osc!)) == 2
+        harm_osc!(dqT, qT, [1.0], tT)
+        dqTn = zero.(dqT)
+        harm_osc!(dqTn, qT, [1.0], tT, rv)
+        @test dqT == dqTn
+
         # The macro returns a (parsed) jetcoeffs! function which yields a `MethodError`
         # (TaylorSeries.pow! requires *two* Taylor series as first arguments) and
-        # therefore it runs with the default jetcoeffs! methdo. A warning is issued.
+        # therefore it runs with the default jetcoeffs! method. A warning is issued.
         # To solve it, define as a local variable `ω2 = ω^2`.
         @taylorize function harm_osc_error!(dx, x, p, t)
             local ω = p[1]
@@ -1183,7 +1273,7 @@ import Logging: Warn
         @test iszero(norm(tv7p - tv6p, Inf))
         @test iszero(norm(xv7p - xv6p, Inf))
 
-        @taylorize function kepler3!(dq, q, p, t)
+        TaylorIntegration.@taylorize2 function kepler3!(dq, q, p, t)
             local mμ = -1.0
             r_p3d2 = (q[1]^2 + q[2]^2)^1.5
 
@@ -1234,7 +1324,7 @@ import Logging: Warn
             _order,
             _abstol,
             maxsteps = 500000,
-            dense = false,
+            dense = true,
         ))
         tv3p, xv3p = sol3p.t, sol3p.x
 
@@ -1330,6 +1420,12 @@ import Logging: Warn
             nothing,
             rv,
         )
+
+        @test length(methods(kepler3!)) == 2
+        kepler3!(dqT, qT, [1.0], tT)
+        dqTn = zero.(dqT)
+        kepler3!(dqTn, qT, [1.0], tT, rv)
+        @test dqT == dqTn
 
         qT = q0 .+ zero(tT)
         dqT = similar(qT)
@@ -1444,7 +1540,7 @@ import Logging: Warn
         @test iszero(norm(tv2p - tv2, Inf))
         @test iszero(norm(xv2p - xv2, Inf))
 
-        @taylorize function kepler3!(dq, q, p, t)
+        TaylorIntegration.@taylorize2 function kepler3!(dq, q, p, t)
             local μ = p
             x, y, px, py = q
             r = sqrt(x^2 + y^2)
@@ -1500,7 +1596,7 @@ import Logging: Warn
             _abstol,
             -1.0,
             maxsteps = 500000,
-            dense = false,
+            dense = true,
         ))
         tv3p, xv3p = sol3p.t, sol3p.x
 
@@ -1595,6 +1691,12 @@ import Logging: Warn
             rv,
         )
 
+        @test length(methods(kepler3!)) == 2
+        kepler3!(dqT, qT, -1.0, tT)
+        dqTn = zero.(dqT)
+        kepler3!(dqTn, qT, -1.0, tT, rv)
+        @test dqT == dqTn
+
         qT = q0 .+ zero(tT)
         rv = (@test_logs min_level = Logging.Warn TI._allocate_jetcoeffs!(
             Val(kepler4!),
@@ -1620,7 +1722,7 @@ import Logging: Warn
         params = [16.0, 45.92, 4.0]
 
         #Lorenz system ODE:
-        @taylorize function lorenz1!(dq, q, p, t)
+        TaylorIntegration.@taylorize2 function lorenz1!(dq, q, p, t)
             x, y, z = q
             local σ, ρ, β = p
             dq[1] = σ * (y - x)
@@ -1713,6 +1815,17 @@ import Logging: Warn
         @test tv1 == tv2
         @test xv1 == xv2
         @test lv1 == lv2
+
+        @test length(methods(lorenz1!)) == 2
+        tT = Taylor1(_order)
+        qT = q0 .+ zero(tT)
+        dqT = zero.(qT)
+        dq0 = zero.(q0)
+        lorenz1!(dqT, qT, params, tT)
+        dqTn = zero.(dqT)
+        rv = TI._allocate_jetcoeffs!(Val(lorenz1!), tT, qT, dqT, params)
+        lorenz1!(dqTn, qT, params, tT, rv)
+        @test dqT == dqTn
 
         #Lorenz system ODE:
         @taylorize function lorenz2!(dx, x, p, t)
@@ -2105,7 +2218,7 @@ import Logging: Warn
         @test norm(y.x - y_jt, Inf) < 1e-11
 
         # pendulum!
-        @taylorize function pendulum!(dx, x, p, t)
+        TaylorIntegration.@taylorize2 function pendulum!(dx, x, p, t)
             dx[1] = x[2]
             dx[2] = -sin(x[1])
             nothing
@@ -2165,6 +2278,16 @@ import Logging: Warn
         ))
         @test solTN.x == solTNp.x
         @test norm(solTNp.x[:, :]() - xvp, Inf) < 1e-15
+
+        @test length(methods(pendulum!)) == 2
+        tT = Taylor1(_order)
+        x0TN = Taylor1.(q0TN, _order)
+        dx0TN = zero.(x0TN)
+        dx0TNn = zero.(x0TN)
+        pendulum!(dx0TN, x0TN, nothing, tT)
+        rv = TI._allocate_jetcoeffs!(Val(pendulum!), tT, x0TN, dx0TN, nothing)
+        pendulum!(dx0TNn, x0TN, nothing, tT, rv)
+        @test dx0TN == dx0TNn
 
         dq = 0.0001rand(2)
         q1 = q0 + dq
@@ -2531,7 +2654,7 @@ import Logging: Warn
             nothing
         end)
 
-        newex1, newex2 = TI._make_parsed_jetcoeffs(ex)
+        newex1, newex2, newex3 = TI._make_parsed_jetcoeffs(ex)
 
         # Ignore declarations in the function
         @test newex1.args[1] == :(
@@ -2544,11 +2667,21 @@ import Logging: Warn
                 __ralloc::TaylorIntegration.RetAlloc{Taylor1{_S}},
             ) where {_T<:Real,_S<:Number,_N}
         )
+        @test newex3.args[1] == :( f!(dq::AbstractArray{Taylor1{_S}, _N},
+            q::AbstractArray{Taylor1{_S}, _N}, p,
+            t::Taylor1{_T},
+            __ralloc::TaylorIntegration.RetAlloc{Taylor1{_S}}
+            ) where {_T, _S <: Number, _N}
+        )
 
         # Include not recognized functions as they appear
         @test newex1.args[2].args[2] == :(aa = __ralloc.v0[1])
+        @test newex1.args[2].args[2] == newex3.args[2].args[2]
         @test newex2.args[2].args[2] == :(aa = my_simple_function(q, p, t))
         @test newex1.args[2].args[3].args[2].args[2] == :(aa = my_simple_function(q, p, t))
+        @test newex1.args[2].args[3].args[2].args[2] == newex3.args[2].args[3].args[2].args[1]
+        @test newex1.args[2].args[3].args[2].args[4].args[2] == :(TaylorIntegration.solcoeff!(
+            q[__idx], dq[__idx], ordnext))
 
         # Return line
         @test newex1.args[2].args[end] == :(return nothing)
@@ -2561,6 +2694,7 @@ import Logging: Warn
                 [Array{Taylor1{_S},4}(undef, 0, 0, 0, 0)],
             )
         )
+        @test newex3.args[2].args[end] == :(return dq)
 
         # Issue 96: deal with `elseif`s, `continue` and `break`
         ex = :(
@@ -2769,8 +2903,6 @@ import Logging: Warn
         t_ = deepcopy(t)
         x_ = Taylor1.(x0, order(t))
         dx_ = similar(x_)
-
-        @show Threads.nthreads()
 
         parse_eqs, rv = (@test_logs min_level = Warn TI._determine_parsing!(
             true,
