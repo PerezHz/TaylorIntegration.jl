@@ -8,6 +8,7 @@ import Logging: Warn
 
 @testset "Testing `many_ode.jl`" begin
 
+    local TI = TaylorIntegration
     local _order = 28
     local _abstol = 1.0E-20
     local tT = Taylor1(_order)
@@ -40,10 +41,10 @@ import Logging: Warn
             (Warn, zero_stepsize()),
             @inferred(
                 TaylorSolution{Float64,Float64,2},
-                taylorinteg(eqs_mov!, q0, 0.0, 0.5, _order, _abstol, nothing)
+                taylorinteg(eqs_mov!, q0, 0.0, 0.5, _order, _abstol, nothing, dense=false)
             )
         )
-        @test_throws ErrorException sol(0.25)
+        @test_throws "`taylorinteg` with `dense=false` are not callable." sol(0.25)
         tv = sol.t
         xv = sol.x
         @test length(tv) < 501
@@ -52,15 +53,16 @@ import Logging: Warn
         @test tv[end] < 1 / 3
 
 
-        #with reltol 
+        #with reltol
         sol = @test_logs(
             (Warn, zero_stepsize()),
             @inferred(
                 TaylorSolution{Float64,Float64,2},
-                taylorinteg(eqs_mov!, q0, 0.0, 0.5, _order, _abstol, nothing, reltol=_reltol)
+                taylorinteg(eqs_mov!, q0, 0.0, 0.5, _order, _abstol, nothing,
+                    reltol=_reltol, dense=false)
             )
         )
-        @test_throws ErrorException sol(0.25)
+        @test_throws "`taylorinteg` with `dense=false` are not callable." sol(0.25)
         tv = sol.t
         xv = sol.x
         @test length(tv) < 501
