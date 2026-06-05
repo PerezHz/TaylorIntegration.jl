@@ -550,7 +550,6 @@ import Logging: Warn
         @test (@isdefined eqscmplx)
         @test length(methods(eqscmplx)) == 2
 
-        # Mie 10, 5pm; 17 (10:30 o por la tarde); 24 (10:30 o por la tarde)
         cx0 = complex(1.0, 0.0)
         sol1 = taylorinteg(
             eqscmplx,
