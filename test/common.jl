@@ -81,7 +81,7 @@ import Logging: Warn
     local saveat_inputs =
         ([], 0:1:(tspan[2]+5), 0:1:tspan[2], 3:1:tspan[2], collect(0:1:tspan[2]))
     @testset "Test saveat behavior with numbers in common interface" begin
-        u0 = 1.0 #---
+        u0 = 1.0
         prob = ODEProblem(f, u0, tspan)
         sol = (@test_logs min_level = Logging.Warn solve(
             prob,
@@ -98,7 +98,7 @@ import Logging: Warn
         @test all(sol.t .== sol_taylor.t)
         @test all(sol_taylor.u .== sol.u)
         @test length(sol_taylor.t) == length(sol_taylor.u)
-        s = saveat_inputs[2] 
+        s = saveat_inputs[2]
         sol_taylor = (@test_logs min_level = Logging.Warn solve(
             prob,
             TaylorMethod(20),
@@ -189,8 +189,8 @@ import Logging: Warn
             reltol = 1e-18,
             saveat = s,
         ))
-        @test all(sol.t .== sol_taylor.t) #checar
-        @test all(sol_taylor.u .== sol.u) #checar
+        @test all(sol.t .== sol_taylor.t)
+        @test all(sol_taylor.u .== sol.u)
         @test length(sol_taylor.t) == length(sol_taylor.u)
         s = saveat_inputs[2]
         sol_taylor = (@test_logs min_level = Logging.Warn solve(
@@ -260,8 +260,8 @@ import Logging: Warn
             reltol = 1e-18,
         ))
         @test soltir.t == solr.t
-        @test soltir.x[end, :] == solr.u[end] 
-         
+        @test soltir.x[end, :] == solr.u[end]
+
         ### backwards integration
         tspanb = (0.0, -10pi)
         probb = ODEProblem(harmosc!, u0, tspanb)
@@ -304,10 +304,11 @@ import Logging: Warn
         dt_test = (tv2[end-1] - tv2[end-2])
         t_test = tv2[end-2] + Θ * dt_test
         @test norm(sol(t_test, idxs = 1:1:2) .- psol2[end, :](Θm1 * dt_test)) < 1e-14
+
         # Kepler problem
         @taylorize function kepler1!(dq, q, p, t)
             local μ = -1.0
-            r_p2 = ((q[1]^2) + (q[2]^2))
+            r_p2 = q[1]^2 + q[2]^2
             r_p3d2 = r_p2^1.5
             dq[1] = q[3]
             dq[2] = q[4]
@@ -556,6 +557,7 @@ import Logging: Warn
         b1 = 3.0
         order = 25 # Taylor expansion order wrt time
         abstol = 1.0e-20
+
         @taylorize xdot1(x, p, t) = b1 - x^2
         @test (@isdefined xdot1)
         x0 = 1.0

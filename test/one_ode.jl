@@ -36,12 +36,12 @@ import Logging: Warn
             _abstol,
         ))
 
-       
+
 
         @test sol isa TaylorSolution{Float64,Float64,1}
         tv = sol.t
         xv = sol.x
-        @test isnothing(sol.p)
+        @test !isnothing(sol.p)
         @test length(tv) < 501
         @test length(xv) < 501
         @test xv[1] == x0
@@ -57,11 +57,11 @@ import Logging: Warn
              _abstol,
              reltol=_reltol,
          ))
-        
+
         @test sol isa TaylorSolution{Float64,Float64,1}
         tv = sol.t
         xv = sol.x
-        @test isnothing(sol.p)
+        @test !isnothing(sol.p)
         @test length(tv) < 501
         @test length(xv) < 501
         @test xv[1] == x0

@@ -493,7 +493,7 @@ for R in (:Number, :Integer)
             order::Int,
             aabstol::V,
             params = nothing;
-            dense = false,
+            dense::Bool = true,
             maxsteps::Int = 500,
             parse_eqs::Bool = true,
             reltol::V = zero(V),
@@ -531,7 +531,7 @@ for R in (:Number, :Integer)
             order::Int,
             aabstol::V,
             params = nothing;
-            dense = false,
+            dense::Bool = true,
             maxsteps::Int = 500,
             parse_eqs::Bool = true,
             reltol::V = zero(V),
