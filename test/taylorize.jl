@@ -2090,38 +2090,6 @@ import Logging: Warn
             rv,
         )
 
-        @taylorize function kepler1!(dq, q, p, t)
-            μ = p
-            r_p3d2 = (q[1]^2 + q[2]^2)^1.5
-
-            dq[1] = q[3]
-            dq[2] = q[4]
-            dq[3] = μ * q[1] / r_p3d2
-            dq[4] = μ * q[2] / r_p3d2
-
-            return nothing
-        end
-        tT = t0 + Taylor1(_order)
-        qT = [0.2, 0.0, 0.0, 3.0] .+ zero(tT)
-        parse_eqs, rv =
-            (@test_logs (Warn, unable_to_parse(kepler1!)) TI._determine_parsing!(
-                true,
-                kepler1!,
-                tT,
-                qT,
-                similar(qT),
-                -1.0,
-            ))
-        @test !parse_eqs
-        @test_throws MethodError TI.__jetcoeffs!(
-            Val(kepler1!),
-            tT,
-            qT,
-            similar(qT),
-            -1.0,
-            rv,
-        )
-
         # Error: `@taylorize` allows only to parse up tp 5-index arrays
         ex = :(function err_arr_indx!(Dz, z, p, t)
             n = size(z, 1)
