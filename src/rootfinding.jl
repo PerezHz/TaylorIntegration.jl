@@ -30,6 +30,26 @@ build_solution(
     nothing,
 )
 
+build_solution(
+    copy_solution::Val{C},
+    t::AbstractVector{T},
+    x::Matrix{U},
+    p::P,
+    tevents::AbstractVector{U},
+    xevents::Matrix{U},
+    gresids::AbstractVector{U},
+    nsteps::Int,
+    nevents::Int,
+) where {C,T,U,P<:Union{Nothing,Matrix{Taylor1{U}}}} = TaylorSolution(
+    solution_array(copy_solution, t, nsteps),
+    solution_array(copy_solution, x, nsteps),
+    solution_array(copy_solution, p, nsteps - 1),
+    solution_array(copy_solution, tevents, nevents - 1),
+    solution_array(copy_solution, xevents, nevents - 1),
+    solution_array(copy_solution, gresids, nevents - 1),
+    nothing,
+)
+
 #### `build_solution` method for root-finding with time-ranges
 
 build_solution(
@@ -46,6 +66,24 @@ build_solution(
     arraysol(tevents, nevents - 1),
     arraysol(xevents, nevents - 1),
     arraysol(gresids, nevents - 1),
+    nothing,
+)
+
+build_solution(
+    copy_solution::Val{C},
+    t::AbstractVector{T},
+    x::Matrix{U},
+    tevents::AbstractVector{U},
+    xevents::Matrix{U},
+    gresids::AbstractVector{U},
+    nevents::Int,
+) where {C,T,U} = TaylorSolution(
+    solution_array(copy_solution, t),
+    solution_array(copy_solution, transpose(x)),
+    nothing,
+    solution_array(copy_solution, tevents, nevents - 1),
+    solution_array(copy_solution, xevents, nevents - 1),
+    solution_array(copy_solution, gresids, nevents - 1),
     nothing,
 )
 
@@ -280,7 +318,8 @@ function taylorinteg(
         nrabstol,
         reltol,
         minstepsize,
-        maxstepsize
+        maxstepsize,
+        copy_solution=Val(false)
     )
 end
 
@@ -300,7 +339,8 @@ function taylorinteg!(
     nrabstol::T = eps(T),
     reltol::T = zero(T),
     minstepsize::T = zero(T),
-    maxstepsize::T = T(Inf)
+    maxstepsize::T = T(Inf),
+    copy_solution::Val = Val(true)
 ) where {T<:Real,U<:Number,D}
 
     (; tv, xv, psol, xaux, t, x, dx, rv, parse_eqs) = cache
@@ -373,7 +413,7 @@ function taylorinteg!(
         end
     end
 
-    return build_solution(tv, xv, psol, tvS, xvS, gvS, nsteps, nevents)
+    return build_solution(copy_solution, tv, xv, psol, tvS, xvS, gvS, nsteps, nevents)
 end
 
 function taylorinteg(
@@ -416,7 +456,8 @@ function taylorinteg(
         nrabstol,
         reltol,
         minstepsize,
-        maxstepsize
+        maxstepsize,
+        copy_solution=Val(false)
     )
 end
 
@@ -434,7 +475,8 @@ function taylorinteg!(
     nrabstol::T = eps(T),
     reltol::T = zero(T),
     minstepsize::T = zero(T),
-    maxstepsize::T = T(Inf)
+    maxstepsize::T = T(Inf),
+    copy_solution::Val = Val(true)
 ) where {T<:Real,U<:Number}
 
     (; tv, xv, xaux, x0, x1, t, x, dx, rv, parse_eqs) = cache
@@ -517,5 +559,5 @@ function taylorinteg!(
         end
     end
 
-    return build_solution(trange, xv, tvS, xvS, gvS, nevents)
+    return build_solution(copy_solution, trange, xv, tvS, xvS, gvS, nevents)
 end

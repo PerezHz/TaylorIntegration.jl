@@ -37,9 +37,8 @@ import Logging: Warn
     stored_scalar = p_scalar[1]
     x_scalar_next = Taylor1(3.0 + ξ[2], 3)
     TaylorIntegration.set_psol!(Val(true), p_scalar, 1, x_scalar_next)
-    @test stored_scalar == x_scalar
     @test p_scalar[1] == x_scalar_next
-    @test p_scalar[1] !== stored_scalar
+    @test p_scalar[1] === stored_scalar
 
     p_vector = Matrix{Taylor1{TaylorN{Float64}}}(undef, 2, 1)
     x_vector = [Taylor1(1.0 + ξ[1], 3), Taylor1(2.0 + ξ[2], 3)]
@@ -51,9 +50,55 @@ import Logging: Warn
     stored_vector = p_vector[:, 1]
     x_vector_next = [Taylor1(4.0 + ξ[1], 3), Taylor1(5.0 + ξ[2], 3)]
     TaylorIntegration.set_psol!(Val(true), p_vector, 1, x_vector_next)
-    @test stored_vector == x_vector
     @test p_vector[:, 1] == x_vector_next
-    @test all(p_vector[:, 1] .!== stored_vector)
+    @test all(p_vector[:, 1] .=== stored_vector)
+
+    @taylorize function dense_cache_harmonic!(dx, x, p, t)
+        dx[1] = x[2]
+        dx[2] = -x[1]
+        return nothing
+    end
+    q_cache = [1.0 + ξ[1], 0.0 + ξ[2]]
+    cache = TaylorIntegration.init_cache(
+        Val(true),
+        0.0,
+        q_cache,
+        100,
+        12,
+        dense_cache_harmonic!,
+        nothing,
+    )
+    sol_cache1 = TaylorIntegration.taylorinteg!(
+        Val(true),
+        dense_cache_harmonic!,
+        q_cache,
+        0.0,
+        1.0,
+        1e-18,
+        cache,
+        nothing;
+        maxsteps=100,
+    )
+    stored_cache_p = cache.psol[1, 1]
+    sol_cache1_p = sol_cache1.p[1, 1]
+    sol_cache1_p_snapshot = TaylorIntegration._stored_taylor(sol_cache1_p)
+    q_cache_next = [2.0 + ξ[1], 0.0 + ξ[2]]
+    sol_cache2 = TaylorIntegration.taylorinteg!(
+        Val(true),
+        dense_cache_harmonic!,
+        q_cache_next,
+        0.0,
+        1.0,
+        1e-18,
+        cache,
+        nothing;
+        maxsteps=100,
+    )
+    @test cache.psol[1, 1] === stored_cache_p
+    @test sol_cache1.p[1, 1] == sol_cache1_p_snapshot
+    @test sol_cache1.p[1, 1] !== cache.psol[1, 1]
+    @test sol_cache2.p[1, 1] !== sol_cache1.p[1, 1]
+    @test sol_cache2.p[1, 1] != sol_cache1_p_snapshot
 
     xv_store = Matrix{TaylorN{Float64}}(undef, 2, 1)
     x_state = [1.0 + ξ[1], 2.0 + ξ[2]]

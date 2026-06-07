@@ -61,13 +61,21 @@ end
 
 @inline function _store_taylor!(psol::Array{Taylor1{U},1}, nsteps::Int,
         x::Taylor1{U}) where {U<:Number}
-    @inbounds psol[nsteps] = _stored_taylor(x)
+    if isassigned(psol, nsteps)
+        @inbounds TS.identity!(psol[nsteps], x)
+    else
+        @inbounds psol[nsteps] = _stored_taylor(x)
+    end
     return nothing
 end
 
 @inline function _store_taylor!(psol::Array{Taylor1{U},2}, j::Int, nsteps::Int,
         x::Taylor1{U}) where {U<:Number}
-    @inbounds psol[j, nsteps] = _stored_taylor(x)
+    if isassigned(psol, j, nsteps)
+        @inbounds TS.identity!(psol[j, nsteps], x)
+    else
+        @inbounds psol[j, nsteps] = _stored_taylor(x)
+    end
     return nothing
 end
 
@@ -162,7 +170,7 @@ function taylorinteg(
     cache = init_cache(Val(dense), t0, x0, maxsteps, order, f, params; parse_eqs)
 
     return taylorinteg!(Val(dense), f, x0, t0, tmax, abstol, cache, params; maxsteps,
-                        reltol, minstepsize, maxstepsize)
+                        reltol, minstepsize, maxstepsize, copy_solution=Val(false))
 end
 
 function taylorinteg!(
@@ -177,7 +185,8 @@ function taylorinteg!(
     maxsteps::Int = 500,
     reltol::T = zero(T),
     minstepsize::T = zero(T),
-    maxstepsize::T = T(Inf)
+    maxstepsize::T = T(Inf),
+    copy_solution::Val = Val(true)
 ) where {T<:Real,U<:Number,D}
 
     (; tv, xv, psol, t, x, rv, parse_eqs) = cache
@@ -214,7 +223,7 @@ function taylorinteg!(
         end
     end
 
-    return build_solution(tv, xv, psol, nsteps)
+    return build_solution(copy_solution, tv, xv, psol, nsteps)
 end
 
 
@@ -238,7 +247,7 @@ function taylorinteg(
     cache = init_cache(Val(dense), t0, q0, maxsteps, order, f!, params; parse_eqs)
 
     return taylorinteg!(Val(dense), f!, q0, t0, tmax, abstol, cache, params; maxsteps,
-                        reltol, minstepsize, maxstepsize)
+                        reltol, minstepsize, maxstepsize, copy_solution=Val(false))
 end
 
 function taylorinteg!(
@@ -253,7 +262,8 @@ function taylorinteg!(
     maxsteps::Int = 500,
     reltol::T = zero(T),
     minstepsize::T = zero(T),
-    maxstepsize::T = T(Inf)
+    maxstepsize::T = T(Inf),
+    copy_solution::Val = Val(true)
 ) where {T<:Real,U<:Number,D}
 
     (; tv, xv, psol, xaux, t, x, dx, rv, parse_eqs) = cache
@@ -291,7 +301,7 @@ function taylorinteg!(
         end
     end
 
-    return build_solution(tv, xv, psol, nsteps)
+    return build_solution(copy_solution, tv, xv, psol, nsteps)
 end
 
 @doc doc"""
@@ -406,7 +416,7 @@ function taylorinteg(
     cache = init_cache(Val(false), trange, x0, maxsteps, order, f, params; parse_eqs)
 
     return taylorinteg!(f, x0, trange, abstol, cache, params; maxsteps, reltol,
-                        minstepsize, maxstepsize)
+                        minstepsize, maxstepsize, copy_solution=Val(false))
 end
 
 function taylorinteg!(
@@ -419,7 +429,8 @@ function taylorinteg!(
     maxsteps::Int = 500,
     reltol::T = zero(T),
     minstepsize::T = zero(T),
-    maxstepsize::T = T(Inf)
+    maxstepsize::T = T(Inf),
+    copy_solution::Val = Val(true)
 ) where {T<:Real,U<:Number}
 
     (; xv, t, x, rv, parse_eqs) = cache
@@ -465,7 +476,7 @@ function taylorinteg!(
             break
         end
     end
-    return build_solution(trange, xv)
+    return build_solution(copy_solution, trange, xv)
 end
 
 function taylorinteg(
@@ -489,7 +500,7 @@ function taylorinteg(
     cache = init_cache(Val(false), trange, q0, maxsteps, order, f!, params; parse_eqs)
 
     return taylorinteg!(f!, q0, trange, abstol, cache, params; maxsteps, reltol,
-                        minstepsize, maxstepsize)
+                        minstepsize, maxstepsize, copy_solution=Val(false))
 end
 
 function taylorinteg!(
@@ -502,7 +513,8 @@ function taylorinteg!(
     maxsteps::Int = 500,
     reltol::T = zero(T),
     minstepsize::T = zero(T),
-    maxstepsize::T = T(Inf)
+    maxstepsize::T = T(Inf),
+    copy_solution::Val = Val(true)
 ) where {T<:Real,U<:Number}
 
     (; xv, xaux, x0, x1, t, x, dx, rv, parse_eqs) = cache
@@ -550,7 +562,7 @@ function taylorinteg!(
         end
     end
 
-    return build_solution(trange, xv)
+    return build_solution(copy_solution, trange, xv)
 end
 
 

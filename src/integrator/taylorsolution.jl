@@ -143,6 +143,23 @@ arraysol(::Nothing, ::Int) = nothing
 arraysol(v::AbstractVector, n::Int) = view(v, 1:n)
 arraysol(m::AbstractMatrix, n::Int) = view(transpose(view(m, :, 1:n)), 1:n, :)
 
+function _owned_array(a::AbstractArray{U}) where {U<:Number}
+    out = Array{U}(undef, size(a))
+    @inbounds for i in eachindex(a)
+        out[i] = _stored_value(a[i])
+    end
+    return out
+end
+
+ownedsol(::Nothing, ::Int) = nothing
+ownedsol(a::AbstractArray, n::Int) = _owned_array(arraysol(a, n))
+ownedsol(a::AbstractArray) = _owned_array(a)
+
+solution_array(::Val{false}, a, n::Int) = arraysol(a, n)
+solution_array(::Val{true}, a, n::Int) = ownedsol(a, n)
+solution_array(::Val{false}, a) = a
+solution_array(::Val{true}, a) = ownedsol(a)
+
 # build_solution
 
 """
@@ -154,27 +171,77 @@ Helper function to build a [`TaylorSolution`](@ref) from a call to
 
 """
 build_solution(t::AbstractVector{T}, x::Vector{U}, ::Nothing, nsteps::Int) where {T,U} =
-    TaylorSolution(arraysol(t, nsteps), arraysol(x, nsteps), nothing)
+    build_solution(Val(false), t, x, nothing, nsteps)
+
+build_solution(::Val{C}, t::AbstractVector{T}, x::Vector{U}, ::Nothing,
+        nsteps::Int) where {C,T,U} =
+    TaylorSolution(solution_array(Val(C), t, nsteps), solution_array(Val(C), x, nsteps),
+                   nothing)
+
 build_solution(
     t::AbstractVector{T},
     x::Vector{U},
     p::Vector{Taylor1{U}},
     nsteps::Int,
 ) where {T,U} =
-    TaylorSolution(arraysol(t, nsteps), arraysol(x, nsteps), arraysol(p, nsteps - 1))
+    build_solution(Val(false), t, x, p, nsteps)
+
+function build_solution(
+    copy_solution::Val{C},
+    t::AbstractVector{T},
+    x::Vector{U},
+    p::Vector{Taylor1{U}},
+    nsteps::Int,
+) where {C,T,U}
+    return TaylorSolution(
+        solution_array(copy_solution, t, nsteps),
+        solution_array(copy_solution, x, nsteps),
+        solution_array(copy_solution, p, nsteps - 1),
+    )
+end
+
 build_solution(t::AbstractVector{T}, x::Matrix{U}, ::Nothing, nsteps::Int) where {T,U} =
-    TaylorSolution(arraysol(t, nsteps), arraysol(x, nsteps), nothing)
+    build_solution(Val(false), t, x, nothing, nsteps)
+
+build_solution(::Val{C}, t::AbstractVector{T}, x::Matrix{U}, ::Nothing,
+        nsteps::Int) where {C,T,U} =
+    TaylorSolution(solution_array(Val(C), t, nsteps), solution_array(Val(C), x, nsteps),
+                   nothing)
+
 build_solution(
     t::AbstractVector{T},
     x::Matrix{U},
     p::Matrix{Taylor1{U}},
     nsteps::Int,
 ) where {T,U} =
-    TaylorSolution(arraysol(t, nsteps), arraysol(x, nsteps), arraysol(p, nsteps - 1))
+    build_solution(Val(false), t, x, p, nsteps)
 
-build_solution(t::AbstractVector{T}, x::Vector{U}) where {T,U} = TaylorSolution(t, x, nothing)
+function build_solution(
+    copy_solution::Val{C},
+    t::AbstractVector{T},
+    x::Matrix{U},
+    p::Matrix{Taylor1{U}},
+    nsteps::Int,
+) where {C,T,U}
+    return TaylorSolution(
+        solution_array(copy_solution, t, nsteps),
+        solution_array(copy_solution, x, nsteps),
+        solution_array(copy_solution, p, nsteps - 1),
+    )
+end
+
+build_solution(t::AbstractVector{T}, x::Vector{U}) where {T,U} =
+    build_solution(Val(false), t, x)
+
+build_solution(copy_solution::Val, t::AbstractVector{T}, x::Vector{U}) where {T,U} =
+    TaylorSolution(solution_array(copy_solution, t), solution_array(copy_solution, x), nothing)
+
 build_solution(t::AbstractVector{T}, x::Matrix{U}) where {T,U} =
-    TaylorSolution(t, transpose(x), nothing)
+    build_solution(Val(false), t, x)
+
+build_solution(copy_solution::Val, t::AbstractVector{T}, x::Matrix{U}) where {T,U} =
+    TaylorSolution(solution_array(copy_solution, t), solution_array(copy_solution, transpose(x)),
+                   nothing)
 
 ### Custom print
 
