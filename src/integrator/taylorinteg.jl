@@ -1,6 +1,13 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
-# _store_taylor!
+"""
+    _stored_taylor(x::Taylor1)
+    _stored_taylor(x::TaylorN)
+
+Return an independent Taylor polynomial with the same coefficients as `x`.
+This is used for storing `TaylorSolution` variables independently without relying on
+`deepcopy`.
+"""
 @inline function _stored_taylor(x::Taylor1{U}) where {U<:Number}
     y = zero(x)
     TS.identity!(y, x)
@@ -13,11 +20,26 @@ end
     return y
 end
 
+"""
+    _stored_value(x)
+
+Return a value suitable for storing in solution or cache arrays. Taylor
+polynomials are copied with [`_stored_taylor`](@ref), `isbits` variables are stored
+directly, and other `Number` subtypes fall back to `deepcopy`.
+"""
 @inline _stored_value(x::Taylor1) = _stored_taylor(x)
 @inline _stored_value(x::TaylorN) = _stored_taylor(x)
 @inline _stored_value(x::T) where {T<:Number} =
     Base.isbitstype(T) ? x : deepcopy(x)
 
+"""
+    _copy_value!(dest, src)
+
+Copy `src` into reusable storage `dest` when possible and return the stored
+value. Matching `Taylor1` and `TaylorN` values are updated with
+`TaylorSeries.identity!`; incompatible or immutable values are replaced by a
+fresh stored value.
+"""
 @inline function _copy_value!(dest::Taylor1{U}, src::Taylor1{U}) where {U<:Number}
     length(dest) == length(src) || return _stored_value(src)
     TS.identity!(dest, src)
@@ -32,6 +54,12 @@ end
 
 @inline _copy_value!(dest::T, src::T) where {T<:Number} = _stored_value(src)
 
+"""
+    _stored_state(q0)
+
+Return a freshly allocated state vector whose entries are independent stored
+values copied from `q0`.
+"""
 function _stored_state(q0::AbstractVector{U}) where {U<:Number}
     x0 = similar(q0)
     @inbounds for i in eachindex(q0)
@@ -40,6 +68,12 @@ function _stored_state(q0::AbstractVector{U}) where {U<:Number}
     return x0
 end
 
+"""
+    _copy_state!(dest, src)
+
+Copy `src` into the reusable state vector `dest`, updating compatible Taylor
+entries in place and replacing entries when in-place reuse is not possible.
+"""
 function _copy_state!(dest::AbstractVector{U}, src::AbstractVector{U}) where {U<:Number}
     @inbounds for i in eachindex(src)
         dest[i] = _copy_value!(dest[i], src[i])
@@ -47,6 +81,13 @@ function _copy_state!(dest::AbstractVector{U}, src::AbstractVector{U}) where {U<
     return dest
 end
 
+"""
+    _store_state_column!(xv, nsteps, x0)
+
+Store the state vector `x0` in column `nsteps` of `xv`. Previously assigned
+non-isbits entries are reused when possible, so cache reuse does not require
+allocating new Taylor polynomial objects for every stored state.
+"""
 function _store_state_column!(xv::AbstractMatrix{U}, nsteps::Int,
         x0::AbstractVector{U}) where {U<:Number}
     @inbounds for i in eachindex(x0)
@@ -59,6 +100,14 @@ function _store_state_column!(xv::AbstractMatrix{U}, nsteps::Int,
     return nothing
 end
 
+"""
+    _store_taylor!(psol::Array{Taylor1{U},1}, nsteps::Int, x::Taylor1{U})
+    _store_taylor!(psol::Array{Taylor1{U},2}, j::Int, nsteps::Int, x::Taylor1{U})
+
+Store the Taylor polynomial `x` in the dense-output cache `psol`. If the target
+slot is already assigned, the existing polynomial is updated in place with
+`TaylorSeries.identity!`; otherwise a new independent polynomial is stored.
+"""
 @inline function _store_taylor!(psol::Array{Taylor1{U},1}, nsteps::Int,
         x::Taylor1{U}) where {U<:Number}
     if isassigned(psol, nsteps)
@@ -90,7 +139,8 @@ first argument in the call signature is `Val(true)`, sets appropriate elements o
 `psol`. Otherwise, when the first argument in the call signature is `Val(false)`, this
 function simply returns `nothing`. Argument `psol` is the array
 where the Taylor polynomials associated to the solution will be stored, corresponding to
-field `:p` in [`TaylorSolution`](@ref). See also [`init_psol`](@ref).
+field `:p` in [`TaylorSolution`](@ref). Assigned `psol` slots are reused in place.
+See also [`init_psol`](@ref).
 """
 @inline function set_psol!(
     ::Val{true},
@@ -173,6 +223,28 @@ function taylorinteg(
                         reltol, minstepsize, maxstepsize, copy_solution=Val(false))
 end
 
+"""
+    taylorinteg!(dense::Val, f, x0, t0, tmax, abstol, cache, params; kwargs...)
+    taylorinteg!(dense::Val, f!, q0, t0, tmax, abstol, cache, params; kwargs...)
+    taylorinteg!(f, x0, trange, abstol, cache, params; kwargs...)
+    taylorinteg!(f!, q0, trange, abstol, cache, params; kwargs...)
+
+Integrate using a preallocated `cache`, returning a [`TaylorSolution`](@ref).
+This is the in-place, cache-mutating counterpart of [`taylorinteg`](@ref); callers
+that pass the same cache repeatedly can avoid rebuilding the working Taylor polynomials.
+
+The keyword `copy_solution` controls whether the returned solution owns its
+storage:
+- `copy_solution=Val(true)`: copy the returned arrays and dense polynomials out
+  of the cache. This is the default for `taylorinteg!` and is safe when the cache
+  will be reused while earlier solutions are still needed.
+- `copy_solution=Val(false)`: return views or borrowed arrays backed by the
+  cache. This avoids the final solution copy, but the returned solution may be
+  overwritten by later reuse of the same cache.
+
+Use [`taylorinteg`](@ref) for one-shot runs; it creates a private cache
+and uses `copy_solution=Val(false)` internally to minimize allocations.
+"""
 function taylorinteg!(
     dense::Val{D},
     f,

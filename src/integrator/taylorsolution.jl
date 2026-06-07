@@ -137,12 +137,25 @@ function TaylorSolution(t::AbstractVector, p::AbstractArray{<:Taylor1})
     end
 end
 
-# arraysol: auxiliary function for solution construction
+"""
+    arraysol(a, n)
+
+Return the first `n` stored solution entries in the orientation expected by
+[`TaylorSolution`](@ref). Vectors are returned as views, and matrices stored as
+`variables x steps` are returned as transposed `steps x variables` views.
+"""
 
 arraysol(::Nothing, ::Int) = nothing
 arraysol(v::AbstractVector, n::Int) = view(v, 1:n)
 arraysol(m::AbstractMatrix, n::Int) = view(transpose(view(m, :, 1:n)), 1:n, :)
 
+"""
+    _owned_array(a)
+
+Return an owned `Array` copy of `a`, copying each element with
+`_stored_value`. This preserves snapshot semantics for mutable number-like
+entries such as `Taylor1` and `TaylorN`.
+"""
 function _owned_array(a::AbstractArray{U}) where {U<:Number}
     out = Array{U}(undef, size(a))
     @inbounds for i in eachindex(a)
@@ -151,10 +164,28 @@ function _owned_array(a::AbstractArray{U}) where {U<:Number}
     return out
 end
 
+"""
+    ownedsol(a, n)
+    ownedsol(a)
+
+Return an owned solution array copied from `a`. The two-argument method first
+selects the first `n` solution entries with [`arraysol`](@ref), then copies
+them into independent storage.
+"""
 ownedsol(::Nothing, ::Int) = nothing
 ownedsol(a::AbstractArray, n::Int) = _owned_array(arraysol(a, n))
 ownedsol(a::AbstractArray) = _owned_array(a)
 
+"""
+    solution_array(::Val{false}, a, n)
+    solution_array(::Val{true}, a, n)
+    solution_array(::Val{false}, a)
+    solution_array(::Val{true}, a)
+
+Select the array storage used in a returned [`TaylorSolution`](@ref).
+`Val(false)` returns the borrowed/view-backed storage used by the low-allocation
+path, while `Val(true)` returns owned arrays with independent entries.
+"""
 solution_array(::Val{false}, a, n::Int) = arraysol(a, n)
 solution_array(::Val{true}, a, n::Int) = ownedsol(a, n)
 solution_array(::Val{false}, a) = a
@@ -165,10 +196,15 @@ solution_array(::Val{true}, a) = ownedsol(a)
 """
     build_solution(t, x, p, nsteps)
     build_solution(t, x)
+    build_solution(copy_solution::Val, t, x, p, nsteps)
+    build_solution(copy_solution::Val, t, x)
 
 Helper function to build a [`TaylorSolution`](@ref) from a call to
 [`taylorinteg`](@ref).
 
+When `copy_solution` is `Val(false)`, the returned solution borrows views of the
+given arrays. When `copy_solution` is `Val(true)`, the returned solution owns
+independent copies of the arrays and Taylor polynomials.
 """
 build_solution(t::AbstractVector{T}, x::Vector{U}, ::Nothing, nsteps::Int) where {T,U} =
     build_solution(Val(false), t, x, nothing, nsteps)

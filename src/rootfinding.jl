@@ -1,15 +1,27 @@
 ### `build_solution` method for root-finding
 
+"""
+    _stored_event_tuple(g_tupl)
+
+Return an event tuple whose polynomial component is independent of `g_tupl`.
+This keeps root-finding state snapshots from aliasing the mutable Taylor
+polynomials used by the integration cache.
+"""
 @inline _stored_event_tuple(g_tupl::Tuple{Bool,<:Taylor1}) =
     (g_tupl[1], _stored_value(g_tupl[2]))
 
 @doc doc"""
     build_solution(t, x, p, tevents, xevents, gresids, nsteps, nevents)
     build_solution(t, x, tevents, xevents, gresids, nsteps, nevents)
+    build_solution(copy_solution::Val, t, x, p, tevents, xevents, gresids, nsteps, nevents)
+    build_solution(copy_solution::Val, t, x, tevents, xevents, gresids, nevents)
 
 Helper function to build a [`TaylorSolution`](@ref) from a call to a
 root-finding method of [`taylorinteg`](@ref).
 
+When `copy_solution` is `Val(false)`, the returned solution borrows views of the
+given arrays. When `copy_solution` is `Val(true)`, `t`, `x`, `p`, `tevents`,
+`xevents` and `gresids` are copied into independent owned storage.
 """
 build_solution(
     t::AbstractVector{T},
@@ -323,6 +335,22 @@ function taylorinteg(
     )
 end
 
+"""
+    taylorinteg!(dense::Val, f!, g, q0, t0, tmax, abstol, cache, params; kwargs...)
+    taylorinteg!(f!, g, q0, trange, abstol, cache, params; kwargs...)
+
+Root-finding variant of [`taylorinteg!`](@ref) using a preallocated `cache`.
+Besides the solution arrays and dense polynomials, the returned
+[`TaylorSolution`](@ref) may also contain `tevents`, `xevents` and `gresids`.
+
+The keyword `copy_solution` controls ownership of all returned storage:
+- `copy_solution=Val(true)`: copy the returned arrays and dense polynomials out
+  of the cache. This is the default for `taylorinteg!` and is safe when the cache
+  will be reused while earlier root-finding solutions are still needed.
+- `copy_solution=Val(false)`: return views or borrowed arrays backed by the
+  cache. This avoids the final solution copy, but the returned solution may be
+  overwritten by later reuse of the same cache.
+"""
 function taylorinteg!(
     dense::Val{D},
     f!,
