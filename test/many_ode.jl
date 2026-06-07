@@ -37,6 +37,41 @@ import Logging: Warn
         δt = (_abstol / q0T[1].coeffs[end-1])^inv(_order - 1)
         @test TaylorIntegration.stepsize(q0T, _abstol) == δt
 
+        function norm_based_stepsize(x, epsilon)
+            ord = order(x)
+            return min(
+                (epsilon / norm(x[ord-1], Inf))^inv(ord - 1),
+                (epsilon / norm(x[ord], Inf))^inv(ord),
+            )
+        end
+
+        function norm_based_stepsize(q::AbstractVector, epsilon)
+            h = typemax(Float64)
+            for i in eachindex(q)
+                h = min(h, norm_based_stepsize(q[i], epsilon))
+            end
+            return h
+        end
+
+        x0T1 = Taylor1(Taylor1([1.0, 0.2], 2), 5)
+        x1T1 = Taylor1(Taylor1([-2.0, 0.1], 2), 5)
+        x0T1[4] = Taylor1([2.0, -3.0], 2)
+        x0T1[5] = Taylor1([0.5, 4.0], 2)
+        x1T1[4] = Taylor1([3.0, 0.1], 2)
+        x1T1[5] = Taylor1([-0.5, 0.2], 2)
+        qT1 = [x0T1, x1T1]
+        @test TaylorIntegration.stepsize(qT1, _abstol) ≈ norm_based_stepsize(qT1, _abstol)
+
+        vars = variables!("xi", numvars=2, order=2)
+        x0TN = Taylor1(1.0 + vars[1], 5)
+        x1TN = Taylor1(-2.0 + vars[2], 5)
+        x0TN[4] = 2.0 - 3.0 * vars[1]
+        x0TN[5] = 0.5 + 4.0 * vars[2]
+        x1TN[4] = 3.0 + 0.1 * vars[1]
+        x1TN[5] = -0.5 + 0.2 * vars[2]
+        qTN = [x0TN, x1TN]
+        @test TaylorIntegration.stepsize(qTN, _abstol) ≈ norm_based_stepsize(qTN, _abstol)
+
         sol = @test_logs(
             (Warn, zero_stepsize()),
             @inferred(
