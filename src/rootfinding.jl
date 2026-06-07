@@ -1,5 +1,8 @@
 ### `build_solution` method for root-finding
 
+@inline _stored_event_tuple(g_tupl::Tuple{Bool,<:Taylor1}) =
+    (g_tupl[1], _stored_value(g_tupl[2]))
+
 @doc doc"""
     build_solution(t, x, p, tevents, xevents, gresids, nsteps, nevents)
     build_solution(t, x, tevents, xevents, gresids, nsteps, nevents)
@@ -163,8 +166,8 @@ function findroot!(
         evaluate!(x_dx, dt_nr, view(x_dx_val, :))
 
         tvS[nevents] = t0 + dt_nr
-        xvS[:, nevents] .= deepcopy.(view(x_dx_val, 1:dof))
-        gvS[nevents] = deepcopy(g_dg_val[1])
+        _store_state_column!(xvS, nevents, view(x_dx_val, 1:dof))
+        gvS[nevents] = _stored_value(g_dg_val[1])
 
         nevents += 1
     end
@@ -303,15 +306,15 @@ function taylorinteg!(
     (; tv, xv, psol, xaux, t, x, dx, rv, parse_eqs) = cache
 
     # Initial conditions
-    x0 = deepcopy(q0)
+    x0 = _stored_state(q0)
     update_cache!(cache, t0, x0)
     @inbounds tv[1] = t0
-    @inbounds xv[:, 1] .= deepcopy(q0)
+    _store_state_column!(xv, 1, q0)
     sign_tstep = copysign(1, tmax - t0)
 
     # Some auxiliary arrays for root-finding/event detection/Poincaré surface of section evaluation
     g_tupl = g(dx, x, params, t)
-    g_tupl_old = deepcopy(g_tupl)
+    g_tupl_old = _stored_event_tuple(g_tupl)
     δt = zero(x[1])
     δt_old = zero(x[1])
 
@@ -356,12 +359,12 @@ function taylorinteg!(
             newtoniter,
             nevents,
         )
-        g_tupl_old = deepcopy(g_tupl)
+        g_tupl_old = _stored_event_tuple(g_tupl)
         t0 += δt
         update_cache!(cache, t0, x0)
         nsteps += 1
         @inbounds tv[nsteps] = t0
-        @inbounds xv[:, nsteps] .= deepcopy(x0)
+        _store_state_column!(xv, nsteps, x0)
         if nsteps > maxsteps
             @warn("""
             Maximum number of integration steps reached; exiting.
@@ -439,13 +442,13 @@ function taylorinteg!(
     # Initial conditions
     @inbounds t0, t1, tmax = trange[1], trange[2], trange[end]
     sign_tstep = copysign(1, tmax - t0)
-    @inbounds x0 .= deepcopy(q0)
+    _copy_state!(x0, q0)
     update_cache!(cache, t0, x0)
-    @inbounds xv[:, 1] .= deepcopy(q0)
+    _store_state_column!(xv, 1, q0)
 
     # Some auxiliary arrays for root-finding/event detection/Poincaré surface of section evaluation
     g_tupl = g(dx, x, params, t)
-    g_tupl_old = deepcopy(g_tupl)
+    g_tupl_old = _stored_event_tuple(g_tupl)
     δt = zero(U)
     δt_old = zero(U)
 
@@ -473,12 +476,12 @@ function taylorinteg!(
         # Evaluate solution at times within convergence radius
         while sign_tstep * t1 < sign_tstep * tnext
             evaluate!(x, t1 - t0, x1)
-            @inbounds xv[:, iter] .= deepcopy(x1)
+            _store_state_column!(xv, iter, x1)
             iter += 1
             @inbounds t1 = trange[iter]
         end
         if δt == tmax - t0
-            @inbounds xv[:, iter] .= deepcopy(x0)
+            _store_state_column!(xv, iter, x0)
             break
         end
         g_tupl = g(dx, x, params, t)
@@ -502,7 +505,7 @@ function taylorinteg!(
             newtoniter,
             nevents,
         )
-        g_tupl_old = deepcopy(g_tupl)
+        g_tupl_old = _stored_event_tuple(g_tupl)
         t0 = tnext
         update_cache!(cache, t0, x0)
         nsteps += 1
