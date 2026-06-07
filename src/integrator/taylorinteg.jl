@@ -61,21 +61,13 @@ end
 
 @inline function _store_taylor!(psol::Array{Taylor1{U},1}, nsteps::Int,
         x::Taylor1{U}) where {U<:Number}
-    if isassigned(psol, nsteps)
-        @inbounds TS.identity!(psol[nsteps], x)
-    else
-        @inbounds psol[nsteps] = _stored_taylor(x)
-    end
+    @inbounds psol[nsteps] = _stored_taylor(x)
     return nothing
 end
 
 @inline function _store_taylor!(psol::Array{Taylor1{U},2}, j::Int, nsteps::Int,
         x::Taylor1{U}) where {U<:Number}
-    if isassigned(psol, j, nsteps)
-        @inbounds TS.identity!(psol[j, nsteps], x)
-    else
-        @inbounds psol[j, nsteps] = _stored_taylor(x)
-    end
+    @inbounds psol[j, nsteps] = _stored_taylor(x)
     return nothing
 end
 

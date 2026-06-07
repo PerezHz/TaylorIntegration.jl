@@ -34,6 +34,12 @@ import Logging: Warn
     @test p_scalar[1][0][0] == 1.0
     TaylorIntegration.set_psol!(Val(true), p_scalar, 1, x_scalar)
     @test p_scalar[1] == x_scalar
+    stored_scalar = p_scalar[1]
+    x_scalar_next = Taylor1(3.0 + ξ[2], 3)
+    TaylorIntegration.set_psol!(Val(true), p_scalar, 1, x_scalar_next)
+    @test stored_scalar == x_scalar
+    @test p_scalar[1] == x_scalar_next
+    @test p_scalar[1] !== stored_scalar
 
     p_vector = Matrix{Taylor1{TaylorN{Float64}}}(undef, 2, 1)
     x_vector = [Taylor1(1.0 + ξ[1], 3), Taylor1(2.0 + ξ[2], 3)]
@@ -42,6 +48,12 @@ import Logging: Warn
     @test p_vector[1, 1][0][0] == 1.0
     TaylorIntegration.set_psol!(Val(true), p_vector, 1, x_vector)
     @test p_vector[:, 1] == x_vector
+    stored_vector = p_vector[:, 1]
+    x_vector_next = [Taylor1(4.0 + ξ[1], 3), Taylor1(5.0 + ξ[2], 3)]
+    TaylorIntegration.set_psol!(Val(true), p_vector, 1, x_vector_next)
+    @test stored_vector == x_vector
+    @test p_vector[:, 1] == x_vector_next
+    @test all(p_vector[:, 1] .!== stored_vector)
 
     xv_store = Matrix{TaylorN{Float64}}(undef, 2, 1)
     x_state = [1.0 + ξ[1], 2.0 + ξ[2]]
