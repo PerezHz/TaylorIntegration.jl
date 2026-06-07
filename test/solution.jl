@@ -26,6 +26,23 @@ import Logging: Warn
     @test firsttime(sol_big) == BigFloat(0)
     @test lasttime(sol_big) == BigFloat(0)
 
+    ξ = variables!("ξ", numvars = 2, order = 2)
+    p_scalar = Vector{Taylor1{TaylorN{Float64}}}(undef, 1)
+    x_scalar = Taylor1(1.0 + ξ[1], 3)
+    TaylorIntegration.set_psol!(Val(true), p_scalar, 1, x_scalar)
+    x_scalar[0][0] = 10.0
+    @test p_scalar[1][0][0] == 1.0
+    TaylorIntegration.set_psol!(Val(true), p_scalar, 1, x_scalar)
+    @test p_scalar[1] == x_scalar
+
+    p_vector = Matrix{Taylor1{TaylorN{Float64}}}(undef, 2, 1)
+    x_vector = [Taylor1(1.0 + ξ[1], 3), Taylor1(2.0 + ξ[2], 3)]
+    TaylorIntegration.set_psol!(Val(true), p_vector, 1, x_vector)
+    x_vector[1][0][0] = 20.0
+    @test p_vector[1, 1][0][0] == 1.0
+    TaylorIntegration.set_psol!(Val(true), p_vector, 1, x_vector)
+    @test p_vector[:, 1] == x_vector
+
     xt1 = Taylor1.([1.0, 2.0], 2)
     sol_t1 = TaylorIntegration.build_solution(tv, xt1)
     @test sol_t1.x == xt1

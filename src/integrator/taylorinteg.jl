@@ -1,5 +1,32 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
+# _store_taylor!
+@inline function _stored_taylor(x::Taylor1{U}) where {U<:Number}
+    y = zero(x)
+    TS.identity!(y, x)
+    return y
+end
+
+@inline function _store_taylor!(psol::Array{Taylor1{U},1}, nsteps::Int,
+        x::Taylor1{U}) where {U<:Number}
+    if isassigned(psol, nsteps)
+        @inbounds TS.identity!(psol[nsteps], x)
+    else
+        @inbounds psol[nsteps] = _stored_taylor(x)
+    end
+    return nothing
+end
+
+@inline function _store_taylor!(psol::Array{Taylor1{U},2}, j::Int, nsteps::Int,
+        x::Taylor1{U}) where {U<:Number}
+    if isassigned(psol, j, nsteps)
+        @inbounds TS.identity!(psol[j, nsteps], x)
+    else
+        @inbounds psol[j, nsteps] = _stored_taylor(x)
+    end
+    return nothing
+end
+
 # set_psol!
 @doc doc"""
     set_psol!(::Val{true}, psol::Array{Taylor1{U},1}, nsteps::Int, x::Taylor1{U}) where {U<:Number}
@@ -19,7 +46,7 @@ field `:p` in [`TaylorSolution`](@ref). See also [`init_psol`](@ref).
     nsteps::Int,
     x::Taylor1{U},
 ) where {U<:Number}
-    @inbounds psol[nsteps] = deepcopy(x)
+    _store_taylor!(psol, nsteps, x)
     return nothing
 end
 @inline function set_psol!(
@@ -28,7 +55,9 @@ end
     nsteps::Int,
     x::Vector{Taylor1{U}},
 ) where {U<:Number}
-    @inbounds psol[:, nsteps] .= deepcopy.(x)
+    @inbounds for j in eachindex(x)
+        _store_taylor!(psol, j, nsteps, x[j])
+    end
     return nothing
 end
 @inline set_psol!(::Val{false}, args...) = nothing
