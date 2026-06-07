@@ -43,6 +43,14 @@ import Logging: Warn
     TaylorIntegration.set_psol!(Val(true), p_vector, 1, x_vector)
     @test p_vector[:, 1] == x_vector
 
+    xv_store = Matrix{TaylorN{Float64}}(undef, 2, 1)
+    x_state = [1.0 + ξ[1], 2.0 + ξ[2]]
+    TaylorIntegration._store_state_column!(xv_store, 1, x_state)
+    x_state[1][0] = 30.0
+    @test xv_store[1, 1][0] == 1.0
+    TaylorIntegration._store_state_column!(xv_store, 1, x_state)
+    @test xv_store[:, 1] == x_state
+
     xt1 = Taylor1.([1.0, 2.0], 2)
     sol_t1 = TaylorIntegration.build_solution(tv, xt1)
     @test sol_t1.x == xt1

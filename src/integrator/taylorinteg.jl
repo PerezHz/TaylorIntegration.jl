@@ -7,6 +7,58 @@
     return y
 end
 
+@inline function _stored_taylor(x::TaylorN{U}) where {U<:Number}
+    y = zero(x)
+    TS.identity!(y, x)
+    return y
+end
+
+@inline _stored_value(x::Taylor1) = _stored_taylor(x)
+@inline _stored_value(x::TaylorN) = _stored_taylor(x)
+@inline _stored_value(x::T) where {T<:Number} =
+    Base.isbitstype(T) ? x : deepcopy(x)
+
+@inline function _copy_value!(dest::Taylor1{U}, src::Taylor1{U}) where {U<:Number}
+    length(dest) == length(src) || return _stored_value(src)
+    TS.identity!(dest, src)
+    return dest
+end
+
+@inline function _copy_value!(dest::TaylorN{U}, src::TaylorN{U}) where {U<:Number}
+    length(dest) == length(src) || return _stored_value(src)
+    TS.identity!(dest, src)
+    return dest
+end
+
+@inline _copy_value!(dest::T, src::T) where {T<:Number} = _stored_value(src)
+
+function _stored_state(q0::AbstractVector{U}) where {U<:Number}
+    x0 = similar(q0)
+    @inbounds for i in eachindex(q0)
+        x0[i] = _stored_value(q0[i])
+    end
+    return x0
+end
+
+function _copy_state!(dest::AbstractVector{U}, src::AbstractVector{U}) where {U<:Number}
+    @inbounds for i in eachindex(src)
+        dest[i] = _copy_value!(dest[i], src[i])
+    end
+    return dest
+end
+
+function _store_state_column!(xv::AbstractMatrix{U}, nsteps::Int,
+        x0::AbstractVector{U}) where {U<:Number}
+    @inbounds for i in eachindex(x0)
+        if Base.isbitstype(U) || !isassigned(xv, i, nsteps)
+            xv[i, nsteps] = _stored_value(x0[i])
+        else
+            xv[i, nsteps] = _copy_value!(xv[i, nsteps], x0[i])
+        end
+    end
+    return nothing
+end
+
 @inline function _store_taylor!(psol::Array{Taylor1{U},1}, nsteps::Int,
         x::Taylor1{U}) where {U<:Number}
     if isassigned(psol, nsteps)
@@ -215,10 +267,10 @@ function taylorinteg!(
     (; tv, xv, psol, xaux, t, x, dx, rv, parse_eqs) = cache
 
     # Initial conditions
-    x0 = deepcopy(q0)
+    x0 = _stored_state(q0)
     update_cache!(cache, t0, x0)
     @inbounds tv[1] = t0
-    @inbounds xv[:, 1] .= q0
+    _store_state_column!(xv, 1, q0)
     sign_tstep = copysign(1, tmax - t0)
 
     # Integration
@@ -238,7 +290,7 @@ function taylorinteg!(
         update_cache!(cache, t0, x0)
         nsteps += 1
         @inbounds tv[nsteps] = t0
-        @inbounds xv[:, nsteps] .= deepcopy.(x0)
+        _store_state_column!(xv, nsteps, x0)
         if nsteps > maxsteps
             @warn("""
             Maximum number of integration steps reached; exiting.
@@ -466,9 +518,9 @@ function taylorinteg!(
     # Initial conditions
     @inbounds t0, t1, tmax = trange[1], trange[2], trange[end]
     sign_tstep = copysign(1, tmax - t0)
-    @inbounds x0 .= deepcopy(q0)
+    _copy_state!(x0, q0)
     update_cache!(cache, t0, x0)
-    @inbounds xv[:, 1] .= q0
+    _store_state_column!(xv, 1, q0)
 
     # Integration
     iter = 2
@@ -487,12 +539,12 @@ function taylorinteg!(
         # Evaluate solution at times within convergence radius
         while sign_tstep * t1 < sign_tstep * tnext
             evaluate!(x, t1 - t0, x1)
-            @inbounds xv[:, iter] .= deepcopy.(x1)
+            _store_state_column!(xv, iter, x1)
             iter += 1
             @inbounds t1 = trange[iter]
         end
         if δt == tmax - t0
-            @inbounds xv[:, iter] .= deepcopy.(x0)
+            _store_state_column!(xv, iter, x0)
             break
         end
         t0 = tnext
