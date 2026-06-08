@@ -372,8 +372,8 @@ function taylorinteg!(
 
     x_dx = vcat(x, dx)
     g_dg = vcat(g_tupl[2], g_tupl_old[2])
-    x_dx_val = evaluate(x_dx)
-    g_dg_val = vcat(evaluate(g_tupl[2]), evaluate(g_tupl_old[2]))
+    x_dx_val = _stored_state(evaluate(x_dx))
+    g_dg_val = _stored_state(vcat(evaluate(g_tupl[2]), evaluate(g_tupl_old[2])))
 
     tvS = Array{U}(undef, maxsteps + 1)
     xvS = similar(xv)
@@ -508,8 +508,8 @@ function taylorinteg!(
 
     x_dx = vcat(x, dx)
     g_dg = vcat(g_tupl[2], g_tupl_old[2])
-    x_dx_val = evaluate(x_dx)
-    g_dg_val = vcat(evaluate(g_tupl[2]), evaluate(g_tupl_old[2]))
+    x_dx_val = _stored_state(evaluate(x_dx))
+    g_dg_val = _stored_state(vcat(evaluate(g_tupl[2]), evaluate(g_tupl_old[2])))
 
     tvS = Array{U}(undef, maxsteps + 1)
     xvS = similar(xv)
