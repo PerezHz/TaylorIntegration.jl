@@ -223,28 +223,6 @@ function taylorinteg(
                         reltol, minstepsize, maxstepsize, copy_solution=Val(false))
 end
 
-"""
-    taylorinteg!(dense::Val, f, x0, t0, tmax, abstol, cache, params; kwargs...)
-    taylorinteg!(dense::Val, f!, q0, t0, tmax, abstol, cache, params; kwargs...)
-    taylorinteg!(f, x0, trange, abstol, cache, params; kwargs...)
-    taylorinteg!(f!, q0, trange, abstol, cache, params; kwargs...)
-
-Integrate using a preallocated `cache`, returning a [`TaylorSolution`](@ref).
-This is the in-place, cache-mutating counterpart of [`taylorinteg`](@ref); callers
-that pass the same cache repeatedly can avoid rebuilding the working Taylor polynomials.
-
-The keyword `copy_solution` controls whether the returned solution owns its
-storage:
-- `copy_solution=Val(true)`: copy the returned arrays and dense polynomials out
-  of the cache. This is the default for `taylorinteg!` and is safe when the cache
-  will be reused while earlier solutions are still needed.
-- `copy_solution=Val(false)`: return views or borrowed arrays backed by the
-  cache. This avoids the final solution copy, but the returned solution may be
-  overwritten by later reuse of the same cache.
-
-Use [`taylorinteg`](@ref) for one-shot runs; it creates a private cache
-and uses `copy_solution=Val(false)` internally to minimize allocations.
-"""
 function taylorinteg!(
     dense::Val{D},
     f,
@@ -636,6 +614,32 @@ function taylorinteg!(
 
     return build_solution(copy_solution, trange, xv)
 end
+
+@doc doc"""
+    taylorinteg!(dense::Val, f, x0, t0, tmax, abstol, cache, params; kwargs...)
+    taylorinteg!(dense::Val, f!, q0, t0, tmax, abstol, cache, params; kwargs...)
+    taylorinteg!(f, x0, trange, abstol, cache, params; kwargs...)
+    taylorinteg!(f!, q0, trange, abstol, cache, params; kwargs...)
+    taylorinteg!(dense::Val, f!, g, q0, t0, tmax, abstol, cache, params; kwargs...)
+    taylorinteg!(f!, g, q0, trange, abstol, cache, params; kwargs...)
+
+Integrate using a preallocated `cache`, returning a [`TaylorSolution`](@ref).
+This is the in-place, cache-mutating counterpart of [`taylorinteg`](@ref); callers
+that pass the same cache repeatedly can avoid rebuilding the working Taylor polynomials.
+The last two signatures are the root-finding variants.
+
+The keyword `copy_solution` controls whether the returned solution owns its
+storage:
+- `copy_solution=Val(true)`: copy the returned arrays and dense polynomials out
+  of the cache. This is the default for `taylorinteg!` and is safe when the cache
+  will be reused while earlier solutions are still needed.
+- `copy_solution=Val(false)`: return views or borrowed arrays backed by the
+  cache. This avoids the final solution copy, but the returned solution may be
+  overwritten by later reuse of the same cache.
+
+Use [`taylorinteg`](@ref) for one-shot runs; it creates a private cache
+and uses `copy_solution=Val(false)` internally to minimize allocations.
+""" taylorinteg!
 
 
 # Generic functions

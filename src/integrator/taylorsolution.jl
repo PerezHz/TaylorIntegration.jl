@@ -169,8 +169,8 @@ end
     ownedsol(a)
 
 Return an owned solution array copied from `a`. The two-argument method first
-selects the first `n` solution entries with [`arraysol`](@ref), then copies
-them into independent storage.
+selects the first `n` solution entries with `arraysol`, then copies them into
+independent storage.
 """
 ownedsol(::Nothing, ::Int) = nothing
 ownedsol(a::AbstractArray, n::Int) = _owned_array(arraysol(a, n))

@@ -335,22 +335,6 @@ function taylorinteg(
     )
 end
 
-"""
-    taylorinteg!(dense::Val, f!, g, q0, t0, tmax, abstol, cache, params; kwargs...)
-    taylorinteg!(f!, g, q0, trange, abstol, cache, params; kwargs...)
-
-Root-finding variant of [`taylorinteg!`](@ref) using a preallocated `cache`.
-Besides the solution arrays and dense polynomials, the returned
-[`TaylorSolution`](@ref) may also contain `tevents`, `xevents` and `gresids`.
-
-The keyword `copy_solution` controls ownership of all returned storage:
-- `copy_solution=Val(true)`: copy the returned arrays and dense polynomials out
-  of the cache. This is the default for `taylorinteg!` and is safe when the cache
-  will be reused while earlier root-finding solutions are still needed.
-- `copy_solution=Val(false)`: return views or borrowed arrays backed by the
-  cache. This avoids the final solution copy, but the returned solution may be
-  overwritten by later reuse of the same cache.
-"""
 function taylorinteg!(
     dense::Val{D},
     f!,
