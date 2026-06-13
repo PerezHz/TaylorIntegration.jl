@@ -1467,24 +1467,22 @@ import Logging: Warn
             -1.0,
         ))
         @test parse_eqs
-        qT_parsed = qT
-        qT = q0 .+ zero(tT)
-        dqT = similar(qT)
-        xaux = similar(qT)
-        TI.jetcoeffs!(kepler1_no_local!, tT, qT, dqT, xaux, -1.0)
-        @test qT_parsed == qT
-
-        dqT_check = zero.(qT)
         @test_logs min_level = Warn TI.__jetcoeffs!(
             Val(parse_eqs),
             kepler1_no_local!,
             tT,
             qT,
-            dqT_check,
+            dqT,
             zero.(qT),
             -1.0,
             rv,
         )
+        qT_parsed = deepcopy(qT)
+        qT = q0 .+ zero(tT)
+        dqT = similar(qT)
+        xaux = similar(qT)
+        TI.jetcoeffs!(kepler1_no_local!, tT, qT, dqT, xaux, -1.0)
+        @test qT_parsed == qT
     end
 
 
