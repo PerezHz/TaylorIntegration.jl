@@ -1444,24 +1444,40 @@ import Logging: Warn
             rv,
         )
 
-        # Test kepler1! with nested Taylor1s: fixed in JuliaDiff/TaylorSeries.jl#415
-        tT = t0 + Taylor1(_order)
-        qT = [0.2, 0.0, 0.0, 3.0] .+ zero(tT)
+        # Test Kepler problem with nested Taylor1s: fixed in JuliaDiff/TaylorSeries.jl#415
+        @taylorize function kepler1_no_local!(dq, q, p, t)
+            μ = p
+            r_p3d2 = (q[1]^2 + q[2]^2)^1.5
+
+            dq[1] = q[3]
+            dq[2] = q[4]
+            dq[3] = μ * q[1] / r_p3d2
+            dq[4] = μ * q[2] / r_p3d2
+
+            return nothing
+        end
+        qT = q0 .+ zero(tT)
         dqT = zero.(qT)
         parse_eqs, rv = (@test_logs min_level = Warn TI._determine_parsing!(
             true,
-            kepler1!,
+            kepler1_no_local!,
             tT,
             qT,
             dqT,
             -1.0,
         ))
         @test parse_eqs
+        qT_parsed = qT
+        qT = q0 .+ zero(tT)
+        dqT = similar(qT)
+        xaux = similar(qT)
+        TI.jetcoeffs!(kepler1_no_local!, tT, qT, dqT, xaux, -1.0)
+        @test qT_parsed == qT
 
         dqT_check = zero.(qT)
         @test_logs min_level = Warn TI.__jetcoeffs!(
             Val(parse_eqs),
-            kepler1!,
+            kepler1_no_local!,
             tT,
             qT,
             dqT_check,
