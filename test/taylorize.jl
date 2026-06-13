@@ -1443,6 +1443,32 @@ import Logging: Warn
             nothing,
             rv,
         )
+
+        # Test kepler1! with nested Taylor1s: fixed in JuliaDiff/TaylorSeries.jl#415
+        tT = t0 + Taylor1(_order)
+        qT = [0.2, 0.0, 0.0, 3.0] .+ zero(tT)
+        dqT = zero.(qT)
+        parse_eqs, rv = (@test_logs min_level = Warn TI._determine_parsing!(
+            true,
+            kepler1!,
+            tT,
+            qT,
+            dqT,
+            -1.0,
+        ))
+        @test parse_eqs
+
+        dqT_check = zero.(qT)
+        @test_logs min_level = Warn TI.__jetcoeffs!(
+            Val(parse_eqs),
+            kepler1!,
+            tT,
+            qT,
+            dqT_check,
+            zero.(qT),
+            -1.0,
+            rv,
+        )
     end
 
 
