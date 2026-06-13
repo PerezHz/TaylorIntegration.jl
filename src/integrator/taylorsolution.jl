@@ -138,11 +138,17 @@ function TaylorSolution(t::AbstractVector, p::AbstractArray{<:Taylor1})
 end
 
 """
-    arraysol(a, n)
+    arraysol(::Nothing, n::Int)
+    arraysol(v::AbstractVector, n::Int)
+    arraysol(m::AbstractMatrix, n::Int)
 
 Return the first `n` stored solution entries in the orientation expected by
 [`TaylorSolution`](@ref). Vectors are returned as views, and matrices stored as
 `variables x steps` are returned as transposed `steps x variables` views.
+
+This is the low-allocation path used when a returned solution is allowed to
+borrow storage from the integration cache. The returned arrays may alias the
+cache and can be overwritten if the same cache is reused.
 """
 
 arraysol(::Nothing, ::Int) = nothing
@@ -150,11 +156,14 @@ arraysol(v::AbstractVector, n::Int) = view(v, 1:n)
 arraysol(m::AbstractMatrix, n::Int) = view(transpose(view(m, :, 1:n)), 1:n, :)
 
 """
-    _owned_array(a)
+    _owned_array(a::AbstractArray{U}) where {U<:Number}
 
 Return an owned `Array` copy of `a`, copying each element with
 `_stored_value`. This preserves snapshot semantics for mutable number-like
 entries such as `Taylor1` and `TaylorN`.
+
+This differs from a shallow array copy because mutable Taylor polynomial entries
+are copied into independent coefficient storage.
 """
 function _owned_array(a::AbstractArray{U}) where {U<:Number}
     out = Array{U}(undef, size(a))
@@ -165,12 +174,16 @@ function _owned_array(a::AbstractArray{U}) where {U<:Number}
 end
 
 """
+    ownedsol(::Nothing, n::Int)
     ownedsol(a, n)
     ownedsol(a)
 
 Return an owned solution array copied from `a`. The two-argument method first
 selects the first `n` solution entries with `arraysol`, then copies them into
 independent storage.
+
+Use this when a returned [`TaylorSolution`](@ref) must remain valid after the
+integration cache is reused.
 """
 ownedsol(::Nothing, ::Int) = nothing
 ownedsol(a::AbstractArray, n::Int) = _owned_array(arraysol(a, n))
@@ -185,6 +198,10 @@ ownedsol(a::AbstractArray) = _owned_array(a)
 Select the array storage used in a returned [`TaylorSolution`](@ref).
 `Val(false)` returns the borrowed/view-backed storage used by the low-allocation
 path, while `Val(true)` returns owned arrays with independent entries.
+
+The three-argument methods first select the active portion of a preallocated
+cache array; the two-argument methods are used for already-sized time-range
+solutions.
 """
 solution_array(::Val{false}, a, n::Int) = arraysol(a, n)
 solution_array(::Val{true}, a, n::Int) = ownedsol(a, n)
@@ -205,6 +222,12 @@ Helper function to build a [`TaylorSolution`](@ref) from a call to
 When `copy_solution` is `Val(false)`, the returned solution borrows views of the
 given arrays. When `copy_solution` is `Val(true)`, the returned solution owns
 independent copies of the arrays and Taylor polynomials.
+
+For vector-valued integrations, cache arrays are stored internally as
+`variables x steps`; these methods expose them through [`TaylorSolution`](@ref)
+as `steps x variables`. Dense-output polynomial arrays `p` are trimmed to
+`nsteps - 1`, since each dense polynomial represents one completed integration
+step.
 """
 build_solution(t::AbstractVector{T}, x::Vector{U}, ::Nothing, nsteps::Int) where {T,U} =
     build_solution(Val(false), t, x, nothing, nsteps)

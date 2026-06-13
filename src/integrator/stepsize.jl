@@ -1,5 +1,17 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
+"""
+    _norminf(x::Number)
+    _norminf(x::Taylor1)
+    _norminf(x::HomogeneousPolynomial)
+    _norminf(x::TaylorN)
+
+Return the infinity norm used by the time-step controllers.
+
+For ordinary numbers this delegates to `norm(x, Inf)`. For nested Taylor
+objects, it recursively takes the maximum infinity norm over all stored
+coefficients, reducing values such as `Taylor1{TaylorN}` to a scalar norm.
+"""
 @inline _norminf(x::Number) = norm(x, Inf)
 
 function _norminf(x::Taylor1)

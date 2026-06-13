@@ -1,11 +1,14 @@
 ### `build_solution` method for root-finding
 
 """
-    _stored_event_tuple(g_tupl)
+    _stored_event_tuple(g_tupl::Tuple{Bool,<:Taylor1})
 
 Return an event tuple whose polynomial component is independent of `g_tupl`.
 This keeps root-finding state snapshots from aliasing the mutable Taylor
 polynomials used by the integration cache.
+
+The Boolean crossing-direction flag is immutable and is reused directly. The
+Taylor polynomial residual is copied through [`_stored_value`](@ref).
 """
 @inline _stored_event_tuple(g_tupl::Tuple{Bool,<:Taylor1}) =
     (g_tupl[1], _stored_value(g_tupl[2]))
@@ -22,6 +25,12 @@ root-finding method of [`taylorinteg`](@ref).
 When `copy_solution` is `Val(false)`, the returned solution borrows views of the
 given arrays. When `copy_solution` is `Val(true)`, `t`, `x`, `p`, `tevents`,
 `xevents` and `gresids` are copied into independent owned storage.
+
+The step arrays are trimmed to `nsteps`, dense-output polynomial arrays are
+trimmed to `nsteps - 1`, and event arrays are trimmed to `nevents - 1` because
+`nevents` is maintained as the next insertion index. Vector state arrays are
+stored internally as `variables x steps` and exposed through
+[`TaylorSolution`](@ref) as `steps x variables`.
 """
 build_solution(
     t::AbstractVector{T},

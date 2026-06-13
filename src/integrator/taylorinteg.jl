@@ -1,12 +1,16 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
 """
-    _stored_taylor(x::Taylor1)
-    _stored_taylor(x::TaylorN)
+    _stored_taylor(x::Taylor1{U}) where {U<:Number}
+    _stored_taylor(x::TaylorN{U}) where {U<:Number}
 
 Return an independent Taylor polynomial with the same coefficients as `x`.
-This is used for storing `TaylorSolution` variables independently without relying on
-`deepcopy`.
+
+The returned object has fresh coefficient storage and is safe to keep in an
+integration cache, dense-output cache, or returned [`TaylorSolution`](@ref) even
+if the working Taylor polynomial `x` is mutated by later integration steps.
+This is the Taylor-specific replacement for `deepcopy` used by the storage
+helpers below.
 """
 @inline function _stored_taylor(x::Taylor1{U}) where {U<:Number}
     y = zero(x)
@@ -21,11 +25,16 @@ end
 end
 
 """
-    _stored_value(x)
+    _stored_value(x::Taylor1)
+    _stored_value(x::TaylorN)
+    _stored_value(x::T) where {T<:Number}
 
-Return a value suitable for storing in solution or cache arrays. Taylor
-polynomials are copied with [`_stored_taylor`](@ref), `isbits` variables are stored
-directly, and other `Number` subtypes fall back to `deepcopy`.
+Return a value suitable for storage in solution arrays and integration caches.
+
+Taylor polynomials are copied with [`_stored_taylor`](@ref), `isbits` numbers
+are stored directly, and other `Number` subtypes fall back to `deepcopy`. This
+gives mutable number-like values snapshot semantics while avoiding unnecessary
+copies for immutable scalar values.
 """
 @inline _stored_value(x::Taylor1) = _stored_taylor(x)
 @inline _stored_value(x::TaylorN) = _stored_taylor(x)
@@ -33,12 +42,18 @@ directly, and other `Number` subtypes fall back to `deepcopy`.
     Base.isbitstype(T) ? x : deepcopy(x)
 
 """
-    _copy_value!(dest, src)
+    _copy_value!(dest::Taylor1{U}, src::Taylor1{U}) where {U<:Number}
+    _copy_value!(dest::TaylorN{U}, src::TaylorN{U}) where {U<:Number}
+    _copy_value!(dest::T, src::T) where {T<:Number}
 
 Copy `src` into reusable storage `dest` when possible and return the stored
-value. Matching `Taylor1` and `TaylorN` values are updated with
-`TaylorSeries.identity!`; incompatible or immutable values are replaced by a
-fresh stored value.
+value.
+
+Matching `Taylor1` and `TaylorN` values with compatible lengths are updated in
+place with `TaylorSeries.identity!`, preserving the object already held by the
+cache. If the Taylor polynomial storage is incompatible, or if the value is an
+immutable scalar-like number, the method returns a fresh [`_stored_value`](@ref)
+instead. Callers must assign the return value back into the storage slot.
 """
 @inline function _copy_value!(dest::Taylor1{U}, src::Taylor1{U}) where {U<:Number}
     length(dest) == length(src) || return _stored_value(src)
@@ -55,10 +70,14 @@ end
 @inline _copy_value!(dest::T, src::T) where {T<:Number} = _stored_value(src)
 
 """
-    _stored_state(q0)
+    _stored_state(q0::AbstractVector{U}) where {U<:Number}
 
 Return a freshly allocated state vector whose entries are independent stored
 values copied from `q0`.
+
+This is used for working initial conditions that may contain mutable Taylor
+polynomials. It preserves the values from `q0` without aliasing the user's input
+or later cache mutations.
 """
 function _stored_state(q0::AbstractVector{U}) where {U<:Number}
     x0 = similar(q0)
@@ -69,10 +88,14 @@ function _stored_state(q0::AbstractVector{U}) where {U<:Number}
 end
 
 """
-    _copy_state!(dest, src)
+    _copy_state!(dest::AbstractVector{U}, src::AbstractVector{U}) where {U<:Number}
 
 Copy `src` into the reusable state vector `dest`, updating compatible Taylor
 entries in place and replacing entries when in-place reuse is not possible.
+
+Each element is copied through [`_copy_value!`](@ref), so the returned `dest`
+remains suitable as cache-owned working storage even when the element type is a
+mutable Taylor polynomial.
 """
 function _copy_state!(dest::AbstractVector{U}, src::AbstractVector{U}) where {U<:Number}
     @inbounds for i in eachindex(src)
@@ -82,11 +105,20 @@ function _copy_state!(dest::AbstractVector{U}, src::AbstractVector{U}) where {U<
 end
 
 """
-    _store_state_column!(xv, nsteps, x0)
+    _store_state_column!(
+        xv::AbstractMatrix{U},
+        nsteps::Int,
+        x0::AbstractVector{U},
+    ) where {U<:Number}
 
 Store the state vector `x0` in column `nsteps` of `xv`. Previously assigned
 non-isbits entries are reused when possible, so cache reuse does not require
 allocating new Taylor polynomial objects for every stored state.
+
+The integrator stores vector-valued states internally as `variables x steps`.
+For immutable `isbits` element types, values are assigned directly. For mutable
+Taylor-valued states, unassigned slots receive independent stored copies and
+assigned slots are updated in place through [`_copy_value!`](@ref).
 """
 function _store_state_column!(xv::AbstractMatrix{U}, nsteps::Int,
         x0::AbstractVector{U}) where {U<:Number}
@@ -101,12 +133,25 @@ function _store_state_column!(xv::AbstractMatrix{U}, nsteps::Int,
 end
 
 """
-    _store_taylor!(psol::Array{Taylor1{U},1}, nsteps::Int, x::Taylor1{U})
-    _store_taylor!(psol::Array{Taylor1{U},2}, j::Int, nsteps::Int, x::Taylor1{U})
+    _store_taylor!(
+        psol::Array{Taylor1{U},1},
+        nsteps::Int,
+        x::Taylor1{U},
+    ) where {U<:Number}
+    _store_taylor!(
+        psol::Array{Taylor1{U},2},
+        j::Int,
+        nsteps::Int,
+        x::Taylor1{U},
+    ) where {U<:Number}
 
 Store the Taylor polynomial `x` in the dense-output cache `psol`. If the target
 slot is already assigned, the existing polynomial is updated in place with
 `TaylorSeries.identity!`; otherwise a new independent polynomial is stored.
+
+The one-dimensional method is used for scalar integrations. The two-dimensional
+method is used for vector integrations, where row `j` stores component `j` and
+column `nsteps` stores the dense polynomial for the current step.
 """
 @inline function _store_taylor!(psol::Array{Taylor1{U},1}, nsteps::Int,
         x::Taylor1{U}) where {U<:Number}
@@ -134,12 +179,17 @@ end
     set_psol!(::Val{true}, psol::Array{Taylor1{U},2}, nsteps::Int, x::Vector{Taylor1{U}}) where {U<:Number}
     set_psol!(::Val{false}, args...)
 
-Auxiliary function to save Taylor polynomials in a call to [`taylorinteg`](@ref). When the
-first argument in the call signature is `Val(true)`, sets appropriate elements of argument
-`psol`. Otherwise, when the first argument in the call signature is `Val(false)`, this
-function simply returns `nothing`. Argument `psol` is the array
-where the Taylor polynomials associated to the solution will be stored, corresponding to
-field `:p` in [`TaylorSolution`](@ref). Assigned `psol` slots are reused in place.
+Auxiliary function to save Taylor polynomials in a call to [`taylorinteg`](@ref).
+
+When the first argument is `Val(true)`, the method stores the current working
+Taylor polynomial(s) into `psol`, the dense-output cache backing field `:p` in
+[`TaylorSolution`](@ref). Scalar integrations store one polynomial per step;
+vector integrations store one polynomial per component and step. Assigned
+`psol` slots are reused in place through [`_store_taylor!`](@ref), so repeated
+uses of a preallocated cache do not allocate fresh dense polynomials for every
+stored step. When the first argument is `Val(false)`, the method returns
+`nothing`.
+
 See also [`init_psol`](@ref).
 """
 @inline function set_psol!(
@@ -171,12 +221,16 @@ end
     init_psol(::Val{false}, ::Int, ::Int, ::Taylor1{U}) where {U<:Number}
     init_psol(::Val{false}, ::Int, ::Int, ::Array{Taylor1{U},1}) where {U<:Number}
 
-Auxiliary function to initialize `psol` during a call to [`taylorinteg`](@ref). When the
-first argument in the call signature is `Val(false)` this function simply returns `nothing`.
-Otherwise, when the first argument in the call signature is `Val(true)`, then the
-appropriate array is allocated and returned; this array is where the Taylor polynomials
-associated to the solution will be stored, corresponding to field `:p` in
-[`TaylorSolution`](@ref).
+Auxiliary function to initialize the dense-output storage `psol` during a call
+to [`taylorinteg`](@ref).
+
+When the first argument is `Val(true)`, the method allocates the array that will
+store Taylor polynomials for dense output and later become field `:p` in
+[`TaylorSolution`](@ref). Scalar integrations use a vector of length
+`maxsteps`; vector integrations use a `dof x maxsteps` matrix. The storage is
+left uninitialized so [`set_psol!`](@ref) can populate only the steps that are
+actually taken. When the first argument is `Val(false)`, the method returns
+`nothing`.
 """
 @inline function init_psol(
     ::Val{true},
