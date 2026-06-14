@@ -40,18 +40,8 @@ Matching `Taylor1` and `TaylorN` values with compatible lengths are updated in
 place with `TaylorSeries.identity!`, preserving the object already held by the
 cache. If the Taylor polynomial storage is incompatible, or if the value is an
 immutable scalar-like number, the method returns a fresh [`_stored_value`](@ref)
-instead.
-
-The return value is the object that should be stored. In the compatible Taylor
-case this is `dest` itself after mutation. In replacement cases this method
-cannot update the caller's array slot because it receives only the slot value,
-not the containing array and index. Therefore, when a new object is allocated,
-callers must assign the return value back into the storage slot, e.g.:
-
-```
-xv[i, nsteps] = _copy_value!(xv[i, nsteps], x0[i])
-```
-
+instead. Use [`_store_value!`](@ref) when the caller has an array slot that can
+be updated directly.
 """
 @inline function _copy_value!(dest::Taylor1{U}, src::Taylor1{U}) where {U<:Number}
     length(dest) == length(src) || return _stored_value(src)
@@ -68,6 +58,36 @@ end
 @inline _copy_value!(dest::T, src::T) where {T<:Number} = _stored_value(src)
 
 """
+    _store_value!(dest::AbstractVector{U}, src::U, i) where {U<:Number}
+    _store_value!(dest::AbstractMatrix{U}, src::U, i, j) where {U<:Number}
+
+Store `src` in `dest[i]` or `dest[i, j]`, reusing an already assigned mutable
+Taylor slot when possible.
+
+This is the slot-aware wrapper around [`_copy_value!`](@ref). If the element
+type is `isbits` or the slot has not been assigned yet, a fresh
+[`_stored_value`](@ref) is assigned. Otherwise, the existing slot value is
+updated in place when possible, and replaced only when necessary.
+"""
+@inline function _store_value!(dest::AbstractVector{U}, src::U, i) where {U<:Number}
+    if Base.isbitstype(U) || !isassigned(dest, i)
+        @inbounds dest[i] = _stored_value(src)
+    else
+        @inbounds dest[i] = _copy_value!(dest[i], src)
+    end
+    return nothing
+end
+
+@inline function _store_value!(dest::AbstractMatrix{U}, src::U, i, j) where {U<:Number}
+    if Base.isbitstype(U) || !isassigned(dest, i, j)
+        @inbounds dest[i, j] = _stored_value(src)
+    else
+        @inbounds dest[i, j] = _copy_value!(dest[i, j], src)
+    end
+    return nothing
+end
+
+"""
     _stored_state(q0::AbstractVector{U}) where {U<:Number}
 
 Return a freshly allocated state vector whose entries are independent stored
@@ -80,7 +100,7 @@ or later cache mutations.
 function _stored_state(q0::AbstractVector{U}) where {U<:Number}
     x0 = similar(q0)
     @inbounds for i in eachindex(q0)
-        x0[i] = _stored_value(q0[i])
+        _store_value!(x0, q0[i], i)
     end
     return x0
 end
@@ -88,16 +108,15 @@ end
 """
     _copy_state!(dest::AbstractVector{U}, src::AbstractVector{U}) where {U<:Number}
 
-Copy `src` into the reusable state vector `dest`, updating compatible Taylor
-entries in place and replacing entries when in-place reuse is not possible.
+Copy `src` into the reusable state vector `dest`.
 
-Each element is copied through [`_copy_value!`](@ref), so the returned `dest`
-remains suitable as cache-owned working storage even when the element type is a
-mutable Taylor polynomial.
+Each element is stored through [`_store_value!`](@ref), so compatible Taylor
+entries are updated in place and incompatible or scalar entries are replaced in
+the vector slot.
 """
 function _copy_state!(dest::AbstractVector{U}, src::AbstractVector{U}) where {U<:Number}
     @inbounds for i in eachindex(src)
-        dest[i] = _copy_value!(dest[i], src[i])
+        _store_value!(dest, src[i], i)
     end
     return dest
 end
@@ -116,57 +135,12 @@ allocating new Taylor polynomial objects for every stored state.
 The integrator stores vector-valued states internally as `variables x steps`.
 For immutable `isbits` element types, values are assigned directly. For mutable
 Taylor-valued states, unassigned slots receive independent stored copies and
-assigned slots are updated in place through [`_copy_value!`](@ref).
+assigned slots are updated in place through [`_store_value!`](@ref).
 """
 function _store_state_column!(xv::AbstractMatrix{U}, nsteps::Int,
         x0::AbstractVector{U}) where {U<:Number}
     @inbounds for i in eachindex(x0)
-        if Base.isbitstype(U) || !isassigned(xv, i, nsteps)
-            xv[i, nsteps] = _stored_value(x0[i])
-        else
-            xv[i, nsteps] = _copy_value!(xv[i, nsteps], x0[i])
-        end
-    end
-    return nothing
-end
-
-"""
-    _store_taylor!(
-        psol::Array{Taylor1{U},1},
-        nsteps::Int,
-        x::Taylor1{U},
-    ) where {U<:Number}
-    _store_taylor!(
-        psol::Array{Taylor1{U},2},
-        j::Int,
-        nsteps::Int,
-        x::Taylor1{U},
-    ) where {U<:Number}
-
-Store the Taylor polynomial `x` in the dense-output cache `psol`. If the target
-slot is already assigned, the existing polynomial is updated in place with
-`TaylorSeries.identity!`; otherwise a new independent polynomial is stored.
-
-The one-dimensional method is used for scalar integrations. The two-dimensional
-method is used for vector integrations, where row `j` stores component `j` and
-column `nsteps` stores the dense polynomial for the current step.
-"""
-@inline function _store_taylor!(psol::Array{Taylor1{U},1}, nsteps::Int,
-        x::Taylor1{U}) where {U<:Number}
-    if isassigned(psol, nsteps)
-        @inbounds TS.identity!(psol[nsteps], x)
-    else
-        @inbounds psol[nsteps] = _stored_value(x)
-    end
-    return nothing
-end
-
-@inline function _store_taylor!(psol::Array{Taylor1{U},2}, j::Int, nsteps::Int,
-        x::Taylor1{U}) where {U<:Number}
-    if isassigned(psol, j, nsteps)
-        @inbounds TS.identity!(psol[j, nsteps], x)
-    else
-        @inbounds psol[j, nsteps] = _stored_value(x)
+        _store_value!(xv, x0[i], i, nsteps)
     end
     return nothing
 end
@@ -183,7 +157,7 @@ When the first argument is `Val(true)`, the method stores the current working
 Taylor polynomial(s) into `psol`, the dense-output cache backing field `:p` in
 [`TaylorSolution`](@ref). Scalar integrations store one polynomial per step;
 vector integrations store one polynomial per component and step. Assigned
-`psol` slots are reused in place through [`_store_taylor!`](@ref), so repeated
+`psol` slots are reused in place through [`_store_value!`](@ref), so repeated
 uses of a preallocated cache do not allocate fresh dense polynomials for every
 stored step. When the first argument is `Val(false)`, the method returns
 `nothing`.
@@ -196,7 +170,7 @@ See also [`init_psol`](@ref).
     nsteps::Int,
     x::Taylor1{U},
 ) where {U<:Number}
-    _store_taylor!(psol, nsteps, x)
+    _store_value!(psol, x, nsteps)
     return nothing
 end
 @inline function set_psol!(
@@ -206,7 +180,7 @@ end
     x::Vector{Taylor1{U}},
 ) where {U<:Number}
     @inbounds for j in eachindex(x)
-        _store_taylor!(psol, j, nsteps, x[j])
+        _store_value!(psol, x[j], j, nsteps)
     end
     return nothing
 end
