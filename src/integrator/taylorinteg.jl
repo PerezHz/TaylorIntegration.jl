@@ -1,43 +1,30 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
 """
-    _stored_taylor(x::Taylor1{U}) where {U<:Number}
-    _stored_taylor(x::TaylorN{U}) where {U<:Number}
-
-Return an independent Taylor polynomial with the same coefficients as `x`.
-
-The returned object has fresh coefficient storage and is safe to keep in an
-integration cache, dense-output cache, or returned [`TaylorSolution`](@ref) even
-if the working Taylor polynomial `x` is mutated by later integration steps.
-This is the Taylor-specific replacement for `deepcopy` used by the storage
-helpers below.
-"""
-@inline function _stored_taylor(x::Taylor1{U}) where {U<:Number}
-    y = zero(x)
-    TS.identity!(y, x)
-    return y
-end
-
-@inline function _stored_taylor(x::TaylorN{U}) where {U<:Number}
-    y = zero(x)
-    TS.identity!(y, x)
-    return y
-end
-
-"""
     _stored_value(x::Taylor1)
     _stored_value(x::TaylorN)
     _stored_value(x::T) where {T<:Number}
 
 Return a value suitable for storage in solution arrays and integration caches.
 
-Taylor polynomials are copied with [`_stored_taylor`](@ref), `isbits` numbers
-are stored directly, and other `Number` subtypes fall back to `deepcopy`. This
-gives mutable number-like values snapshot semantics while avoiding unnecessary
-copies for immutable scalar values.
+Taylor polynomials are copied into fresh coefficient storage with
+`TaylorSeries.identity!`, `isbits` numbers are stored directly, and other
+`Number` subtypes fall back to `deepcopy`. This gives mutable number-like
+values snapshot semantics while avoiding unnecessary copies for immutable scalar
+values.
 """
-@inline _stored_value(x::Taylor1) = _stored_taylor(x)
-@inline _stored_value(x::TaylorN) = _stored_taylor(x)
+@inline function _stored_value(x::Taylor1{U}) where {U<:Number}
+    y = zero(x)
+    TS.identity!(y, x)
+    return y
+end
+
+@inline function _stored_value(x::TaylorN{U}) where {U<:Number}
+    y = zero(x)
+    TS.identity!(y, x)
+    return y
+end
+
 @inline _stored_value(x::T) where {T<:Number} =
     Base.isbitstype(T) ? x : deepcopy(x)
 
@@ -158,7 +145,7 @@ column `nsteps` stores the dense polynomial for the current step.
     if isassigned(psol, nsteps)
         @inbounds TS.identity!(psol[nsteps], x)
     else
-        @inbounds psol[nsteps] = _stored_taylor(x)
+        @inbounds psol[nsteps] = _stored_value(x)
     end
     return nothing
 end
@@ -168,7 +155,7 @@ end
     if isassigned(psol, j, nsteps)
         @inbounds TS.identity!(psol[j, nsteps], x)
     else
-        @inbounds psol[j, nsteps] = _stored_taylor(x)
+        @inbounds psol[j, nsteps] = _stored_value(x)
     end
     return nothing
 end

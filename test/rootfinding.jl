@@ -245,7 +245,7 @@ import Logging: Warn
     ))
     stored_root_cache_p = root_cache.psol[1, 1]
     sol_root_cache1_p = sol_root_cache1.p[1, 1]
-    sol_root_cache1_p_snapshot = TaylorIntegration._stored_taylor(sol_root_cache1_p)
+    sol_root_cache1_p_snapshot = TaylorIntegration._stored_value(sol_root_cache1_p)
     sol_root_cache2 = (@test_logs min_level = Logging.Warn TaylorIntegration.taylorinteg!(
         Val(true),
         pendulum!,

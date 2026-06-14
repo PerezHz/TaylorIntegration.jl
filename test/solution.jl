@@ -81,7 +81,7 @@ import Logging: Warn
     )
     stored_cache_p = cache.psol[1, 1]
     sol_cache1_p = sol_cache1.p[1, 1]
-    sol_cache1_p_snapshot = TaylorIntegration._stored_taylor(sol_cache1_p)
+    sol_cache1_p_snapshot = TaylorIntegration._stored_value(sol_cache1_p)
     q_cache_next = [2.0 + ξ[1], 0.0 + ξ[2]]
     sol_cache2 = TaylorIntegration.taylorinteg!(
         Val(true),
