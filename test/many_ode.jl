@@ -37,22 +37,6 @@ import Logging: Warn
         δt = (_abstol / q0T[1].coeffs[end-1])^inv(_order - 1)
         @test TaylorIntegration.stepsize(q0T, _abstol) == δt
 
-        function norm_based_stepsize(x, epsilon)
-            ord = order(x)
-            return min(
-                (epsilon / norm(x[ord-1], Inf))^inv(ord - 1),
-                (epsilon / norm(x[ord], Inf))^inv(ord),
-            )
-        end
-
-        function norm_based_stepsize(q::AbstractVector, epsilon)
-            h = typemax(Float64)
-            for i in eachindex(q)
-                h = min(h, norm_based_stepsize(q[i], epsilon))
-            end
-            return h
-        end
-
         x0T1 = Taylor1(Taylor1([1.0, 0.2], 2), 5)
         x1T1 = Taylor1(Taylor1([-2.0, 0.1], 2), 5)
         x0T1[4] = Taylor1([2.0, -3.0], 2)
@@ -60,7 +44,16 @@ import Logging: Warn
         x1T1[4] = Taylor1([3.0, 0.1], 2)
         x1T1[5] = Taylor1([-0.5, 0.2], 2)
         qT1 = [x0T1, x1T1]
-        @test TaylorIntegration.stepsize(qT1, _abstol) ≈ norm_based_stepsize(qT1, _abstol)
+        expected_nested_stepsize = min(
+            (_abstol / 3.0)^inv(4),
+            (_abstol / 4.0)^inv(5),
+            (_abstol / 0.5)^inv(5),
+        )
+        @test TI._norminf(x0T1[4]) == 3.0
+        @test TI._norminf(x0T1[5]) == 4.0
+        @test TI._norminf(x1T1[4]) == 3.0
+        @test TI._norminf(x1T1[5]) == 0.5
+        @test TaylorIntegration.stepsize(qT1, _abstol) ≈ expected_nested_stepsize
 
         vars = variables!("xi", numvars=2, order=2, nowarn = true)
         x0TN = Taylor1(1.0 + vars[1], 5)
@@ -70,7 +63,11 @@ import Logging: Warn
         x1TN[4] = 3.0 + 0.1 * vars[1]
         x1TN[5] = -0.5 + 0.2 * vars[2]
         qTN = [x0TN, x1TN]
-        @test TaylorIntegration.stepsize(qTN, _abstol) ≈ norm_based_stepsize(qTN, _abstol)
+        @test TI._norminf(x0TN[4]) == 3.0
+        @test TI._norminf(x0TN[5]) == 4.0
+        @test TI._norminf(x1TN[4]) == 3.0
+        @test TI._norminf(x1TN[5]) == 0.5
+        @test TaylorIntegration.stepsize(qTN, _abstol) ≈ expected_nested_stepsize
 
         sol = @test_logs(
             (Warn, zero_stepsize()),
