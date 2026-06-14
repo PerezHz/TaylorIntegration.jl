@@ -246,4 +246,61 @@ import Logging: Warn
     @test solNfile == solN
     @test solNfile.t isa Vector
     @test solNfile.p isa Array
+
+    @taylorize function dense_cache_kepler!(dx, x, p, t)
+        r_p3d2 = (x[1]^2 + x[2]^2)^1.5
+
+        dx[1] = x[3]
+        dx[2] = x[4]
+        dx[3] = -x[1] / r_p3d2
+        dx[4] = -x[2] / r_p3d2
+
+        return nothing
+    end
+    varorder = 2
+    dq = variables!("xi", numvars = 4, order = varorder, nowarn = true)
+    q01 = [0.2, 0.0, 0.0, 3.0] .+ dq
+    q02 = [0.2, 0.0, 0.0, -3.0] .+ dq
+    kepler_cache = TaylorIntegration.init_cache(
+        Val(true),
+        0.0,
+        q01,
+        200,
+        20,
+        dense_cache_kepler!,
+        nothing,
+    )
+    sol_kepler1 = TaylorIntegration.taylorinteg!(
+        Val(true),
+        dense_cache_kepler!,
+        q01,
+        0.0,
+        1.0,
+        1e-18,
+        kepler_cache,
+        nothing;
+        maxsteps=200,
+        copy_solution=Val(true),
+    )
+    sol_kepler1_x_snapshot = map(TaylorIntegration._stored_value, sol_kepler1.x)
+    sol_kepler1_p_snapshot = map(TaylorIntegration._stored_value, sol_kepler1.p)
+    stored_kepler_cache_p = kepler_cache.psol[1, 1]
+    sol_kepler2 = TaylorIntegration.taylorinteg!(
+        Val(true),
+        dense_cache_kepler!,
+        q02,
+        0.0,
+        1.0,
+        1e-18,
+        kepler_cache,
+        nothing;
+        maxsteps=200,
+        copy_solution=Val(true),
+    )
+    @test kepler_cache.psol[1, 1] === stored_kepler_cache_p
+    @test sol_kepler1.x == sol_kepler1_x_snapshot
+    @test sol_kepler1.p == sol_kepler1_p_snapshot
+    @test sol_kepler1.p[1, 1] !== kepler_cache.psol[1, 1]
+    @test sol_kepler2.x != sol_kepler1_x_snapshot
+    @test sol_kepler2.p != sol_kepler1_p_snapshot
 end
