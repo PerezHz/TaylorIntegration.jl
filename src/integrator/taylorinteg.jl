@@ -40,7 +40,18 @@ Matching `Taylor1` and `TaylorN` values with compatible lengths are updated in
 place with `TaylorSeries.identity!`, preserving the object already held by the
 cache. If the Taylor polynomial storage is incompatible, or if the value is an
 immutable scalar-like number, the method returns a fresh [`_stored_value`](@ref)
-instead. Callers must assign the return value back into the storage slot.
+instead.
+
+The return value is the object that should be stored. In the compatible Taylor
+case this is `dest` itself after mutation. In replacement cases this method
+cannot update the caller's array slot because it receives only the slot value,
+not the containing array and index. Therefore, when a new object is allocated,
+callers must assign the return value back into the storage slot, e.g.:
+
+```
+xv[i, nsteps] = _copy_value!(xv[i, nsteps], x0[i])
+```
+
 """
 @inline function _copy_value!(dest::Taylor1{U}, src::Taylor1{U}) where {U<:Number}
     length(dest) == length(src) || return _stored_value(src)
