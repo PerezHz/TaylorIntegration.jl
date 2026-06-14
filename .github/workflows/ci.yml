@@ -62,8 +62,6 @@ jobs:
             ${{ runner.os }}-test-${{ env.cache-name }}-
             ${{ runner.os }}-test-
             ${{ runner.os }}-
-      - name: Use TaylorSeries.jl PR #415 branch
-        run: julia --project=. -e 'using Pkg; Pkg.add(PackageSpec(url="https://github.com/PerezHz/TaylorSeries.jl", rev="jp/some-perf-fixes"))'
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
       - uses: julia-actions/julia-processcoverage@v1
