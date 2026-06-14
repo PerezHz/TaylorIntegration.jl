@@ -26,7 +26,7 @@ import Logging: Warn
     @test firsttime(sol_big) == BigFloat(0)
     @test lasttime(sol_big) == BigFloat(0)
 
-    ξ = variables!("ξ", numvars = 2, order = 2)
+    ξ = variables!("ξ", numvars = 2, order = 2, nowarn = true)
     p_scalar = Vector{Taylor1{TaylorN{Float64}}}(undef, 1)
     x_scalar = Taylor1(1.0 + ξ[1], 3)
     TaylorIntegration.set_psol!(Val(true), p_scalar, 1, x_scalar)
@@ -224,7 +224,7 @@ import Logging: Warn
     @test solfile.t isa Vector
     @test solfile.p isa Array
 
-    dq = TaylorSeries.variables!("dq", order = 2, numvars = 2)
+    dq = TaylorSeries.variables!("dq", order = 2, numvars = 2, nowarn = true)
     pN = soldense.p .* Taylor1(one(dq[1]), TaylorSeries.order(soldense))
     solN = TaylorSolution(soldense.t, pN)
     jld2_path = tempname() * ".jld2"

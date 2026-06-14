@@ -62,7 +62,7 @@ import Logging: Warn
         qT1 = [x0T1, x1T1]
         @test TaylorIntegration.stepsize(qT1, _abstol) ≈ norm_based_stepsize(qT1, _abstol)
 
-        vars = variables!("xi", numvars=2, order=2)
+        vars = variables!("xi", numvars=2, order=2, nowarn = true)
         x0TN = Taylor1(1.0 + vars[1], 5)
         x1TN = Taylor1(-2.0 + vars[2], 5)
         x0TN[4] = 2.0 - 3.0 * vars[1]
