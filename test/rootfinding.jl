@@ -29,7 +29,7 @@ import Logging: Warn
     x0 = [1.3, 0.0]
     Tend = 7.019250311844546
 
-    p = variables!("ξ", numvars = length(x0), order = 2)
+    p = variables!("ξ", numvars = length(x0), order = 2, nowarn = true)
     x0N = x0 + p
     ξ = Taylor1(2)
     x01 = x0 + [ξ, ξ]
@@ -220,6 +220,50 @@ import Logging: Warn
         @test norm(psolN[i, :](tvN[i+1] - tvN[i]) - xvN[i+1, :], Inf) < 1e-12
         @test norm(solN(tvN[i+1]) - xvN[i+1, :], Inf) < 1e-12
     end
+
+    root_cache = TaylorIntegration.init_cache(
+        Val(true),
+        t0,
+        x0N,
+        100,
+        _order,
+        pendulum!,
+        nothing,
+    )
+    sol_root_cache1 = (@test_logs min_level = Logging.Warn TaylorIntegration.taylorinteg!(
+        Val(true),
+        pendulum!,
+        g,
+        x0N,
+        t0,
+        Tend / 4,
+        _abstol,
+        root_cache,
+        nothing;
+        maxsteps = 100,
+        reltol = _reltol,
+    ))
+    stored_root_cache_p = root_cache.psol[1, 1]
+    sol_root_cache1_p = sol_root_cache1.p[1, 1]
+    sol_root_cache1_p_snapshot = TaylorIntegration._stored_value(sol_root_cache1_p)
+    sol_root_cache2 = (@test_logs min_level = Logging.Warn TaylorIntegration.taylorinteg!(
+        Val(true),
+        pendulum!,
+        g,
+        x0N .+ [0.1, 0.0],
+        t0,
+        Tend / 4,
+        _abstol,
+        root_cache,
+        nothing;
+        maxsteps = 100,
+        reltol = _reltol,
+    ))
+    @test root_cache.psol[1, 1] === stored_root_cache_p
+    @test sol_root_cache1.p[1, 1] == sol_root_cache1_p_snapshot
+    @test sol_root_cache1.p[1, 1] !== root_cache.psol[1, 1]
+    @test sol_root_cache2.p[1, 1] !== sol_root_cache1.p[1, 1]
+    @test sol_root_cache2.p[1, 1] != sol_root_cache1_p_snapshot
 
     #testing 0-th root-finding + Taylor1 jet transport
     sol1 = (@test_logs min_level = Logging.Warn taylorinteg(

@@ -1,12 +1,36 @@
 ### `build_solution` method for root-finding
 
+"""
+    _stored_event_tuple(g_tupl::Tuple{Bool,<:Taylor1})
+
+Return an event tuple whose polynomial component is independent of `g_tupl`.
+This keeps root-finding state snapshots from aliasing the mutable Taylor
+polynomials used by the integration cache.
+
+The Boolean crossing-direction flag is immutable and is reused directly. The
+Taylor polynomial residual is copied through [`_stored_value`](@ref).
+"""
+@inline _stored_event_tuple(g_tupl::Tuple{Bool,<:Taylor1}) =
+    (g_tupl[1], _stored_value(g_tupl[2]))
+
 @doc doc"""
     build_solution(t, x, p, tevents, xevents, gresids, nsteps, nevents)
     build_solution(t, x, tevents, xevents, gresids, nsteps, nevents)
+    build_solution(copy_solution::Val, t, x, p, tevents, xevents, gresids, nsteps, nevents)
+    build_solution(copy_solution::Val, t, x, tevents, xevents, gresids, nevents)
 
 Helper function to build a [`TaylorSolution`](@ref) from a call to a
 root-finding method of [`taylorinteg`](@ref).
 
+When `copy_solution` is `Val(false)`, the returned solution borrows views of the
+given arrays. When `copy_solution` is `Val(true)`, `t`, `x`, `p`, `tevents`,
+`xevents` and `gresids` are copied into independent owned storage.
+
+The step arrays are trimmed to `nsteps`, dense-output polynomial arrays are
+trimmed to `nsteps - 1`, and event arrays are trimmed to `nevents - 1` because
+`nevents` is maintained as the next insertion index. Vector state arrays are
+stored internally as `variables x steps` and exposed through
+[`TaylorSolution`](@ref) as `steps x variables`.
 """
 build_solution(
     t::AbstractVector{T},
@@ -27,6 +51,26 @@ build_solution(
     nothing,
 )
 
+build_solution(
+    copy_solution::Val{C},
+    t::AbstractVector{T},
+    x::Matrix{U},
+    p::P,
+    tevents::AbstractVector{U},
+    xevents::Matrix{U},
+    gresids::AbstractVector{U},
+    nsteps::Int,
+    nevents::Int,
+) where {C,T,U,P<:Union{Nothing,Matrix{Taylor1{U}}}} = TaylorSolution(
+    solution_array(copy_solution, t, nsteps),
+    solution_array(copy_solution, x, nsteps),
+    solution_array(copy_solution, p, nsteps - 1),
+    solution_array(copy_solution, tevents, nevents - 1),
+    solution_array(copy_solution, xevents, nevents - 1),
+    solution_array(copy_solution, gresids, nevents - 1),
+    nothing,
+)
+
 #### `build_solution` method for root-finding with time-ranges
 
 build_solution(
@@ -43,6 +87,24 @@ build_solution(
     arraysol(tevents, nevents - 1),
     arraysol(xevents, nevents - 1),
     arraysol(gresids, nevents - 1),
+    nothing,
+)
+
+build_solution(
+    copy_solution::Val{C},
+    t::AbstractVector{T},
+    x::Matrix{U},
+    tevents::AbstractVector{U},
+    xevents::Matrix{U},
+    gresids::AbstractVector{U},
+    nevents::Int,
+) where {C,T,U} = TaylorSolution(
+    solution_array(copy_solution, t),
+    solution_array(copy_solution, transpose(x)),
+    nothing,
+    solution_array(copy_solution, tevents, nevents - 1),
+    solution_array(copy_solution, xevents, nevents - 1),
+    solution_array(copy_solution, gresids, nevents - 1),
     nothing,
 )
 
@@ -163,8 +225,8 @@ function findroot!(
         evaluate!(x_dx, dt_nr, view(x_dx_val, :))
 
         tvS[nevents] = t0 + dt_nr
-        xvS[:, nevents] .= deepcopy.(view(x_dx_val, 1:dof))
-        gvS[nevents] = deepcopy(g_dg_val[1])
+        _store_state_column!(xvS, nevents, view(x_dx_val, 1:dof))
+        gvS[nevents] = _stored_value(g_dg_val[1])
 
         nevents += 1
     end
@@ -277,7 +339,8 @@ function taylorinteg(
         nrabstol,
         reltol,
         minstepsize,
-        maxstepsize
+        maxstepsize,
+        copy_solution=Val(false)
     )
 end
 
@@ -297,21 +360,22 @@ function taylorinteg!(
     nrabstol::T = eps(T),
     reltol::T = zero(T),
     minstepsize::T = zero(T),
-    maxstepsize::T = T(Inf)
+    maxstepsize::T = T(Inf),
+    copy_solution::Val = Val(true)
 ) where {T<:Real,U<:Number,D}
 
     (; tv, xv, psol, xaux, t, x, dx, rv, parse_eqs) = cache
 
     # Initial conditions
-    x0 = deepcopy(q0)
+    x0 = _stored_state(q0)
     update_cache!(cache, t0, x0)
     @inbounds tv[1] = t0
-    @inbounds xv[:, 1] .= deepcopy(q0)
+    _store_state_column!(xv, 1, q0)
     sign_tstep = copysign(1, tmax - t0)
 
     # Some auxiliary arrays for root-finding/event detection/Poincaré surface of section evaluation
     g_tupl = g(dx, x, params, t)
-    g_tupl_old = deepcopy(g_tupl)
+    g_tupl_old = _stored_event_tuple(g_tupl)
     δt = zero(x[1])
     δt_old = zero(x[1])
 
@@ -356,12 +420,12 @@ function taylorinteg!(
             newtoniter,
             nevents,
         )
-        g_tupl_old = deepcopy(g_tupl)
+        g_tupl_old = _stored_event_tuple(g_tupl)
         t0 += δt
         update_cache!(cache, t0, x0)
         nsteps += 1
         @inbounds tv[nsteps] = t0
-        @inbounds xv[:, nsteps] .= deepcopy(x0)
+        _store_state_column!(xv, nsteps, x0)
         if nsteps > maxsteps
             @warn("""
             Maximum number of integration steps reached; exiting.
@@ -370,7 +434,7 @@ function taylorinteg!(
         end
     end
 
-    return build_solution(tv, xv, psol, tvS, xvS, gvS, nsteps, nevents)
+    return build_solution(copy_solution, tv, xv, psol, tvS, xvS, gvS, nsteps, nevents)
 end
 
 function taylorinteg(
@@ -413,7 +477,8 @@ function taylorinteg(
         nrabstol,
         reltol,
         minstepsize,
-        maxstepsize
+        maxstepsize,
+        copy_solution=Val(false)
     )
 end
 
@@ -431,7 +496,8 @@ function taylorinteg!(
     nrabstol::T = eps(T),
     reltol::T = zero(T),
     minstepsize::T = zero(T),
-    maxstepsize::T = T(Inf)
+    maxstepsize::T = T(Inf),
+    copy_solution::Val = Val(true)
 ) where {T<:Real,U<:Number}
 
     (; tv, xv, xaux, x0, x1, t, x, dx, rv, parse_eqs) = cache
@@ -439,13 +505,13 @@ function taylorinteg!(
     # Initial conditions
     @inbounds t0, t1, tmax = trange[1], trange[2], trange[end]
     sign_tstep = copysign(1, tmax - t0)
-    @inbounds x0 .= deepcopy(q0)
+    _copy_state!(x0, q0)
     update_cache!(cache, t0, x0)
-    @inbounds xv[:, 1] .= deepcopy(q0)
+    _store_state_column!(xv, 1, q0)
 
     # Some auxiliary arrays for root-finding/event detection/Poincaré surface of section evaluation
     g_tupl = g(dx, x, params, t)
-    g_tupl_old = deepcopy(g_tupl)
+    g_tupl_old = _stored_event_tuple(g_tupl)
     δt = zero(U)
     δt_old = zero(U)
 
@@ -473,12 +539,12 @@ function taylorinteg!(
         # Evaluate solution at times within convergence radius
         while sign_tstep * t1 < sign_tstep * tnext
             evaluate!(x, t1 - t0, x1)
-            @inbounds xv[:, iter] .= deepcopy(x1)
+            _store_state_column!(xv, iter, x1)
             iter += 1
             @inbounds t1 = trange[iter]
         end
         if δt == tmax - t0
-            @inbounds xv[:, iter] .= deepcopy(x0)
+            _store_state_column!(xv, iter, x0)
             break
         end
         g_tupl = g(dx, x, params, t)
@@ -502,7 +568,7 @@ function taylorinteg!(
             newtoniter,
             nevents,
         )
-        g_tupl_old = deepcopy(g_tupl)
+        g_tupl_old = _stored_event_tuple(g_tupl)
         t0 = tnext
         update_cache!(cache, t0, x0)
         nsteps += 1
@@ -514,5 +580,5 @@ function taylorinteg!(
         end
     end
 
-    return build_solution(trange, xv, tvS, xvS, gvS, nevents)
+    return build_solution(copy_solution, trange, xv, tvS, xvS, gvS, nevents)
 end

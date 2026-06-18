@@ -1,5 +1,46 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
+"""
+    _norminf(x::Number)
+    _norminf(x::Taylor1)
+    _norminf(x::HomogeneousPolynomial)
+    _norminf(x::TaylorN)
+
+Return the infinity norm used by the time-step controllers.
+
+For ordinary numbers this delegates to `norm(x, Inf)`. For nested Taylor
+objects, it recursively takes the maximum infinity norm over all stored
+coefficients, reducing values such as `Taylor1{TaylorN}` to a scalar norm.
+"""
+@inline _norminf(x::Number) = norm(x, Inf)
+
+function _norminf(x::Taylor1)
+    coeffs = x.coeffs
+    @inbounds h = zero(_norminf(coeffs[firstindex(coeffs)]))
+    @inbounds for c in coeffs
+        h = max(h, _norminf(c))
+    end
+    return h
+end
+
+function _norminf(x::HomogeneousPolynomial)
+    coeffs = x.coeffs
+    @inbounds h = zero(_norminf(coeffs[firstindex(coeffs)]))
+    @inbounds for c in coeffs
+        h = max(h, _norminf(c))
+    end
+    return h
+end
+
+function _norminf(x::TaylorN)
+    coeffs = x.coeffs
+    @inbounds h = zero(_norminf(coeffs[firstindex(coeffs)]))
+    @inbounds for c in coeffs
+        h = max(h, _norminf(c))
+    end
+    return h
+end
+
 # stepsize
 """
     stepsize(x, epsilon) -> h
@@ -17,17 +58,18 @@ Depending of `eltype(x)`, i.e., `U<:Number`, it may be necessary to overload
 function stepsize(x::Taylor1{U}, absepsilon::T,
                   relepsilon::T = zero(T)) where {T<:Real,U<:Number}
     x0 = constant_term(x)
-    R = promote_type(typeof(norm(x0, Inf)), T)
+    x0norm = _norminf(x0)
+    R = promote_type(typeof(x0norm), T)
     ord = order(x)
     h = typemax(R)
     for k in (ord - 1, ord)
-        @inbounds aux = norm(x[k], Inf)
+        @inbounds aux = _norminf(x[k])
         TS._isthinzero(aux) && continue
         #eq. 3-3 Jorba and Zou (2005)
-        if absepsilon ≥ relepsilon * norm(x0, Inf)
+        if absepsilon ≥ relepsilon * x0norm
             aux1 = _stepsize(aux, absepsilon, k)
         else
-            aux1 = _stepsize(aux, relepsilon * norm(x0, Inf), k)
+            aux1 = _stepsize(aux, relepsilon * x0norm, k)
         end
         h = min(h, aux1)
     end
@@ -36,7 +78,7 @@ end
 
 function stepsize(q::AbstractArray{Taylor1{U},N}, absepsilon::T,
                   relepsilon::T = zero(T),) where {T<:Real,U<:Number,N}
-    R = promote_type(typeof(norm(constant_term(q[1]), Inf)), T)
+    R = promote_type(typeof(_norminf(constant_term(q[1]))), T)
     h = typemax(R)
     for i in eachindex(q)
         @inbounds hi = stepsize(q[i], absepsilon, relepsilon)
@@ -75,13 +117,13 @@ Corresponds to the "second stepsize control" in Jorba and Zou
 (2005) paper. We use it if [`stepsize`](@ref) returns `Inf`.
 """
 function _second_stepsize(x::Taylor1{U}, epsilon::T) where {T<:Real,U<:Number}
-    R = promote_type(typeof(norm(constant_term(x), Inf)), T)
+    R = promote_type(typeof(_norminf(constant_term(x))), T)
     TS._isthinzero(x) && return typemax(R)#convert(R, Inf)
     ord = order(x)
     u = one(R)
     h = zero(R)
     for k = 1:ord-2
-        @inbounds aux = norm(x[k], Inf)
+        @inbounds aux = _norminf(x[k])
         TS._isthinzero(aux) && continue
         aux1 = _stepsize(aux, u, k)
         h = max(h, aux1)

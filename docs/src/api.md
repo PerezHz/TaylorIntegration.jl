@@ -10,6 +10,7 @@ CurrentModule = TaylorIntegration
 
 ```@docs
 taylorinteg
+taylorinteg!
 lyap_taylorinteg
 @taylorize
 firsttime

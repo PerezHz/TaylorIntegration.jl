@@ -26,6 +26,88 @@ import Logging: Warn
     @test firsttime(sol_big) == BigFloat(0)
     @test lasttime(sol_big) == BigFloat(0)
 
+    ξ = variables!("ξ", numvars = 2, order = 2, nowarn = true)
+    p_scalar = Vector{Taylor1{TaylorN{Float64}}}(undef, 1)
+    x_scalar = Taylor1(1.0 + ξ[1], 3)
+    TaylorIntegration.set_psol!(Val(true), p_scalar, 1, x_scalar)
+    x_scalar[0][0] = 10.0
+    @test p_scalar[1][0][0] == 1.0
+    TaylorIntegration.set_psol!(Val(true), p_scalar, 1, x_scalar)
+    @test p_scalar[1] == x_scalar
+    stored_scalar = p_scalar[1]
+    x_scalar_next = Taylor1(3.0 + ξ[2], 3)
+    TaylorIntegration.set_psol!(Val(true), p_scalar, 1, x_scalar_next)
+    @test p_scalar[1] == x_scalar_next
+    @test p_scalar[1] === stored_scalar
+
+    p_vector = Matrix{Taylor1{TaylorN{Float64}}}(undef, 2, 1)
+    x_vector = [Taylor1(1.0 + ξ[1], 3), Taylor1(2.0 + ξ[2], 3)]
+    TaylorIntegration.set_psol!(Val(true), p_vector, 1, x_vector)
+    x_vector[1][0][0] = 20.0
+    @test p_vector[1, 1][0][0] == 1.0
+    TaylorIntegration.set_psol!(Val(true), p_vector, 1, x_vector)
+    @test p_vector[:, 1] == x_vector
+    stored_vector = p_vector[:, 1]
+    x_vector_next = [Taylor1(4.0 + ξ[1], 3), Taylor1(5.0 + ξ[2], 3)]
+    TaylorIntegration.set_psol!(Val(true), p_vector, 1, x_vector_next)
+    @test p_vector[:, 1] == x_vector_next
+    @test all(p_vector[:, 1] .=== stored_vector)
+
+    @taylorize function dense_cache_harmonic!(dx, x, p, t)
+        dx[1] = x[2]
+        dx[2] = -x[1]
+        return nothing
+    end
+    q_cache = [1.0 + ξ[1], 0.0 + ξ[2]]
+    cache = TaylorIntegration.init_cache(
+        Val(true),
+        0.0,
+        q_cache,
+        100,
+        12,
+        dense_cache_harmonic!,
+        nothing,
+    )
+    sol_cache1 = TaylorIntegration.taylorinteg!(
+        Val(true),
+        dense_cache_harmonic!,
+        q_cache,
+        0.0,
+        1.0,
+        1e-18,
+        cache,
+        nothing;
+        maxsteps=100,
+    )
+    stored_cache_p = cache.psol[1, 1]
+    sol_cache1_p = sol_cache1.p[1, 1]
+    sol_cache1_p_snapshot = TaylorIntegration._stored_value(sol_cache1_p)
+    q_cache_next = [2.0 + ξ[1], 0.0 + ξ[2]]
+    sol_cache2 = TaylorIntegration.taylorinteg!(
+        Val(true),
+        dense_cache_harmonic!,
+        q_cache_next,
+        0.0,
+        1.0,
+        1e-18,
+        cache,
+        nothing;
+        maxsteps=100,
+    )
+    @test cache.psol[1, 1] === stored_cache_p
+    @test sol_cache1.p[1, 1] == sol_cache1_p_snapshot
+    @test sol_cache1.p[1, 1] !== cache.psol[1, 1]
+    @test sol_cache2.p[1, 1] !== sol_cache1.p[1, 1]
+    @test sol_cache2.p[1, 1] != sol_cache1_p_snapshot
+
+    xv_store = Matrix{TaylorN{Float64}}(undef, 2, 1)
+    x_state = [1.0 + ξ[1], 2.0 + ξ[2]]
+    TaylorIntegration._store_state_column!(xv_store, 1, x_state)
+    x_state[1][0] = 30.0
+    @test xv_store[1, 1][0] == 1.0
+    TaylorIntegration._store_state_column!(xv_store, 1, x_state)
+    @test xv_store[:, 1] == x_state
+
     xt1 = Taylor1.([1.0, 2.0], 2)
     sol_t1 = TaylorIntegration.build_solution(tv, xt1)
     @test sol_t1.x == xt1
@@ -142,7 +224,7 @@ import Logging: Warn
     @test solfile.t isa Vector
     @test solfile.p isa Array
 
-    dq = TaylorSeries.variables!("dq", order = 2, numvars = 2)
+    dq = TaylorSeries.variables!("dq", order = 2, numvars = 2, nowarn = true)
     pN = soldense.p .* Taylor1(one(dq[1]), TaylorSeries.order(soldense))
     solN = TaylorSolution(soldense.t, pN)
     jld2_path = tempname() * ".jld2"
@@ -164,4 +246,61 @@ import Logging: Warn
     @test solNfile == solN
     @test solNfile.t isa Vector
     @test solNfile.p isa Array
+
+    @taylorize function dense_cache_kepler!(dx, x, p, t)
+        r_p3d2 = (x[1]^2 + x[2]^2)^1.5
+
+        dx[1] = x[3]
+        dx[2] = x[4]
+        dx[3] = -x[1] / r_p3d2
+        dx[4] = -x[2] / r_p3d2
+
+        return nothing
+    end
+    varorder = 2
+    dq = variables!("xi", numvars = 4, order = varorder, nowarn = true)
+    q01 = [0.2, 0.0, 0.0, 3.0] .+ dq
+    q02 = [0.2, 0.0, 0.0, -3.0] .+ dq
+    kepler_cache = TaylorIntegration.init_cache(
+        Val(true),
+        0.0,
+        q01,
+        200,
+        20,
+        dense_cache_kepler!,
+        nothing,
+    )
+    sol_kepler1 = TaylorIntegration.taylorinteg!(
+        Val(true),
+        dense_cache_kepler!,
+        q01,
+        0.0,
+        1.0,
+        1e-18,
+        kepler_cache,
+        nothing;
+        maxsteps=200,
+        copy_solution=Val(true),
+    )
+    sol_kepler1_x_snapshot = map(TaylorIntegration._stored_value, sol_kepler1.x)
+    sol_kepler1_p_snapshot = map(TaylorIntegration._stored_value, sol_kepler1.p)
+    stored_kepler_cache_p = kepler_cache.psol[1, 1]
+    sol_kepler2 = TaylorIntegration.taylorinteg!(
+        Val(true),
+        dense_cache_kepler!,
+        q02,
+        0.0,
+        1.0,
+        1e-18,
+        kepler_cache,
+        nothing;
+        maxsteps=200,
+        copy_solution=Val(true),
+    )
+    @test kepler_cache.psol[1, 1] === stored_kepler_cache_p
+    @test sol_kepler1.x == sol_kepler1_x_snapshot
+    @test sol_kepler1.p == sol_kepler1_p_snapshot
+    @test sol_kepler1.p[1, 1] !== kepler_cache.psol[1, 1]
+    @test sol_kepler2.x != sol_kepler1_x_snapshot
+    @test sol_kepler2.p != sol_kepler1_p_snapshot
 end

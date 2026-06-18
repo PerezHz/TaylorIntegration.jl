@@ -44,7 +44,7 @@ import Logging: Warn
 
     @testset "Test `stabilitymatrix!`" begin
         t0 = rand() #the initial time
-        xi = variables!("δ", order = 1, numvars = 3)
+        xi = variables!("δ", order = 1, numvars = 3, nowarn = true)
         t_ = Taylor1([t0, 1], _order)
         δx = Array{TaylorN{Taylor1{Float64}}}(undef, 3)
         dδx = similar(δx)
@@ -122,7 +122,7 @@ import Logging: Warn
         dx = similar(x)
 
         #Calculate trace of Lorenz system Jacobian via TaylorSeries.jacobian:
-        xi = variables!("δ", order = 1, numvars = length(q0))
+        xi = variables!("δ", order = 1, numvars = length(q0), nowarn = true)
         q0TN = [q0[1] + xi[1], q0[2] + xi[2], q0[3] + xi[3]]
         dq0TN = similar(q0TN)
         lorenz!(dq0TN, q0TN, nothing, t0)
@@ -140,7 +140,7 @@ import Logging: Warn
         @test constant_term.(jac) == jac_autodiff
 
         # Number of TaylorN variables should be equal to length of vector of initial conditions
-        xi = variables!("δ", order = 1, numvars = length(q0) - 1)
+        xi = variables!("δ", order = 1, numvars = length(q0) - 1, nowarn = true)
         @test_throws AssertionError lyap_taylorinteg(
             lorenz!,
             q0,
@@ -150,7 +150,7 @@ import Logging: Warn
             _abstol;
             maxsteps = 2,
         )
-        xi = variables!("δ", order = 1, numvars = length(q0))
+        xi = variables!("δ", order = 1, numvars = length(q0), nowarn = true)
 
         #Test lyap_taylorinteg with autodiff-computed Jacobian, maxsteps=5
         sol = (@test_logs (Warn, max_iters_reached()) lyap_taylorinteg(
@@ -326,7 +326,7 @@ import Logging: Warn
         tmax = t0 + 20.0 #final time of integration
 
         #Calculate trace of Lorenz system Jacobian via TaylorSeries.jacobian:
-        xi = variables!("δ", order = 1, numvars = length(q0))
+        xi = variables!("δ", order = 1, numvars = length(q0), nowarn = true)
         q0TN = q0 + xi
         dq0TN = similar(q0TN)
         lorenz!(dq0TN, q0TN, nothing, t0)

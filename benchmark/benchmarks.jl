@@ -16,11 +16,11 @@ BT.DEFAULT_PARAMETERS.samples = 25
 include("kepler_benchmarks.jl")
 include("manyspin_benchmarks.jl")
 include("Lyap_benchmark.jl")
+include("jettransport_benchmarks.jl")
 
 # ToDo:
 # pendulum
 # Lyapunov spectrum
-# jet transport
 # common interface
 # Poincare maps
 # @taylorize with @threads
