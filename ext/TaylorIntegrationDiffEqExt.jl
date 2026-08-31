@@ -6,11 +6,11 @@ using TaylorIntegration
 
 using DiffEqBase: DynamicalODEFunction
 import DiffEqBase
-using OrdinaryDiffEqCore:
+using SciMLBase:
     ODEFunction,
     ODEProblem,
-    DynamicalODEProblem,
-    @cache
+    DynamicalODEProblem
+using OrdinaryDiffEqCore: @cache
 import OrdinaryDiffEqCore
 
 using StaticArrays: SVector, SizedArray

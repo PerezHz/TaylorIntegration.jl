@@ -1,5 +1,13 @@
 using TaylorIntegration, Test
 using OrdinaryDiffEqCore
+using SciMLBase:
+    ODEProblem,
+    DynamicalODEProblem,
+    DiscreteCallback,
+    ContinuousCallback,
+    VectorContinuousCallback,
+    isinplace,
+    solve
 using LinearAlgebra: norm
 using StaticArrays
 using Logging
