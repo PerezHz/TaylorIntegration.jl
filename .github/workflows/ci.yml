@@ -62,7 +62,7 @@ jobs:
             ${{ runner.os }}-test-${{ env.cache-name }}-
             ${{ runner.os }}-test-
             ${{ runner.os }}-
-      - name: Use TaylorSeries.jl PR #415 branch
+      - name: Use TaylorSeries.jl PR #416 branch
         run: julia --project=. -e 'using Pkg; Pkg.add(PackageSpec(url="https://github.com/PerezHz/TaylorSeries.jl", rev="jp/evaluate"))'
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
