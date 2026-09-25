@@ -25,14 +25,9 @@ TaylorSolution
 
 ## Internal
 
-```@docs
-jetcoeffs!
-```
-
 ```@autodocs
 Modules = [TaylorIntegration]
 Public = false
-Filter = f -> f !== TaylorIntegration.jetcoeffs!
 ```
 
 ## Index
