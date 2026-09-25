@@ -21,7 +21,6 @@ jobs:
       - name: Install dependencies
         run: julia --project=docs/ -e 'using Pkg;
                 Pkg.develop(PackageSpec(path=pwd()));
-                Pkg.add(PackageSpec(url="https://github.com/PerezHz/TaylorSeries.jl", rev="jp/evaluate"));
                 Pkg.instantiate()'
       - name: Build and deploy
         env:

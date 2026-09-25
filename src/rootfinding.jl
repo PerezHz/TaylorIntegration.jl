@@ -151,9 +151,9 @@ nrconvergencecriterion(
     newtoniter::Int,
 ) where {U<:Number,T<:Real} = abs(constant_term(g_val)) > nrabstol && nriter ≤ newtoniter
 
-# Evaluating at an ordinary number needs no workspace. When the Newton iterate
-# is itself a Taylor series, use TaylorSeries' allocation-free Horner overload
-# with the workspace allocated by the calling integration routine.
+# Evaluating at an ordinary number needs no auxiliary. When the Newton iterate
+# is itself a Taylor series, reuse the pre-allocated auxiliary supplied by the
+# calling integration routine to avoid allocations during evaluation.
 @inline _evaluate_root!(a, x, dest, evalaux) = evaluate!(a, x, dest)
 
 @inline function _evaluate_root!(
@@ -183,7 +183,7 @@ the order of the derivative of `g` whose roots the user is interested in finding
 solution at each of the crossings; `gvS` stores the values of the event function
 `g` (or its `eventorder`-th derivative) at each of the crossings; `t0` is the
 current time; `δt_old` is the last time-step size; `x_dx`, `x_dx_val`, `g_dg`,
-`g_dg_val` are auxiliary variables; `evalaux` is reusable workspace for
+`g_dg_val` are auxiliary variables; `evalaux` is a pre-allocated auxiliary for
 series-valued evaluation; `nrabstol` is the Newton-Raphson process tolerance;
 `newtoniter` is the maximum allowed number of Newton-Raphson iteration;
 `nevents` is the current number of detected events/crossings.

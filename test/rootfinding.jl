@@ -426,3 +426,20 @@ import Logging: Warn
         newtoniter = 2,
     )
 end
+
+@testset "Root evaluation with pre-allocated auxiliaries" begin
+    sp = JetSpace(order = 2, variables = [:u, :v])
+    u, v = variables(sp)
+    for x in (Taylor1(2), u + v)
+        a = [Taylor1([one(x), 2one(x), one(x)], 2),
+             Taylor1([2one(x), 2one(x)], 2)]
+        dest = [zero(x), zero(x)]
+        evalaux = zero(x)
+        for value in (0.5, 0.5 + x)
+            @test isnothing(TaylorIntegration._evaluate_root!(a, value, dest, evalaux))
+            @test dest == [one(x) * (1 + 2value + value^2), one(x) * (2 + 2value)]
+            @test (@allocated TaylorIntegration._evaluate_root!(a, value, dest, evalaux)) == 0
+            @test dest == evaluate(a, value)
+        end
+    end
+end
