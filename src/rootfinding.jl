@@ -151,9 +151,23 @@ nrconvergencecriterion(
     newtoniter::Int,
 ) where {U<:Number,T<:Real} = abs(constant_term(g_val)) > nrabstol && nriter ≤ newtoniter
 
+# Evaluating at an ordinary number needs no auxiliary. When the Newton iterate
+# is itself a Taylor series, reuse the pre-allocated auxiliary supplied by the
+# calling integration routine to avoid allocations during evaluation.
+@inline _evaluate_root!(a, x, dest, evalaux) = evaluate!(a, x, dest)
+
+@inline function _evaluate_root!(
+    a::AbstractArray{Taylor1{U}},
+    x::U,
+    dest::AbstractArray{U},
+    evalaux::U,
+) where {U<:Union{Taylor1,TaylorN}}
+    return evaluate!(a, x, dest, evalaux)
+end
+
 """
     findroot!(t, x, dx, g_tupl_old, g_tupl, eventorder, tvS, xvS, gvS,
-        t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val, nrabstol,
+        t0, δt_old, x_dx, x_dx_val, g_dg, g_dg_val, evalaux, nrabstol,
         newtoniter, nevents) -> nevents
 
 Internal root-finding subroutine, based on Newton-Raphson process. If there is
@@ -169,9 +183,10 @@ the order of the derivative of `g` whose roots the user is interested in finding
 solution at each of the crossings; `gvS` stores the values of the event function
 `g` (or its `eventorder`-th derivative) at each of the crossings; `t0` is the
 current time; `δt_old` is the last time-step size; `x_dx`, `x_dx_val`, `g_dg`,
-`g_dg_val` are auxiliary variables; `nrabstol` is the Newton-Raphson process
-tolerance; `newtoniter` is the maximum allowed number of Newton-Raphson
-iteration; `nevents` is the current number of detected events/crossings.
+`g_dg_val` are auxiliary variables; `evalaux` is a pre-allocated auxiliary for
+series-valued evaluation; `nrabstol` is the Newton-Raphson process tolerance;
+`newtoniter` is the maximum allowed number of Newton-Raphson iteration;
+`nevents` is the current number of detected events/crossings.
 """
 function findroot!(
     t,
@@ -189,6 +204,7 @@ function findroot!(
     x_dx_val,
     g_dg,
     g_dg_val,
+    evalaux,
     nrabstol,
     newtoniter,
     nevents,
@@ -212,17 +228,17 @@ function findroot!(
 
         #Newton-Raphson iterations
         dt_nr = dt_li
-        evaluate!(g_dg, dt_nr, view(g_dg_val, :))
+        _evaluate_root!(g_dg, dt_nr, g_dg_val, evalaux)
 
         while nrconvergencecriterion(g_dg_val[1], nrabstol, nriter, newtoniter)
             dt_nr = dt_nr - g_dg_val[1] / g_dg_val[2]
-            evaluate!(g_dg, dt_nr, view(g_dg_val, :))
+            _evaluate_root!(g_dg, dt_nr, g_dg_val, evalaux)
             nriter += 1
         end
         nriter == newtoniter + 1 && @warn("""
           Newton-Raphson did not converge for prescribed tolerance and maximum allowed iterations.
           """)
-        evaluate!(x_dx, dt_nr, view(x_dx_val, :))
+        _evaluate_root!(x_dx, dt_nr, x_dx_val, evalaux)
 
         tvS[nevents] = t0 + dt_nr
         _store_state_column!(xvS, nevents, view(x_dx_val, 1:dof))
@@ -381,8 +397,9 @@ function taylorinteg!(
 
     x_dx = vcat(x, dx)
     g_dg = vcat(g_tupl[2], g_tupl_old[2])
-    x_dx_val = evaluate(x_dx)
-    g_dg_val = vcat(evaluate(g_tupl[2]), evaluate(g_tupl_old[2]))
+    x_dx_val = _stored_state(evaluate(x_dx))
+    g_dg_val = _stored_state(vcat(evaluate(g_tupl[2]), evaluate(g_tupl_old[2])))
+    evalaux = zero(first(x_dx_val))
 
     tvS = Array{U}(undef, maxsteps + 1)
     xvS = similar(xv)
@@ -416,6 +433,7 @@ function taylorinteg!(
             x_dx_val,
             g_dg,
             g_dg_val,
+            evalaux,
             nrabstol,
             newtoniter,
             nevents,
@@ -517,8 +535,9 @@ function taylorinteg!(
 
     x_dx = vcat(x, dx)
     g_dg = vcat(g_tupl[2], g_tupl_old[2])
-    x_dx_val = evaluate(x_dx)
-    g_dg_val = vcat(evaluate(g_tupl[2]), evaluate(g_tupl_old[2]))
+    x_dx_val = _stored_state(evaluate(x_dx))
+    g_dg_val = _stored_state(vcat(evaluate(g_tupl[2]), evaluate(g_tupl_old[2])))
+    evalaux = zero(first(x_dx_val))
 
     tvS = Array{U}(undef, maxsteps + 1)
     xvS = similar(xv)
@@ -564,6 +583,7 @@ function taylorinteg!(
             x_dx_val,
             g_dg,
             g_dg_val,
+            evalaux,
             nrabstol,
             newtoniter,
             nevents,

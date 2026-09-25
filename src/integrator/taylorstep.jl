@@ -27,7 +27,7 @@ Finally, `parse_eqs` is a switch
 to force *not* using (`parse_eqs=false`) the specialized method of `jetcoeffs!`
 created with [`@taylorize`](@ref); the default is `true` (parse the equations).
 The first argument in the function call `Val{bool}` (`bool::Bool`) controls whether
-a specialized [`jetcoeffs!](@ref) method is being used or not.
+a specialized [`jetcoeffs!`](@ref) method is being used or not.
 
 """
 function taylorstep!(

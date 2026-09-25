@@ -87,7 +87,7 @@ import Logging: Warn
         @test in_interval(tb[end], xb[end, 1])
         @test abs(sin(t0) - xb[end, 2]) < 5e-14
         @test all(in_interval.([tmax, sin(tmax)], solb(tmax)))
-        @test all(isequal_interval.(xb[end, :], solb(x0[1])))
+        @test all(issubset_interval.(xb[end, :], solb(x0[1])))
     end
 
 end

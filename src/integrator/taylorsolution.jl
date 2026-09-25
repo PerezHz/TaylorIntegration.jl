@@ -16,7 +16,7 @@ respectively, a vector with the values of time (independent variable), and a vec
 computed values of the dependent variable(s). When `taylorinteg` is called with `dense=true`,
 then field `p` stores the Taylor polynomial expansion computed at each time step. Fields
 `tevents`, `xevents` and `gresids` are related to root-finding methods of `taylorinteg`, while
-`λ` is related to the output of [lyap_taylorinteg](@ref).
+`λ` is related to the output of [`lyap_taylorinteg`](@ref).
 """
 @auto_hash_equals struct TaylorSolution{
     T,
