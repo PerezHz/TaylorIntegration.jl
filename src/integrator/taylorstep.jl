@@ -32,7 +32,7 @@ a specialized [`jetcoeffs!`](@ref) method is being used or not.
 """
 function taylorstep!(
     ::Val{V},
-    f,
+    f::F,
     t::Taylor1{T},
     x::Taylor1{U},
     abstol::T,
@@ -41,7 +41,7 @@ function taylorstep!(
     reltol::T = zero(T),
     minstepsize::T = zero(T),
     maxstepsize::T = T(Inf)
-) where {T<:Real,U<:Number,V}
+) where {F,T<:Real,U<:Number,V}
 
     # Compute the Taylor coefficients
     __jetcoeffs!(Val(V), f, t, x, params, rv)
@@ -58,7 +58,7 @@ end
 
 function taylorstep!(
     ::Val{V},
-    f!,
+    f!::F,
     t::Taylor1{T},
     x::Vector{Taylor1{U}},
     dx::Vector{Taylor1{U}},
@@ -69,7 +69,7 @@ function taylorstep!(
     reltol::T = zero(T),
     minstepsize::T = zero(T),
     maxstepsize::T = T(Inf)
-) where {T<:Real,U<:Number,V}
+) where {F,T<:Real,U<:Number,V}
 
     # Compute the Taylor coefficients
     __jetcoeffs!(Val(V), f!, t, x, dx, xaux, params, rv)

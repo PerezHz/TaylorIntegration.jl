@@ -224,7 +224,7 @@ via automatic differentiation using `TaylorSeries.jl`.
 """
 function lyap_taylorstep!(
     ::Val{V},
-    f!,
+    f!::F,
     t::Taylor1{T},
     x::Vector{Taylor1{U}},
     dx::Vector{Taylor1{U}},
@@ -241,7 +241,7 @@ function lyap_taylorstep!(
     reltol::T = zero(T),
     minstepsize::T = zero(T),
     maxstepsize::T = T(Inf)
-) where {T<:Real,U<:Number,V}
+) where {F,T<:Real,U<:Number,V}
 
     # Dimensions of phase-space: dof
     nx = length(x)
@@ -337,7 +337,7 @@ function lyap_taylorinteg(
 end
 
 function lyap_taylorinteg!(
-    f!,
+    f!::F,
     q0::Array{U,1},
     t0::T,
     tmax::T,
@@ -351,7 +351,7 @@ function lyap_taylorinteg!(
     reltol::T = zero(T),
     minstepsize::T = zero(T),
     maxstepsize::T = T(Inf)
-) where {T<:Real,U<:Number}
+) where {F,T<:Real,U<:Number}
 
     (; tv, xv, xaux, x0, λ, λtsum, δx, dδx, jac, varsaux,
         QH, RH, aⱼ, qᵢ, vⱼ, t, x, dx, jt, dvars) = cache
@@ -376,9 +376,26 @@ function lyap_taylorinteg!(
     # Integration
     nsteps = 1
     while sign_tstep * t0 < sign_tstep * tmax
-        δt = lyap_taylorstep!(parse_eqs, f!, t, x, dx, xaux, δx, dδx, jac,
-                              abstol, dvars, varsaux, params, rv, jacobianfunc!,
-                              reltol, minstepsize, maxstepsize) # δt is positive!
+        δt = lyap_taylorstep!(
+            parse_eqs,
+            f!,
+            t,
+            x,
+            dx,
+            xaux,
+            δx,
+            dδx,
+            jac,
+            abstol,
+            dvars,
+            varsaux,
+            params,
+            rv,
+            jacobianfunc!,
+            reltol,
+            minstepsize,
+            maxstepsize
+        ) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep * (tmax - t0))
         evaluate!(x, δt, x0) # Update x0
@@ -461,7 +478,7 @@ function lyap_taylorinteg(
 end
 
 function lyap_taylorinteg!(
-    f!,
+    f!::F,
     q0::Array{U,1},
     trange::AbstractVector{T},
     abstol::T,
@@ -474,7 +491,7 @@ function lyap_taylorinteg!(
     reltol::T = zero(T),
     minstepsize::T = zero(T),
     maxstepsize::T = T(Inf)
-) where {T<:Real,U<:Number}
+) where {F,T<:Real,U<:Number}
 
     (; xv, xaux, x0, q1, λ, λtsum, δx, dδx, jac, varsaux,
         QH, RH, aⱼ, qᵢ, vⱼ, t, x, dx, jt, dvars) = cache
@@ -500,9 +517,26 @@ function lyap_taylorinteg!(
     iter = 2
     nsteps = 1
     while sign_tstep * t0 < sign_tstep * tmax
-        δt = lyap_taylorstep!(parse_eqs, f!, t, x, dx, xaux, δx, dδx, jac,
-                              abstol, dvars, varsaux, params, rv, jacobianfunc!,
-                              reltol, minstepsize, maxstepsize) # δt is positive!
+        δt = lyap_taylorstep!(
+            parse_eqs,
+            f!,
+            t,
+            x,
+            dx,
+            xaux,
+            δx,
+            dδx,
+            jac,
+            abstol,
+            dvars,
+            varsaux,
+            params,
+            rv,
+            jacobianfunc!,
+            reltol,
+            minstepsize,
+            maxstepsize
+        ) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep * (tmax - t0))
         evaluate!(x, δt, x0) # Update x0

@@ -362,7 +362,7 @@ end
 
 function taylorinteg!(
     dense::Val{D},
-    f!,
+    f!::F,
     g,
     q0::Array{U,1},
     t0::T,
@@ -378,7 +378,7 @@ function taylorinteg!(
     minstepsize::T = zero(T),
     maxstepsize::T = T(Inf),
     copy_solution::Val = Val(true)
-) where {T<:Real,U<:Number,D}
+) where {F,T<:Real,U<:Number,D}
 
     (; tv, xv, psol, xaux, t, x, dx, rv, parse_eqs) = cache
 
@@ -501,7 +501,7 @@ function taylorinteg(
 end
 
 function taylorinteg!(
-    f!,
+    f!::F,
     g,
     q0::Array{U,1},
     trange::AbstractVector{T},
@@ -516,7 +516,7 @@ function taylorinteg!(
     minstepsize::T = zero(T),
     maxstepsize::T = T(Inf),
     copy_solution::Val = Val(true)
-) where {T<:Real,U<:Number}
+) where {F,T<:Real,U<:Number}
 
     (; tv, xv, xaux, x0, x1, t, x, dx, rv, parse_eqs) = cache
 
