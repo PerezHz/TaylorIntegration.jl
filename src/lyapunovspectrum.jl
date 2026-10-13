@@ -222,7 +222,6 @@ Jacobian function `jacobianfunc!` to compute `jac`. Otherwise, `jac` is computed
 via automatic differentiation using `TaylorSeries.jl`.
 
 """
-
 function lyap_taylorstep!(
     ::Val{V},
     f!,
@@ -347,7 +346,7 @@ function lyap_taylorinteg!(
     cache::LyapunovSpectrumCache,
     params,
     jacobianfunc!;
-    parse_eqs::Bool = true,
+    parse_eqs::Val = Val(true),
     maxsteps::Int = 500,
     reltol::T = zero(T),
     minstepsize::T = zero(T),
@@ -377,26 +376,9 @@ function lyap_taylorinteg!(
     # Integration
     nsteps = 1
     while sign_tstep * t0 < sign_tstep * tmax
-        δt = lyap_taylorstep!(
-            Val(parse_eqs),
-            f!,
-            t,
-            x,
-            dx,
-            xaux,
-            δx,
-            dδx,
-            jac,
-            abstol,
-            dvars,
-            varsaux,
-            params,
-            rv,
-            jacobianfunc!,
-            reltol,
-            minstepsize,
-            maxstepsize
-        ) # δt is positive!
+        δt = lyap_taylorstep!(parse_eqs, f!, t, x, dx, xaux, δx, dδx, jac,
+                              abstol, dvars, varsaux, params, rv, jacobianfunc!,
+                              reltol, minstepsize, maxstepsize) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep * (tmax - t0))
         evaluate!(x, δt, x0) # Update x0
@@ -487,7 +469,7 @@ function lyap_taylorinteg!(
     cache::LyapunovSpectrumTRangeCache,
     params,
     jacobianfunc!;
-    parse_eqs::Bool = true,
+    parse_eqs::Val = Val(true),
     maxsteps::Int = 500,
     reltol::T = zero(T),
     minstepsize::T = zero(T),
@@ -518,26 +500,9 @@ function lyap_taylorinteg!(
     iter = 2
     nsteps = 1
     while sign_tstep * t0 < sign_tstep * tmax
-        δt = lyap_taylorstep!(
-            Val(parse_eqs),
-            f!,
-            t,
-            x,
-            dx,
-            xaux,
-            δx,
-            dδx,
-            jac,
-            abstol,
-            dvars,
-            varsaux,
-            params,
-            rv,
-            jacobianfunc!,
-            reltol,
-            minstepsize,
-            maxstepsize
-        ) # δt is positive!
+        δt = lyap_taylorstep!(parse_eqs, f!, t, x, dx, xaux, δx, dδx, jac,
+                              abstol, dvars, varsaux, params, rv, jacobianfunc!,
+                              reltol, minstepsize, maxstepsize) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep * (tmax - t0))
         evaluate!(x, δt, x0) # Update x0

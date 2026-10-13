@@ -216,7 +216,7 @@ function init_cache(
         t,
         x,
         rv,
-        parse_eqs,
+        _parse_eqs_val(parse_eqs),
     )
 end
 
@@ -244,7 +244,7 @@ function init_cache(
         t,
         x,
         rv,
-        parse_eqs,
+        _parse_eqs_val(parse_eqs),
     )
     fill!(cache.xv, T(NaN))
     return cache
@@ -275,7 +275,7 @@ function init_cache(
         x,
         dx,
         rv,
-        parse_eqs,
+        _parse_eqs_val(parse_eqs),
     )
 end
 
@@ -308,7 +308,7 @@ function init_cache(
         x,
         dx,
         rv,
-        parse_eqs,
+        _parse_eqs_val(parse_eqs),
     )
     fill!(cache.x0, T(NaN))
     for ind = 1:nn
@@ -362,7 +362,7 @@ function init_cache_lyap(
         jt,
         dvars,
         rv,
-        parse_eqs,
+        _parse_eqs_val(parse_eqs),
     )
     fill!(cache.jac, zero(x[1]))
     return cache
@@ -416,7 +416,7 @@ function init_cache_lyap(
         jt,
         dvars,
         rv,
-        parse_eqs,
+        _parse_eqs_val(parse_eqs),
     )
     fill!(cache.xv, U(NaN))
     fill!(cache.λ, U(NaN))

@@ -410,7 +410,7 @@ function taylorinteg!(
     nevents = 1 #number of detected events
     while sign_tstep * t0 < sign_tstep * tmax
         δt_old = δt
-        δt = taylorstep!(Val(parse_eqs), f!, t, x, dx, xaux, abstol, params, rv, reltol,
+        δt = taylorstep!(parse_eqs, f!, t, x, dx, xaux, abstol, params, rv, reltol,
                          minstepsize, maxstepsize) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep * (tmax - t0))
@@ -549,7 +549,7 @@ function taylorinteg!(
     nevents = 1 #number of detected events
     while sign_tstep * t0 < sign_tstep * tmax
         δt_old = δt
-        δt = taylorstep!(Val(parse_eqs), f!, t, x, dx, xaux, abstol, params, rv, reltol,
+        δt = taylorstep!(parse_eqs, f!, t, x, dx, xaux, abstol, params, rv, reltol,
                          minstepsize, maxstepsize) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
         δt = sign_tstep * min(δt, sign_tstep * (tmax - t0))
