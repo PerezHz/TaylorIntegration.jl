@@ -113,4 +113,16 @@ end
             @test a2 == a1
         end
     end
+
+    # `_has_parsed_method` must agree with the (slower) `methodswith`
+    @testset "_has_parsed_method" begin
+        for f in (perf_kepler1!, perf_kepler2!, perf_kepler5!, sin, +)
+            for g in (TaylorIntegration.jetcoeffs!, TaylorIntegration._allocate_jetcoeffs!)
+                @test TaylorIntegration._has_parsed_method(g, f) ==
+                    !isempty(methodswith(Val{f}, g))
+            end
+        end
+        @test TaylorIntegration._has_parsed_method(TaylorIntegration.jetcoeffs!, perf_kepler1!)
+        @test !TaylorIntegration._has_parsed_method(TaylorIntegration.jetcoeffs!, sin)
+    end
 end

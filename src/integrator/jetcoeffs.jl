@@ -148,6 +148,25 @@ integration loops call [`taylorstep!`](@ref) without runtime dispatch.
 @inline _parse_eqs_val(parse_eqs::Bool) = parse_eqs ? Val(true) : Val(false)
 
 
+# _has_parsed_method
+"""
+    _has_parsed_method(g, f) -> Bool
+
+Return `true` if the generic function `g` (`jetcoeffs!` or `_allocate_jetcoeffs!`)
+has a method whose first argument is `Val{f}`, i.e., a method created by
+[`@taylorize`](@ref) for `f`.
+This is equivalent to `!isempty(methodswith(Val{f}, g))`, but it is much cheaper.
+"""
+function _has_parsed_method(g, f)
+    V = Val{f}
+    for m in methods(g, Tuple{V, Vararg{Any}})
+        sig = Base.unwrap_unionall(m.sig)
+        length(sig.parameters) ≥ 2 && sig.parameters[2] == V && return true
+    end
+    return false
+end
+
+
 # _determine_parsing!
 """
     _determine_parsing!(parse_eqs::Bool, f, t, x, params)
@@ -159,8 +178,8 @@ runs without error.
 function _determine_parsing!(parse_eqs::Bool, f, t, x, params)
     parse_eqs =
         parse_eqs &&
-        !isempty(methodswith(Val{f}, jetcoeffs!)) &&
-        !isempty(methodswith(Val{f}, _allocate_jetcoeffs!))
+        _has_parsed_method(jetcoeffs!, f) &&
+        _has_parsed_method(_allocate_jetcoeffs!, f)
 
     # tmpTaylor, arrTaylor = _allocate_jetcoeffs!(t, x, params)
     rv = _allocate_jetcoeffs!(t, x, params)
@@ -183,8 +202,8 @@ function _determine_parsing!(parse_eqs::Bool, f, t, x, dx, params)
 
     parse_eqs =
         parse_eqs &&
-        !isempty(methodswith(Val{f}, jetcoeffs!)) &&
-        !isempty(methodswith(Val{f}, _allocate_jetcoeffs!))
+        _has_parsed_method(jetcoeffs!, f) &&
+        _has_parsed_method(_allocate_jetcoeffs!, f)
 
     rv = _allocate_jetcoeffs!(t, x, dx, params)
 

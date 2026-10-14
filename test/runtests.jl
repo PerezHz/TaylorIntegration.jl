@@ -8,6 +8,7 @@ testfiles = (
     "jettransport.jl",
     "lyapunov.jl",
     "bigfloats.jl",
+    "performance.jl",
     "common.jl",
     "rootfinding.jl",
     "taylorize.jl",
