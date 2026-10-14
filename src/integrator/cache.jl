@@ -297,12 +297,19 @@ function init_cache(
     # Initialize cache
     nn = length(trange)
     dof = length(q0)
-    cache = VectorTRangeCache(
+    # `xv` and `x0` are initialized *before* building the cache
+    xv = Array{U}(undef, dof, nn)
+    x0 = zero.(q0)
+    fill!(x0, T(NaN))
+    for ind = 1:nn
+        @inbounds xv[:, ind] .= x0
+    end
+    return VectorTRangeCache(
         trange,
-        Array{U}(undef, dof, nn),
+        xv,
         init_psol(Val(false), maxsteps, dof, x),
         Array{Taylor1{U}}(undef, dof),
-        zero.(q0),
+        x0,
         zero.(q0),
         t,
         x,
@@ -310,11 +317,6 @@ function init_cache(
         rv,
         _parse_eqs_val(parse_eqs),
     )
-    fill!(cache.x0, T(NaN))
-    for ind = 1:nn
-        @inbounds cache.xv[:, ind] .= cache.x0
-    end
-    return cache
 end
 
 function init_cache_lyap(
