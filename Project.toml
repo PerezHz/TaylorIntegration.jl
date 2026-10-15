@@ -1,6 +1,6 @@
 name = "TaylorIntegration"
 uuid = "92b13dbe-c966-51a2-8445-caca9f8a7d42"
-version = "0.18.18"
+version = "0.18.19"
 repo = "https://github.com/PerezHz/TaylorIntegration.jl.git"
 
 [deps]
@@ -11,7 +11,6 @@ JLD2 = "033835bb-8acc-5ee8-8aae-3f567f8a3819"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Markdown = "d6f4376e-aef5-505a-96c1-9c027394607a"
 Parameters = "d96e819e-fc66-5662-9728-84c9c7592b0a"
-Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 RecursiveArrayTools = "731186ca-8d62-57ce-b412-fbd966d074cd"
 Reexport = "189a3867-3050-52da-a836-e630ba90ab69"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
@@ -49,7 +48,7 @@ RecursiveArrayTools = "2, 3, 4"
 Reexport = "1"
 SciMLBase = "2, 3"
 StaticArrays = "0.12.5, 1"
-TaylorSeries = "0.22.7, 0.23"
+TaylorSeries = "0.23.1"
 Test = "<0.0.1, 1"
 julia = "1.10"
 
@@ -63,6 +62,7 @@ Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
 OrdinaryDiffEqCore = "bbf590c4-e513-4bbe-9b18-05decba2e5d8"
 Pkg = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
 PkgBenchmark = "32113eaa-f34f-5b0d-bd6c-c81e245fc73d"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 RecursiveArrayTools = "731186ca-8d62-57ce-b412-fbd966d074cd"
 SciMLBase = "0bca4576-84f4-4d90-8ffe-ffa030f20462"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
@@ -70,4 +70,4 @@ TaylorSeries = "6aa5eb33-94cf-58f4-a9d0-e4b2c4fc25ea"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Aqua", "Elliptic", "InteractiveUtils", "LinearAlgebra", "Logging", "OrdinaryDiffEqCore", "Pkg", "Random", "RecursiveArrayTools", "SciMLBase", "StaticArrays", "TaylorSeries", "Test"]
+test = ["Aqua", "Elliptic", "InteractiveUtils", "IntervalArithmetic", "LinearAlgebra", "Logging", "OrdinaryDiffEqCore", "Pkg", "Random", "RecursiveArrayTools", "SciMLBase", "StaticArrays", "TaylorSeries", "Test"]
