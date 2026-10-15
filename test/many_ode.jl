@@ -1,14 +1,66 @@
 # This file is part of the TaylorIntegration.jl package; MIT licensed
 
 using TaylorIntegration
-using Test
+using Test, Random
 using LinearAlgebra: Transpose, norm
 using Logging
 import Logging: Warn
 
+const TI = TaylorIntegration
+
+@testset "_exact_step" begin
+
+    # --- exact step ---------------------------------------------------------------
+    function check_step(t0, δt, tmax, sgn)
+        δt1 = TI._exact_step(t0, δt, tmax, sgn)
+        t1 = t0 + δt1
+        s, e = TI._two_sum(t0, δt1)
+        @test s == t1 && iszero(e)                       # exact
+        @test t1 == tmax || abs(δt1) <= abs(δt) ||       # conservative, except landing on
+            t1 == (sgn > 0 ? nextfloat(t0) : prevfloat(t0))  # tmax or a sub-ulp request
+        @test sign(δt1) == sgn                           # direction
+        @test sgn * t1 <= sgn * tmax                     # no overshoot
+        return δt1
+    end
+
+    # Repeated steps with the same requested δt until tmax is reached exactly;
+    # returns the number of steps (every step checked with check_step).
+    function reach_tmax(t0, δt, tmax, sgn; maxsteps = 64)
+        t, n = t0, 0
+        while t != tmax
+            t += check_step(t, δt, tmax, sgn)
+            n += 1
+            n < maxsteps || error("reach_tmax: tmax not reached")
+        end
+        return n
+    end
+
+    s, e = TI._two_sum(1.0, 1e-17)
+    @test big(s) + big(e) == big(1.0) + big(1e-17)
+    @test check_step(0.0, 0.1, 10.0, 1) == 0.1                   # t0 = 0
+    check_step(4.0, 0.8802595366450658, 10.0, 1)                 # |t0| ≥ |δt|
+    check_step(10.0, -0.3, 0.0, -1)
+    check_step(1e-3, 0.7, 10.0, 1)                              # 0 < |t0| < |δt|
+    check_step(-1e-3, -0.7, -10.0, -1)
+    # requested step larger than what is left (TI's estimate is often larger):
+    # the step is clipped and tmax is reached exactly, possibly in a few steps
+    # when tmax - t0 is not representable (tmax not within a factor 2 of t0)
+    @test reach_tmax(0.0, 0.5, 0.7, 1) == 2                     # 0.5, then 0.2 → 0.7
+    @test reach_tmax(4.0, 9.0, 7.3, 1) == 1                     # Sterbenz: one step
+    @test reach_tmax(5.0, -9.0, 0.1, -1) <= 8                   # 0.1 - 5 not representable
+    @test reach_tmax(5.0, -20.0, -3.0, -1) <= 8                 # across 0
+    @test reach_tmax(1e-3, 10.0, 7.3, 1) <= 16                  # 0 < |t0| ≪ |δt|
+    rng = MersenneTwister(2026)
+    for _ in 1:2_000
+        sgn = rand(rng, (-1, 1))
+        t0 = sgn * 10 * rand(rng) * rand(rng, (0.0, 1e-6, 1.0, 1e3))
+        δt = sgn * rand(rng) * rand(rng, (1e-8, 1e-2, 1.0))
+        check_step(t0, δt, t0 + sgn * 100, sgn)
+    end
+end
+
 @testset "Testing `many_ode.jl`" begin
 
-    local TI = TaylorIntegration
     local _order = 28
     local _abstol = 1.0E-20
     local tT = Taylor1(_order)

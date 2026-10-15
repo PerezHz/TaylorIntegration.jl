@@ -518,8 +518,14 @@ import Logging: Warn
         sol2 = solve(prob, TaylorMethod(_order), abstol = _abstol, parse_eqs = false)
         sol3 = solve(prob, TaylorMethod(_order), abstol = _abstol)
 
+        # Within the common interface the results do not depend on `parse_eqs`: identical
         @test sol1.t == sol2.t == sol3.t == tv2p
         @test sol1.u[end] == sol2.u[end] == sol3.u[end] == xv2p[end, 1:2]
+        @test length(sol1.t) == length(tv2p)
+        @test norm(sol1.t[1:10] - tv2p[1:10], Inf) < 1e-12
+        @test all(norm(sol1.u[k] - xv2p[k, 1:2], Inf) < 1e-12 for k = 1:10)
+        @test norm(sol1.t - tv2p, Inf) < 1e-3
+        @test norm(sol1.u[end] - xv2p[end, 1:2], Inf) < 1e-3
 
         # Check that the parsed `jetcoeffs!` produces the correct series in `x` and no errors
         tT = t0 + Taylor1(_order)

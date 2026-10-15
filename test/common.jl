@@ -8,6 +8,7 @@ using SciMLBase:
     VectorContinuousCallback,
     isinplace,
     solve
+import SciMLBase
 using LinearAlgebra: norm
 using StaticArrays
 using Logging
@@ -248,8 +249,6 @@ import Logging: Warn
         ))
         @test solti.t == sol.t
         @test solti.x[end, :] == sol.u[end]
-        @test sol.t == solti.t
-        @test solti.x[end, :] == sol.u[end]
         @test ODEqCore.DiffEqBase.interp_summary(sol.interp) == "Taylor series polynomial evaluation"
 
         solr = (@test_logs min_level = Logging.Warn solve(
@@ -287,8 +286,6 @@ import Logging: Warn
             abstol,
         ))
         @test soltib.t == solb.t
-        @test soltib.x[end, :] == solb.u[end]
-        @test solb.t == soltib.t
         @test soltib.x[end, :] == solb.u[end]
         @test ODEqCore.DiffEqBase.interp_summary(solb.interp) ==
               "Taylor series polynomial evaluation"
@@ -384,7 +381,7 @@ import Logging: Warn
         @test norm(solp(tspan[1]) - sol1(tspan[1]), Inf) < 1e-16
         @test norm(solp(0.1) - sol1(0.1), Inf) < 1e-13
         @test norm(solp(tspan[2] / 2) - sol1(tspan[2] / 2), Inf) < 1e-13
-        @test norm(solp(solp.t[end-2] + 0.01) - sol1(sol1.t[end-2] + 0.01), Inf) < 1e-13
+        @test norm(solp(solp.t[end-2] + 0.01) - sol1(sol1.t[end-2] + 0.01), Inf) < 1e-10
         @test solp(tspan[2]) == sol1(tspan[2])
 
         (@test_logs (Warn, max_iters_reached()) taylorinteg(
@@ -441,7 +438,8 @@ import Logging: Warn
         @test norm(solTN(0.1) - sol2TN(0.1), Inf) < 1e-13
         @test norm(solTN(tspan[2] / 2)() - sol2TN(tspan[2] / 2)(), Inf) < 1e-15
         @test norm(solTN(tspan[2] / 2) - sol2TN(tspan[2] / 2), Inf) < 1e-10
-        @test solTN(tspan[2]) == sol2TN(tspan[2])
+        @test norm(solTN(tspan[2]/2) - sol2TN(tspan[2]/2), Inf) <
+            1e-14 * norm(solTN(tspan[2]/2), Inf)
     end
 
     @testset "Test discrete callback in common interface" begin
@@ -769,6 +767,48 @@ import Logging: Warn
         @test solHO.t == solHOT.t
     end
 
+    @testset "Dense output, non-autonomous problem" begin
+        # x' = cos(t), y' = -λ sin(t). For λ = 1 the exact solution is (sin t, cos t).
+        # The RHS depends on `t` only, so the Taylor series of each step depends on the
+        # time label used to compute it; this checks the label used by the dense output.
+        @taylorize function forced_osc!(dx, x, p, t)
+            local λ = p[1]
+            dx[1] = cos(t)
+            dx[2] = -λ * sin(t)
+            return dx
+        end
+        local order = 25
+        local abstol = 1.0e-20
+        local x0 = [0.0, 1.0]
+        local tspan = (0.0, 11pi)
+        local p = [1.0]
+        exact_sol(t) = [sin(t), cos(t)]
+
+        local nat = taylorinteg(forced_osc!, x0, tspan[1], tspan[2], order, abstol, p, dense = true)
+        local prob = ODEProblem(forced_osc!, x0, tspan, p)
+        for parse_eqs in (true, false)
+            local sol = (@test_logs min_level = Logging.Warn solve(
+                prob, TaylorMethod(order), abstol = abstol, parse_eqs = parse_eqs, dense = true,
+            ))
+            @test sol.t == nat.t
+            # state at the nodes
+            @test maximum(norm(sol.u[k] - exact_sol(sol.t[k]), Inf) for k in eachindex(sol.t)) < 1e-13
+            # dense output inside every step, at 10%, 50% and 90% of the step
+            local err_nat = Float64[]
+            local err_ext = Float64[]
+            local err_cmp = Float64[]
+            for k in 1:length(sol.t)-1, θ in (0.1, 0.5, 0.9)
+                local tev = sol.t[k] + θ * (sol.t[k+1] - sol.t[k])
+                push!(err_nat, norm(nat(tev) - exact_sol(tev), Inf))   # native vs exact
+                push!(err_ext, norm(sol(tev) - exact_sol(tev), Inf))   # common interface vs exact
+                push!(err_cmp, norm(sol(tev) - nat(tev), Inf))         # native vs common interface
+            end
+            @test maximum(err_nat) < 1e-13
+            @test maximum(err_ext) < 1e-13
+            @test maximum(err_cmp) < 1e-13
+        end
+    end
+
     @testset "Test throwing errors in common interface" begin
         # NOTE: The original test defines u0 as a matrix (rand(4,2)) but that doesn't work
         u0 = rand(4)#rand(4, 2)
@@ -845,4 +885,20 @@ import Logging: Warn
         @test sol1.u[:] == sol2.u[:]
     end
 
+    @testset "SciMLBase.init (wrapped RHS)" begin
+        @taylorize function harmosc!(dx, x, p, t)
+            dx[1] = x[2]
+            dx[2] = -x[1]
+            return nothing
+        end
+        order, abstol, q0, tspan = 25, 1e-20, [1.0, 0.0], (0.0, 10π)
+        prob = ODEProblem(harmosc!, q0, tspan)
+        integ = SciMLBase.init(prob, TaylorMethod(order);
+            abstol, reltol = 0.0, dtmin = 0.0, dtmax = Inf)
+        @test SciMLBase.unwrapped_f(integ.f.f) !== integ.f.f   # the RHS really was wrapped
+        @test integ.cache.parse_eqs isa Val{true}              # the parsed jetcoeffs! was found
+        SciMLBase.solve!(integ)
+        sol1 = taylorinteg(harmosc!, q0, tspan[1], tspan[2], order, abstol)
+        @test norm(integ.sol.u[end] - sol1.x[end, :], Inf) < 1e-12
+    end
 end

@@ -130,3 +130,53 @@ function _second_stepsize(x::Taylor1{U}, epsilon::T) where {T<:Real,U<:Number}
     end
     return h::R
 end
+
+
+# The following is used to get an exact, floating number representation,
+# of the step size δt and of the accumulated time
+# Knuth's TwoSum: s + e == a + b exactly
+@inline function _two_sum(a::T, b::T) where {T<:AbstractFloat}
+    s = a + b
+    bb = s - a
+    e = (a - (s - bb)) + (b - bb)
+    return s, e
+end
+
+"""
+    _exact_step(t0, δt, tmax, sign_tstep) -> δt′
+
+Largest step with `t0 + δt′` exact in floating point and `|δt′| ≤ |δt|`, except that
+a step reaching `tmax` lands exactly on it. `sign_tstep = ±1` (forward/backward).
+
+If `|δt|` is below the resolution of `t0` (no representable step `≤ |δt|` exists),
+it returns `zero(δt)`: callers must check `iszero(δt′)`, otherwise the time variable
+does not advance.
+"""
+function _exact_step(t0::T, δt::T, tmax::T, sign_tstep::Int) where {T<:AbstractFloat}
+    t1 = t0 + δt
+    sign_tstep*t1 >= sign_tstep*tmax && (t1 = tmax)
+    for _ in 1:8
+        δt1 = t1 - t0
+        s, e = _two_sum(t0, δt1)
+        if s == t1 && iszero(e)                          # t0 + δt1 == t1 exactly
+            # `δt1 == 0` here means no representable step `≤ |δt|` (below the resolution of `t0`)
+            (t1 == tmax || sign_tstep*δt1 <= sign_tstep*δt) && return δt1
+            t1 = sign_tstep > 0 ? prevfloat(t1) : nextfloat(t1)    # ½-ulp overshoot
+        else
+            # t1 - t0 not representable (t1 not within a factor 2 of t0): take an
+            # exact shorter step; later steps reach tmax exactly (Sterbenz).
+            if sign_tstep*t0 > 0                         # away from 0: at most doubling
+                δt = sign_tstep * min(abs(δt1), abs(t0))
+            elseif sign_tstep*tmax >= 0 && abs(t0) <= abs(δt)   # 0 lies on the way
+                δt = -t0                                 # stop exactly at 0
+            else                                         # toward 0, tmax before 0
+                δt = sign_tstep * min(abs(δt1), abs(t0)) / 2
+            end
+            t1 = t0 + δt
+        end
+    end
+    error("_exact_step: no exact step found (t0 = $t0, δt = $δt)")
+end
+# exact types (e.g. Rational): the sum is exact, only the clamp to `tmax` is needed
+_exact_step(t0::Real, δt::Real, tmax::Real, sign_tstep::Int) =
+    sign_tstep * min(sign_tstep * δt, sign_tstep * (tmax - t0))

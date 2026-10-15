@@ -362,7 +362,7 @@ end
 
 function taylorinteg!(
     dense::Val{D},
-    f!,
+    f!::F,
     g,
     q0::Array{U,1},
     t0::T,
@@ -378,7 +378,7 @@ function taylorinteg!(
     minstepsize::T = zero(T),
     maxstepsize::T = T(Inf),
     copy_solution::Val = Val(true)
-) where {T<:Real,U<:Number,D}
+) where {F,T<:Real,U<:Number,D}
 
     (; tv, xv, psol, xaux, t, x, dx, rv, parse_eqs) = cache
 
@@ -410,10 +410,14 @@ function taylorinteg!(
     nevents = 1 #number of detected events
     while sign_tstep * t0 < sign_tstep * tmax
         δt_old = δt
-        δt = taylorstep!(Val(parse_eqs), f!, t, x, dx, xaux, abstol, params, rv, reltol,
+        δt = taylorstep!(parse_eqs, f!, t, x, dx, xaux, abstol, params, rv, reltol,
                          minstepsize, maxstepsize) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
-        δt = sign_tstep * min(δt, sign_tstep * (tmax - t0))
+        δt = _exact_step(t0, sign_tstep * δt, tmax, sign_tstep)
+        if iszero(δt)
+            @warn("""The step-size is below the resolution of the time variable; aborting integration.""")
+            break
+        end
         evaluate!(x, δt, x0) # new initial condition
         set_psol!(dense, psol, nsteps, x) # Store the Taylor polynomial solution
         g_tupl = g(dx, x, params, t)
@@ -501,7 +505,7 @@ function taylorinteg(
 end
 
 function taylorinteg!(
-    f!,
+    f!::F,
     g,
     q0::Array{U,1},
     trange::AbstractVector{T},
@@ -516,7 +520,7 @@ function taylorinteg!(
     minstepsize::T = zero(T),
     maxstepsize::T = T(Inf),
     copy_solution::Val = Val(true)
-) where {T<:Real,U<:Number}
+) where {F,T<:Real,U<:Number}
 
     (; tv, xv, xaux, x0, x1, t, x, dx, rv, parse_eqs) = cache
 
@@ -549,10 +553,14 @@ function taylorinteg!(
     nevents = 1 #number of detected events
     while sign_tstep * t0 < sign_tstep * tmax
         δt_old = δt
-        δt = taylorstep!(Val(parse_eqs), f!, t, x, dx, xaux, abstol, params, rv, reltol,
+        δt = taylorstep!(parse_eqs, f!, t, x, dx, xaux, abstol, params, rv, reltol,
                          minstepsize, maxstepsize) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
-        δt = sign_tstep * min(δt, sign_tstep * (tmax - t0))
+        δt = _exact_step(t0, sign_tstep * δt, tmax, sign_tstep)
+        if iszero(δt)
+            @warn("""The step-size is below the resolution of the time variable; aborting integration.""")
+            break
+        end
         evaluate!(x, δt, x0) # new initial condition
         tnext = t0 + δt
         # Evaluate solution at times within convergence radius

@@ -150,7 +150,6 @@ This is the low-allocation path used when a returned solution is allowed to
 borrow storage from the integration cache. The returned arrays may alias the
 cache and can be overwritten if the same cache is reused.
 """
-
 arraysol(::Nothing, ::Int) = nothing
 arraysol(v::AbstractVector, n::Int) = view(v, 1:n)
 arraysol(m::AbstractMatrix, n::Int) = view(transpose(view(m, :, 1:n)), 1:n, :)
