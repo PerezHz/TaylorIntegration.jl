@@ -359,6 +359,7 @@ function ODEqCore._ode_addsteps!(
             copyat_or_push!(k, 2, f(u, p, t + dt))
         end
     end
+    cache.tT[0] = t + dt          # time label of the end of the interval
     update_jetcoeffs_cache!(u, f, p, cache)
     nothing
 end
