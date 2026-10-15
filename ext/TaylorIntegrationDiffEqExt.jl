@@ -239,7 +239,14 @@ ODEqCore.get_fsalfirstlast(cache::TaylorMethodCache, u) = (cache.fsalfirst, cach
 ODEqCore.stepsize_controller!(integrator, alg::TaylorMethodParams) =
     clamp(TaylorIntegration.stepsize(integrator.cache.uT, integrator.opts.abstol,
         integrator.opts.reltol), abs(integrator.opts.dtmin), abs(integrator.opts.dtmax))
-ODEqCore.step_accept_controller!(integrator, alg::TaylorMethodParams, q) = q
+# Step proposed by the Taylor series, made exact w.r.t. the time variable (`t + dt` exact; see
+# `TaylorIntegration._exact_step`), as in `taylorinteg`. OrdinaryDiffEqCore calls
+# `step_accept_controller!` after updating `integrator.t`, so `t` is the new time; since the step
+# is already exact, the rounding of `dtpropose` in `calc_dt_propose!` leaves it unchanged.
+_exact_dt(integrator, q) = abs(TaylorIntegration._exact_step(integrator.t, integrator.tdir * q,
+    last(integrator.sol.prob.tspan), Int(integrator.tdir)))
+
+ODEqCore.step_accept_controller!(integrator, alg::TaylorMethodParams, q) = _exact_dt(integrator, q)
 
 function DiffEqBase.solve(
     prob::DiffEqBase.AbstractODEProblem{uType,tupType,isinplace},
@@ -305,9 +312,9 @@ function DiffEqBase.solve(
     integrator = DiffEqBase.__init(_prob, _alg, args...; kwargs..., kwargspairs...)
     # Override handle_dt! setting of initial dt
     integrator.dt =
-        integrator.tdir *
-        clamp(TaylorIntegration.stepsize(integrator.cache.uT, integrator.opts.abstol,
-            integrator.opts.reltol), abs(integrator.opts.dtmin), abs(integrator.opts.dtmax))
+        integrator.tdir * _exact_dt(integrator,
+            clamp(TaylorIntegration.stepsize(integrator.cache.uT, integrator.opts.abstol,
+                integrator.opts.reltol), abs(integrator.opts.dtmin), abs(integrator.opts.dtmax)))
     DiffEqBase.solve!(integrator)
     integrator.sol
 end

@@ -397,7 +397,11 @@ function lyap_taylorinteg!(
             maxstepsize
         ) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
-        δt = sign_tstep * min(δt, sign_tstep * (tmax - t0))
+        δt = _exact_step(t0, sign_tstep * δt, tmax, sign_tstep)
+        if iszero(δt)
+            @warn("""The step-size is below the resolution of the time variable; aborting integration.""")
+            break
+        end
         evaluate!(x, δt, x0) # Update x0
         for ind in eachindex(jt)
             @inbounds jt[ind] = x0[dof+ind]
@@ -538,7 +542,11 @@ function lyap_taylorinteg!(
             maxstepsize
         ) # δt is positive!
         # Below, δt has the proper sign according to the direction of the integration
-        δt = sign_tstep * min(δt, sign_tstep * (tmax - t0))
+        δt = _exact_step(t0, sign_tstep * δt, tmax, sign_tstep)
+        if iszero(δt)
+            @warn("""The step-size is below the resolution of the time variable; aborting integration.""")
+            break
+        end
         evaluate!(x, δt, x0) # Update x0
         tnext = t0 + δt
         # Evaluate solution at times within convergence radius

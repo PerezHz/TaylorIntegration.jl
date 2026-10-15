@@ -8,6 +8,7 @@ using SciMLBase:
     VectorContinuousCallback,
     isinplace,
     solve
+import SciMLBase
 using LinearAlgebra: norm
 using StaticArrays
 using Logging
@@ -845,4 +846,20 @@ import Logging: Warn
         @test sol1.u[:] == sol2.u[:]
     end
 
+    @testset "SciMLBase.init (wrapped RHS)" begin
+        @taylorize function harmosc!(dx, x, p, t)
+            dx[1] = x[2]
+            dx[2] = -x[1]
+            return nothing
+        end
+        order, abstol, q0, tspan = 25, 1e-20, [1.0, 0.0], (0.0, 10π)
+        prob = ODEProblem(harmosc!, q0, tspan)
+        integ = SciMLBase.init(prob, TaylorMethod(order);
+            abstol, reltol = 0.0, dtmin = 0.0, dtmax = Inf)
+        @test SciMLBase.unwrapped_f(integ.f.f) !== integ.f.f   # the RHS really was wrapped
+        @test integ.cache.parse_eqs isa Val{true}              # the parsed jetcoeffs! was found
+        SciMLBase.solve!(integ)
+        sol1 = taylorinteg(harmosc!, q0, tspan[1], tspan[2], order, abstol)
+        @test norm(integ.sol.u[end] - sol1.x[end, :], Inf) < 1e-12
+    end
 end
