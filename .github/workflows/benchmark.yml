@@ -1,0 +1,117 @@
+name: Benchmark a pull request
+
+# The benchmarks of the pull request (`benchmark/`) are run on the base of the pull request and on
+# its head, one after the other on the same runner, and compared with `benchmark/compare.jl`.
+# The report is posted as a comment (updated at each push) and in the summary of the job.
+# Timings on shared runners are noisy: treat the times as a soft signal; allocations are exact.
+# A pull request whose last commit message contains `[skip bench]` is not benchmarked.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - 'src/**'
+      - 'ext/**'
+      - 'benchmark/**'
+      - '.github/workflows/benchmark.yml'
+  workflow_dispatch:
+    inputs:
+      julia-version:
+        description: 'Julia version'
+        default: '1'
+
+concurrency:
+  group: benchmark-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  JULIA_NUM_THREADS: 1
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      skip: ${{ steps.msg.outputs.skip }}
+    steps:
+      - id: msg
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          skip=false
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            msg=$(gh api "repos/${{ github.repository }}/commits/${{ github.event.pull_request.head.sha }}" --jq .commit.message)
+            if echo "$msg" | grep -qiF '[skip bench]'; then skip=true; fi
+          fi
+          echo "skip=$skip" >> "$GITHUB_OUTPUT"
+
+  benchmark:
+    needs: check
+    if: needs.check.outputs.skip != 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Head of the pull request (or the selected ref, for a manual run)
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: target
+      - uses: actions/checkout@v4
+        with:
+          # Base of the pull request (or the default branch, for a manual run)
+          ref: ${{ github.event.pull_request.base.sha || github.event.repository.default_branch }}
+          path: base
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: ${{ inputs.julia-version || '1' }}
+      - uses: julia-actions/cache@v2
+
+      # Both revisions are measured with the benchmark suite of the pull request
+      - name: Use the benchmark suite of the pull request for the base
+        run: |
+          rm -rf base/benchmark
+          cp -r target/benchmark base/benchmark
+
+      - name: Benchmark the base
+        working-directory: base
+        run: |
+          julia --project=benchmark -e 'using Pkg; Pkg.develop(path = "."); Pkg.instantiate()'
+          julia --project=benchmark benchmark/run_local.jl base
+
+      - name: Benchmark the pull request
+        working-directory: target
+        run: |
+          julia --project=benchmark -e 'using Pkg; Pkg.develop(path = "."); Pkg.instantiate()'
+          julia --project=benchmark benchmark/run_local.jl target
+
+      - name: Compare
+        run: |
+          cp base/benchmark/results/base.* target/benchmark/results/
+          julia --project=target/benchmark target/benchmark/compare.jl base target | tee comparison.txt
+          {
+            echo "### Benchmarks: base (${{ github.event.pull_request.base.sha || 'default branch' }}) vs. this pull request"
+            echo
+            echo "Ratios are target/base (< 1 is better); times are medians on a shared runner (noisy); allocations are exact."
+            echo
+            echo '```text'
+            cat comparison.txt
+            echo '```'
+          } > comment.md
+          cat comment.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Comment on the pull request
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        uses: marocchino/sticky-pull-request-comment@v2
+        with:
+          header: benchmark
+          path: comment.md
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: |
+            comparison.txt
+            target/benchmark/results/
