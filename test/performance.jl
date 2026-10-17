@@ -42,6 +42,24 @@ end
     return nothing
 end
 
+# Scalar problem: x' = 3 - x^2
+@taylorize perf_riccati(x, p, t) = 3.0 - x^2
+
+# Number of allocations (after a warm-up) and of steps of `taylorinteg(f, ...; tf)`
+function perf_count_steps(call, tf)
+    call(tf)                                    # warm-up
+    a = @allocations call(tf)
+    return a, length(call(tf).t) - 1
+end
+
+# Pendulum with an event function which does not allocate (it returns an element of the state)
+@taylorize function perf_pendulum!(dx, x, p, t)
+    dx[1] = x[2]
+    dx[2] = -sin(x[1])
+    return nothing
+end
+perf_noevent(dx, x, p, t) = (true, x[1])
+
 # Function barriers: the integrators are called with concrete types, and
 # `@allocated` measures only the (already compiled) integration.
 function perf_integ!(f!, q0, t0, tf, abstol, cache, params, maxsteps)
@@ -112,6 +130,28 @@ end
             @test pe2 === Val(true)
             @test a2 == a1
         end
+    end
+
+    # Scalar integration: the same property
+    @testset "No allocations per step (parsed methods, scalar)" begin
+        scalar(tf) = taylorinteg(perf_riccati, 1.0, 0.0, tf, 28, 1.0e-20;
+            maxsteps = 1_000, parse_eqs = true, dense = false)
+        a1, n1 = perf_count_steps(scalar, 3.0)
+        a2, n2 = perf_count_steps(scalar, 10.0)
+        @test n2 > n1
+        @test a2 == a1
+    end
+
+    # Root finding without events (a rotating pendulum: `x[1]` never vanishes). The only allocation
+    # per step is the copy of the polynomial of the event function (`_stored_event_tuple`), which
+    # avoids aliasing; this test guards that nothing else allocates in the bookkeeping of each step.
+    @testset "Root finding: at most one allocation per step (no events)" begin
+        roots(tf) = taylorinteg(perf_pendulum!, perf_noevent, [1.0, 3.0], 0.0, tf, 28, 1.0e-20;
+            maxsteps = 10_000, parse_eqs = true, dense = false)
+        a1, n1 = perf_count_steps(roots, 50.0)
+        a2, n2 = perf_count_steps(roots, 100.0)
+        @test n2 > n1 + 50
+        @test a2 - a1 <= n2 - n1
     end
 
     # `_has_parsed_method` must agree with the (slower) `methodswith`
