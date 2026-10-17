@@ -1,73 +1,18 @@
 # ==========
-# Multiple pendula
+# Pendulum with root finding (events: velocity = 0)
 # ==========
 
-# ==========
-# Define equations of motion
-# ==========
-@taylorize function multpendula1!(dx, x, p, t)
-    for i in p[2]
-        dx[i] = x[p[1]+i]
-        dx[i+p[1]] = -sin(x[i])
+let
+    q0, t0, tf = PEND_Q0, PEND_T0, PEND_TF
+    order, abstol, maxsteps = PEND_ORDER, PEND_ABSTOL, PEND_MAXSTEPS
+
+    for dense in (false, true)
+        pe = true
+        label = "parsed" * (dense ? " dense" : "")
+        n = nsteps(taylorinteg(bench_pendulum!, pendulum_event, q0, t0, tf, order, abstol;
+            maxsteps, parse_eqs = pe, dense = dense))
+        add!("Pendulum", "events/$label", @benchmarkable(
+            taylorinteg(bench_pendulum!, pendulum_event, $q0, $t0, $tf, $order, $abstol;
+                maxsteps = $maxsteps, parse_eqs = $pe, dense = $dense)), steps = n)
     end
-    return nothing
 end
-
-# ==========
-# Constants
-# ==========
-const _abstol = 1.0e-20
-const _order = 20
-const pars = (3, 1:3)
-const t0 = 0.0
-const tf1 = 1000.0
-const tf2 = 10_000.0
-const maxsteps = 10_000
-const q0 = [pi - 0.001, 0.0, pi - 0.001, 0.0, pi - 0.001, 0.0]
-
-# ==========
-# Run benchmarks
-# ==========
-SUITE["Pendumum"] = BenchmarkGroup()
-
-SUITE["Pendumum"]["pendulum1-1"] = @benchmarkable taylorinteg(
-    multpendula1!,
-    $q0,
-    $t0,
-    $tf1,
-    $_order,
-    $_abstol,
-    $pars,
-    maxsteps = $maxsteps,
-)
-SUITE["Pendumum"]["pendulum1-2"] = @benchmarkable taylorinteg(
-    multpendula1!,
-    $q0,
-    $t0,
-    $tf2,
-    $_order,
-    $_abstol,
-    $pars,
-    maxsteps = $maxsteps,
-)
-
-SUITE["Pendumum"]["pendulum1-1"] = @benchmarkable taylorinteg(
-    multpendula1!,
-    $q0,
-    $t0,
-    $tf1,
-    $_order,
-    $_abstol,
-    $pars,
-    maxsteps = $maxsteps,
-)
-SUITE["Pendumum"]["pendulum1-2"] = @benchmarkable taylorinteg(
-    multpendula1!,
-    $q0,
-    $t0,
-    $tf2,
-    $_order,
-    $_abstol,
-    $pars,
-    maxsteps = $maxsteps,
-)
