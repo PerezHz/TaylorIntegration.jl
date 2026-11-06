@@ -551,7 +551,7 @@ function convert(
     k = ord + 1
     p = Array{Taylor1{T},N}(undef, sol.dims)
     for i in eachindex(p)
-        p[i] = Taylor1{T}(sol.p[(i-1)*k+1:i*k], ord)
+        p[i] = Taylor1{T}(view(sol.p, (i-1)*k+1:i*k), ord)
     end
     return TaylorSolution(sol.t, p)
 end
